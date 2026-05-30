@@ -29,24 +29,24 @@ export function Playlists({ onNavigate, playlists, onCreatePlaylist, notice, onD
       setVisibility("private");
       onNavigate(`/playlists/${created.id}`);
     } catch {
-      setError("Could not create playlist. Check Supabase setup.");
+      setError("Could not create playlist. Check Neon setup.");
     } finally {
       setIsSaving(false);
     }
   }
 
   return (
-    <PageShell eyebrow="My Playlists" title="Create and manage playlists" description="A playlist is the main Flim object. Name it, describe it, then add movies from inside the playlist.">
+    <PageShell eyebrow="My Playlists" title="Movie collections">
       {notice ? <p className="success-message">{notice}</p> : null}
       {error ? <p className="error-message">{error}</p> : null}
       <form className="playlist-form" onSubmit={submit}>
         <label>
           <span>Playlist name</span>
-          <input onChange={(event) => setName(event.target.value)} placeholder="Movies to watch" required value={name} />
+          <input onChange={(event) => setName(event.target.value)} placeholder="Movie night" required value={name} />
         </label>
         <label>
           <span>Description</span>
-          <textarea onChange={(event) => setDescription(event.target.value)} placeholder="Playlist description" value={description} />
+          <textarea onChange={(event) => setDescription(event.target.value)} placeholder="A few words for the collection" value={description} />
         </label>
         <label>
           <span>Visibility</span>

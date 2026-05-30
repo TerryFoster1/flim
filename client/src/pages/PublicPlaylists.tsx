@@ -14,8 +14,18 @@ export function PublicPlaylists({ onNavigate, playlists, clonePlaylist }: Public
   const mostSaved = [...publicPlaylists].sort((a, b) => b.movies.length - a.movies.length);
 
   return (
-    <PageShell eyebrow="Public Playlists" title="Browse public movie collections" description="Public playlists come from playlists you mark public in this local MVP.">
-      {publicPlaylists.length === 0 ? <p className="empty-state">No public playlists yet.</p> : null}
+    <PageShell eyebrow="Public Playlists" title="Shared collections">
+      {publicPlaylists.length === 0 ? (
+        <section className="empty-playlists-panel cinematic-empty">
+          <div className="empty-poster-wall" aria-hidden="true">
+            {Array.from({ length: 6 }).map((_, index) => <span key={index} />)}
+          </div>
+          <div className="empty-copy">
+            <span className="eyebrow">Public shelf</span>
+            <h2>No public lists yet.</h2>
+          </div>
+        </section>
+      ) : null}
       {publicPlaylists.length > 0 ? <section className="section-grid">
         <div>
           <h2>Popular</h2>
@@ -34,11 +44,13 @@ export function PublicPlaylists({ onNavigate, playlists, clonePlaylist }: Public
           <PlaylistGrid onNavigate={onNavigate} playlists={mostSaved} />
         </div>
       </section> : null}
-      {publicPlaylists.map((playlist) => (
-        <button className="secondary-button" key={playlist.id} onClick={() => clonePlaylist(playlist.id)} type="button">
-          Clone {playlist.name}
-        </button>
-      ))}
+      <div className="clone-action-row">
+        {publicPlaylists.map((playlist) => (
+          <button className="secondary-button" key={playlist.id} onClick={() => clonePlaylist(playlist.id)} type="button">
+            Clone {playlist.name}
+          </button>
+        ))}
+      </div>
     </PageShell>
   );
 }

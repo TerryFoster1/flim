@@ -10,9 +10,22 @@ interface HomeProps {
   onDelete?: (playlistId: string) => void | Promise<void>;
 }
 
-const playlistExamples = ["Movies With Anthony", "Date Night", "80s Action", "Movies To Watch", "Family Movie Night"];
+const curatedPosterUrls = [
+  "https://image.tmdb.org/t/p/w500/9gk7adHYeDvHkCSEqAvQNLV5Uge.jpg",
+  "https://image.tmdb.org/t/p/w500/qJ2tW6WMUDux911r6m7haRef0WH.jpg",
+  "https://image.tmdb.org/t/p/w500/6FfCtAuVAW8XJjZ7eWeLibRLWTw.jpg",
+  "https://image.tmdb.org/t/p/w500/8UlWHLMpgZm9bx6QYh0NFoq67TZ.jpg",
+  "https://image.tmdb.org/t/p/w500/rCzpDGLbOoPwLjy3OAm5NUPOTrC.jpg",
+  "https://image.tmdb.org/t/p/w500/5KCVkau1HEl7ZzfPsKAPM0sMiKc.jpg",
+];
+
+function getHeroPosters(playlists: Playlist[]) {
+  const savedPosters = playlists.flatMap((playlist) => playlist.movies).map((movie) => movie.posterUrl).filter(Boolean) as string[];
+  return [...savedPosters, ...curatedPosterUrls].slice(0, 8);
+}
 
 export function Home({ onNavigate, playlists, notice, onDelete }: HomeProps) {
+  const heroPosters = getHeroPosters(playlists);
   const recentlyUpdated = [...playlists].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, 4);
   const watchedMovies = playlists
     .flatMap((playlist) => playlist.movies)
@@ -20,30 +33,45 @@ export function Home({ onNavigate, playlists, notice, onDelete }: HomeProps) {
     .slice(0, 12);
 
   return (
-    <PageShell
-      eyebrow="My Playlists"
-      title="Your movie collections"
-      description="Build poster-first playlists for the movies you want to remember, watch, and share."
-      action={<button className="primary-button" onClick={() => onNavigate("/playlists")} type="button">Create Playlist</button>}
-    >
-      {notice ? <p className="success-message">{notice}</p> : null}
-      {playlists.length === 0 ? (
-        <section className="empty-playlists-panel">
-          <div>
-            <span className="eyebrow">Start with a list</span>
-            <h2>Create Your First Playlist</h2>
-            <p>Give the list a name, choose visibility, then add movies from inside the playlist.</p>
+    <section className="route-page">
+      <section className="cinema-hero" aria-label="Flim movie poster hero">
+        <div className="cinema-poster-wall">
+          {heroPosters.map((posterUrl, index) => (
+            <img alt="" className={`cinema-poster poster-${index + 1}`} key={`${posterUrl}-${index}`} src={posterUrl} />
+          ))}
+        </div>
+        <div className="cinema-hero-overlay">
+          <span className="eyebrow">Flim</span>
+          <h1>Your Movie Collections</h1>
+          <p>Create, share, and discover movie playlists.</p>
+          <div className="button-row">
             <button className="primary-button" onClick={() => onNavigate("/playlists")} type="button">Create Playlist</button>
+            <button className="secondary-button" onClick={() => onNavigate("/public")} type="button">Browse Public Lists</button>
           </div>
-          <div className="example-list" aria-label="Playlist examples">
-            {playlistExamples.map((example) => (
-              <span key={example}>{example}</span>
-            ))}
+        </div>
+      </section>
+      {notice ? <p className="success-message">{notice}</p> : null}
+
+      <PageShell
+        eyebrow="My Playlists"
+        title="Collections"
+        action={<button className="primary-button" onClick={() => onNavigate("/playlists")} type="button">Create Playlist</button>}
+      >
+      {playlists.length === 0 ? (
+        <section className="empty-playlists-panel cinematic-empty">
+          <div className="empty-poster-wall" aria-hidden="true">
+            {Array.from({ length: 6 }).map((_, index) => <span key={index} />)}
+          </div>
+          <div className="empty-copy">
+            <span className="eyebrow">No playlists yet</span>
+            <h2>Create your first collection.</h2>
+            <button className="primary-button" onClick={() => onNavigate("/playlists")} type="button">Create Playlist</button>
           </div>
         </section>
       ) : (
         <PlaylistGrid onDelete={onDelete} onNavigate={onNavigate} playlists={playlists} />
       )}
+      </PageShell>
 
       <section className="section-grid two-col">
         <div className="feature-panel">
@@ -65,6 +93,6 @@ export function Home({ onNavigate, playlists, notice, onDelete }: HomeProps) {
           <PosterShelf movies={watchedMovies} onNavigate={onNavigate} title="Recently watched movies" eyebrow="Watched" />
         </div>
       </section>
-    </PageShell>
+    </section>
   );
 }
