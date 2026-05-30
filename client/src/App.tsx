@@ -11,8 +11,7 @@ import {
   getPlaylists,
   removeMovieFromPlaylist,
   toggleWatchedStatus,
-} from "./services/supabasePlaylistStore";
-import { hasSupabaseConfig } from "./services/supabaseClient";
+} from "./services/apiPlaylistStore";
 import { Home } from "./pages/Home";
 import { MovieDetailsPage } from "./pages/MovieDetails";
 import { PlaylistDetails } from "./pages/PlaylistDetails";
@@ -69,12 +68,6 @@ export default function App() {
   }
 
   async function refreshPlaylists() {
-    if (!hasSupabaseConfig) {
-      setDataStatus("error");
-      setDataMessage("Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.");
-      return;
-    }
-
     try {
       setDataStatus("loading");
       setPlaylists(await getPlaylists());
@@ -82,7 +75,7 @@ export default function App() {
       setDataStatus("ready");
     } catch {
       setDataStatus("error");
-      setDataMessage("Could not load playlists from Supabase. Check the database setup and environment variables.");
+      setDataMessage("Could not load playlists from the database. Check Neon setup.");
     }
   }
 
