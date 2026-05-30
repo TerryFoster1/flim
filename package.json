@@ -2,15 +2,15 @@
   "name": "flim-app",
   "private": true,
   "version": "0.0.0",
-  "description": "Flim movie playlist app scaffold. Placeholder architecture only.",
+  "description": "Create, share, and discover movie playlists.",
   "workspaces": [
     "client",
     "server",
     "shared"
   ],
   "scripts": {
-    "dev": "echo Scaffold only: wire client and server dev commands in a future implementation phase.",
-    "build": "echo Scaffold only: add production build pipeline in a future implementation phase.",
-    "lint": "echo Scaffold only: add linting rules in a future implementation phase."
+    "dev": "npm --workspace client run dev",
+    "build": "npm --workspace client run build",
+    "lint": "npm --workspace client run build"
   }
 }

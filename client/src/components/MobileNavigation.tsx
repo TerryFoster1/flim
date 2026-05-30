@@ -4,7 +4,7 @@ const links: Array<{ label: string; route: AppRoute }> = [
   { label: "Playlists", route: "/" },
   { label: "Public", route: "/public" },
   { label: "Roulette", route: "/roulette" },
-  { label: "Profile", route: "/profile" },
+  { label: "Install", route: "/settings" },
 ];
 
 export function MobileNavigation({ activeRoute, onNavigate }: RouteAwareProps) {

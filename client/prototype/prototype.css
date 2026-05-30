@@ -23,7 +23,7 @@ button { color: inherit; font: inherit; border: 0; cursor: pointer; }
 .app-shell { min-height: 100vh; display: grid; grid-template-columns: 244px 1fr; }
 .sidebar { position: sticky; top: 0; height: 100vh; padding: 22px 18px; border-right: 1px solid var(--line); background: rgba(8,9,13,.86); backdrop-filter: blur(18px); display: flex; flex-direction: column; gap: 28px; }
 .brand, .mobile-brand { display: flex; align-items: center; gap: 10px; font-weight: 900; letter-spacing: 0; font-size: 1.24rem; }
-.brand-mark { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 8px; background: linear-gradient(135deg, var(--hot), var(--amber)); color: #12070a; font-weight: 950; }
+.brand-logo { width: 128px; height: auto; display: block; object-fit: contain; }
 .nav-stack { display: grid; gap: 6px; }
 .nav-stack a, .top-links a, .mobile-nav a, .profile-tabs a { color: var(--muted); border-radius: var(--radius); padding: 11px 12px; transition: background .18s ease, color .18s ease, transform .18s ease; }
 .nav-stack a:hover, .nav-stack a:focus-visible, .nav-stack a.is-active, .top-links a:hover, .top-links a.is-active, .mobile-nav a.is-active, .profile-tabs a:hover { background: rgba(255,255,255,.09); color: var(--text); outline: none; }

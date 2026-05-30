@@ -13,7 +13,6 @@ export function Sidebar({ activeRoute, onNavigate }: RouteAwareProps) {
     <aside className="sidebar" aria-label="Desktop navigation">
       <button className="brand reset-button" onClick={() => onNavigate("/")} type="button">
         <BrandMark />
-        <span>Flim</span>
       </button>
       <nav className="nav-stack">
         {links.map((link) => (
@@ -31,6 +30,9 @@ export function Sidebar({ activeRoute, onNavigate }: RouteAwareProps) {
         <span className="eyebrow">Flim</span>
         <strong>Spotify playlists for movies</strong>
         <p>Collect posters. Share the list. Pick the night.</p>
+        <button className="secondary-button sidebar-install-button" onClick={() => onNavigate("/settings")} type="button">
+          Install Flim
+        </button>
       </div>
     </aside>
   );

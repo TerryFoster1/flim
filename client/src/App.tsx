@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Footer } from "./components/Footer";
+import { InstallFlimPrompt } from "./components/InstallFlimPrompt";
 import { MobileNavigation } from "./components/MobileNavigation";
 import { NavigationBar } from "./components/NavigationBar";
 import { Sidebar } from "./components/Sidebar";
@@ -23,6 +24,7 @@ import { ProfileWatched } from "./pages/ProfileWatched";
 import { PublicPlaylist } from "./pages/PublicPlaylist";
 import { PublicPlaylists } from "./pages/PublicPlaylists";
 import { Roulette } from "./pages/Roulette";
+import { Settings } from "./pages/Settings";
 import type { AppRoute, MovieDetails, MovieSearchResult, Playlist, RouteState, WatchStatus } from "./types";
 
 function routeFromPath(pathname = window.location.pathname): RouteState {
@@ -150,7 +152,7 @@ export default function App() {
     "/profile/saved": <ProfileSaved playlists={playlists} />,
     "/profile/watched": <ProfileWatched playlists={playlists} updateWatchStatus={updateWatchStatus} onNavigate={navigate} />,
     "/providers": <Home notice={playlistNotice} onDelete={deleteRemotePlaylist} onNavigate={navigate} playlists={playlists} />,
-    "/settings": <Home notice={playlistNotice} onDelete={deleteRemotePlaylist} onNavigate={navigate} playlists={playlists} />,
+    "/settings": <Settings />,
   }[activeRoute];
 
   return (
@@ -165,6 +167,7 @@ export default function App() {
         </main>
         <Footer />
       </div>
+      <InstallFlimPrompt />
       <MobileNavigation activeRoute={activeRoute} onNavigate={navigate} />
     </div>
   );

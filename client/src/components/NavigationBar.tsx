@@ -13,7 +13,6 @@ export function NavigationBar({ activeRoute, onNavigate }: RouteAwareProps) {
     <header className="topbar">
       <button className="mobile-brand reset-button" onClick={() => onNavigate("/")} type="button">
         <BrandMark />
-        <span>Flim</span>
       </button>
       <nav className="top-links" aria-label="Top navigation">
         {links.map((link) => (
