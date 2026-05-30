@@ -1,10 +1,17 @@
 import { PageShell } from "../components/PageShell";
-import { PosterShelf } from "../components/PosterShelf";
+import { PlaylistGrid } from "../components/PlaylistGrid";
+import type { Playlist } from "../types";
 
-export function ProfileSaved() {
+interface ProfileSavedProps {
+  playlists: Playlist[];
+}
+
+export function ProfileSaved({ playlists }: ProfileSavedProps) {
+  const saved = playlists.filter((playlist) => playlist.saved || playlist.clonedFromId);
+
   return (
-    <PageShell eyebrow="Profile" title="Saved Lists" description="Placeholder route for playlists saved from other users.">
-      <PosterShelf title="Saved Playlist Name" />
+    <PageShell eyebrow="Profile" title="Saved Lists" description="Cloned playlists appear here for the local MVP.">
+      <PlaylistGrid playlists={saved} />
     </PageShell>
   );
 }

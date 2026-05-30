@@ -1,17 +1,16 @@
 import { PageShell } from "../components/PageShell";
 import { PlaylistGrid } from "../components/PlaylistGrid";
-import { PosterShelf } from "../components/PosterShelf";
-import type { AppRoute } from "../types";
+import type { Playlist } from "../types";
 
 interface ProfilePlaylistsProps {
-  onNavigate: (route: AppRoute) => void;
+  onNavigate: (path: string) => void;
+  playlists: Playlist[];
 }
 
-export function ProfilePlaylists({ onNavigate }: ProfilePlaylistsProps) {
+export function ProfilePlaylists({ onNavigate, playlists }: ProfilePlaylistsProps) {
   return (
-    <PageShell eyebrow="Profile" title="My Playlists" description="Placeholder route for owned and collaborative playlists.">
-      <PosterShelf title="My Playlists" />
-      <PlaylistGrid count={2} onNavigate={onNavigate} />
+    <PageShell eyebrow="Profile" title="My Playlists" description="Playlists are stored locally in this MVP.">
+      <PlaylistGrid onNavigate={onNavigate} playlists={playlists} />
     </PageShell>
   );
 }

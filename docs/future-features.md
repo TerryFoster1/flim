@@ -4,7 +4,7 @@ These items are intentionally parked outside Phase 1A and should not be implemen
 
 ## Streaming Provider Availability
 
-Placeholder for showing where movies are available to stream, rent, buy, or watch for free.
+Phase 2B placeholder for showing where movies are available to stream, rent, buy, or watch for free.
 
 Planned providers include Netflix, Amazon Prime, Disney+, Apple TV, Crave, Paramount+, Hulu, Peacock, Tubi, YouTube Movies, and regional providers.
 

@@ -29,7 +29,7 @@ Deployment is not configured yet. DNS, hosting, redirects, production builds, an
 
 ## Phase 1C Local React Shell
 
-The client is now a local React/Vite visual shell. It is still placeholder-only and does not connect to any APIs, databases, authentication, payments, notifications, analytics, movie catalogs, streaming providers, or external services.
+The client is now a local React/Vite app shell. Phase 2A adds TMDb-powered movie search and movie details plus browser `localStorage` playlists. It still does not include authentication, payments, notifications, analytics, hosted databases, social feeds, comments, AI recommendations, scraping, or streaming-provider deep links.
 
 Run locally from the client folder:
 
@@ -41,4 +41,25 @@ npm run dev
 
 Then open the local URL printed by Vite.
 
-The React shell uses hash-style local navigation and centralized placeholder UI data in `client/src/data/placeholders.ts`.
+## Environment
+
+Create `client/.env.local` for local TMDb search:
+
+```bash
+VITE_TMDB_API_KEY=
+```
+
+Do not commit real API keys.
+
+If the key is missing, the app still loads and shows a helpful search message instead of crashing.
+
+## Local Storage MVP
+
+Phase 2A stores user-created playlists, saved movies, and watched status in browser `localStorage`.
+
+Future backend replacement points:
+
+- `client/src/services/tmdbService.ts`
+- `client/src/services/localPlaylistStore.ts`
+
+Streaming provider availability and deep links remain planned for Phase 2B.

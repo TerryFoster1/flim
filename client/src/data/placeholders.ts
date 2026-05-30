@@ -1,18 +1,9 @@
-// Central placeholder content for the Phase 1C React visual shell.
-// Future implementation note: replace these arrays with API-backed view models
-// after movie search, provider availability, auth, and persistence scopes open.
+// Central generic placeholder content for empty states and future provider UI.
+// Real movie content now comes from TMDb only when VITE_TMDB_API_KEY is present.
+
+import type { PlaylistMovie } from "../types";
 
 export type PosterTone = "red" | "blue" | "green" | "gold" | "violet";
-
-export interface PlaceholderMovie {
-  id: string;
-  title: "Movie Title";
-  year: string;
-  runtime: string;
-  genre: "Genre Name";
-  status: string;
-  tone: PosterTone;
-}
 
 export interface PlaceholderPlaylist {
   id: string;
@@ -37,14 +28,14 @@ export interface PlaceholderStat {
 
 const tones: PosterTone[] = ["red", "blue", "green", "gold", "violet"];
 
-export const placeholderMovies: PlaceholderMovie[] = Array.from({ length: 14 }, (_, index) => ({
-  id: `placeholder-movie-${index + 1}`,
+export const placeholderMovies: PlaylistMovie[] = Array.from({ length: 10 }, (_, index) => ({
+  tmdbId: -(index + 1),
   title: "Movie Title",
-  year: String(1980 + index),
-  runtime: `${92 + index * 4} min`,
-  genre: "Genre Name",
-  status: index % 3 === 0 ? "Watched" : index % 3 === 1 ? "Want to watch" : "Queued",
-  tone: tones[index % tones.length],
+  releaseYear: "Year",
+  overview: "Placeholder movie card for empty states.",
+  genres: ["Genre Name"],
+  addedAt: new Date(0).toISOString(),
+  watchStatus: index % 3 === 0 ? "watched" : "not_watched",
 }));
 
 export const placeholderPlaylists: PlaceholderPlaylist[] = Array.from({ length: 8 }, (_, index) => ({

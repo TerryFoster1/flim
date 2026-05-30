@@ -1,17 +1,20 @@
-import { placeholderPlaylists } from "../data/placeholders";
-import type { AppRoute } from "../types";
+import type { Playlist } from "../types";
 import { PlaylistCard } from "./PlaylistCard";
 
 interface PlaylistGridProps {
-  onNavigate?: (route: AppRoute) => void;
-  count?: number;
+  playlists: Playlist[];
+  onNavigate?: (path: string) => void;
 }
 
-export function PlaylistGrid({ onNavigate, count = 4 }: PlaylistGridProps) {
+export function PlaylistGrid({ playlists, onNavigate }: PlaylistGridProps) {
+  if (playlists.length === 0) {
+    return <p className="empty-state">Create your first playlist to start saving movies.</p>;
+  }
+
   return (
     <div className="playlist-grid">
-      {placeholderPlaylists.slice(0, count).map((playlist, index) => (
-        <PlaylistCard key={playlist.id} playlist={playlist} large={index === 0 && count > 3} onNavigate={onNavigate} />
+      {playlists.map((playlist, index) => (
+        <PlaylistCard key={playlist.id} playlist={playlist} large={index === 0 && playlists.length > 3} onNavigate={onNavigate} />
       ))}
     </div>
   );
