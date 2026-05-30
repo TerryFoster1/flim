@@ -521,7 +521,7 @@ textarea { min-height: 42px; resize: vertical; }
     gap: 8px;
   }
   .cinema-hero-overlay { padding: 24px 16px; }
-  .cinema-hero-overlay h1 { font-size: clamp(3.25rem, 18vw, 5.8rem); }
+  .cinema-hero-overlay h1 { font-size: clamp(3rem, 14.5vw, 3.75rem); }
   .hero-posters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .playlist-grid, .stats-grid { grid-template-columns: 1fr; }
   .playlist-card.large { grid-column: auto; }
