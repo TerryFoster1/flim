@@ -17,11 +17,11 @@ export function ProfileWatched({ playlists, onNavigate, updateWatchStatus }: Pro
       {playlists.map((playlist) => (
         <MovieGrid
           key={playlist.id}
+          emptyMessage="No watched movies in this playlist."
           movies={playlist.movies.filter((movie) => movie.watchStatus === "watched")}
           onNavigate={onNavigate}
           onWatchStatusChange={updateWatchStatus}
           playlistId={playlist.id}
-          showPlaceholderWhenEmpty={false}
         />
       ))}
     </PageShell>

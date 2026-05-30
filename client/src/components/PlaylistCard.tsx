@@ -34,7 +34,7 @@ export function PlaylistCard({ playlist, large, onNavigate, onDelete }: Playlist
           )}
         </div>
         <h3>{playlist.name}</h3>
-        <p>{playlist.description || "Playlist description placeholder."}</p>
+        {playlist.description ? <p>{playlist.description}</p> : null}
         <div className="card-meta">
           <span>{playlist.visibility}</span>
           <span>{playlist.movies.length} movies</span>

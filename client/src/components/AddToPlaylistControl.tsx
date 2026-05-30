@@ -23,7 +23,7 @@ export function AddToPlaylistControl({ movie, playlists, addToPlaylist }: AddToP
           }
         }}
       >
-        <option value="">Playlist Name</option>
+        <option value="">Choose playlist</option>
         {playlists.map((playlist) => (
           <option key={playlist.id} value={playlist.id}>
             {playlist.name}

@@ -1,14 +1,10 @@
 import type { AppRoute, RouteAwareProps } from "../types";
 
 const links: Array<{ label: string; route: AppRoute }> = [
-  { label: "Search", route: "/" },
-  { label: "Playlists", route: "/playlists" },
+  { label: "My Playlists", route: "/" },
+  { label: "Public Playlists", route: "/public" },
   { label: "Roulette", route: "/roulette" },
-  { label: "Discover", route: "/discover" },
-  { label: "Public Lists", route: "/public" },
   { label: "Profile", route: "/profile" },
-  { label: "Settings", route: "/settings" },
-  { label: "Providers", route: "/providers" },
 ];
 
 export function Sidebar({ activeRoute, onNavigate }: RouteAwareProps) {
@@ -31,9 +27,9 @@ export function Sidebar({ activeRoute, onNavigate }: RouteAwareProps) {
         ))}
       </nav>
       <div className="sidebar-card">
-        <span className="eyebrow">Start here</span>
-        <strong>Search for a movie</strong>
-        <p>Find a movie first, then build the playlist around it.</p>
+        <span className="eyebrow">Flim</span>
+        <strong>Spotify playlists for movies</strong>
+        <p>Create a playlist, then add movies to build your collection.</p>
       </div>
     </aside>
   );

@@ -5,11 +5,12 @@ interface PlaylistGridProps {
   playlists: Playlist[];
   onNavigate?: (path: string) => void;
   onDelete?: (playlistId: string) => void;
+  emptyMessage?: string;
 }
 
-export function PlaylistGrid({ playlists, onNavigate, onDelete }: PlaylistGridProps) {
+export function PlaylistGrid({ playlists, onNavigate, onDelete, emptyMessage = "Create your first playlist." }: PlaylistGridProps) {
   if (playlists.length === 0) {
-    return <p className="empty-state">Create your first playlist to start saving movies.</p>;
+    return <p className="empty-state">{emptyMessage}</p>;
   }
 
   return (

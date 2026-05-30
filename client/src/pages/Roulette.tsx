@@ -1,6 +1,4 @@
 import { useMemo, useState } from "react";
-import { BlindSpinButton } from "../components/BlindSpinButton";
-import { GenreChip } from "../components/GenreChip";
 import { PosterCard } from "../components/PosterCard";
 import { RouletteButton } from "../components/RouletteButton";
 import type { Playlist, PlaylistMovie } from "../types";
@@ -14,9 +12,20 @@ type RouletteFilter = "all" | "watched" | "not_watched";
 
 export function Roulette({ playlists, onNavigate }: RouletteProps) {
   const [filter, setFilter] = useState<RouletteFilter>("all");
+  const [selectedPlaylistIds, setSelectedPlaylistIds] = useState<string[]>([]);
   const [selectedMovie, setSelectedMovie] = useState<PlaylistMovie | null>(null);
-  const savedMovies = useMemo(() => playlists.flatMap((playlist) => playlist.movies), [playlists]);
+  const activePlaylistIds = selectedPlaylistIds.length > 0 ? selectedPlaylistIds : playlists.map((playlist) => playlist.id);
+  const savedMovies = useMemo(
+    () => playlists.filter((playlist) => activePlaylistIds.includes(playlist.id)).flatMap((playlist) => playlist.movies),
+    [playlists, activePlaylistIds],
+  );
   const pool = savedMovies.filter((movie) => (filter === "all" ? true : movie.watchStatus === filter));
+
+  function togglePlaylist(playlistId: string) {
+    setSelectedPlaylistIds((current) =>
+      current.includes(playlistId) ? current.filter((id) => id !== playlistId) : [...current, playlistId],
+    );
+  }
 
   function spin() {
     if (pool.length === 0) {
@@ -32,11 +41,19 @@ export function Roulette({ playlists, onNavigate }: RouletteProps) {
         <div className="roulette-copy">
           <span className="eyebrow">Movie Roulette</span>
           <h1>Spin from your saved movies</h1>
-          <p>Roulette chooses randomly from movies already saved in local playlists. Provider launch and Blind Spin are Phase 2B+ placeholders.</p>
+          <p>Roulette chooses randomly from movies already saved in your playlists.</p>
           <div className="selector-cloud">
-            <GenreChip />
-            <span>Provider Name</span>
-            <span>Playlist Name</span>
+            {playlists.length === 0 ? <p className="empty-state">Create a playlist and add movies before spinning.</p> : null}
+            {playlists.map((playlist) => (
+              <label className="checkbox-pill" key={playlist.id}>
+                <input
+                  checked={selectedPlaylistIds.length === 0 || selectedPlaylistIds.includes(playlist.id)}
+                  onChange={() => togglePlaylist(playlist.id)}
+                  type="checkbox"
+                />
+                {playlist.name}
+              </label>
+            ))}
             <label>
               <span>Watch filter</span>
               <select onChange={(event) => setFilter(event.target.value as RouletteFilter)} value={filter}>
@@ -48,17 +65,16 @@ export function Roulette({ playlists, onNavigate }: RouletteProps) {
           </div>
           <div className="button-row">
             <RouletteButton onSpin={spin} />
-            <BlindSpinButton />
           </div>
         </div>
-        <div className="roulette-wheel" aria-label="Roulette animation placeholder">
+        <div className="roulette-wheel" aria-label="Roulette wheel">
           <div className="wheel-core">?</div>
           <div className="orbit one" />
           <div className="orbit two" />
           <div className="orbit three" />
         </div>
       </div>
-      <div className="results-placeholder">
+      <div className="roulette-results">
         <span className="eyebrow">Results area</span>
         {selectedMovie ? (
           <div className="roulette-result">

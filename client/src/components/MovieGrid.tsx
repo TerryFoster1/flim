@@ -1,4 +1,3 @@
-import { placeholderMovies } from "../data/placeholders";
 import type { PlaylistMovie, WatchStatus } from "../types";
 import { PosterCard } from "./PosterCard";
 
@@ -8,11 +7,15 @@ interface MovieGridProps {
   onNavigate?: (path: string) => void;
   onRemove?: (playlistId: string, tmdbId: number) => void;
   onWatchStatusChange?: (playlistId: string, tmdbId: number, watchStatus: WatchStatus) => void;
-  showPlaceholderWhenEmpty?: boolean;
+  emptyMessage?: string;
 }
 
-export function MovieGrid({ movies, playlistId, onNavigate, onRemove, onWatchStatusChange, showPlaceholderWhenEmpty = true }: MovieGridProps) {
-  const displayMovies = movies && movies.length > 0 ? movies : showPlaceholderWhenEmpty ? placeholderMovies.slice(0, 12) : [];
+export function MovieGrid({ movies, playlistId, onNavigate, onRemove, onWatchStatusChange, emptyMessage = "No movies in this playlist yet." }: MovieGridProps) {
+  const displayMovies = movies || [];
+
+  if (displayMovies.length === 0) {
+    return <p className="empty-state">{emptyMessage}</p>;
+  }
 
   return (
     <div className="movie-grid">

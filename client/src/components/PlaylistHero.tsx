@@ -1,7 +1,5 @@
 import type { Playlist } from "../types";
 import { ClonePlaylistButton } from "./ClonePlaylistButton";
-import { FollowPlaylistButton } from "./FollowPlaylistButton";
-import { SavePlaylistButton } from "./SavePlaylistButton";
 import { SharePlaylistButton } from "./SharePlaylistButton";
 
 interface PlaylistHeroProps {
@@ -12,7 +10,7 @@ interface PlaylistHeroProps {
 export function PlaylistHero({ playlist, clonePlaylist }: PlaylistHeroProps) {
   return (
     <div className="playlist-hero">
-      <div className="playlist-cover-xl" aria-label="Playlist cover poster placeholders">
+      <div className="playlist-cover-xl" aria-label="Playlist cover">
         {playlist.movies.slice(0, 4).map((movie) =>
           movie.posterUrl ? <img alt="" key={movie.tmdbId} src={movie.posterUrl} /> : <div key={movie.tmdbId} />,
         )}
@@ -28,17 +26,14 @@ export function PlaylistHero({ playlist, clonePlaylist }: PlaylistHeroProps) {
       <div className="playlist-copy">
         <span className="eyebrow">{playlist.visibility} playlist</span>
         <h1>{playlist.name}</h1>
-        <p>{playlist.description || "Playlist description placeholder."}</p>
+        {playlist.description ? <p>{playlist.description}</p> : null}
         <div className="meta-row">
-          <span>Creator: User Name</span>
           <span>{playlist.movies.length} movies</span>
           <span>{playlist.movies.filter((movie) => movie.watchStatus === "watched").length} watched</span>
         </div>
         <div className="button-row">
-          <FollowPlaylistButton />
-          <SavePlaylistButton />
-          <ClonePlaylistButton onClone={() => clonePlaylist(playlist.id)} />
           <SharePlaylistButton />
+          <ClonePlaylistButton onClone={() => clonePlaylist(playlist.id)} />
         </div>
       </div>
     </div>

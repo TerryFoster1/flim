@@ -4,7 +4,6 @@ import { MobileNavigation } from "./components/MobileNavigation";
 import { NavigationBar } from "./components/NavigationBar";
 import { Sidebar } from "./components/Sidebar";
 import { addMovieToPlaylist, clonePlaylist, deletePlaylist, loadPlaylists, removeMovieFromPlaylist, savePlaylists, setMovieWatchStatus } from "./services/localPlaylistStore";
-import { Discover } from "./pages/Discover";
 import { Home } from "./pages/Home";
 import { MovieDetailsPage } from "./pages/MovieDetails";
 import { PlaylistDetails } from "./pages/PlaylistDetails";
@@ -13,10 +12,8 @@ import { Profile } from "./pages/Profile";
 import { ProfilePlaylists } from "./pages/ProfilePlaylists";
 import { ProfileSaved } from "./pages/ProfileSaved";
 import { ProfileWatched } from "./pages/ProfileWatched";
-import { Providers } from "./pages/Providers";
 import { PublicPlaylists } from "./pages/PublicPlaylists";
 import { Roulette } from "./pages/Roulette";
-import { Settings } from "./pages/Settings";
 import type { AppRoute, MovieDetails, MovieSearchResult, Playlist, RouteState, WatchStatus } from "./types";
 
 function routeFromPath(pathname = window.location.pathname): RouteState {
@@ -86,8 +83,8 @@ export default function App() {
 
   const activeRoute: AppRoute = routeState.route;
   const page = {
-    "/": <Home onNavigate={navigate} playlists={playlists} addToPlaylist={addToPlaylist} />,
-    "/discover": <Discover onNavigate={navigate} playlists={playlists} addToPlaylist={addToPlaylist} />,
+    "/": <Home notice={playlistNotice} onDelete={deleteLocalPlaylist} onNavigate={navigate} playlists={playlists} />,
+    "/discover": <Home notice={playlistNotice} onDelete={deleteLocalPlaylist} onNavigate={navigate} playlists={playlists} />,
     "/playlists": <Playlists notice={playlistNotice} onDelete={deleteLocalPlaylist} onNavigate={navigate} playlists={playlists} setPlaylists={setPlaylists} />,
     "/playlists/:id": activePlaylist ? (
       <PlaylistDetails
@@ -116,8 +113,8 @@ export default function App() {
     "/profile/playlists": <ProfilePlaylists onNavigate={navigate} playlists={playlists} />,
     "/profile/saved": <ProfileSaved playlists={playlists} />,
     "/profile/watched": <ProfileWatched playlists={playlists} updateWatchStatus={updateWatchStatus} onNavigate={navigate} />,
-    "/providers": <Providers />,
-    "/settings": <Settings />,
+    "/providers": <Home notice={playlistNotice} onDelete={deleteLocalPlaylist} onNavigate={navigate} playlists={playlists} />,
+    "/settings": <Home notice={playlistNotice} onDelete={deleteLocalPlaylist} onNavigate={navigate} playlists={playlists} />,
   }[activeRoute];
 
   return (
@@ -128,10 +125,6 @@ export default function App() {
         <main className="page-container">{page}</main>
         <Footer />
       </div>
-      <button className="floating-search-button" onClick={() => navigate("/")} type="button" aria-label="Search movies">
-        <span aria-hidden="true">⌕</span>
-        <span>Search</span>
-      </button>
       <MobileNavigation activeRoute={activeRoute} onNavigate={navigate} />
     </div>
   );

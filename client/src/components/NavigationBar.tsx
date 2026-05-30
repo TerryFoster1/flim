@@ -1,9 +1,10 @@
 import type { AppRoute, RouteAwareProps } from "../types";
 
 const links: Array<{ label: string; route: AppRoute }> = [
-  { label: "Search", route: "/" },
-  { label: "Playlists", route: "/playlists" },
+  { label: "My Playlists", route: "/" },
+  { label: "Public Playlists", route: "/public" },
   { label: "Roulette", route: "/roulette" },
+  { label: "Profile", route: "/profile" },
 ];
 
 export function NavigationBar({ activeRoute, onNavigate }: RouteAwareProps) {

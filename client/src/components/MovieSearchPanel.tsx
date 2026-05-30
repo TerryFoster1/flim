@@ -9,9 +9,10 @@ interface MovieSearchPanelProps {
   onNavigate: (path: string) => void;
   variant?: "standard" | "hero";
   fixedPlaylistId?: string;
+  onMovieAdded?: () => void;
 }
 
-export function MovieSearchPanel({ playlists, addToPlaylist, onNavigate, variant = "standard", fixedPlaylistId }: MovieSearchPanelProps) {
+export function MovieSearchPanel({ playlists, addToPlaylist, onNavigate, variant = "standard", fixedPlaylistId, onMovieAdded }: MovieSearchPanelProps) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<MovieSearchResult[]>([]);
   const [status, setStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
@@ -80,7 +81,14 @@ export function MovieSearchPanel({ playlists, addToPlaylist, onNavigate, variant
                       Details
                     </button>
                     {fixedPlaylistId ? (
-                      <button className="primary-button" onClick={() => addToPlaylist(fixedPlaylistId, movie)} type="button">
+                      <button
+                        className="primary-button"
+                        onClick={() => {
+                          addToPlaylist(fixedPlaylistId, movie);
+                          onMovieAdded?.();
+                        }}
+                        type="button"
+                      >
                         Add Movie
                       </button>
                     ) : playlists.length === 0 ? (

@@ -47,7 +47,7 @@ function releaseYear(date?: string) {
 function mapSearchMovie(movie: TmdbSearchMovie): MovieSearchResult {
   return {
     tmdbId: movie.id,
-    title: movie.title || movie.name || "Movie Title",
+    title: movie.title || movie.name || "Untitled movie",
     releaseYear: releaseYear(movie.release_date),
     overview: movie.overview || "No overview is available yet.",
     posterPath: movie.poster_path || undefined,

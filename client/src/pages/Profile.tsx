@@ -1,4 +1,3 @@
-import { PosterShelf } from "../components/PosterShelf";
 import { StatsCard } from "../components/StatsCard";
 import type { Playlist } from "../types";
 
@@ -10,21 +9,21 @@ interface ProfileProps {
 export function Profile({ onNavigate, playlists }: ProfileProps) {
   const movies = playlists.flatMap((playlist) => playlist.movies);
   const watched = movies.filter((movie) => movie.watchStatus === "watched");
+  const savedPlaylists = playlists.filter((playlist) => playlist.saved || playlist.clonedFromId);
   const stats = [
-    { label: "Playlists", value: String(playlists.length) },
-    { label: "Saved Movies", value: String(movies.length) },
-    { label: "Watched", value: String(watched.length) },
-    { label: "Roulette Pool", value: String(movies.length) },
+    { label: "Playlists Created", value: String(playlists.length) },
+    { label: "Movies Saved", value: String(movies.length) },
+    { label: "Movies Watched", value: String(watched.length) },
+    { label: "Saved Playlists", value: String(savedPlaylists.length) },
   ];
 
   return (
     <section className="route-page">
       <div className="profile-hero">
-        <div className="avatar-placeholder">U</div>
         <div>
           <span className="eyebrow">Profile</span>
-          <h1>User Name</h1>
-          <p>Local profile view for playlists, saved movies, watched status, and roulette history placeholders.</p>
+          <h1>Your Flim activity</h1>
+          <p>A simple local summary of the playlists and movies saved in this browser.</p>
         </div>
       </div>
       <div className="stats-grid">
@@ -37,7 +36,6 @@ export function Profile({ onNavigate, playlists }: ProfileProps) {
         <button onClick={() => onNavigate("/profile/saved")} type="button">Saved Lists</button>
         <button onClick={() => onNavigate("/profile/watched")} type="button">Watch History</button>
       </div>
-      <PosterShelf movies={movies} onNavigate={onNavigate} title="Saved Movie Posters" />
     </section>
   );
 }

@@ -43,7 +43,7 @@ export function savePlaylists(playlists: Playlist[]) {
 export function createPlaylistItem(input: Pick<Playlist, "name" | "description" | "visibility">): Playlist {
   return {
     id: makeId(),
-    name: input.name.trim() || "Playlist Name",
+    name: input.name.trim() || "Untitled playlist",
     description: input.description.trim(),
     visibility: input.visibility,
     movies: [],

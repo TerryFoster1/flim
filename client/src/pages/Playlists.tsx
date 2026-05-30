@@ -28,19 +28,19 @@ export function Playlists({ onNavigate, playlists, setPlaylists, notice, onDelet
   }
 
   return (
-    <PageShell eyebrow="Playlists" title="Your movie shelves" description="Create local playlists, then add movies from search or movie details.">
+    <PageShell eyebrow="My Playlists" title="Create and manage playlists" description="A playlist is the main Flim object. Name it, describe it, then add movies from inside the playlist.">
       {notice ? <p className="success-message">{notice}</p> : null}
       <form className="playlist-form" onSubmit={submit}>
         <label>
           <span>Playlist name</span>
-          <input onChange={(event) => setName(event.target.value)} placeholder="Playlist Name" required value={name} />
+          <input onChange={(event) => setName(event.target.value)} placeholder="Movies to watch" required value={name} />
         </label>
         <label>
           <span>Description</span>
           <textarea onChange={(event) => setDescription(event.target.value)} placeholder="Playlist description" value={description} />
         </label>
         <label>
-          <span>Visibility placeholder</span>
+          <span>Visibility</span>
           <select onChange={(event) => setVisibility(event.target.value as Playlist["visibility"])} value={visibility}>
             <option value="private">private</option>
             <option value="shared">shared</option>

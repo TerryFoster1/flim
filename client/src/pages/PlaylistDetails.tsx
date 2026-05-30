@@ -17,6 +17,7 @@ interface PlaylistDetailsProps {
 
 export function PlaylistDetails({ playlist, onNavigate, addToPlaylist, clonePlaylist, deletePlaylist, removeMovie, updateWatchStatus }: PlaylistDetailsProps) {
   const [showAddMovie, setShowAddMovie] = useState(playlist.movies.length === 0);
+  const [notice, setNotice] = useState("");
 
   function confirmDelete() {
     if (window.confirm("Delete this playlist? This cannot be undone.")) {
@@ -35,13 +36,29 @@ export function PlaylistDetails({ playlist, onNavigate, addToPlaylist, clonePlay
           Delete Playlist
         </button>
       </div>
+      {notice ? <p className="success-message">{notice}</p> : null}
       {showAddMovie ? (
-        <MovieSearchPanel
-          addToPlaylist={addToPlaylist}
-          fixedPlaylistId={playlist.id}
-          onNavigate={onNavigate}
-          playlists={[playlist]}
-        />
+        <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Add movie to playlist">
+          <div className="search-modal">
+            <div className="modal-header">
+              <div>
+                <span className="eyebrow">Add Movie</span>
+                <h2>Search for a movie to add</h2>
+              </div>
+              <button className="ghost-button" onClick={() => setShowAddMovie(false)} type="button">Close</button>
+            </div>
+            <MovieSearchPanel
+              addToPlaylist={addToPlaylist}
+              fixedPlaylistId={playlist.id}
+              onMovieAdded={() => {
+                setNotice("Movie added to playlist.");
+                setShowAddMovie(false);
+              }}
+              onNavigate={onNavigate}
+              playlists={[playlist]}
+            />
+          </div>
+        </div>
       ) : null}
       <PosterShelf
         movies={playlist.movies}
@@ -53,6 +70,7 @@ export function PlaylistDetails({ playlist, onNavigate, addToPlaylist, clonePlay
       />
       <MovieGrid
         movies={playlist.movies}
+        emptyMessage="No movies in this playlist yet. Add a movie to begin."
         onNavigate={onNavigate}
         onRemove={removeMovie}
         onWatchStatusChange={updateWatchStatus}

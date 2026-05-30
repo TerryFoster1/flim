@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { AddToPlaylistControl } from "../components/AddToPlaylistControl";
 import { PageShell } from "../components/PageShell";
-import { ProviderRow } from "../components/ProviderRow";
 import { WatchStatusBadge } from "../components/WatchStatusBadge";
 import { getMovieDetails, hasTmdbApiKey } from "../services/tmdbService";
 import type { MovieDetails, Playlist, WatchStatus } from "../types";
@@ -61,7 +60,7 @@ export function MovieDetailsPage({ tmdbId, playlists, addToPlaylist, updateWatch
           <span className="eyebrow">TMDb movie</span>
           <h1>{movie.title}</h1>
           <div className="meta-row">
-            <span>{movie.releaseYear || "Year"}</span>
+            {movie.releaseYear ? <span>{movie.releaseYear}</span> : null}
             {movie.runtimeMinutes ? <span>{movie.runtimeMinutes} min</span> : null}
             <WatchStatusBadge label={watched ? "Watched" : "Not watched"} />
           </div>
@@ -71,7 +70,6 @@ export function MovieDetailsPage({ tmdbId, playlists, addToPlaylist, updateWatch
               <span className="genre-chip" key={genre}>{genre}</span>
             ))}
           </div>
-          <ProviderRow />
           <div className="button-row">
             <AddToPlaylistControl addToPlaylist={(playlistId) => addToPlaylist(playlistId, movie)} movie={movie} playlists={playlists} />
             {savedInstances.map(({ playlist, item }) => (

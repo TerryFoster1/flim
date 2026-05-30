@@ -1,5 +1,4 @@
 import type { PlaylistMovie, WatchStatus } from "../types";
-import { ProviderBadge } from "./ProviderBadge";
 import { WatchStatusBadge } from "./WatchStatusBadge";
 
 interface PosterCardProps {
@@ -24,11 +23,6 @@ export function PosterCard({ movie, playlistId, onNavigate, onRemove, onWatchSta
         {movie.genres.slice(0, 2).map((genre) => (
           <span key={genre}>{genre}</span>
         ))}
-      </div>
-      <div className="provider-dots" aria-label="Provider placeholders for Phase 2B">
-        <ProviderBadge />
-        <ProviderBadge />
-        <ProviderBadge />
       </div>
       <WatchStatusBadge label={watched ? "Watched" : "Not watched"} />
       {playlistId ? (

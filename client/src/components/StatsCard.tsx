@@ -1,7 +1,8 @@
-import type { PlaceholderStat } from "../data/placeholders";
-
 interface StatsCardProps {
-  stat: PlaceholderStat;
+  stat: {
+    label: string;
+    value: string;
+  };
 }
 
 export function StatsCard({ stat }: StatsCardProps) {

@@ -1,4 +1,3 @@
-import { placeholderMovies } from "../data/placeholders";
 import type { PlaylistMovie, WatchStatus } from "../types";
 import { PosterCard } from "./PosterCard";
 
@@ -13,7 +12,7 @@ interface PosterShelfProps {
 }
 
 export function PosterShelf({ title, eyebrow = "Poster shelf", movies, playlistId, onNavigate, onRemove, onWatchStatusChange }: PosterShelfProps) {
-  const displayMovies = movies && movies.length > 0 ? movies : placeholderMovies.slice(0, 8);
+  const displayMovies = movies || [];
 
   return (
     <section className="shelf" aria-label={title}>
@@ -21,18 +20,21 @@ export function PosterShelf({ title, eyebrow = "Poster shelf", movies, playlistI
         <div className="shelf-title">{title}</div>
         <span className="eyebrow">{eyebrow}</span>
       </div>
-      <div className="poster-row">
-        {displayMovies.map((movie) => (
-          <PosterCard
-            key={`${title}-${movie.tmdbId}`}
-            movie={movie}
-            playlistId={playlistId}
-            onNavigate={onNavigate}
-            onRemove={onRemove}
-            onWatchStatusChange={onWatchStatusChange}
-          />
-        ))}
-      </div>
+      {displayMovies.length === 0 ? <p className="empty-state">No movies here yet.</p> : null}
+      {displayMovies.length > 0 ? (
+        <div className="poster-row">
+          {displayMovies.map((movie) => (
+            <PosterCard
+              key={`${title}-${movie.tmdbId}`}
+              movie={movie}
+              playlistId={playlistId}
+              onNavigate={onNavigate}
+              onRemove={onRemove}
+              onWatchStatusChange={onWatchStatusChange}
+            />
+          ))}
+        </div>
+      ) : null}
     </section>
   );
 }
