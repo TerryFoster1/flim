@@ -40,10 +40,9 @@ export function Roulette({ playlists, onNavigate }: RouletteProps) {
       <div className="roulette-stage">
         <div className="roulette-copy">
           <span className="eyebrow">Movie Roulette</span>
-          <h1>Spin from your saved movies</h1>
-          <p>Roulette chooses randomly from movies already saved in your playlists.</p>
+          <h1>Movie night, one spin away.</h1>
           <div className="selector-cloud">
-            {playlists.length === 0 ? <p className="empty-state">Create a playlist and add movies before spinning.</p> : null}
+            {playlists.length === 0 ? <p className="empty-state">Add movies to a collection before spinning.</p> : null}
             {playlists.map((playlist) => (
               <label className="checkbox-pill" key={playlist.id}>
                 <input
@@ -55,7 +54,7 @@ export function Roulette({ playlists, onNavigate }: RouletteProps) {
               </label>
             ))}
             <label>
-              <span>Watch filter</span>
+              <span>Mood</span>
               <select onChange={(event) => setFilter(event.target.value as RouletteFilter)} value={filter}>
                 <option value="all">all</option>
                 <option value="not_watched">not watched</option>
@@ -75,7 +74,7 @@ export function Roulette({ playlists, onNavigate }: RouletteProps) {
         </div>
       </div>
       <div className="roulette-results">
-        <span className="eyebrow">Results area</span>
+        <span className="eyebrow">Tonight's pick</span>
         {selectedMovie ? (
           <div className="roulette-result">
             <PosterCard movie={selectedMovie} onNavigate={onNavigate} />
@@ -84,7 +83,7 @@ export function Roulette({ playlists, onNavigate }: RouletteProps) {
             </button>
           </div>
         ) : (
-          <p>{pool.length === 0 ? "Add movies to playlists to create a roulette pool." : "Press Spin to choose a saved movie."}</p>
+          <p>{pool.length === 0 ? "Your poster pool is empty." : "Press Spin."}</p>
         )}
       </div>
     </section>

@@ -1,4 +1,5 @@
 import type { AppRoute, RouteAwareProps } from "../types";
+import { BrandMark } from "./BrandMark";
 
 const links: Array<{ label: string; route: AppRoute }> = [
   { label: "My Playlists", route: "/" },
@@ -11,7 +12,7 @@ export function Sidebar({ activeRoute, onNavigate }: RouteAwareProps) {
   return (
     <aside className="sidebar" aria-label="Desktop navigation">
       <button className="brand reset-button" onClick={() => onNavigate("/")} type="button">
-        <span className="brand-mark">F</span>
+        <BrandMark />
         <span>Flim</span>
       </button>
       <nav className="nav-stack">
@@ -29,7 +30,7 @@ export function Sidebar({ activeRoute, onNavigate }: RouteAwareProps) {
       <div className="sidebar-card">
         <span className="eyebrow">Flim</span>
         <strong>Spotify playlists for movies</strong>
-        <p>Create a playlist, then add movies to build your collection.</p>
+        <p>Collect posters. Share the list. Pick the night.</p>
       </div>
     </aside>
   );

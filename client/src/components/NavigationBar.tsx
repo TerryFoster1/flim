@@ -1,4 +1,5 @@
 import type { AppRoute, RouteAwareProps } from "../types";
+import { BrandMark } from "./BrandMark";
 
 const links: Array<{ label: string; route: AppRoute }> = [
   { label: "My Playlists", route: "/" },
@@ -11,7 +12,7 @@ export function NavigationBar({ activeRoute, onNavigate }: RouteAwareProps) {
   return (
     <header className="topbar">
       <button className="mobile-brand reset-button" onClick={() => onNavigate("/")} type="button">
-        <span className="brand-mark">F</span>
+        <BrandMark />
         <span>Flim</span>
       </button>
       <nav className="top-links" aria-label="Top navigation">
