@@ -46,12 +46,15 @@ Then open the local URL printed by Vite.
 Create `client/.env.local` for local TMDb search:
 
 ```bash
+VITE_TMDB_ACCESS_TOKEN=
 VITE_TMDB_API_KEY=
 ```
 
-Do not commit real API keys.
+Prefer `VITE_TMDB_ACCESS_TOKEN` when using TMDb's read access token. `VITE_TMDB_API_KEY` remains supported as a v3 fallback. Generic aliases are also documented in `client/.env.example` for future provider abstraction.
 
-If the key is missing, the app still loads and shows a helpful search message instead of crashing.
+Do not commit real API keys or access tokens.
+
+If credentials are missing, the app still loads and shows a helpful search message instead of crashing.
 
 ## Local Storage MVP
 

@@ -1,5 +1,5 @@
 // Central generic placeholder content for empty states and future provider UI.
-// Real movie content now comes from TMDb only when VITE_TMDB_API_KEY is present.
+// Real movie content now comes from TMDb only when env credentials are present.
 
 import type { PlaylistMovie } from "../types";
 

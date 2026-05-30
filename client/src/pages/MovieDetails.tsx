@@ -49,7 +49,7 @@ export function MovieDetailsPage({ tmdbId, playlists, addToPlaylist, updateWatch
 
   if (!movie) {
     return (
-      <PageShell eyebrow="Movie" title="Movie details unavailable" description="Add VITE_TMDB_API_KEY to load real TMDb movie detail pages." />
+      <PageShell eyebrow="Movie" title="Movie details unavailable" description="Add VITE_TMDB_ACCESS_TOKEN or VITE_TMDB_API_KEY to load real TMDb movie detail pages." />
     );
   }
 

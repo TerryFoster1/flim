@@ -18,8 +18,22 @@ interface TmdbMovieDetails extends TmdbSearchMovie {
   genres?: Array<{ id: number; name: string }>;
 }
 
+function credentialValue(name: string) {
+  const value = import.meta.env[name] as string | undefined;
+  return value?.trim() || undefined;
+}
+
+function accessToken() {
+  // Prefer TMDb's bearer token because it works across supported TMDb API versions.
+  return credentialValue("VITE_TMDB_ACCESS_TOKEN") || credentialValue("VITE_MOVIE_API_ACCESS_TOKEN");
+}
+
 function apiKey() {
-  return import.meta.env.VITE_TMDB_API_KEY as string | undefined;
+  return credentialValue("VITE_TMDB_API_KEY") || credentialValue("VITE_MOVIE_API_KEY");
+}
+
+function hasMovieCredential() {
+  return Boolean(accessToken() || apiKey());
 }
 
 function posterUrl(posterPath?: string | null) {
@@ -43,24 +57,40 @@ function mapSearchMovie(movie: TmdbSearchMovie): MovieSearchResult {
 }
 
 export function hasTmdbApiKey() {
-  return Boolean(apiKey());
+  return hasMovieCredential();
+}
+
+function applyTmdbAuth(url: URL): RequestInit {
+  const token = accessToken();
+  if (token) {
+    return {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    };
+  }
+
+  const key = apiKey();
+  if (key) {
+    url.searchParams.set("api_key", key);
+  }
+
+  return {};
 }
 
 export async function searchMovies(query: string): Promise<MovieSearchResult[]> {
-  const key = apiKey();
   const cleanQuery = query.trim();
 
-  if (!key || !cleanQuery) {
+  if (!hasMovieCredential() || !cleanQuery) {
     return [];
   }
 
   const url = new URL(`${TMDB_API_BASE_URL}/search/movie`);
-  url.searchParams.set("api_key", key);
   url.searchParams.set("query", cleanQuery);
   url.searchParams.set("include_adult", "false");
   url.searchParams.set("language", "en-US");
 
-  const response = await fetch(url);
+  const response = await fetch(url, applyTmdbAuth(url));
   if (!response.ok) {
     throw new Error("TMDb movie search failed.");
   }
@@ -70,16 +100,14 @@ export async function searchMovies(query: string): Promise<MovieSearchResult[]> 
 }
 
 export async function getMovieDetails(tmdbId: number): Promise<MovieDetails> {
-  const key = apiKey();
-  if (!key) {
-    throw new Error("TMDb API key is missing.");
+  if (!hasMovieCredential()) {
+    throw new Error("TMDb credentials are missing.");
   }
 
   const url = new URL(`${TMDB_API_BASE_URL}/movie/${tmdbId}`);
-  url.searchParams.set("api_key", key);
   url.searchParams.set("language", "en-US");
 
-  const response = await fetch(url);
+  const response = await fetch(url, applyTmdbAuth(url));
   if (!response.ok) {
     throw new Error("TMDb movie details failed.");
   }

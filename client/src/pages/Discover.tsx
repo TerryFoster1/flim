@@ -13,7 +13,7 @@ export function Discover({ onNavigate, playlists, addToPlaylist }: DiscoverProps
   const savedMovies = playlists.flatMap((playlist) => playlist.movies);
 
   return (
-    <PageShell eyebrow="Discover" title="Search and save real movies" description="TMDb-powered search appears here when `VITE_TMDB_API_KEY` is configured.">
+    <PageShell eyebrow="Discover" title="Search and save real movies" description="TMDb-powered search appears here when TMDb credentials are configured.">
       <MovieSearchPanel addToPlaylist={addToPlaylist} onNavigate={onNavigate} playlists={playlists} />
       <PosterShelf movies={savedMovies} onNavigate={onNavigate} title="Movies saved to your playlists" />
       <PosterShelf title="Poster-first empty state" />
