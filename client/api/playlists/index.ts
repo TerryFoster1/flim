@@ -1,4 +1,4 @@
-import { db, mapPlaylist, sendJson, readBody } from "../_db";
+import { db, mapPlaylist, sendJson, readBody } from "../_db.js";
 
 export default async function handler(request: any, response: any) {
   try {

@@ -1,4 +1,4 @@
-import { db, mapPlaylistMovie, readBody, sendJson } from "../../../_db";
+import { db, mapPlaylistMovie, readBody, sendJson } from "../../../_db.js";
 
 export default async function handler(request: any, response: any) {
   const playlistId = request.query.id as string;
