@@ -1,7 +1,7 @@
 import type { AppRoute, RouteAwareProps } from "../types";
 
 const links: Array<{ label: string; route: AppRoute }> = [
-  { label: "Discover", route: "/discover" },
+  { label: "Search", route: "/" },
   { label: "Playlists", route: "/playlists" },
   { label: "Roulette", route: "/roulette" },
 ];
@@ -25,8 +25,8 @@ export function NavigationBar({ activeRoute, onNavigate }: RouteAwareProps) {
           </button>
         ))}
       </nav>
-      <button className="ghost-button" onClick={() => onNavigate("/playlists/:id")} type="button">
-        Open Playlist
+      <button className="ghost-button" onClick={() => onNavigate("/playlists")} type="button">
+        Create Playlist
       </button>
     </header>
   );

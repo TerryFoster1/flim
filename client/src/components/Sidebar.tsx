@@ -1,14 +1,14 @@
 import type { AppRoute, RouteAwareProps } from "../types";
 
 const links: Array<{ label: string; route: AppRoute }> = [
-  { label: "Home", route: "/" },
-  { label: "Discover", route: "/discover" },
+  { label: "Search", route: "/" },
   { label: "Playlists", route: "/playlists" },
-  { label: "Public", route: "/public" },
   { label: "Roulette", route: "/roulette" },
-  { label: "Providers", route: "/providers" },
+  { label: "Discover", route: "/discover" },
+  { label: "Public Lists", route: "/public" },
   { label: "Profile", route: "/profile" },
   { label: "Settings", route: "/settings" },
+  { label: "Providers", route: "/providers" },
 ];
 
 export function Sidebar({ activeRoute, onNavigate }: RouteAwareProps) {
@@ -31,9 +31,9 @@ export function Sidebar({ activeRoute, onNavigate }: RouteAwareProps) {
         ))}
       </nav>
       <div className="sidebar-card">
-        <span className="eyebrow">Prototype</span>
-        <strong>Poster-first movie playlists</strong>
-        <p>No APIs, no real movie data, no functionality.</p>
+        <span className="eyebrow">Start here</span>
+        <strong>Search for a movie</strong>
+        <p>Find a movie first, then build the playlist around it.</p>
       </div>
     </aside>
   );

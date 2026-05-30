@@ -16,17 +16,10 @@ export function Home({ onNavigate, playlists, addToPlaylist }: HomeProps) {
     <section className="route-page">
       <div className="hero home-hero">
         <div className="hero-copy">
-          <span className="eyebrow">Movie playlists, not movie homework</span>
-          <h1>Spotify Playlists for Movies</h1>
-          <p>Create lists. Search real movie metadata. Save posters into playlists that persist locally for now.</p>
-          <div className="button-row">
-            <button className="primary-button" onClick={() => onNavigate("/playlists")} type="button">
-              Browse Playlists
-            </button>
-            <button className="secondary-button" onClick={() => onNavigate("/roulette")} type="button">
-              Try Roulette
-            </button>
-          </div>
+          <span className="eyebrow">Search first, playlist next</span>
+          <h1>What movie are you looking for?</h1>
+          <p>Search for a movie, open details, then save it into a playlist before the recommendation gets forgotten.</p>
+          <MovieSearchPanel addToPlaylist={addToPlaylist} onNavigate={onNavigate} playlists={playlists} variant="hero" />
         </div>
         <div className="hero-posters" aria-label="Poster placeholder collage">
           <div className="poster tall tone-red" />
@@ -35,7 +28,6 @@ export function Home({ onNavigate, playlists, addToPlaylist }: HomeProps) {
           <div className="poster tone-gold" />
         </div>
       </div>
-      <MovieSearchPanel addToPlaylist={addToPlaylist} onNavigate={onNavigate} playlists={playlists} />
       <PosterShelf movies={savedMovies} onNavigate={onNavigate} title="Saved Movie Posters" />
       <div className="genre-strip" aria-label="Trending genres">
         {Array.from({ length: 5 }, (_, index) => (

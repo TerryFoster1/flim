@@ -1,10 +1,10 @@
 import type { AppRoute, RouteAwareProps } from "../types";
 
 const links: Array<{ label: string; route: AppRoute }> = [
-  { label: "Home", route: "/" },
-  { label: "Discover", route: "/discover" },
+  { label: "Search", route: "/" },
   { label: "Lists", route: "/playlists" },
   { label: "Spin", route: "/roulette" },
+  { label: "Discover", route: "/discover" },
   { label: "Profile", route: "/profile" },
 ];
 

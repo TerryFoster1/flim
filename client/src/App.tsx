@@ -119,6 +119,10 @@ export default function App() {
         <main className="page-container">{page}</main>
         <Footer />
       </div>
+      <button className="floating-search-button" onClick={() => navigate("/")} type="button" aria-label="Search movies">
+        <span aria-hidden="true">⌕</span>
+        <span>Search</span>
+      </button>
       <MobileNavigation activeRoute={activeRoute} onNavigate={navigate} />
     </div>
   );
