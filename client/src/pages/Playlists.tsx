@@ -1,35 +1,44 @@
-import { useState, type Dispatch, type FormEvent, type SetStateAction } from "react";
+import { useState, type FormEvent } from "react";
 import { PageShell } from "../components/PageShell";
 import { PlaylistGrid } from "../components/PlaylistGrid";
-import { createPlaylistItem } from "../services/localPlaylistStore";
 import type { Playlist } from "../types";
 
 interface PlaylistsProps {
   onNavigate: (path: string) => void;
   playlists: Playlist[];
-  setPlaylists: Dispatch<SetStateAction<Playlist[]>>;
+  onCreatePlaylist: (input: Pick<Playlist, "name" | "description" | "visibility">) => Promise<Playlist>;
   notice?: string;
-  onDelete?: (playlistId: string) => void;
+  onDelete?: (playlistId: string) => void | Promise<void>;
 }
 
-export function Playlists({ onNavigate, playlists, setPlaylists, notice, onDelete }: PlaylistsProps) {
+export function Playlists({ onNavigate, playlists, onCreatePlaylist, notice, onDelete }: PlaylistsProps) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [visibility, setVisibility] = useState<Playlist["visibility"]>("private");
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState("");
 
-  function submit(event: FormEvent<HTMLFormElement>) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const created = createPlaylistItem({ name, description, visibility });
-    setPlaylists((current) => [created, ...current]);
-    setName("");
-    setDescription("");
-    setVisibility("private");
-    onNavigate(`/playlists/${created.id}`);
+    setIsSaving(true);
+    setError("");
+    try {
+      const created = await onCreatePlaylist({ name, description, visibility });
+      setName("");
+      setDescription("");
+      setVisibility("private");
+      onNavigate(`/playlists/${created.id}`);
+    } catch {
+      setError("Could not create playlist. Check Supabase setup.");
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   return (
     <PageShell eyebrow="My Playlists" title="Create and manage playlists" description="A playlist is the main Flim object. Name it, describe it, then add movies from inside the playlist.">
       {notice ? <p className="success-message">{notice}</p> : null}
+      {error ? <p className="error-message">{error}</p> : null}
       <form className="playlist-form" onSubmit={submit}>
         <label>
           <span>Playlist name</span>
@@ -47,7 +56,7 @@ export function Playlists({ onNavigate, playlists, setPlaylists, notice, onDelet
             <option value="public">public</option>
           </select>
         </label>
-        <button className="primary-button" type="submit">Create Playlist</button>
+        <button className="primary-button" disabled={isSaving} type="submit">{isSaving ? "Creating..." : "Create Playlist"}</button>
       </form>
       <PlaylistGrid onDelete={onDelete} onNavigate={onNavigate} playlists={playlists} />
     </PageShell>

@@ -42,6 +42,8 @@ export interface MovieDetails extends MovieSearchResult {
 }
 
 export interface PlaylistMovie {
+  id?: string;
+  playlistId?: string;
   tmdbId: number;
   title: string;
   releaseYear?: string;

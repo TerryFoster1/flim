@@ -5,7 +5,7 @@ import type { Playlist } from "../types";
 interface PublicPlaylistsProps {
   onNavigate: (path: string) => void;
   playlists: Playlist[];
-  clonePlaylist: (playlistId: string) => void;
+  clonePlaylist: (playlistId: string) => void | Promise<void>;
 }
 
 export function PublicPlaylists({ onNavigate, playlists, clonePlaylist }: PublicPlaylistsProps) {

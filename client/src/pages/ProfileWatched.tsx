@@ -5,7 +5,7 @@ import type { Playlist, WatchStatus } from "../types";
 interface ProfileWatchedProps {
   playlists: Playlist[];
   onNavigate: (path: string) => void;
-  updateWatchStatus: (playlistId: string, tmdbId: number, watchStatus: WatchStatus) => void;
+  updateWatchStatus: (playlistId: string, tmdbId: number, watchStatus: WatchStatus) => void | Promise<void>;
 }
 
 export function ProfileWatched({ playlists, onNavigate, updateWatchStatus }: ProfileWatchedProps) {

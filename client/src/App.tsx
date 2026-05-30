@@ -3,7 +3,16 @@ import { Footer } from "./components/Footer";
 import { MobileNavigation } from "./components/MobileNavigation";
 import { NavigationBar } from "./components/NavigationBar";
 import { Sidebar } from "./components/Sidebar";
-import { addMovieToPlaylist, clonePlaylist, deletePlaylist, loadPlaylists, removeMovieFromPlaylist, savePlaylists, setMovieWatchStatus } from "./services/localPlaylistStore";
+import {
+  addMovieToPlaylist,
+  clonePlaylist,
+  createPlaylist,
+  deletePlaylist,
+  getPlaylists,
+  removeMovieFromPlaylist,
+  toggleWatchedStatus,
+} from "./services/supabasePlaylistStore";
+import { hasSupabaseConfig } from "./services/supabaseClient";
 import { Home } from "./pages/Home";
 import { MovieDetailsPage } from "./pages/MovieDetails";
 import { PlaylistDetails } from "./pages/PlaylistDetails";
@@ -35,12 +44,14 @@ function routeFromPath(pathname = window.location.pathname): RouteState {
 
 export default function App() {
   const [routeState, setRouteState] = useState<RouteState>(routeFromPath);
-  const [playlists, setPlaylists] = useState<Playlist[]>(() => loadPlaylists());
+  const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [playlistNotice, setPlaylistNotice] = useState("");
+  const [dataStatus, setDataStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [dataMessage, setDataMessage] = useState("");
 
   useEffect(() => {
-    savePlaylists(playlists);
-  }, [playlists]);
+    refreshPlaylists();
+  }, []);
 
   useEffect(() => {
     const onPopState = () => setRouteState(routeFromPath());
@@ -57,24 +68,53 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function addToPlaylist(playlistId: string, movie: MovieSearchResult | MovieDetails) {
-    setPlaylists((current) => addMovieToPlaylist(current, playlistId, movie));
+  async function refreshPlaylists() {
+    if (!hasSupabaseConfig) {
+      setDataStatus("error");
+      setDataMessage("Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.");
+      return;
+    }
+
+    try {
+      setDataStatus("loading");
+      setPlaylists(await getPlaylists());
+      setDataMessage("");
+      setDataStatus("ready");
+    } catch {
+      setDataStatus("error");
+      setDataMessage("Could not load playlists from Supabase. Check the database setup and environment variables.");
+    }
   }
 
-  function removeFromPlaylist(playlistId: string, tmdbId: number) {
-    setPlaylists((current) => removeMovieFromPlaylist(current, playlistId, tmdbId));
+  async function createRemotePlaylist(input: Pick<Playlist, "name" | "description" | "visibility">) {
+    const created = await createPlaylist(input);
+    await refreshPlaylists();
+    return created;
   }
 
-  function updateWatchStatus(playlistId: string, tmdbId: number, watchStatus: WatchStatus) {
-    setPlaylists((current) => setMovieWatchStatus(current, playlistId, tmdbId, watchStatus));
+  async function addToPlaylist(playlistId: string, movie: MovieSearchResult | MovieDetails) {
+    await addMovieToPlaylist(playlistId, movie);
+    await refreshPlaylists();
   }
 
-  function cloneLocalPlaylist(playlistId: string) {
-    setPlaylists((current) => clonePlaylist(current, playlistId));
+  async function removeFromPlaylist(playlistId: string, tmdbId: number) {
+    await removeMovieFromPlaylist(playlistId, tmdbId);
+    await refreshPlaylists();
   }
 
-  function deleteLocalPlaylist(playlistId: string) {
-    setPlaylists((current) => deletePlaylist(current, playlistId));
+  async function updateWatchStatus(playlistId: string, tmdbId: number, watchStatus: WatchStatus) {
+    await toggleWatchedStatus(playlistId, tmdbId, watchStatus);
+    await refreshPlaylists();
+  }
+
+  async function cloneRemotePlaylist(playlistId: string) {
+    await clonePlaylist(playlistId);
+    await refreshPlaylists();
+  }
+
+  async function deleteRemotePlaylist(playlistId: string) {
+    await deletePlaylist(playlistId);
+    await refreshPlaylists();
     setPlaylistNotice("Playlist deleted.");
     navigate("/playlists");
   }
@@ -83,21 +123,21 @@ export default function App() {
 
   const activeRoute: AppRoute = routeState.route;
   const page = {
-    "/": <Home notice={playlistNotice} onDelete={deleteLocalPlaylist} onNavigate={navigate} playlists={playlists} />,
-    "/discover": <Home notice={playlistNotice} onDelete={deleteLocalPlaylist} onNavigate={navigate} playlists={playlists} />,
-    "/playlists": <Playlists notice={playlistNotice} onDelete={deleteLocalPlaylist} onNavigate={navigate} playlists={playlists} setPlaylists={setPlaylists} />,
+    "/": <Home notice={playlistNotice} onDelete={deleteRemotePlaylist} onNavigate={navigate} playlists={playlists} />,
+    "/discover": <Home notice={playlistNotice} onDelete={deleteRemotePlaylist} onNavigate={navigate} playlists={playlists} />,
+    "/playlists": <Playlists notice={playlistNotice} onCreatePlaylist={createRemotePlaylist} onDelete={deleteRemotePlaylist} onNavigate={navigate} playlists={playlists} />,
     "/playlists/:id": activePlaylist ? (
       <PlaylistDetails
         playlist={activePlaylist}
         onNavigate={navigate}
         addToPlaylist={addToPlaylist}
-        clonePlaylist={cloneLocalPlaylist}
-        deletePlaylist={deleteLocalPlaylist}
+        clonePlaylist={cloneRemotePlaylist}
+        deletePlaylist={deleteRemotePlaylist}
         removeMovie={removeFromPlaylist}
         updateWatchStatus={updateWatchStatus}
       />
     ) : (
-      <Playlists notice={playlistNotice || "Playlist not found."} onDelete={deleteLocalPlaylist} onNavigate={navigate} playlists={playlists} setPlaylists={setPlaylists} />
+      <Playlists notice={playlistNotice || "Playlist not found."} onCreatePlaylist={createRemotePlaylist} onDelete={deleteRemotePlaylist} onNavigate={navigate} playlists={playlists} />
     ),
     "/movies/:tmdbId": (
       <MovieDetailsPage
@@ -107,14 +147,14 @@ export default function App() {
         updateWatchStatus={updateWatchStatus}
       />
     ),
-    "/public": <PublicPlaylists onNavigate={navigate} playlists={playlists} clonePlaylist={cloneLocalPlaylist} />,
+    "/public": <PublicPlaylists onNavigate={navigate} playlists={playlists} clonePlaylist={cloneRemotePlaylist} />,
     "/roulette": <Roulette playlists={playlists} onNavigate={navigate} />,
     "/profile": <Profile onNavigate={navigate} playlists={playlists} />,
     "/profile/playlists": <ProfilePlaylists onNavigate={navigate} playlists={playlists} />,
     "/profile/saved": <ProfileSaved playlists={playlists} />,
     "/profile/watched": <ProfileWatched playlists={playlists} updateWatchStatus={updateWatchStatus} onNavigate={navigate} />,
-    "/providers": <Home notice={playlistNotice} onDelete={deleteLocalPlaylist} onNavigate={navigate} playlists={playlists} />,
-    "/settings": <Home notice={playlistNotice} onDelete={deleteLocalPlaylist} onNavigate={navigate} playlists={playlists} />,
+    "/providers": <Home notice={playlistNotice} onDelete={deleteRemotePlaylist} onNavigate={navigate} playlists={playlists} />,
+    "/settings": <Home notice={playlistNotice} onDelete={deleteRemotePlaylist} onNavigate={navigate} playlists={playlists} />,
   }[activeRoute];
 
   return (
@@ -122,7 +162,11 @@ export default function App() {
       <Sidebar activeRoute={activeRoute} onNavigate={navigate} />
       <div className="main-shell">
         <NavigationBar activeRoute={activeRoute} onNavigate={navigate} />
-        <main className="page-container">{page}</main>
+        <main className="page-container">
+          {dataStatus === "loading" ? <p className="empty-state">Loading playlists...</p> : null}
+          {dataStatus === "error" ? <p className="error-message">{dataMessage}</p> : null}
+          {dataStatus !== "loading" ? page : null}
+        </main>
         <Footer />
       </div>
       <MobileNavigation activeRoute={activeRoute} onNavigate={navigate} />

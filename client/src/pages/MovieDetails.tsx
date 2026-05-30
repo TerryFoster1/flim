@@ -8,8 +8,8 @@ import type { MovieDetails, Playlist, WatchStatus } from "../types";
 interface MovieDetailsPageProps {
   tmdbId: number;
   playlists: Playlist[];
-  addToPlaylist: (playlistId: string, movie: MovieDetails) => void;
-  updateWatchStatus: (playlistId: string, tmdbId: number, watchStatus: WatchStatus) => void;
+  addToPlaylist: (playlistId: string, movie: MovieDetails) => void | Promise<void>;
+  updateWatchStatus: (playlistId: string, tmdbId: number, watchStatus: WatchStatus) => void | Promise<void>;
 }
 
 export function MovieDetailsPage({ tmdbId, playlists, addToPlaylist, updateWatchStatus }: MovieDetailsPageProps) {

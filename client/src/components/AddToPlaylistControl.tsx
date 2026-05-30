@@ -3,7 +3,7 @@ import type { MovieDetails, MovieSearchResult, Playlist } from "../types";
 interface AddToPlaylistControlProps {
   movie: MovieSearchResult | MovieDetails;
   playlists: Playlist[];
-  addToPlaylist: (playlistId: string, movie: MovieSearchResult | MovieDetails) => void;
+  addToPlaylist: (playlistId: string, movie: MovieSearchResult | MovieDetails) => void | Promise<void>;
 }
 
 export function AddToPlaylistControl({ movie, playlists, addToPlaylist }: AddToPlaylistControlProps) {
@@ -16,9 +16,9 @@ export function AddToPlaylistControl({ movie, playlists, addToPlaylist }: AddToP
       <span>Add to</span>
       <select
         defaultValue=""
-        onChange={(event) => {
+        onChange={async (event) => {
           if (event.target.value) {
-            addToPlaylist(event.target.value, movie);
+            await addToPlaylist(event.target.value, movie);
             event.target.value = "";
           }
         }}

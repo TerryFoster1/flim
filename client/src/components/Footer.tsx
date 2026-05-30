@@ -1,3 +1,3 @@
 export function Footer() {
-  return <footer className="footer">Flim is a local movie playlist MVP. Your playlists are saved in this browser.</footer>;
+  return <footer className="footer">Flim is a demo-stage movie playlist MVP backed by Supabase.</footer>;
 }

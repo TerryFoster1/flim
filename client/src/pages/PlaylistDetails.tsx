@@ -8,20 +8,20 @@ import type { MovieSearchResult, Playlist, WatchStatus } from "../types";
 interface PlaylistDetailsProps {
   playlist: Playlist;
   onNavigate: (path: string) => void;
-  addToPlaylist: (playlistId: string, movie: MovieSearchResult) => void;
-  clonePlaylist: (playlistId: string) => void;
-  deletePlaylist: (playlistId: string) => void;
-  removeMovie: (playlistId: string, tmdbId: number) => void;
-  updateWatchStatus: (playlistId: string, tmdbId: number, watchStatus: WatchStatus) => void;
+  addToPlaylist: (playlistId: string, movie: MovieSearchResult) => void | Promise<void>;
+  clonePlaylist: (playlistId: string) => void | Promise<void>;
+  deletePlaylist: (playlistId: string) => void | Promise<void>;
+  removeMovie: (playlistId: string, tmdbId: number) => void | Promise<void>;
+  updateWatchStatus: (playlistId: string, tmdbId: number, watchStatus: WatchStatus) => void | Promise<void>;
 }
 
 export function PlaylistDetails({ playlist, onNavigate, addToPlaylist, clonePlaylist, deletePlaylist, removeMovie, updateWatchStatus }: PlaylistDetailsProps) {
   const [showAddMovie, setShowAddMovie] = useState(playlist.movies.length === 0);
   const [notice, setNotice] = useState("");
 
-  function confirmDelete() {
+  async function confirmDelete() {
     if (window.confirm("Delete this playlist? This cannot be undone.")) {
-      deletePlaylist(playlist.id);
+      await deletePlaylist(playlist.id);
     }
   }
 

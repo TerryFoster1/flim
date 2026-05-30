@@ -4,15 +4,15 @@ interface PlaylistCardProps {
   playlist: Playlist;
   large?: boolean;
   onNavigate?: (path: string) => void;
-  onDelete?: (playlistId: string) => void;
+  onDelete?: (playlistId: string) => void | Promise<void>;
 }
 
 export function PlaylistCard({ playlist, large, onNavigate, onDelete }: PlaylistCardProps) {
   const coverMovies = playlist.movies.slice(0, 4);
 
-  function confirmDelete() {
+  async function confirmDelete() {
     if (window.confirm("Delete this playlist? This cannot be undone.")) {
-      onDelete?.(playlist.id);
+      await onDelete?.(playlist.id);
     }
   }
 

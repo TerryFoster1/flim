@@ -4,7 +4,7 @@ import { PlaylistCard } from "./PlaylistCard";
 interface PlaylistGridProps {
   playlists: Playlist[];
   onNavigate?: (path: string) => void;
-  onDelete?: (playlistId: string) => void;
+  onDelete?: (playlistId: string) => void | Promise<void>;
   emptyMessage?: string;
 }
 

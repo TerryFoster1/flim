@@ -7,7 +7,7 @@ interface HomeProps {
   onNavigate: (path: string) => void;
   playlists: Playlist[];
   notice?: string;
-  onDelete?: (playlistId: string) => void;
+  onDelete?: (playlistId: string) => void | Promise<void>;
 }
 
 const playlistExamples = ["Movies With Anthony", "Date Night", "80s Action", "Movies To Watch", "Family Movie Night"];

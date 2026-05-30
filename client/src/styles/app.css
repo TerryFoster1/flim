@@ -108,7 +108,7 @@ button { color: inherit; font: inherit; }
 .danger-button { background: rgba(255, 79, 109, 0.12); color: #ffd5dc; border-color: rgba(255, 79, 109, 0.38); }
 .danger-button.compact { width: 100%; min-height: 38px; justify-content: center; }
 .ghost-button:hover, .secondary-button:hover, .primary-button:hover, .playlist-copy button:hover, .spin-button:hover, .blind-button:hover, .danger-button:hover { transform: translateY(-1px); }
-.page-container { width: min(1480px, 100%); margin: 0 auto; padding: clamp(18px, 3vw, 44px); padding-bottom: 96px; }
+.page-container { width: min(1480px, 100%); margin: 0 auto; padding: clamp(16px, 3vw, 44px); padding-bottom: 104px; }
 .route-page { animation: pageIn 0.28s ease; }
 @keyframes pageIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 .hero, .playlist-hero, .roulette-stage, .profile-hero {
@@ -131,6 +131,8 @@ h2 { font-size: clamp(1.3rem, 2vw, 2rem); letter-spacing: 0; }
 h3 { margin-bottom: 8px; }
 .hero-copy p { font-size: clamp(1.02rem, 1.6vw, 1.22rem); max-width: 680px; }
 .button-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.share-control { display: inline-grid; gap: 6px; }
+.share-control small { color: var(--muted); overflow-wrap: anywhere; max-width: 260px; }
 .hero-posters { display: grid; grid-template-columns: repeat(2, minmax(110px, 1fr)); gap: 14px; transform: rotate(2deg); }
 .poster {
   aspect-ratio: 2 / 3;
@@ -269,6 +271,13 @@ input, textarea, select {
 textarea { min-height: 42px; resize: vertical; }
 .select-action { min-width: 180px; }
 .helper-text, .empty-state { color: var(--muted); }
+.error-message {
+  border: 1px solid rgba(255, 79, 109, 0.42);
+  border-radius: var(--radius);
+  background: rgba(255, 79, 109, 0.12);
+  color: #ffd5dc;
+  padding: 12px 14px;
+}
 .success-message {
   border: 1px solid rgba(62, 226, 160, 0.34);
   border-radius: var(--radius);
@@ -353,7 +362,7 @@ textarea { min-height: 42px; resize: vertical; }
     right: 10px;
     bottom: 10px;
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 4px;
     padding: 8px;
     border: 1px solid var(--line);
@@ -374,9 +383,25 @@ textarea { min-height: 42px; resize: vertical; }
   .playlist-card.large { grid-column: auto; }
   .split-heading { display: block; }
   .poster-row { grid-auto-columns: 42vw; }
-  .movie-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .movie-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
   .search-form, .hero-search-panel .search-form, .playlist-form, .search-result-card, .movie-detail-hero, .roulette-result { grid-template-columns: 1fr; }
   .search-action-row { display: grid; grid-template-columns: 1fr; }
   .hero-search-panel input[type="search"] { min-height: 54px; }
+  .primary-button, .secondary-button, .ghost-button, .danger-button { min-height: 48px; }
+  .playlist-card { padding: 14px; }
+  .playlist-cover { height: 250px; }
+  .playlist-hero { min-height: auto; gap: 18px; }
+  .playlist-cover-xl { transform: none; }
+  .playlist-management-bar { position: sticky; top: 66px; z-index: 9; background: rgba(8, 9, 13, 0.9); padding: 10px 0; }
+  .playlist-management-bar .primary-button { flex: 1; }
+  .modal-backdrop { align-items: end; padding: 0; }
+  .search-modal {
+    min-height: 92vh;
+    max-height: 92vh;
+    overflow: auto;
+    border-radius: 18px 18px 0 0;
+    padding: 18px;
+  }
+  .search-result-card { grid-template-columns: 96px minmax(0, 1fr); }
   h1 { font-size: clamp(2.2rem, 16vw, 4.3rem); }
 }

@@ -5,7 +5,7 @@ import { AddToPlaylistControl } from "./AddToPlaylistControl";
 
 interface MovieSearchPanelProps {
   playlists: Playlist[];
-  addToPlaylist: (playlistId: string, movie: MovieSearchResult) => void;
+  addToPlaylist: (playlistId: string, movie: MovieSearchResult) => void | Promise<void>;
   onNavigate: (path: string) => void;
   variant?: "standard" | "hero";
   fixedPlaylistId?: string;
@@ -83,8 +83,8 @@ export function MovieSearchPanel({ playlists, addToPlaylist, onNavigate, variant
                     {fixedPlaylistId ? (
                       <button
                         className="primary-button"
-                        onClick={() => {
-                          addToPlaylist(fixedPlaylistId, movie);
+                        onClick={async () => {
+                          await addToPlaylist(fixedPlaylistId, movie);
                           onMovieAdded?.();
                         }}
                         type="button"
