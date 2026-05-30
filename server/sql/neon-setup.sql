@@ -6,6 +6,7 @@ create extension if not exists pgcrypto;
 
 create table if not exists playlists (
   id uuid primary key default gen_random_uuid(),
+  public_slug text unique,
   name text not null,
   description text default '',
   visibility text not null default 'private'
@@ -13,6 +14,16 @@ create table if not exists playlists (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table playlists
+  add column if not exists public_slug text unique;
+
+update playlists
+set public_slug = 'playlist-' || lower(substr(replace(id::text, '-', ''), 1, 10))
+where public_slug is null;
+
+alter table playlists
+  alter column public_slug set not null;
 
 create table if not exists playlist_movies (
   id uuid primary key default gen_random_uuid(),
@@ -29,6 +40,9 @@ create table if not exists playlist_movies (
 
 create index if not exists playlists_visibility_idx
   on playlists (visibility);
+
+create unique index if not exists playlists_public_slug_idx
+  on playlists (public_slug);
 
 create index if not exists playlists_updated_at_idx
   on playlists (updated_at desc);

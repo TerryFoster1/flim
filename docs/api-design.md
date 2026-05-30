@@ -1,31 +1,34 @@
-﻿# API Design Placeholder
+# API Design
 
-Flim should be API-first so the React web app and future native apps can share backend contracts.
+Flim is API-first so the React web app and future native apps can share backend contracts.
 
-Base path placeholder: `/api`.
+Base path: `/api`.
 
-No route handlers, external calls, persistence, auth, or business logic are implemented in Phase 1A.
+Phase 2C uses Vercel serverless API routes backed by Neon PostgreSQL for playlists and playlist movies. `DATABASE_URL` remains server-side only.
 
-## Route Planning Diagram
+## Route Diagram
 
 ```mermaid
 flowchart LR
-  Client["Client routes"] --> API["/api placeholder"]
-  API --> Movies["/api/movies"]
+  Client["Client routes"] --> API["/api"]
   API --> Playlists["/api/playlists"]
-  API --> Providers["/api/providers"]
-  API --> Sharing["/api/sharing"]
-  API --> Social["/api/social"]
-  API --> Roulette["/api/roulette"]
-  API --> Recommendations["/api/recommendations"]
+  API --> PublicSharing["/api/public/playlists/:slug"]
+  API --> Movies["future /api/movies"]
+  API --> Providers["future /api/providers"]
+  API --> Sharing["future /api/sharing"]
+  API --> Social["future /api/social"]
+  API --> Roulette["future /api/roulette"]
+  API --> Recommendations["future /api/recommendations"]
 ```
 
-## Client Route Placeholders
+## Client Routes
 
 - `/`
 - `/discover`
 - `/playlists`
 - `/playlists/:id`
+- `/p/:slug`
+- `/movies/:tmdbId`
 - `/public`
 - `/roulette`
 - `/profile`
@@ -34,95 +37,50 @@ flowchart LR
 - `/profile/watched`
 - `/providers`
 
-## Movies
-
-Namespace: `/api/movies`
-
-Future route placeholders:
-
-- `GET /api/movies`
-- `GET /api/movies/:movieId`
-- `POST /api/movies`
-
-Notes: movie posters should be treated as first-class presentation fields. External movie database integration is explicitly out of scope.
-
 ## Playlists
 
 Namespace: `/api/playlists`
 
-Future route placeholders:
+Implemented route contracts:
 
 - `GET /api/playlists`
 - `POST /api/playlists`
 - `GET /api/playlists/:playlistId`
-- `PATCH /api/playlists/:playlistId`
 - `DELETE /api/playlists/:playlistId`
+- `GET /api/playlists/:playlistId/movies`
 - `POST /api/playlists/:playlistId/movies`
-- `PATCH /api/playlists/:playlistId/movies/:playlistItemId`
-- `DELETE /api/playlists/:playlistId/movies/:playlistItemId`
+- `DELETE /api/playlists/:playlistId/movies/:tmdbId`
+- `PATCH /api/playlists/:playlistId/movies/:tmdbId/watched`
 
-Notes: support private, shared, and public visibility planning. Support save and clone flows through social/sharing contracts later.
+Notes: `private`, `shared`, and `public` visibility values are stored now, but demo-stage access control is intentionally not enforced until auth/user ownership lands.
 
-## Providers
+## Public Playlist Sharing
 
-Namespace: `/api/providers`
+Namespace: `/api/public/playlists`
 
-Future route placeholders:
+Implemented route contracts:
 
-- `GET /api/providers`
-- `GET /api/providers/:providerId`
-- `GET /api/movies/:movieId/providers`
-- `GET /api/movies/:movieId/links`
+- `GET /api/public/playlists/:slug`
+- `GET /api/public/playlists/:slug/movies`
 
-Notes: provider logos, deep links, platform URLs, and country-specific availability are planning-only. No streaming provider integration is implemented.
+Client route:
 
-## Sharing
+- `/p/:slug`
 
-Namespace: `/api/sharing`
+Notes: public share URLs use `playlists.public_slug`. QR codes encode the same public URL. Any playlist with a slug can be opened by direct link during the demo phase.
 
-Future route placeholders:
+## Movies
 
-- `POST /api/sharing/playlists/:playlistId/share-links`
-- `GET /api/sharing/share-links/:shareId`
-- `POST /api/sharing/playlists/:playlistId/collaborators`
-- `DELETE /api/sharing/playlists/:playlistId/collaborators/:userId`
+TMDb movie search remains client-side through the existing movie metadata service and environment variables. No movie data is stored outside playlist movie rows in this phase.
 
-No email, notification, or real share-link behavior is included.
+## Future Namespaces
 
-## Social
+The following remain planned, not implemented:
 
-Namespace: `/api/social`
+- `/api/providers`
+- `/api/sharing`
+- `/api/social`
+- `/api/roulette`
+- `/api/recommendations`
 
-Future route placeholders:
-
-- `POST /api/social/playlists/:playlistId/save`
-- `POST /api/social/playlists/:playlistId/clone`
-- `POST /api/social/playlists/:playlistId/follow`
-- `DELETE /api/social/playlists/:playlistId/follow`
-- `GET /api/social/playlists/:playlistId/stats`
-
-No social feed, follower persistence, or popularity calculation is implemented.
-
-## Roulette
-
-Namespace: `/api/roulette`
-
-Future route placeholders:
-
-- `POST /api/roulette/spin`
-- `POST /api/roulette/blind-spin`
-- `GET /api/roulette/history`
-
-Notes: Standard Roulette, Random Movie, Family Night, Date Night, and Blind Spin are planning concepts only. No randomization, filtering, provider opening, or secret selection exists in scaffold.
-
-## Recommendations
-
-Namespace: `/api/recommendations`
-
-Future route placeholders:
-
-- `GET /api/recommendations/movies`
-- `GET /api/recommendations/playlists`
-- `GET /api/recommendations/attribution`
-
-Recommendation engines and AI features are explicitly out of scope for scaffold work.
+No auth, follower graph, comments, ratings, email, payments, scraping, or streaming-provider deep links are implemented in this phase.

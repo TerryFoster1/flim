@@ -1,26 +1,108 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import QRCode from "qrcode";
+import type { Playlist } from "../types";
 
 interface SharePlaylistButtonProps {
-  playlistId: string;
+  playlist: Playlist;
 }
 
-export function SharePlaylistButton({ playlistId }: SharePlaylistButtonProps) {
-  const [shareUrl, setShareUrl] = useState("");
-  const url = `${window.location.origin}/playlists/${playlistId}`;
+function getPublicOrigin() {
+  if (window.location.hostname.endsWith("flim.ca")) return "https://www.flim.ca";
+  return window.location.origin;
+}
 
-  async function share() {
+export function SharePlaylistButton({ playlist }: SharePlaylistButtonProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [status, setStatus] = useState("");
+  const [qrCodeUrl, setQrCodeUrl] = useState("");
+  const url = useMemo(() => `${getPublicOrigin()}/p/${playlist.publicSlug}`, [playlist.publicSlug]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    QRCode.toDataURL(url, {
+      margin: 2,
+      width: 280,
+      color: {
+        dark: "#08090d",
+        light: "#ffffff",
+      },
+    })
+      .then(setQrCodeUrl)
+      .catch(() => setStatus("QR code could not be generated."));
+  }, [isOpen, url]);
+
+  async function copyLink() {
     try {
       await navigator.clipboard.writeText(url);
-      setShareUrl("Playlist link copied.");
+      setStatus("Public playlist link copied.");
     } catch {
-      setShareUrl(url);
+      setStatus("Copy failed. The public URL is shown below.");
+    }
+  }
+
+  async function nativeShare() {
+    if (!navigator.share) {
+      await copyLink();
+      return;
+    }
+
+    try {
+      await navigator.share({
+        title: playlist.name,
+        text: playlist.description || "Open this Flim playlist.",
+        url,
+      });
+      setStatus("Share sheet opened.");
+    } catch {
+      setStatus("Share cancelled. You can still copy the public link.");
     }
   }
 
   return (
-    <span className="share-control">
-      <button onClick={share} type="button">Share Playlist</button>
-      {shareUrl ? <small>{shareUrl}</small> : null}
-    </span>
+    <>
+      <button className="secondary-button" onClick={() => setIsOpen(true)} type="button">
+        Share
+      </button>
+      {isOpen ? (
+        <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Share playlist">
+          <div className="share-panel">
+            <div className="modal-header">
+              <div>
+                <span className="eyebrow">Public Share</span>
+                <h2>Share this playlist</h2>
+              </div>
+              <button className="ghost-button" onClick={() => setIsOpen(false)} type="button">
+                Close
+              </button>
+            </div>
+            <p className="helper-text">
+              Anyone with this link can view the playlist. Auth and access controls will be added in a later phase.
+            </p>
+            <label className="share-url-field">
+              <span>Public URL</span>
+              <input readOnly value={url} />
+            </label>
+            <div className="qr-card">
+              {qrCodeUrl ? <img alt={`QR code for ${playlist.name}`} src={qrCodeUrl} /> : <div className="qr-placeholder">Generating QR code...</div>}
+            </div>
+            <div className="share-actions">
+              <button className="primary-button" onClick={copyLink} type="button">
+                Copy Link
+              </button>
+              <button className="secondary-button" onClick={nativeShare} type="button">
+                Native Share
+              </button>
+              {qrCodeUrl ? (
+                <a className="secondary-button qr-download" download={`${playlist.publicSlug}-qr.png`} href={qrCodeUrl}>
+                  Download QR
+                </a>
+              ) : null}
+            </div>
+            {status ? <p className="success-message">{status}</p> : null}
+          </div>
+        </div>
+      ) : null}
+    </>
   );
 }

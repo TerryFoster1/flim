@@ -36,9 +36,21 @@ export function readBody(request: any): Promise<any> {
   });
 }
 
+export function createPublicSlug(name: string) {
+  const base = name
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 48);
+  const suffix = Math.random().toString(36).slice(2, 8);
+  return `${base || "playlist"}-${suffix}`;
+}
+
 export function mapPlaylist(row: any, movies: any[] = []) {
   return {
     id: row.id,
+    publicSlug: row.public_slug,
     name: row.name,
     description: row.description || "",
     visibility: row.visibility,

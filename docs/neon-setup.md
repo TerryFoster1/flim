@@ -22,7 +22,13 @@ It creates:
 - `playlists`
 - `playlist_movies`
 
-This is demo-stage shared data. Auth and user ownership should add owner/user columns and authorization checks later.
+`playlists.public_slug` is the unique public identifier used for share URLs such as:
+
+```text
+https://www.flim.ca/p/example-playlist-slug
+```
+
+This is demo-stage shared data. Any playlist with a `public_slug` can be opened by direct link. Auth, user ownership, visibility enforcement, and authorization checks should be added later.
 
 ## API Surface
 
@@ -36,3 +42,5 @@ The browser calls server endpoints only:
 - `POST /api/playlists/:id/movies`
 - `DELETE /api/playlists/:id/movies/:movieId`
 - `PATCH /api/playlists/:id/movies/:movieId/watched`
+- `GET /api/public/playlists/:slug`
+- `GET /api/public/playlists/:slug/movies`

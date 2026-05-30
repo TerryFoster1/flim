@@ -32,7 +32,7 @@ export function PlaylistHero({ playlist, clonePlaylist }: PlaylistHeroProps) {
           <span>{playlist.movies.filter((movie) => movie.watchStatus === "watched").length} watched</span>
         </div>
         <div className="button-row">
-          <SharePlaylistButton playlistId={playlist.id} />
+          <SharePlaylistButton playlist={playlist} />
           <ClonePlaylistButton onClone={() => clonePlaylist(playlist.id)} />
         </div>
       </div>

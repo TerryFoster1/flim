@@ -20,6 +20,7 @@ import { Profile } from "./pages/Profile";
 import { ProfilePlaylists } from "./pages/ProfilePlaylists";
 import { ProfileSaved } from "./pages/ProfileSaved";
 import { ProfileWatched } from "./pages/ProfileWatched";
+import { PublicPlaylist } from "./pages/PublicPlaylist";
 import { PublicPlaylists } from "./pages/PublicPlaylists";
 import { Roulette } from "./pages/Roulette";
 import type { AppRoute, MovieDetails, MovieSearchResult, Playlist, RouteState, WatchStatus } from "./types";
@@ -29,6 +30,7 @@ function routeFromPath(pathname = window.location.pathname): RouteState {
   if (pathname === "/discover") return { route: "/discover" };
   if (pathname === "/playlists") return { route: "/playlists" };
   if (pathname.startsWith("/playlists/")) return { route: "/playlists/:id", playlistId: pathname.split("/")[2] };
+  if (pathname.startsWith("/p/")) return { route: "/p/:slug", publicSlug: pathname.split("/")[2] };
   if (pathname.startsWith("/movies/")) return { route: "/movies/:tmdbId", tmdbId: pathname.split("/")[2] };
   if (pathname === "/public") return { route: "/public" };
   if (pathname === "/roulette") return { route: "/roulette" };
@@ -132,6 +134,7 @@ export default function App() {
     ) : (
       <Playlists notice={playlistNotice || "Playlist not found."} onCreatePlaylist={createRemotePlaylist} onDelete={deleteRemotePlaylist} onNavigate={navigate} playlists={playlists} />
     ),
+    "/p/:slug": <PublicPlaylist publicSlug={routeState.publicSlug || ""} onNavigate={navigate} />,
     "/movies/:tmdbId": (
       <MovieDetailsPage
         tmdbId={Number(routeState.tmdbId)}

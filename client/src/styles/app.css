@@ -103,6 +103,7 @@ button { color: inherit; font: inherit; }
   cursor: pointer;
   transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
 }
+.qr-download { text-decoration: none; }
 .primary-button, .spin-button { background: linear-gradient(135deg, var(--hot), var(--amber)); color: #17070b; border-color: transparent; }
 .secondary-button, .blind-button { background: rgba(62, 226, 160, 0.12); color: #d7ffee; border-color: rgba(62, 226, 160, 0.3); }
 .danger-button { background: rgba(255, 79, 109, 0.12); color: #ffd5dc; border-color: rgba(255, 79, 109, 0.38); }
@@ -326,6 +327,30 @@ textarea { min-height: 42px; resize: vertical; }
   box-shadow: 0 28px 90px rgba(0, 0, 0, 0.55);
   padding: clamp(16px, 3vw, 24px);
 }
+.share-panel {
+  width: min(520px, 100%);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #0d0f15;
+  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.55);
+  padding: clamp(18px, 4vw, 26px);
+}
+.share-url-field { display: block; margin: 18px 0; }
+.share-url-field input { overflow: hidden; text-overflow: ellipsis; }
+.qr-card {
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+  padding: 16px;
+  margin: 16px auto;
+  width: min(100%, 320px);
+}
+.qr-card img { width: 100%; max-width: 280px; height: auto; display: block; }
+.qr-placeholder { color: #08090d; min-height: 260px; display: grid; place-items: center; text-align: center; }
+.share-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.share-actions .primary-button, .share-actions .secondary-button { width: 100%; }
 .modal-header {
   display: flex;
   justify-content: space-between;
@@ -388,6 +413,7 @@ textarea { min-height: 42px; resize: vertical; }
   .search-action-row { display: grid; grid-template-columns: 1fr; }
   .hero-search-panel input[type="search"] { min-height: 54px; }
   .primary-button, .secondary-button, .ghost-button, .danger-button { min-height: 48px; }
+  .modal-header .ghost-button { display: inline-flex; }
   .playlist-card { padding: 14px; }
   .playlist-cover { height: 250px; }
   .playlist-hero { min-height: auto; gap: 18px; }
@@ -402,6 +428,14 @@ textarea { min-height: 42px; resize: vertical; }
     border-radius: 18px 18px 0 0;
     padding: 18px;
   }
+  .share-panel {
+    width: 100%;
+    max-height: 94vh;
+    overflow: auto;
+    border-radius: 18px 18px 0 0;
+    padding: 18px;
+  }
+  .share-actions { grid-template-columns: 1fr; }
   .search-result-card { grid-template-columns: 96px minmax(0, 1fr); }
   h1 { font-size: clamp(2.2rem, 16vw, 4.3rem); }
 }

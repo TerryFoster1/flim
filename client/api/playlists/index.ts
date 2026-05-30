@@ -1,4 +1,4 @@
-import { db, mapPlaylist, sendJson, readBody } from "../_db.js";
+import { createPublicSlug, db, mapPlaylist, sendJson, readBody } from "../_db.js";
 
 export default async function handler(request: any, response: any) {
   try {
@@ -23,9 +23,10 @@ export default async function handler(request: any, response: any) {
 
     if (request.method === "POST") {
       const body = await readBody(request);
+      const name = (body.name || "Untitled playlist").trim();
       const [created] = await sql`
-        insert into playlists (name, description, visibility)
-        values (${(body.name || "Untitled playlist").trim()}, ${body.description || ""}, ${body.visibility || "private"})
+        insert into playlists (public_slug, name, description, visibility)
+        values (${createPublicSlug(name)}, ${name}, ${body.description || ""}, ${body.visibility || "private"})
         returning *
       `;
 

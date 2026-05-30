@@ -29,6 +29,14 @@ export function getMoviesForPlaylist(playlistId: string) {
   return apiRequest<PlaylistMovie[]>(`/api/playlists/${playlistId}/movies`);
 }
 
+export function getPublicPlaylistBySlug(publicSlug: string) {
+  return apiRequest<Playlist>(`/api/public/playlists/${publicSlug}`);
+}
+
+export function getPublicPlaylistMoviesBySlug(publicSlug: string) {
+  return apiRequest<PlaylistMovie[]>(`/api/public/playlists/${publicSlug}/movies`);
+}
+
 export function createPlaylist(input: Pick<Playlist, "name" | "description" | "visibility">) {
   return apiRequest<Playlist>("/api/playlists", {
     method: "POST",

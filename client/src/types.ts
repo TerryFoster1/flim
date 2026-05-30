@@ -3,6 +3,7 @@ export type AppRoute =
   | "/discover"
   | "/playlists"
   | "/playlists/:id"
+  | "/p/:slug"
   | "/movies/:tmdbId"
   | "/public"
   | "/roulette"
@@ -18,6 +19,7 @@ export type WatchStatus = "not_watched" | "watched";
 export interface RouteState {
   route: AppRoute;
   playlistId?: string;
+  publicSlug?: string;
   tmdbId?: string;
 }
 
@@ -57,6 +59,7 @@ export interface PlaylistMovie {
 
 export interface Playlist {
   id: string;
+  publicSlug: string;
   name: string;
   description: string;
   visibility: "private" | "shared" | "public";
