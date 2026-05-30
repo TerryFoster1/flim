@@ -1,0 +1,21 @@
+﻿# Dependency folders
+node_modules/
+
+# Build output placeholders
+dist/
+build/
+coverage/
+
+# Local environment files for future implementation phases
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

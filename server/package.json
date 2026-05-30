@@ -1,0 +1,12 @@
+{
+  "name": "@flim/server",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "echo Scaffold only: install Express/TypeScript dependencies and add a server entrypoint in a future implementation phase.",
+    "build": "echo Scaffold only: add TypeScript build pipeline in a future implementation phase."
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

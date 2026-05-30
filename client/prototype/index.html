@@ -1,0 +1,142 @@
+﻿<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Flim Visual Prototype</title>
+    <link rel="stylesheet" href="./prototype.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="Desktop navigation">
+        <a class="brand" href="#/" data-route="/">
+          <span class="brand-mark">F</span>
+          <span>Flim</span>
+        </a>
+        <nav class="nav-stack">
+          <a href="#/" data-route="/">Home</a>
+          <a href="#/discover" data-route="/discover">Discover</a>
+          <a href="#/playlists" data-route="/playlists">Playlists</a>
+          <a href="#/public" data-route="/public">Public</a>
+          <a href="#/roulette" data-route="/roulette">Roulette</a>
+          <a href="#/providers" data-route="/providers">Providers</a>
+          <a href="#/profile" data-route="/profile">Profile</a>
+        </nav>
+        <div class="sidebar-card">
+          <span class="eyebrow">Prototype</span>
+          <strong>Poster-first movie playlists</strong>
+          <p>No APIs, no real movie data, no functionality.</p>
+        </div>
+      </aside>
+
+      <div class="main-shell">
+        <header class="topbar">
+          <a class="mobile-brand" href="#/" data-route="/">
+            <span class="brand-mark">F</span>
+            <span>Flim</span>
+          </a>
+          <nav class="top-links" aria-label="Top navigation">
+            <a href="#/discover" data-route="/discover">Discover</a>
+            <a href="#/playlists" data-route="/playlists">Playlists</a>
+            <a href="#/roulette" data-route="/roulette">Roulette</a>
+          </nav>
+          <a class="ghost-button" href="#/playlists/demo" data-route="/playlists/:id">Open Playlist</a>
+        </header>
+
+        <main class="page-container">
+          <section class="route-page is-active" data-page="/">
+            <div class="hero home-hero">
+              <div class="hero-copy">
+                <span class="eyebrow">Movie playlists, not movie homework</span>
+                <h1>Spotify Playlists for Movies</h1>
+                <p>Create lists. Share with friends. Discover what to watch next.</p>
+                <div class="button-row">
+                  <a class="primary-button" href="#/playlists" data-route="/playlists">Browse Playlists</a>
+                  <a class="secondary-button" href="#/roulette" data-route="/roulette">Try Roulette</a>
+                </div>
+              </div>
+              <div class="hero-posters" aria-label="Poster placeholder collage">
+                <div class="poster tall tone-red"></div>
+                <div class="poster tone-blue"></div>
+                <div class="poster tall tone-green"></div>
+                <div class="poster tone-gold"></div>
+              </div>
+            </div>
+            <div class="section-grid two-col">
+              <article class="feature-panel">
+                <span class="eyebrow">Featured Public Playlists</span>
+                <h2>Lists that feel like a Friday night plan</h2>
+                <div class="mini-playlist-row"><span></span><span></span><span></span><span></span></div>
+              </article>
+              <article class="feature-panel roulette-panel">
+                <span class="eyebrow">Roulette CTA</span>
+                <h2>Can't choose? Spin the night.</h2>
+                <a class="primary-button compact" href="#/roulette" data-route="/roulette">Open Roulette</a>
+              </article>
+            </div>
+            <div data-shelf="Popular Movie Lists"></div>
+            <div data-shelf="Recently Shared"></div>
+            <div class="genre-strip" aria-label="Trending Genres"><span>Action</span><span>Comedy</span><span>Drama</span><span>Sci-Fi</span><span>Horror</span><span>Family</span></div>
+          </section>
+
+          <section class="route-page" data-page="/discover">
+            <div class="page-heading"><span class="eyebrow">Discover</span><h1>Poster shelves for every mood</h1><p>Placeholder movie browsing with streaming-service rhythm.</p></div>
+            <div data-shelf="Trending Movies"></div><div data-shelf="Action"></div><div data-shelf="Comedy"></div><div data-shelf="Drama"></div><div data-shelf="Sci-Fi"></div><div data-shelf="Horror"></div><div data-shelf="Family"></div><div data-shelf="Classic Films"></div>
+          </section>
+
+          <section class="route-page" data-page="/playlists">
+            <div class="page-heading split-heading"><div><span class="eyebrow">Playlists</span><h1>Your movie shelves</h1><p>Owned, saved, public, and future collaborative lists.</p></div><a class="primary-button" href="#/playlists/new">Create Playlist</a></div>
+            <div class="playlist-grid"><article class="playlist-card large"><div class="playlist-cover"></div><h3>My Playlists</h3><p>Private and shared movie collections.</p></article><article class="playlist-card"><div class="playlist-cover cool"></div><h3>Saved Playlists</h3><p>Lists from other users.</p></article><article class="playlist-card"><div class="playlist-cover warm"></div><h3>Public Playlists</h3><p>Poster-first discovery surfaces.</p></article></div>
+            <div data-shelf="Playlist Name"></div>
+          </section>
+
+          <section class="route-page" data-page="/playlists/:id">
+            <div class="playlist-hero">
+              <div class="playlist-cover-xl"><div></div><div></div><div></div><div></div></div>
+              <div class="playlist-copy"><span class="eyebrow">Public playlist</span><h1>Playlist Name</h1><p>A poster-first movie list for a shared night in, built to feel closer to a streaming service than a spreadsheet.</p><div class="meta-row"><span>Creator: User Name</span><span>12 movies</span><span>4.8k followers</span></div><div class="button-row"><button>Follow Playlist</button><button>Save Playlist</button><button>Clone Playlist</button><button>Share Playlist</button></div></div>
+            </div>
+            <div data-shelf="Movies in this playlist"></div>
+            <div class="movie-grid" data-grid></div>
+          </section>
+
+          <section class="route-page" data-page="/public">
+            <div class="page-heading"><span class="eyebrow">Public</span><h1>Community movie playlists</h1><p>Popular, trending, recently shared, and most followed lists.</p></div>
+            <div class="playlist-grid"><article class="playlist-card"><div class="playlist-cover"></div><h3>Popular Lists</h3><p>Follower-count placeholder.</p></article><article class="playlist-card"><div class="playlist-cover cool"></div><h3>Trending Lists</h3><p>Momentum placeholder.</p></article><article class="playlist-card"><div class="playlist-cover warm"></div><h3>Recently Shared</h3><p>Fresh-list placeholder.</p></article><article class="playlist-card"><div class="playlist-cover green"></div><h3>Community Picks</h3><p>Curated-list placeholder.</p></article></div>
+            <div data-shelf="Most Followed"></div>
+          </section>
+
+          <section class="route-page" data-page="/roulette">
+            <div class="roulette-stage">
+              <div class="roulette-copy"><span class="eyebrow">Movie Roulette</span><h1>Spin into something worth watching</h1><p>Visual-only filter shell for genres, providers, playlists, runtime, and Blind Spin.</p><div class="selector-cloud"><span>Action</span><span>Comedy</span><span>Sci-Fi</span><span>Family</span><span>Provider Name</span><span>Playlist Name</span><span>Under 2 Hours</span></div><div class="button-row"><button class="spin-button">Spin</button><button class="blind-button">Blind Spin</button></div></div>
+              <div class="roulette-wheel"><div class="wheel-core">?</div><div class="orbit one"></div><div class="orbit two"></div><div class="orbit three"></div></div>
+            </div>
+            <div class="results-placeholder"><span class="eyebrow">Results area</span><h2>Movie Title</h2><p>Animation placeholder and provider destination preview.</p></div>
+          </section>
+
+          <section class="route-page" data-page="/profile">
+            <div class="profile-hero"><div class="avatar-placeholder">U</div><div><span class="eyebrow">Profile</span><h1>User Name</h1><p>Movie playlists, saved lists, watch history, and roulette history.</p></div></div>
+            <div class="stats-grid"><article><strong>24</strong><span>Playlists</span></article><article><strong>128</strong><span>Watched</span></article><article><strong>2.4k</strong><span>Followers</span></article><article><strong>18</strong><span>Roulette Spins</span></article></div>
+            <div class="profile-tabs"><a href="#/profile/playlists" data-route="/profile/playlists">My Playlists</a><a href="#/profile/saved" data-route="/profile/saved">Saved Lists</a><a href="#/profile/watched" data-route="/profile/watched">Watch History</a></div>
+            <div data-shelf="My Playlists"></div><div data-shelf="Saved Lists"></div><div data-shelf="Watch History"></div>
+          </section>
+
+          <section class="route-page" data-page="/profile/playlists"><div class="page-heading"><span class="eyebrow">Profile</span><h1>My Playlists</h1><p>Placeholder route for owned and collaborative playlists.</p></div><div data-shelf="My Playlists"></div><div class="playlist-grid"><article class="playlist-card"><div class="playlist-cover"></div><h3>Playlist Name</h3><p>Movie count placeholder.</p></article><article class="playlist-card"><div class="playlist-cover cool"></div><h3>Playlist Name</h3><p>Shared list placeholder.</p></article></div></section>
+          <section class="route-page" data-page="/profile/saved"><div class="page-heading"><span class="eyebrow">Profile</span><h1>Saved Lists</h1><p>Placeholder route for playlists saved from other users.</p></div><div data-shelf="Saved Playlist Name"></div></section>
+          <section class="route-page" data-page="/profile/watched"><div class="page-heading"><span class="eyebrow">Profile</span><h1>Watch History</h1><p>Poster-first watched status placeholder.</p></div><div class="movie-grid" data-grid></div></section>
+
+          <section class="route-page" data-page="/providers">
+            <div class="page-heading"><span class="eyebrow">Providers</span><h1>Streaming provider directory</h1><p>Visual placeholder only. No links, logos, availability, or integrations.</p></div>
+            <div class="provider-grid"><article>Netflix</article><article>Amazon Prime</article><article>Disney+</article><article>Apple TV</article><article>Crave</article><article>Paramount+</article><article>Hulu</article><article>Peacock</article><article>Tubi</article><article>YouTube Movies</article></div>
+          </section>
+        </main>
+
+        <footer class="footer">Flim visual prototype. Placeholder-only shell for layout and navigation evaluation.</footer>
+      </div>
+    </div>
+
+    <nav class="mobile-nav" aria-label="Mobile navigation">
+      <a href="#/" data-route="/">Home</a><a href="#/discover" data-route="/discover">Discover</a><a href="#/playlists" data-route="/playlists">Lists</a><a href="#/roulette" data-route="/roulette">Spin</a><a href="#/profile" data-route="/profile">Profile</a>
+    </nav>
+    <script src="./prototype.js"></script>
+  </body>
+</html>
