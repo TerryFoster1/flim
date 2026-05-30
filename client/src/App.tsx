@@ -3,7 +3,7 @@ import { Footer } from "./components/Footer";
 import { MobileNavigation } from "./components/MobileNavigation";
 import { NavigationBar } from "./components/NavigationBar";
 import { Sidebar } from "./components/Sidebar";
-import { addMovieToPlaylist, clonePlaylist, loadPlaylists, removeMovieFromPlaylist, savePlaylists, setMovieWatchStatus } from "./services/localPlaylistStore";
+import { addMovieToPlaylist, clonePlaylist, deletePlaylist, loadPlaylists, removeMovieFromPlaylist, savePlaylists, setMovieWatchStatus } from "./services/localPlaylistStore";
 import { Discover } from "./pages/Discover";
 import { Home } from "./pages/Home";
 import { MovieDetailsPage } from "./pages/MovieDetails";
@@ -39,6 +39,7 @@ function routeFromPath(pathname = window.location.pathname): RouteState {
 export default function App() {
   const [routeState, setRouteState] = useState<RouteState>(routeFromPath);
   const [playlists, setPlaylists] = useState<Playlist[]>(() => loadPlaylists());
+  const [playlistNotice, setPlaylistNotice] = useState("");
 
   useEffect(() => {
     savePlaylists(playlists);
@@ -51,6 +52,9 @@ export default function App() {
   }, []);
 
   function navigate(path: string) {
+    if (path !== "/playlists") {
+      setPlaylistNotice("");
+    }
     window.history.pushState({}, "", path);
     setRouteState(routeFromPath(path));
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -72,26 +76,31 @@ export default function App() {
     setPlaylists((current) => clonePlaylist(current, playlistId));
   }
 
-  const activePlaylist = useMemo(
-    () => playlists.find((playlist) => playlist.id === routeState.playlistId) || playlists[0],
-    [playlists, routeState.playlistId],
-  );
+  function deleteLocalPlaylist(playlistId: string) {
+    setPlaylists((current) => deletePlaylist(current, playlistId));
+    setPlaylistNotice("Playlist deleted.");
+    navigate("/playlists");
+  }
+
+  const activePlaylist = useMemo(() => playlists.find((playlist) => playlist.id === routeState.playlistId), [playlists, routeState.playlistId]);
 
   const activeRoute: AppRoute = routeState.route;
   const page = {
     "/": <Home onNavigate={navigate} playlists={playlists} addToPlaylist={addToPlaylist} />,
     "/discover": <Discover onNavigate={navigate} playlists={playlists} addToPlaylist={addToPlaylist} />,
-    "/playlists": <Playlists onNavigate={navigate} playlists={playlists} setPlaylists={setPlaylists} />,
+    "/playlists": <Playlists notice={playlistNotice} onDelete={deleteLocalPlaylist} onNavigate={navigate} playlists={playlists} setPlaylists={setPlaylists} />,
     "/playlists/:id": activePlaylist ? (
       <PlaylistDetails
         playlist={activePlaylist}
         onNavigate={navigate}
+        addToPlaylist={addToPlaylist}
         clonePlaylist={cloneLocalPlaylist}
+        deletePlaylist={deleteLocalPlaylist}
         removeMovie={removeFromPlaylist}
         updateWatchStatus={updateWatchStatus}
       />
     ) : (
-      <Playlists onNavigate={navigate} playlists={playlists} setPlaylists={setPlaylists} />
+      <Playlists notice={playlistNotice || "Playlist not found."} onDelete={deleteLocalPlaylist} onNavigate={navigate} playlists={playlists} setPlaylists={setPlaylists} />
     ),
     "/movies/:tmdbId": (
       <MovieDetailsPage

@@ -40,8 +40,8 @@ export function savePlaylists(playlists: Playlist[]) {
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(playlists));
 }
 
-export function createPlaylist(input: Pick<Playlist, "name" | "description" | "visibility">, playlists: Playlist[]) {
-  const created: Playlist = {
+export function createPlaylistItem(input: Pick<Playlist, "name" | "description" | "visibility">): Playlist {
+  return {
     id: makeId(),
     name: input.name.trim() || "Playlist Name",
     description: input.description.trim(),
@@ -50,6 +50,10 @@ export function createPlaylist(input: Pick<Playlist, "name" | "description" | "v
     createdAt: now(),
     updatedAt: now(),
   };
+}
+
+export function createPlaylist(input: Pick<Playlist, "name" | "description" | "visibility">, playlists: Playlist[]) {
+  const created = createPlaylistItem(input);
 
   return [created, ...playlists];
 }
@@ -72,6 +76,12 @@ export function removeMovieFromPlaylist(playlists: Playlist[], playlistId: strin
       ? { ...playlist, movies: playlist.movies.filter((movie) => movie.tmdbId !== tmdbId), updatedAt: now() }
       : playlist,
   );
+}
+
+export function deletePlaylist(playlists: Playlist[], playlistId: string) {
+  // Local-only delete: playlist movie associations live inside the playlist object, so removing
+  // the playlist also removes its local movie rows without touching any future external metadata cache.
+  return playlists.filter((playlist) => playlist.id !== playlistId);
 }
 
 export function setMovieWatchStatus(playlists: Playlist[], playlistId: string, tmdbId: number, watchStatus: WatchStatus) {

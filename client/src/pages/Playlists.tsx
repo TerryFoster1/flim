@@ -1,30 +1,35 @@
 import { useState, type Dispatch, type FormEvent, type SetStateAction } from "react";
 import { PageShell } from "../components/PageShell";
 import { PlaylistGrid } from "../components/PlaylistGrid";
-import { createPlaylist } from "../services/localPlaylistStore";
+import { createPlaylistItem } from "../services/localPlaylistStore";
 import type { Playlist } from "../types";
 
 interface PlaylistsProps {
   onNavigate: (path: string) => void;
   playlists: Playlist[];
   setPlaylists: Dispatch<SetStateAction<Playlist[]>>;
+  notice?: string;
+  onDelete?: (playlistId: string) => void;
 }
 
-export function Playlists({ onNavigate, playlists, setPlaylists }: PlaylistsProps) {
+export function Playlists({ onNavigate, playlists, setPlaylists, notice, onDelete }: PlaylistsProps) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [visibility, setVisibility] = useState<Playlist["visibility"]>("private");
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setPlaylists((current) => createPlaylist({ name, description, visibility }, current));
+    const created = createPlaylistItem({ name, description, visibility });
+    setPlaylists((current) => [created, ...current]);
     setName("");
     setDescription("");
     setVisibility("private");
+    onNavigate(`/playlists/${created.id}`);
   }
 
   return (
     <PageShell eyebrow="Playlists" title="Your movie shelves" description="Create local playlists, then add movies from search or movie details.">
+      {notice ? <p className="success-message">{notice}</p> : null}
       <form className="playlist-form" onSubmit={submit}>
         <label>
           <span>Playlist name</span>
@@ -44,7 +49,7 @@ export function Playlists({ onNavigate, playlists, setPlaylists }: PlaylistsProp
         </label>
         <button className="primary-button" type="submit">Create Playlist</button>
       </form>
-      <PlaylistGrid onNavigate={onNavigate} playlists={playlists} />
+      <PlaylistGrid onDelete={onDelete} onNavigate={onNavigate} playlists={playlists} />
     </PageShell>
   );
 }

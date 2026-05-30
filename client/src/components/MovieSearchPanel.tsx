@@ -8,9 +8,10 @@ interface MovieSearchPanelProps {
   addToPlaylist: (playlistId: string, movie: MovieSearchResult) => void;
   onNavigate: (path: string) => void;
   variant?: "standard" | "hero";
+  fixedPlaylistId?: string;
 }
 
-export function MovieSearchPanel({ playlists, addToPlaylist, onNavigate, variant = "standard" }: MovieSearchPanelProps) {
+export function MovieSearchPanel({ playlists, addToPlaylist, onNavigate, variant = "standard", fixedPlaylistId }: MovieSearchPanelProps) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<MovieSearchResult[]>([]);
   const [status, setStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
@@ -78,7 +79,11 @@ export function MovieSearchPanel({ playlists, addToPlaylist, onNavigate, variant
                     <button className="secondary-button" onClick={() => onNavigate(`/movies/${movie.tmdbId}`)} type="button">
                       Details
                     </button>
-                    {playlists.length === 0 ? (
+                    {fixedPlaylistId ? (
+                      <button className="primary-button" onClick={() => addToPlaylist(fixedPlaylistId, movie)} type="button">
+                        Add Movie
+                      </button>
+                    ) : playlists.length === 0 ? (
                       <button className="primary-button" onClick={() => onNavigate("/playlists")} type="button">
                         Create Playlist
                       </button>
