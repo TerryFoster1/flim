@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { AddToPlaylistControl } from "../components/AddToPlaylistControl";
 import { PageShell } from "../components/PageShell";
+import { WhereToWatch } from "../components/WhereToWatch";
 import { WatchStatusBadge } from "../components/WatchStatusBadge";
 import { getMovieDetails, hasTmdbApiKey } from "../services/tmdbService";
 import type { MovieDetails, Playlist, WatchStatus } from "../types";
@@ -83,6 +84,7 @@ export function MovieDetailsPage({ tmdbId, playlists, addToPlaylist, updateWatch
               </label>
             ))}
           </div>
+          <WhereToWatch movie={movie} />
         </div>
       </div>
     </section>

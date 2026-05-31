@@ -1,4 +1,5 @@
 import type { PlaylistMovie, WatchStatus } from "../types";
+import { WhereToWatch } from "./WhereToWatch";
 import { WatchStatusBadge } from "./WatchStatusBadge";
 
 interface PosterCardProps {
@@ -25,6 +26,7 @@ export function PosterCard({ movie, playlistId, onNavigate, onRemove, onWatchSta
         ))}
       </div>
       <WatchStatusBadge label={watched ? "Watched" : "Not watched"} />
+      <WhereToWatch compact movie={movie} />
       {playlistId ? (
         <div className="card-actions">
           <label className="watched-toggle">

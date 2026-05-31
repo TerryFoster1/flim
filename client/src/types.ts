@@ -57,6 +57,66 @@ export interface PlaylistMovie {
   watchStatus: WatchStatus;
 }
 
+export type WatchProviderName =
+  | "Plex"
+  | "Netflix"
+  | "Prime Video"
+  | "Disney+"
+  | "Apple TV"
+  | "Crave"
+  | "YouTube"
+  | "Tubi";
+
+export type WatchProviderLinkType = "exact" | "search_fallback" | "connect_placeholder";
+
+export interface WatchProvider {
+  id: string;
+  name: WatchProviderName;
+  icon: string;
+  searchUrlTemplate?: string;
+  notes: string;
+}
+
+export interface WatchProviderLink {
+  provider: WatchProvider;
+  linkType: WatchProviderLinkType;
+  url?: string;
+  label: string;
+  availabilityKnown: boolean;
+}
+
+export interface MovieAvailability {
+  tmdbId: number;
+  title: string;
+  availabilityKnown: boolean;
+  links: WatchProviderLink[];
+  notes: string;
+}
+
+export interface PlexLibraryItem {
+  id: string;
+  tmdbId?: number;
+  title: string;
+  year?: string;
+  plexRatingKey?: string;
+  plexUrl?: string;
+}
+
+export interface PlexServer {
+  id: string;
+  name: string;
+  connectionUrl?: string;
+  owned?: boolean;
+}
+
+export interface PlexClient {
+  id: string;
+  name: string;
+  product?: string;
+  platform?: string;
+  supportsRemotePlayback?: boolean;
+}
+
 export interface Playlist {
   id: string;
   publicSlug: string;
