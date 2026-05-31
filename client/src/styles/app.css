@@ -404,6 +404,203 @@ h3 { margin-bottom: 8px; }
 .meta-row span { border: 1px solid var(--line); border-radius: 999px; padding: 8px 10px; }
 .movie-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px; }
 .roulette-page { display: grid; gap: 24px; }
+.projector-roulette-stage {
+  min-height: min(780px, calc(100vh - 126px));
+  display: grid;
+  grid-template-columns: minmax(260px, .72fr) minmax(320px, 1.1fr) minmax(260px, .78fr);
+  gap: clamp(18px, 3vw, 36px);
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 30px;
+  padding: clamp(22px, 4vw, 46px);
+  background:
+    radial-gradient(circle at 76% 18%, rgba(255,184,77,.2), transparent 34%),
+    radial-gradient(circle at 24% 82%, rgba(255,79,109,.18), transparent 32%),
+    linear-gradient(135deg, rgba(17, 12, 18, .98), rgba(7, 8, 13, .96));
+  box-shadow: 0 30px 100px rgba(0,0,0,.38);
+}
+.projector-roulette-stage::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px) 0 0 / 46px 100%,
+    linear-gradient(180deg, transparent, rgba(0,0,0,.44));
+  pointer-events: none;
+}
+.projector-copy, .projector-machine, .winner-reveal-panel {
+  position: relative;
+  z-index: 1;
+}
+.projector-copy h1 {
+  font-size: clamp(3.2rem, 8vw, 7.3rem);
+  line-height: .9;
+  margin-bottom: 16px;
+}
+.projector-copy p {
+  color: #f1e7dd;
+  font-size: clamp(1rem, 1.7vw, 1.2rem);
+}
+.projector-machine {
+  min-height: 620px;
+  display: grid;
+  place-items: center;
+  isolation: isolate;
+}
+.spotlight-svg {
+  position: absolute;
+  z-index: 0;
+  width: min(76vw, 560px);
+  height: auto;
+  transform: translate(18%, 5%) rotate(-5deg);
+  opacity: .66;
+  pointer-events: none;
+}
+.projector-art {
+  position: absolute;
+  left: 0;
+  bottom: 8%;
+  z-index: 3;
+  width: min(58%, 330px);
+}
+.film-reel-svg {
+  position: absolute;
+  left: -4%;
+  bottom: 48%;
+  width: 46%;
+  filter: drop-shadow(0 18px 36px rgba(0,0,0,.45));
+  transform-origin: 50% 50%;
+}
+.projector-svg {
+  width: 100%;
+  filter: drop-shadow(0 22px 48px rgba(0,0,0,.5));
+}
+.projector-roulette-stage.is-spinning .film-reel-svg {
+  animation: filmReelSpin .48s linear infinite;
+}
+@keyframes filmReelSpin {
+  to { transform: rotate(360deg); }
+}
+.film-strip-track {
+  position: absolute;
+  z-index: 2;
+  left: 10%;
+  right: 0;
+  top: 17%;
+  height: 110px;
+  overflow: hidden;
+  transform: perspective(420px) rotateY(-14deg) rotate(-3deg);
+  border-radius: 18px;
+  mask-image: linear-gradient(90deg, transparent, #000 10%, #000 88%, transparent);
+}
+.film-strip {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 76px;
+  gap: 12px;
+  width: max-content;
+  padding: 12px;
+  border-block: 10px solid #100d10;
+  background:
+    repeating-linear-gradient(90deg, #100d10 0 10px, transparent 10px 28px),
+    rgba(255,184,77,.12);
+}
+.projector-roulette-stage.is-spinning .film-strip {
+  animation: filmStripFeed .38s linear infinite;
+}
+@keyframes filmStripFeed {
+  to { transform: translateX(-88px); }
+}
+.film-frame {
+  width: 76px;
+  aspect-ratio: 2 / 3;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 2px solid rgba(255,184,77,.42);
+  border-radius: 8px;
+  background: #08090d;
+  box-shadow: 0 10px 26px rgba(0,0,0,.36);
+}
+.film-frame img,
+.film-frame-placeholder {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.film-frame-placeholder {
+  background: linear-gradient(145deg, rgba(255,184,77,.7), rgba(255,79,109,.28));
+}
+.winner-screen {
+  position: relative;
+  z-index: 4;
+  width: min(76%, 390px);
+  aspect-ratio: 2 / 3;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 26px;
+  border: 2px solid rgba(255,184,77,.5);
+  background: #101218;
+  box-shadow:
+    0 30px 90px rgba(0,0,0,.58),
+    0 0 80px rgba(255,184,77,.18);
+}
+.winner-screen img,
+.winner-screen .winner-placeholder {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.winner-screen-glow {
+  position: absolute;
+  inset: auto 8% -12% 8%;
+  height: 20%;
+  background: radial-gradient(ellipse, rgba(255,184,77,.62), transparent 68%);
+  filter: blur(18px);
+}
+.projector-roulette-stage.is-spinning .winner-screen {
+  animation: projectorPosterPulse .32s ease-in-out infinite alternate;
+}
+.projector-roulette-stage.has-winner .winner-screen {
+  animation: theaterReveal .62s cubic-bezier(.2,.75,.2,1.18);
+}
+@keyframes projectorPosterPulse {
+  from { transform: translateY(0) rotate(-.6deg); filter: saturate(1); }
+  to { transform: translateY(-8px) rotate(.6deg); filter: saturate(1.28); }
+}
+@keyframes theaterReveal {
+  from { transform: scale(.86); filter: brightness(.75) blur(2px); }
+  to { transform: scale(1); filter: none; }
+}
+.winner-reveal-panel {
+  display: grid;
+  gap: 12px;
+  align-content: center;
+  min-height: 360px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 24px;
+  padding: clamp(18px, 3vw, 28px);
+  background:
+    radial-gradient(circle at 36% 0%, rgba(255,184,77,.14), transparent 16rem),
+    rgba(255,255,255,.045);
+}
+.winner-reveal-panel h2 {
+  font-size: clamp(2rem, 5vw, 4.2rem);
+  line-height: .95;
+}
+.winner-reveal-panel p {
+  color: var(--muted);
+  font-weight: 800;
+}
+.roulette-lineup-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+}
 .roulette-cinema-stage {
   min-height: min(780px, calc(100vh - 126px));
   display: grid;
@@ -1171,6 +1368,16 @@ textarea { min-height: 42px; resize: vertical; }
   .topbar { height: 66px; }
   .top-links { display: none; }
   .home-hero, .playlist-hero { grid-template-columns: 1fr; }
+  .projector-roulette-stage {
+    min-height: auto;
+    grid-template-columns: 1fr;
+  }
+  .projector-machine {
+    min-height: 560px;
+  }
+  .winner-reveal-panel {
+    min-height: auto;
+  }
   .roulette-cinema-stage {
     min-height: auto;
     grid-template-columns: 1fr;
@@ -1308,6 +1515,57 @@ textarea { min-height: 42px; resize: vertical; }
     border-right: 0;
     border-radius: 0;
     padding: 18px;
+  }
+  .projector-roulette-stage {
+    margin-left: -16px;
+    margin-right: -16px;
+    border-left: 0;
+    border-right: 0;
+    border-radius: 0;
+    padding: 18px;
+    gap: 18px;
+  }
+  .projector-copy h1 {
+    font-size: clamp(3rem, 16vw, 4.9rem);
+  }
+  .projector-copy p {
+    max-width: 340px;
+  }
+  .projector-machine {
+    min-height: 450px;
+  }
+  .projector-art {
+    width: min(64%, 260px);
+    left: -6%;
+    bottom: 2%;
+  }
+  .film-strip-track {
+    left: -6%;
+    right: -18%;
+    top: 7%;
+    height: 88px;
+  }
+  .film-strip {
+    grid-auto-columns: 58px;
+    gap: 8px;
+    padding: 9px;
+  }
+  .film-frame {
+    width: 58px;
+  }
+  .winner-screen {
+    width: min(72vw, 280px);
+    border-radius: 20px;
+  }
+  .spotlight-svg {
+    width: 120vw;
+    transform: translate(7%, 7%) rotate(-4deg);
+  }
+  .winner-reveal-panel {
+    border-radius: 20px;
+  }
+  .roulette-lineup-heading {
+    display: grid;
   }
   .roulette-marquee h1 {
     font-size: clamp(2.9rem, 17vw, 4.8rem);
