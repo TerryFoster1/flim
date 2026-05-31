@@ -1,9 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Footer } from "./components/Footer";
 import { InstallFlimPrompt } from "./components/InstallFlimPrompt";
-import { MobileNavigation } from "./components/MobileNavigation";
 import { NavigationBar } from "./components/NavigationBar";
-import { Sidebar } from "./components/Sidebar";
 import {
   addMovieToPlaylist,
   clonePlaylist,
@@ -29,7 +27,7 @@ function routeFromPath(pathname = window.location.pathname): RouteState {
   if (pathname.startsWith("/p/")) return { route: "/p/:slug", publicSlug: pathname.split("/")[2] };
   if (pathname.startsWith("/movies/")) return { route: "/movies/:tmdbId", tmdbId: pathname.split("/")[2] };
   if (pathname === "/public") return { route: "/public" };
-  if (pathname === "/roulette") return { route: "/roulette" };
+  if (pathname === "/roulette") return { route: "/" };
   if (pathname === "/providers") return { route: "/providers" };
   if (pathname === "/settings") return { route: "/settings" };
   return { route: "/" };
@@ -41,6 +39,7 @@ export default function App() {
   const [playlistNotice, setPlaylistNotice] = useState("");
   const [dataStatus, setDataStatus] = useState<"loading" | "ready" | "error">("loading");
   const [dataMessage, setDataMessage] = useState("");
+  const [isRouletteOpen, setIsRouletteOpen] = useState(() => window.location.pathname === "/roulette");
 
   useEffect(() => {
     refreshPlaylists();
@@ -52,7 +51,14 @@ export default function App() {
     return () => window.removeEventListener("popstate", onPopState);
   }, []);
 
+  useEffect(() => {
+    const openRoulette = () => setIsRouletteOpen(true);
+    window.addEventListener("flim:open-roulette", openRoulette);
+    return () => window.removeEventListener("flim:open-roulette", openRoulette);
+  }, []);
+
   function navigate(path: string) {
+    setIsRouletteOpen(false);
     if (path !== "/playlists") {
       setPlaylistNotice("");
     }
@@ -109,20 +115,19 @@ export default function App() {
   const activePlaylist = useMemo(() => playlists.find((playlist) => playlist.id === routeState.playlistId), [playlists, routeState.playlistId]);
 
   const activeRoute: AppRoute = routeState.route;
-  const collectionsPage = (initialView: "my" | "public" = "my") => (
+  const playlistsPage = (initialView: "my" | "public" = "my") => (
     <Playlists
       initialView={initialView}
       notice={playlistNotice}
       onCreatePlaylist={createRemotePlaylist}
-      onDelete={deleteRemotePlaylist}
       onNavigate={navigate}
       playlists={playlists}
     />
   );
   const pages: Partial<Record<AppRoute, ReactNode>> = {
-    "/": collectionsPage("my"),
-    "/discover": collectionsPage("my"),
-    "/playlists": collectionsPage("my"),
+    "/": playlistsPage("my"),
+    "/discover": playlistsPage("my"),
+    "/playlists": playlistsPage("my"),
     "/playlists/:id": activePlaylist ? (
       <PlaylistDetails
         playlist={activePlaylist}
@@ -134,7 +139,7 @@ export default function App() {
         updateWatchStatus={updateWatchStatus}
       />
     ) : (
-      <Playlists initialView="my" notice={playlistNotice || "Playlist not found."} onCreatePlaylist={createRemotePlaylist} onDelete={deleteRemotePlaylist} onNavigate={navigate} playlists={playlists} />
+      <Playlists initialView="my" notice={playlistNotice || "Playlist not found."} onCreatePlaylist={createRemotePlaylist} onNavigate={navigate} playlists={playlists} />
     ),
     "/p/:slug": <PublicPlaylist publicSlug={routeState.publicSlug || ""} onNavigate={navigate} />,
     "/movies/:tmdbId": (
@@ -145,16 +150,15 @@ export default function App() {
         updateWatchStatus={updateWatchStatus}
       />
     ),
-    "/public": collectionsPage("public"),
-    "/roulette": <Roulette playlists={playlists} onNavigate={navigate} />,
-    "/providers": collectionsPage("my"),
+    "/public": playlistsPage("public"),
+    "/roulette": playlistsPage("my"),
+    "/providers": playlistsPage("my"),
     "/settings": <Settings />,
   };
-  const page = pages[activeRoute] ?? collectionsPage("my");
+  const page = pages[activeRoute] ?? playlistsPage("my");
 
   return (
     <div className="app-shell">
-      <Sidebar activeRoute={activeRoute} onNavigate={navigate} />
       <div className="main-shell">
         <NavigationBar activeRoute={activeRoute} onNavigate={navigate} />
         <main className="page-container">
@@ -165,7 +169,34 @@ export default function App() {
         <Footer />
       </div>
       <InstallFlimPrompt />
-      <MobileNavigation activeRoute={activeRoute} onNavigate={navigate} />
+      <button className="floating-roulette-button" aria-label="Open Movie Night Roulette" onClick={() => setIsRouletteOpen(true)} type="button">
+        <svg viewBox="0 0 64 64" aria-hidden="true">
+          <defs>
+            <linearGradient id="floatingReelGradient" x1="8" y1="8" x2="56" y2="56">
+              <stop stopColor="#ff4f6d" />
+              <stop offset="0.55" stopColor="#ffb84d" />
+              <stop offset="1" stopColor="#ffe760" />
+            </linearGradient>
+          </defs>
+          <circle cx="32" cy="32" r="25" fill="url(#floatingReelGradient)" />
+          <circle cx="32" cy="32" r="12" fill="#08090d" opacity=".88" />
+          <circle cx="32" cy="18" r="5" fill="#08090d" />
+          <circle cx="46" cy="32" r="5" fill="#08090d" />
+          <circle cx="32" cy="46" r="5" fill="#08090d" />
+          <circle cx="18" cy="32" r="5" fill="#08090d" />
+          <circle cx="32" cy="32" r="4" fill="#fff7df" />
+        </svg>
+      </button>
+      {isRouletteOpen ? (
+        <div className="roulette-modal-backdrop" role="dialog" aria-modal="true" aria-label="Movie Night Roulette">
+          <button className="roulette-modal-close" aria-label="Close roulette" onClick={() => setIsRouletteOpen(false)} type="button">
+            X
+          </button>
+          <div className="roulette-modal-shell">
+            <Roulette playlists={playlists} onNavigate={navigate} />
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

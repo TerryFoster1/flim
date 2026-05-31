@@ -4,17 +4,10 @@ interface PlaylistCardProps {
   playlist: Playlist;
   large?: boolean;
   onNavigate?: (path: string) => void;
-  onDelete?: (playlistId: string) => void | Promise<void>;
 }
 
-export function PlaylistCard({ playlist, large, onNavigate, onDelete }: PlaylistCardProps) {
+export function PlaylistCard({ playlist, large, onNavigate }: PlaylistCardProps) {
   const coverMovies = playlist.movies.slice(0, 4);
-
-  async function confirmDelete() {
-    if (window.confirm("Delete this playlist? This cannot be undone.")) {
-      await onDelete?.(playlist.id);
-    }
-  }
 
   return (
     <article className={`playlist-card ${large ? "large" : ""}`}>
@@ -40,13 +33,6 @@ export function PlaylistCard({ playlist, large, onNavigate, onDelete }: Playlist
           <span>{playlist.movies.length} movies</span>
         </div>
       </button>
-      {onDelete ? (
-        <div className="card-actions">
-          <button className="danger-button compact" onClick={confirmDelete} type="button">
-            Delete Playlist
-          </button>
-        </div>
-      ) : null}
     </article>
   );
 }

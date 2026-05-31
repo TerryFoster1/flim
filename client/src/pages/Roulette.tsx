@@ -142,7 +142,7 @@ export function Roulette({ playlists, onNavigate }: RouletteProps) {
         <div className="projector-copy">
           <span className="eyebrow">Flim Roulette</span>
           <h1>Movie Night Roulette</h1>
-          <p>{pool.length === 0 ? "Add movies to a collection before starting the projector." : `${pool.length} movies loaded from ${selectedPlaylistCount} collection${selectedPlaylistCount === 1 ? "" : "s"}.`}</p>
+          <p>{pool.length === 0 ? "Add movies to a playlist before starting the projector." : `${pool.length} movies loaded from ${selectedPlaylistCount} playlist${selectedPlaylistCount === 1 ? "" : "s"}.`}</p>
         </div>
 
         <div className="projector-machine" aria-label="Film reel roulette projector">
@@ -199,7 +199,7 @@ export function Roulette({ playlists, onNavigate }: RouletteProps) {
 
       <section className="roulette-control-deck" aria-label="Roulette movie pool">
         <div className="roulette-lineup-heading">
-          <span className="eyebrow">Collections</span>
+          <span className="eyebrow">Playlists</span>
           <div className="roulette-filter-pills" aria-label="Watch status filter">
             {(["all", "not_watched", "watched"] as RouletteFilter[]).map((filterOption) => (
               <button
@@ -225,9 +225,9 @@ export function Roulette({ playlists, onNavigate }: RouletteProps) {
             </div>
             <div>
               <span className="eyebrow">No posters loaded</span>
-              <h2>Build a collection before the projector starts.</h2>
+              <h2>Build a playlist before the projector starts.</h2>
               <button className="primary-button" onClick={() => onNavigate("/playlists")} type="button">
-                Create Collection
+                Create Playlist
               </button>
             </div>
           </div>

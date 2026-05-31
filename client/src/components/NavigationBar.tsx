@@ -1,40 +1,45 @@
-import type { AppRoute, RouteAwareProps } from "../types";
+import { useState } from "react";
+import type { RouteAwareProps } from "../types";
 import { BrandMark } from "./BrandMark";
 
-const links: Array<{ label: string; route: AppRoute }> = [
-  { label: "Collections", route: "/" },
-  { label: "Roulette", route: "/roulette" },
-];
+export function NavigationBar({ onNavigate }: RouteAwareProps) {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-export function NavigationBar({ activeRoute, onNavigate }: RouteAwareProps) {
-  const collectionsActive =
-    activeRoute === "/" ||
-    activeRoute === "/playlists" ||
-    activeRoute === "/playlists/:id" ||
-    activeRoute === "/public" ||
-    activeRoute === "/movies/:tmdbId" ||
-    activeRoute === "/p/:slug";
+  function navigate(path: string) {
+    setIsMenuOpen(false);
+    onNavigate(path);
+  }
 
   return (
     <header className="topbar">
-      <button className="top-brand reset-button" onClick={() => onNavigate("/")} type="button">
+      <button className="top-brand reset-button" onClick={() => navigate("/")} type="button">
         <BrandMark />
       </button>
-      <nav className="top-links" aria-label="Top navigation">
-        {links.map((link) => (
-          <button
-            className={(link.route === "/" ? collectionsActive : activeRoute === link.route) ? "is-active reset-button" : "reset-button"}
-            key={link.route}
-            onClick={() => onNavigate(link.route)}
-            type="button"
-          >
-            {link.label}
-          </button>
-        ))}
-      </nav>
-      <button className="settings-icon-button" aria-label="Settings" onClick={() => onNavigate("/settings")} type="button">
-        Settings
-      </button>
+      <div className="header-menu">
+        <button
+          className="hamburger-button"
+          aria-expanded={isMenuOpen}
+          aria-label="Open menu"
+          onClick={() => setIsMenuOpen((current) => !current)}
+          type="button"
+        >
+          <span />
+          <span />
+          <span />
+        </button>
+        {isMenuOpen ? (
+          <div className="hamburger-panel">
+            <button onClick={() => navigate("/settings")} type="button">Settings</button>
+            <button onClick={() => navigate("/settings")} type="button">Install Flim</button>
+            <button disabled type="button">Help</button>
+            <button disabled type="button">About</button>
+            <button onClick={() => navigate("/settings")} type="button">Connect Plex</button>
+            <button disabled type="button">Future Integrations</button>
+            <button disabled type="button">Account</button>
+            <button disabled type="button">Logout</button>
+          </div>
+        ) : null}
+      </div>
     </header>
   );
 }

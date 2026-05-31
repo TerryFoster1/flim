@@ -1,13 +1,10 @@
 import type { Playlist } from "../types";
-import { ClonePlaylistButton } from "./ClonePlaylistButton";
-import { SharePlaylistButton } from "./SharePlaylistButton";
 
 interface PlaylistHeroProps {
   playlist: Playlist;
-  clonePlaylist: (playlistId: string) => void;
 }
 
-export function PlaylistHero({ playlist, clonePlaylist }: PlaylistHeroProps) {
+export function PlaylistHero({ playlist }: PlaylistHeroProps) {
   return (
     <div className="playlist-hero">
       <div className="playlist-cover-xl" aria-label="Playlist cover">
@@ -30,10 +27,6 @@ export function PlaylistHero({ playlist, clonePlaylist }: PlaylistHeroProps) {
         <div className="meta-row">
           <span>{playlist.movies.length} movies</span>
           <span>{playlist.movies.filter((movie) => movie.watchStatus === "watched").length} watched</span>
-        </div>
-        <div className="button-row">
-          <SharePlaylistButton playlist={playlist} />
-          <ClonePlaylistButton onClone={() => clonePlaylist(playlist.id)} />
         </div>
       </div>
     </div>

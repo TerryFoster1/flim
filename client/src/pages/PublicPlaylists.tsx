@@ -14,7 +14,7 @@ export function PublicPlaylists({ onNavigate, playlists, clonePlaylist }: Public
   const mostSaved = [...publicPlaylists].sort((a, b) => b.movies.length - a.movies.length);
 
   return (
-    <PageShell eyebrow="Public Playlists" title="Shared collections">
+    <PageShell eyebrow="Public Playlists" title="Shared playlists">
       {publicPlaylists.length === 0 ? (
         <section className="empty-playlists-panel cinematic-empty">
           <div className="empty-poster-wall" aria-hidden="true">

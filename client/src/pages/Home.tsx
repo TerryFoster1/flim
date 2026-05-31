@@ -6,7 +6,6 @@ interface HomeProps {
   onNavigate: (path: string) => void;
   playlists: Playlist[];
   notice?: string;
-  onDelete?: (playlistId: string) => void | Promise<void>;
 }
 
 const curatedPosterUrls = [
@@ -23,7 +22,7 @@ function getHeroPosters(playlists: Playlist[]) {
   return [...savedPosters, ...curatedPosterUrls].slice(0, 8);
 }
 
-export function Home({ onNavigate, playlists, notice, onDelete }: HomeProps) {
+export function Home({ onNavigate, playlists, notice }: HomeProps) {
   const heroPosters = getHeroPosters(playlists);
   const continuePlaylist = [...playlists].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))[0];
   const watchedMovies = playlists
@@ -42,7 +41,7 @@ export function Home({ onNavigate, playlists, notice, onDelete }: HomeProps) {
         </div>
         <div className="cinema-hero-overlay">
           <span className="eyebrow">Flim</span>
-          <h1>Your Movie Collections</h1>
+          <h1>Your Movie Playlists</h1>
           <p>Create, share, and discover movie playlists.</p>
           <div className="button-row">
             <button className="primary-button" onClick={() => onNavigate("/playlists")} type="button">Create Playlist</button>
@@ -54,7 +53,7 @@ export function Home({ onNavigate, playlists, notice, onDelete }: HomeProps) {
 
       <PageShell
         eyebrow="My Playlists"
-        title="Collections"
+        title="Playlists"
         action={<button className="primary-button" onClick={() => onNavigate("/playlists")} type="button">Create Playlist</button>}
       >
       {playlists.length === 0 ? (
@@ -64,12 +63,12 @@ export function Home({ onNavigate, playlists, notice, onDelete }: HomeProps) {
           </div>
           <div className="empty-copy">
             <span className="eyebrow">No playlists yet</span>
-            <h2>Create your first collection.</h2>
+            <h2>Create your first playlist.</h2>
             <button className="primary-button" onClick={() => onNavigate("/playlists")} type="button">Create Playlist</button>
           </div>
         </section>
       ) : (
-        <PlaylistGrid onDelete={onDelete} onNavigate={onNavigate} playlists={playlists} />
+        <PlaylistGrid onNavigate={onNavigate} playlists={playlists} />
       )}
       </PageShell>
 
@@ -110,7 +109,7 @@ export function Home({ onNavigate, playlists, notice, onDelete }: HomeProps) {
               </>
             ) : (
               <>
-                <h2>Start building your movie collection.</h2>
+                <h2>Start building your movie playlist.</h2>
                 <button className="primary-button" onClick={() => onNavigate("/playlists")} type="button">
                   Create Playlist
                 </button>
@@ -183,7 +182,7 @@ export function Home({ onNavigate, playlists, notice, onDelete }: HomeProps) {
           <span className="eyebrow">Roulette</span>
           <h2>Let movie night pick itself.</h2>
         </div>
-        <button className="primary-button" onClick={() => onNavigate("/roulette")} type="button">
+        <button className="primary-button" onClick={() => window.dispatchEvent(new CustomEvent("flim:open-roulette"))} type="button">
           Spin Tonight
         </button>
       </section>

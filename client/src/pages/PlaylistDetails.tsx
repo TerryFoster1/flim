@@ -3,6 +3,8 @@ import { MovieGrid } from "../components/MovieGrid";
 import { MovieSearchPanel } from "../components/MovieSearchPanel";
 import { PlaylistHero } from "../components/PlaylistHero";
 import { PosterShelf } from "../components/PosterShelf";
+import { ClonePlaylistButton } from "../components/ClonePlaylistButton";
+import { SharePlaylistButton } from "../components/SharePlaylistButton";
 import type { MovieSearchResult, Playlist, WatchStatus } from "../types";
 
 interface PlaylistDetailsProps {
@@ -17,6 +19,7 @@ interface PlaylistDetailsProps {
 
 export function PlaylistDetails({ playlist, onNavigate, addToPlaylist, clonePlaylist, deletePlaylist, removeMovie, updateWatchStatus }: PlaylistDetailsProps) {
   const [showAddMovie, setShowAddMovie] = useState(playlist.movies.length === 0);
+  const [showPlaylistMenu, setShowPlaylistMenu] = useState(false);
   const [notice, setNotice] = useState("");
 
   async function confirmDelete() {
@@ -27,14 +30,29 @@ export function PlaylistDetails({ playlist, onNavigate, addToPlaylist, clonePlay
 
   return (
     <section className="route-page">
-      <PlaylistHero clonePlaylist={clonePlaylist} playlist={playlist} />
+      <PlaylistHero playlist={playlist} />
       <div className="playlist-management-bar">
         <button className="primary-button" onClick={() => setShowAddMovie((current) => !current)} type="button">
           Add Movie
         </button>
-        <button className="danger-button" onClick={confirmDelete} type="button">
-          Delete Playlist
-        </button>
+        <div className="playlist-overflow">
+          <button className="playlist-menu-button" aria-expanded={showPlaylistMenu} aria-label="Playlist options" onClick={() => setShowPlaylistMenu((current) => !current)} type="button">
+            ...
+          </button>
+          {showPlaylistMenu ? (
+            <div className="playlist-menu-panel">
+              <button disabled type="button">Edit Playlist</button>
+              <button disabled type="button">Rename Playlist</button>
+              <button disabled type="button">Change Visibility</button>
+              <SharePlaylistButton playlist={playlist} />
+              <button disabled type="button">Generate QR Code</button>
+              <ClonePlaylistButton onClone={() => clonePlaylist(playlist.id)} />
+              <button disabled type="button">Remove Movies</button>
+              <button disabled type="button">Manage Playlist</button>
+              <button className="danger-menu-item" onClick={confirmDelete} type="button">Delete Playlist</button>
+            </div>
+          ) : null}
+        </div>
       </div>
       {notice ? <p className="success-message">{notice}</p> : null}
       {showAddMovie ? (

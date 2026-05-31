@@ -7,11 +7,10 @@ interface PlaylistsProps {
   playlists: Playlist[];
   onCreatePlaylist: (input: Pick<Playlist, "name" | "description" | "visibility">) => Promise<Playlist>;
   notice?: string;
-  onDelete?: (playlistId: string) => void | Promise<void>;
-  initialView?: CollectionView;
+  initialView?: PlaylistView;
 }
 
-type CollectionView = "my" | "public";
+type PlaylistView = "my" | "public";
 
 const fallbackHeroPosters = [
   "https://image.tmdb.org/t/p/w500/9gk7adHYeDvHkCSEqAvQNLV5Uge.jpg",
@@ -22,21 +21,21 @@ const fallbackHeroPosters = [
   "https://image.tmdb.org/t/p/w500/5KCVkau1HEl7ZzfPsKAPM0sMiKc.jpg",
 ];
 
-function getCollectionHeroPosters(playlists: Playlist[]) {
+function getPlaylistHeroPosters(playlists: Playlist[]) {
   const savedPosters = playlists.flatMap((playlist) => playlist.movies).map((movie) => movie.posterUrl).filter(Boolean) as string[];
   return [...savedPosters, ...fallbackHeroPosters].slice(0, 8);
 }
 
-export function Playlists({ onNavigate, playlists, onCreatePlaylist, notice, onDelete, initialView = "my" }: PlaylistsProps) {
+export function Playlists({ onNavigate, playlists, onCreatePlaylist, notice, initialView = "my" }: PlaylistsProps) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [visibility, setVisibility] = useState<Playlist["visibility"]>("private");
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
-  const [view, setView] = useState<CollectionView>(initialView);
+  const [view, setView] = useState<PlaylistView>(initialView);
   const [showCreate, setShowCreate] = useState(false);
-  const heroPosters = getCollectionHeroPosters(playlists);
+  const heroPosters = getPlaylistHeroPosters(playlists);
 
   useEffect(() => {
     setView(initialView);
@@ -47,7 +46,9 @@ export function Playlists({ onNavigate, playlists, onCreatePlaylist, notice, onD
     const normalizedQuery = query.trim().toLowerCase();
     if (!normalizedQuery) return source;
     return source.filter((playlist) =>
-      [playlist.name, playlist.description, playlist.visibility].some((value) => value.toLowerCase().includes(normalizedQuery)),
+      [playlist.name, playlist.description, playlist.visibility, ...playlist.movies.map((movie) => movie.title)].some((value) =>
+        value.toLowerCase().includes(normalizedQuery),
+      ),
     );
   }, [playlists, query, view]);
 
@@ -63,7 +64,7 @@ export function Playlists({ onNavigate, playlists, onCreatePlaylist, notice, onD
       setShowCreate(false);
       onNavigate(`/playlists/${created.id}`);
     } catch {
-      setError("Could not create collection. Check Neon setup.");
+      setError("Could not create playlist. Check Neon setup.");
     } finally {
       setIsSaving(false);
     }
@@ -71,7 +72,7 @@ export function Playlists({ onNavigate, playlists, onCreatePlaylist, notice, onD
 
   return (
     <section className="route-page collections-page">
-      <section className="collections-cinematic-hero" aria-label="Flim movie collections">
+      <section className="collections-cinematic-hero" aria-label="Flim movie playlists">
         <div className="collections-poster-wall" aria-hidden="true">
           {heroPosters.map((posterUrl, index) => (
             <img alt="" key={`${posterUrl}-${index}`} src={posterUrl} />
@@ -80,12 +81,12 @@ export function Playlists({ onNavigate, playlists, onCreatePlaylist, notice, onD
         <div className="collections-hero-content">
           <span className="eyebrow">Flim</span>
           <h1>What are we watching tonight?</h1>
-          <p>Build movie collections, share the list, or let roulette choose the night.</p>
+          <p>Build movie playlists, share the list, or let roulette choose the night.</p>
           <div className="button-row">
             <button className="primary-button" onClick={() => setShowCreate((current) => !current)} type="button">
-              {showCreate ? "Close" : "Create Collection"}
+              {showCreate ? "Close" : "Create Playlist"}
             </button>
-            <button className="secondary-button" onClick={() => onNavigate("/roulette")} type="button">
+            <button className="secondary-button" onClick={() => window.dispatchEvent(new CustomEvent("flim:open-roulette"))} type="button">
               Spin Roulette
             </button>
           </div>
@@ -94,15 +95,15 @@ export function Playlists({ onNavigate, playlists, onCreatePlaylist, notice, onD
 
       <div className="collections-command-bar">
         <label className="collection-search">
-          <span>Collections</span>
-          <input onChange={(event) => setQuery(event.target.value)} placeholder="Search movies or collections..." type="search" value={query} />
+          <span>Playlists</span>
+          <input onChange={(event) => setQuery(event.target.value)} placeholder="Search movies or playlists..." type="search" value={query} />
         </label>
-        <div className="collection-toggle" aria-label="Collection type">
+        <div className="collection-toggle" aria-label="Playlist type">
           <button className={view === "my" ? "is-active" : ""} onClick={() => setView("my")} type="button">
-            My Collections
+            My Playlists
           </button>
           <button className={view === "public" ? "is-active" : ""} onClick={() => setView("public")} type="button">
-            Public Collections
+            Public Playlists
           </button>
         </div>
       </div>
@@ -113,12 +114,12 @@ export function Playlists({ onNavigate, playlists, onCreatePlaylist, notice, onD
       {showCreate ? (
         <form className="collection-create-panel" onSubmit={submit}>
           <label>
-            <span>Collection name</span>
+            <span>Playlist name</span>
             <input onChange={(event) => setName(event.target.value)} placeholder="Movie night" required value={name} />
           </label>
           <label>
             <span>Description</span>
-            <textarea onChange={(event) => setDescription(event.target.value)} placeholder="A few words for the collection" value={description} />
+            <textarea onChange={(event) => setDescription(event.target.value)} placeholder="A few words for the playlist" value={description} />
           </label>
           <label>
             <span>Visibility</span>
@@ -129,24 +130,24 @@ export function Playlists({ onNavigate, playlists, onCreatePlaylist, notice, onD
             </select>
           </label>
           <button className="primary-button" disabled={isSaving} type="submit">
-            {isSaving ? "Creating..." : "Create Collection"}
+            {isSaving ? "Creating..." : "Create Playlist"}
           </button>
         </form>
       ) : null}
 
       {visiblePlaylists.length > 0 ? (
-        <PlaylistGrid onDelete={view === "my" ? onDelete : undefined} onNavigate={onNavigate} playlists={visiblePlaylists} />
+        <PlaylistGrid onNavigate={onNavigate} playlists={visiblePlaylists} />
       ) : (
         <div className="collection-empty-cinematic">
           <div className="empty-poster-wall" aria-hidden="true">
             {Array.from({ length: 6 }).map((_, index) => <span key={index} />)}
           </div>
           <div>
-            <span className="eyebrow">{query ? "No matching collections" : view === "public" ? "Public shelf" : "Your shelf"}</span>
-            <h2>{query ? "Try another search." : view === "public" ? "Public collections will appear here." : "Create Your First Collection"}</h2>
+            <span className="eyebrow">{query ? "No matching playlists" : view === "public" ? "Public shelf" : "Your shelf"}</span>
+            <h2>{query ? "Try another search." : view === "public" ? "Public playlists will appear here." : "Create Your First Playlist"}</h2>
             {view === "my" && !query ? (
               <button className="primary-button" onClick={() => setShowCreate(true)} type="button">
-                Create Collection
+                Create Playlist
               </button>
             ) : null}
           </div>
