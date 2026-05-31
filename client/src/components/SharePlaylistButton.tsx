@@ -15,10 +15,16 @@ export function SharePlaylistButton({ playlist }: SharePlaylistButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [status, setStatus] = useState("");
   const [qrCodeUrl, setQrCodeUrl] = useState("");
+  const [canNativeShare, setCanNativeShare] = useState(false);
+  const [copied, setCopied] = useState(false);
   const url = useMemo(() => `${getPublicOrigin()}/p/${playlist.publicSlug}`, [playlist.publicSlug]);
 
   useEffect(() => {
     if (!isOpen) return;
+
+    setCopied(false);
+    setStatus("");
+    setCanNativeShare(typeof navigator !== "undefined" && typeof navigator.share === "function");
 
     QRCode.toDataURL(url, {
       margin: 2,
@@ -35,9 +41,11 @@ export function SharePlaylistButton({ playlist }: SharePlaylistButtonProps) {
   async function copyLink() {
     try {
       await navigator.clipboard.writeText(url);
-      setStatus("Public playlist link copied.");
+      setCopied(true);
+      setStatus("Link Copied");
     } catch {
-      setStatus("Copy failed. The public URL is shown below.");
+      setCopied(false);
+      setStatus("Copy failed. The public URL is shown above.");
     }
   }
 
@@ -53,7 +61,7 @@ export function SharePlaylistButton({ playlist }: SharePlaylistButtonProps) {
         text: playlist.description || "Open this Flim playlist.",
         url,
       });
-      setStatus("Share sheet opened.");
+      setStatus("Share sheet opened");
     } catch {
       setStatus("Share cancelled. You can still copy the public link.");
     }
@@ -79,20 +87,24 @@ export function SharePlaylistButton({ playlist }: SharePlaylistButtonProps) {
             <p className="helper-text">
               Anyone with this link can view the playlist. Auth and access controls will be added in a later phase.
             </p>
-            <label className="share-url-field">
-              <span>Public URL</span>
-              <input readOnly value={url} />
-            </label>
+            <div className="share-link-card">
+              <span>Playlist URL</span>
+              <p>{url}</p>
+            </div>
+            <div className="share-actions primary-share-actions">
+              <button className="primary-button copy-link-button" onClick={copyLink} type="button">
+                {copied ? "✓ Link Copied" : "Copy Link"}
+              </button>
+              {canNativeShare ? (
+                <button className="secondary-button" onClick={nativeShare} type="button">
+                  Share
+                </button>
+              ) : null}
+            </div>
             <div className="qr-card">
               {qrCodeUrl ? <img alt={`QR code for ${playlist.name}`} src={qrCodeUrl} /> : <div className="qr-placeholder">Generating QR code...</div>}
             </div>
-            <div className="share-actions">
-              <button className="primary-button" onClick={copyLink} type="button">
-                Copy Link
-              </button>
-              <button className="secondary-button" onClick={nativeShare} type="button">
-                Native Share
-              </button>
+            <div className="share-actions secondary-share-actions">
               {qrCodeUrl ? (
                 <a className="secondary-button qr-download" download={`${playlist.publicSlug}-qr.png`} href={qrCodeUrl}>
                   Download QR

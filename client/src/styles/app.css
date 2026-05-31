@@ -584,8 +584,31 @@ textarea { min-height: 42px; resize: vertical; }
   box-shadow: 0 28px 90px rgba(0, 0, 0, 0.55);
   padding: clamp(18px, 4vw, 26px);
 }
-.share-url-field { display: block; margin: 18px 0; }
-.share-url-field input { overflow: hidden; text-overflow: ellipsis; }
+.share-link-card {
+  display: grid;
+  gap: 8px;
+  margin: 18px 0 14px;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  background:
+    linear-gradient(135deg, rgba(255, 184, 77, 0.12), rgba(62, 226, 160, 0.08)),
+    rgba(255,255,255,.04);
+}
+.share-link-card span {
+  color: var(--amber);
+  font-size: 0.76rem;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.share-link-card p {
+  margin: 0;
+  color: var(--text);
+  font-weight: 750;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
 .qr-card {
   display: grid;
   place-items: center;
@@ -600,6 +623,19 @@ textarea { min-height: 42px; resize: vertical; }
 .qr-placeholder { color: #08090d; min-height: 260px; display: grid; place-items: center; text-align: center; }
 .share-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .share-actions .primary-button, .share-actions .secondary-button { width: 100%; }
+.primary-share-actions {
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  margin-bottom: 14px;
+}
+.primary-share-actions .copy-link-button {
+  min-height: 56px;
+  font-size: 1rem;
+  box-shadow: 0 16px 34px rgba(255, 122, 69, 0.22);
+}
+.secondary-share-actions {
+  grid-template-columns: 1fr;
+  margin-top: 12px;
+}
 .install-card {
   border: 1px solid rgba(255, 184, 77, 0.28);
   border-radius: var(--radius);
