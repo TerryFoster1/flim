@@ -23,7 +23,7 @@ export function MobileNavigation({ activeRoute, onNavigate }: RouteAwareProps) {
           onClick={() => onNavigate(link.route)}
           type="button"
         >
-          <span aria-hidden="true">{link.route === "/" ? "🎞" : "🎬"}</span>
+          <span aria-hidden="true">{link.route === "/" ? "C" : "R"}</span>
           {link.label}
         </button>
       ))}

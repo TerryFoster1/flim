@@ -13,6 +13,20 @@ interface PlaylistsProps {
 
 type CollectionView = "my" | "public";
 
+const fallbackHeroPosters = [
+  "https://image.tmdb.org/t/p/w500/9gk7adHYeDvHkCSEqAvQNLV5Uge.jpg",
+  "https://image.tmdb.org/t/p/w500/qJ2tW6WMUDux911r6m7haRef0WH.jpg",
+  "https://image.tmdb.org/t/p/w500/6FfCtAuVAW8XJjZ7eWeLibRLWTw.jpg",
+  "https://image.tmdb.org/t/p/w500/8UlWHLMpgZm9bx6QYh0NFoq67TZ.jpg",
+  "https://image.tmdb.org/t/p/w500/rCzpDGLbOoPwLjy3OAm5NUPOTrC.jpg",
+  "https://image.tmdb.org/t/p/w500/5KCVkau1HEl7ZzfPsKAPM0sMiKc.jpg",
+];
+
+function getCollectionHeroPosters(playlists: Playlist[]) {
+  const savedPosters = playlists.flatMap((playlist) => playlist.movies).map((movie) => movie.posterUrl).filter(Boolean) as string[];
+  return [...savedPosters, ...fallbackHeroPosters].slice(0, 8);
+}
+
 export function Playlists({ onNavigate, playlists, onCreatePlaylist, notice, onDelete, initialView = "my" }: PlaylistsProps) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -22,6 +36,7 @@ export function Playlists({ onNavigate, playlists, onCreatePlaylist, notice, onD
   const [query, setQuery] = useState("");
   const [view, setView] = useState<CollectionView>(initialView);
   const [showCreate, setShowCreate] = useState(false);
+  const heroPosters = getCollectionHeroPosters(playlists);
 
   useEffect(() => {
     setView(initialView);
@@ -56,20 +71,31 @@ export function Playlists({ onNavigate, playlists, onCreatePlaylist, notice, onD
 
   return (
     <section className="route-page collections-page">
-      <div className="collections-hero">
-        <div>
-          <span className="eyebrow">Flim Collections</span>
-          <h1>Movie collections, ready to browse.</h1>
+      <section className="collections-cinematic-hero" aria-label="Flim movie collections">
+        <div className="collections-poster-wall" aria-hidden="true">
+          {heroPosters.map((posterUrl, index) => (
+            <img alt="" key={`${posterUrl}-${index}`} src={posterUrl} />
+          ))}
         </div>
-        <button className="primary-button" onClick={() => setShowCreate((current) => !current)} type="button">
-          {showCreate ? "Close" : "Create Collection"}
-        </button>
-      </div>
+        <div className="collections-hero-content">
+          <span className="eyebrow">Flim</span>
+          <h1>What are we watching tonight?</h1>
+          <p>Build movie collections, share the list, or let roulette choose the night.</p>
+          <div className="button-row">
+            <button className="primary-button" onClick={() => setShowCreate((current) => !current)} type="button">
+              {showCreate ? "Close" : "Create Collection"}
+            </button>
+            <button className="secondary-button" onClick={() => onNavigate("/roulette")} type="button">
+              Spin Roulette
+            </button>
+          </div>
+        </div>
+      </section>
 
       <div className="collections-command-bar">
         <label className="collection-search">
-          <span>Search collections</span>
-          <input onChange={(event) => setQuery(event.target.value)} placeholder="Search collections..." type="search" value={query} />
+          <span>Collections</span>
+          <input onChange={(event) => setQuery(event.target.value)} placeholder="Search movies or collections..." type="search" value={query} />
         </label>
         <div className="collection-toggle" aria-label="Collection type">
           <button className={view === "my" ? "is-active" : ""} onClick={() => setView("my")} type="button">

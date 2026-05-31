@@ -17,7 +17,7 @@ export function NavigationBar({ activeRoute, onNavigate }: RouteAwareProps) {
 
   return (
     <header className="topbar">
-      <button className="mobile-brand reset-button" onClick={() => onNavigate("/")} type="button">
+      <button className="top-brand reset-button" onClick={() => onNavigate("/")} type="button">
         <BrandMark />
       </button>
       <nav className="top-links" aria-label="Top navigation">
@@ -33,7 +33,7 @@ export function NavigationBar({ activeRoute, onNavigate }: RouteAwareProps) {
         ))}
       </nav>
       <button className="settings-icon-button" aria-label="Settings" onClick={() => onNavigate("/settings")} type="button">
-        ⚙
+        Settings
       </button>
     </header>
   );
