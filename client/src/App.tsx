@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Footer } from "./components/Footer";
 import { InstallFlimPrompt } from "./components/InstallFlimPrompt";
 import { MobileNavigation } from "./components/MobileNavigation";
@@ -13,16 +13,10 @@ import {
   removeMovieFromPlaylist,
   toggleWatchedStatus,
 } from "./services/apiPlaylistStore";
-import { Home } from "./pages/Home";
 import { MovieDetailsPage } from "./pages/MovieDetails";
 import { PlaylistDetails } from "./pages/PlaylistDetails";
 import { Playlists } from "./pages/Playlists";
-import { Profile } from "./pages/Profile";
-import { ProfilePlaylists } from "./pages/ProfilePlaylists";
-import { ProfileSaved } from "./pages/ProfileSaved";
-import { ProfileWatched } from "./pages/ProfileWatched";
 import { PublicPlaylist } from "./pages/PublicPlaylist";
-import { PublicPlaylists } from "./pages/PublicPlaylists";
 import { Roulette } from "./pages/Roulette";
 import { Settings } from "./pages/Settings";
 import type { AppRoute, MovieDetails, MovieSearchResult, Playlist, RouteState, WatchStatus } from "./types";
@@ -36,10 +30,6 @@ function routeFromPath(pathname = window.location.pathname): RouteState {
   if (pathname.startsWith("/movies/")) return { route: "/movies/:tmdbId", tmdbId: pathname.split("/")[2] };
   if (pathname === "/public") return { route: "/public" };
   if (pathname === "/roulette") return { route: "/roulette" };
-  if (pathname === "/profile") return { route: "/profile" };
-  if (pathname === "/profile/playlists") return { route: "/profile/playlists" };
-  if (pathname === "/profile/saved") return { route: "/profile/saved" };
-  if (pathname === "/profile/watched") return { route: "/profile/watched" };
   if (pathname === "/providers") return { route: "/providers" };
   if (pathname === "/settings") return { route: "/settings" };
   return { route: "/" };
@@ -119,10 +109,20 @@ export default function App() {
   const activePlaylist = useMemo(() => playlists.find((playlist) => playlist.id === routeState.playlistId), [playlists, routeState.playlistId]);
 
   const activeRoute: AppRoute = routeState.route;
-  const page = {
-    "/": <Home notice={playlistNotice} onDelete={deleteRemotePlaylist} onNavigate={navigate} playlists={playlists} />,
-    "/discover": <Home notice={playlistNotice} onDelete={deleteRemotePlaylist} onNavigate={navigate} playlists={playlists} />,
-    "/playlists": <Playlists notice={playlistNotice} onCreatePlaylist={createRemotePlaylist} onDelete={deleteRemotePlaylist} onNavigate={navigate} playlists={playlists} />,
+  const collectionsPage = (initialView: "my" | "public" = "my") => (
+    <Playlists
+      initialView={initialView}
+      notice={playlistNotice}
+      onCreatePlaylist={createRemotePlaylist}
+      onDelete={deleteRemotePlaylist}
+      onNavigate={navigate}
+      playlists={playlists}
+    />
+  );
+  const pages: Partial<Record<AppRoute, ReactNode>> = {
+    "/": collectionsPage("my"),
+    "/discover": collectionsPage("my"),
+    "/playlists": collectionsPage("my"),
     "/playlists/:id": activePlaylist ? (
       <PlaylistDetails
         playlist={activePlaylist}
@@ -134,7 +134,7 @@ export default function App() {
         updateWatchStatus={updateWatchStatus}
       />
     ) : (
-      <Playlists notice={playlistNotice || "Playlist not found."} onCreatePlaylist={createRemotePlaylist} onDelete={deleteRemotePlaylist} onNavigate={navigate} playlists={playlists} />
+      <Playlists initialView="my" notice={playlistNotice || "Playlist not found."} onCreatePlaylist={createRemotePlaylist} onDelete={deleteRemotePlaylist} onNavigate={navigate} playlists={playlists} />
     ),
     "/p/:slug": <PublicPlaylist publicSlug={routeState.publicSlug || ""} onNavigate={navigate} />,
     "/movies/:tmdbId": (
@@ -145,15 +145,12 @@ export default function App() {
         updateWatchStatus={updateWatchStatus}
       />
     ),
-    "/public": <PublicPlaylists onNavigate={navigate} playlists={playlists} clonePlaylist={cloneRemotePlaylist} />,
+    "/public": collectionsPage("public"),
     "/roulette": <Roulette playlists={playlists} onNavigate={navigate} />,
-    "/profile": <Profile onNavigate={navigate} playlists={playlists} />,
-    "/profile/playlists": <ProfilePlaylists onNavigate={navigate} playlists={playlists} />,
-    "/profile/saved": <ProfileSaved playlists={playlists} />,
-    "/profile/watched": <ProfileWatched playlists={playlists} updateWatchStatus={updateWatchStatus} onNavigate={navigate} />,
-    "/providers": <Home notice={playlistNotice} onDelete={deleteRemotePlaylist} onNavigate={navigate} playlists={playlists} />,
+    "/providers": collectionsPage("my"),
     "/settings": <Settings />,
-  }[activeRoute];
+  };
+  const page = pages[activeRoute] ?? collectionsPage("my");
 
   return (
     <div className="app-shell">

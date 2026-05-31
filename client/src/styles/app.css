@@ -91,7 +91,7 @@ button { color: inherit; font: inherit; }
 }
 .mobile-brand { display: none; }
 .top-links { display: flex; gap: 4px; }
-.ghost-button, .secondary-button, .primary-button, .playlist-copy button, .spin-button, .blind-button, .danger-button {
+.ghost-button, .secondary-button, .primary-button, .playlist-copy button, .spin-button, .blind-button, .danger-button, .settings-icon-button {
   min-height: 42px;
   display: inline-flex;
   align-items: center;
@@ -109,7 +109,13 @@ button { color: inherit; font: inherit; }
 .secondary-button, .blind-button { background: rgba(62, 226, 160, 0.12); color: #d7ffee; border-color: rgba(62, 226, 160, 0.3); }
 .danger-button { background: rgba(255, 79, 109, 0.12); color: #ffd5dc; border-color: rgba(255, 79, 109, 0.38); }
 .danger-button.compact { width: 100%; min-height: 38px; justify-content: center; }
-.ghost-button:hover, .secondary-button:hover, .primary-button:hover, .playlist-copy button:hover, .spin-button:hover, .blind-button:hover, .danger-button:hover { transform: translateY(-1px); }
+.ghost-button:hover, .secondary-button:hover, .primary-button:hover, .playlist-copy button:hover, .spin-button:hover, .blind-button:hover, .danger-button:hover, .settings-icon-button:hover { transform: translateY(-1px); }
+.settings-icon-button {
+  width: 46px;
+  padding: 0;
+  font-size: 1.08rem;
+  border-radius: 999px;
+}
 .page-container { width: min(1480px, 100%); margin: 0 auto; padding: clamp(16px, 3vw, 44px); padding-bottom: 104px; }
 .route-page { animation: pageIn 0.28s ease; }
 @keyframes pageIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
@@ -238,6 +244,94 @@ h3 { margin-bottom: 8px; }
 .page-heading { margin-bottom: 26px; max-width: 880px; }
 .page-heading h1 { font-size: clamp(2rem, 5vw, 4.3rem); }
 .split-heading { display: flex; justify-content: space-between; gap: 18px; max-width: none; align-items: end; }
+.collections-page { display: grid; gap: 20px; }
+.collections-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: end;
+  min-height: 260px;
+  border: 1px solid var(--line);
+  border-radius: 28px;
+  padding: clamp(22px, 5vw, 48px);
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 72% 24%, rgba(255,184,77,.2), transparent 22rem),
+    radial-gradient(circle at 18% 84%, rgba(255,79,109,.16), transparent 18rem),
+    linear-gradient(135deg, rgba(255,255,255,.09), rgba(255,255,255,.035));
+}
+.collections-hero h1 {
+  max-width: 850px;
+  font-size: clamp(2.7rem, 7vw, 6.7rem);
+  line-height: .92;
+}
+.collections-command-bar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+  position: sticky;
+  top: 72px;
+  z-index: 8;
+  padding: 12px;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 18px;
+  background: rgba(8,9,13,.82);
+  backdrop-filter: blur(18px);
+}
+.collection-search input {
+  min-height: 54px;
+  font-size: 1.05rem;
+}
+.collection-toggle {
+  display: flex;
+  gap: 6px;
+  padding: 5px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255,255,255,.05);
+}
+.collection-toggle button {
+  min-height: 44px;
+  border: 0;
+  border-radius: 999px;
+  padding: 0 14px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 850;
+  cursor: pointer;
+}
+.collection-toggle button.is-active {
+  background: linear-gradient(135deg, rgba(255,79,109,.95), rgba(255,184,77,.95));
+  color: #17070b;
+}
+.collection-create-panel {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+  gap: 12px;
+  align-items: end;
+  border: 1px solid rgba(255,184,77,.26);
+  border-radius: 22px;
+  padding: 18px;
+  background:
+    radial-gradient(circle at 12% 18%, rgba(255,184,77,.12), transparent 18rem),
+    rgba(255,255,255,.055);
+}
+.collection-empty-cinematic {
+  display: grid;
+  grid-template-columns: minmax(240px, 0.72fr) minmax(0, 1fr);
+  gap: clamp(18px, 4vw, 38px);
+  align-items: center;
+  min-height: 420px;
+  border: 1px solid var(--line);
+  border-radius: 28px;
+  padding: clamp(18px, 4vw, 34px);
+  background: linear-gradient(135deg, rgba(255,255,255,.075), rgba(255,255,255,.035));
+}
+.collection-empty-cinematic h2 {
+  font-size: clamp(2rem, 5vw, 4.8rem);
+  line-height: .96;
+}
 .playlist-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-bottom: 28px; }
 .playlist-card.large { grid-column: span 2; }
 .playlist-card-button { width: 100%; color: inherit; }
@@ -949,7 +1043,7 @@ textarea { min-height: 42px; resize: vertical; }
     right: 10px;
     bottom: 10px;
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: 4px;
     padding: 8px;
     border: 1px solid var(--line);
@@ -958,7 +1052,8 @@ textarea { min-height: 42px; resize: vertical; }
     backdrop-filter: blur(18px);
     box-shadow: 0 18px 60px rgba(0, 0, 0, 0.38);
   }
-  .mobile-nav button { text-align: center; font-size: 0.78rem; padding: 9px 4px; }
+  .mobile-nav button { text-align: center; font-size: 0.82rem; padding: 10px 4px; }
+  .mobile-nav button span { display: block; font-size: 1.15rem; margin-bottom: 2px; }
   .floating-install-card { left: 16px; right: 16px; bottom: 88px; width: auto; }
 }
 @media (max-width: 620px) {
@@ -966,6 +1061,36 @@ textarea { min-height: 42px; resize: vertical; }
   .topbar { padding: 0 14px; }
   .ghost-button { display: none; }
   .home-hero, .playlist-hero, .profile-hero { padding: 18px; }
+  .collections-hero {
+    min-height: 220px;
+    grid-template-columns: 1fr;
+    border-radius: 22px;
+    padding: 18px;
+  }
+  .collections-command-bar {
+    top: 66px;
+    grid-template-columns: 1fr;
+    margin-left: -8px;
+    margin-right: -8px;
+  }
+  .collection-toggle {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border-radius: 16px;
+  }
+  .collection-toggle button {
+    border-radius: 12px;
+    padding: 0 10px;
+  }
+  .collection-create-panel {
+    grid-template-columns: 1fr;
+    border-radius: 20px;
+  }
+  .collection-empty-cinematic {
+    grid-template-columns: 1fr;
+    min-height: auto;
+    border-radius: 22px;
+  }
   .roulette-cinema-stage {
     margin-left: -16px;
     margin-right: -16px;
