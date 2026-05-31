@@ -1,6 +1,5 @@
 import { PageShell } from "../components/PageShell";
 import { PlaylistGrid } from "../components/PlaylistGrid";
-import { PosterShelf } from "../components/PosterShelf";
 import type { Playlist } from "../types";
 
 interface HomeProps {
@@ -26,11 +25,12 @@ function getHeroPosters(playlists: Playlist[]) {
 
 export function Home({ onNavigate, playlists, notice, onDelete }: HomeProps) {
   const heroPosters = getHeroPosters(playlists);
-  const recentlyUpdated = [...playlists].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, 4);
+  const continuePlaylist = [...playlists].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))[0];
   const watchedMovies = playlists
     .flatMap((playlist) => playlist.movies)
     .filter((movie) => movie.watchStatus === "watched")
-    .slice(0, 12);
+    .slice(0, 8);
+  const publicPlaylists = playlists.filter((playlist) => playlist.visibility === "public").slice(0, 4);
 
   return (
     <section className="route-page">
@@ -73,25 +73,119 @@ export function Home({ onNavigate, playlists, notice, onDelete }: HomeProps) {
       )}
       </PageShell>
 
-      <section className="section-grid two-col">
-        <div className="feature-panel">
-          <div className="shelf-header">
-            <div>
-              <span className="eyebrow">Recently viewed</span>
-              <h2>Recently updated playlists</h2>
-            </div>
+      <section className="home-cinema-grid">
+        <article className="cinema-experience-card continue-card">
+          <div className="cinema-card-art">
+            {continuePlaylist ? (
+              <div className="continue-cover poster-collage">
+                {continuePlaylist.movies.slice(0, 4).map((movie) =>
+                  movie.posterUrl ? <img alt="" key={movie.tmdbId} src={movie.posterUrl} /> : <span key={movie.tmdbId} />,
+                )}
+                {continuePlaylist.movies.length === 0 ? (
+                  <>
+                    <span />
+                    <span />
+                    <span />
+                    <span />
+                  </>
+                ) : null}
+              </div>
+            ) : (
+              <div className="film-reel-illustration" aria-hidden="true">
+                <span />
+                <span />
+                <span />
+              </div>
+            )}
           </div>
-          {recentlyUpdated.length === 0 ? <p className="empty-state">Create your first playlist.</p> : null}
-          {recentlyUpdated.map((playlist) => (
-            <button className="playlist-row-button reset-button" key={playlist.id} onClick={() => onNavigate(`/playlists/${playlist.id}`)} type="button">
-              <span>{playlist.name}</span>
-              <small>{playlist.movies.length} movies</small>
-            </button>
-          ))}
+          <div className="cinema-card-copy">
+            <span className="eyebrow">Continue Watching</span>
+            {continuePlaylist ? (
+              <>
+                <h2>{continuePlaylist.name}</h2>
+                <p>{continuePlaylist.movies.length} movies waiting on the shelf.</p>
+                <button className="primary-button" onClick={() => onNavigate(`/playlists/${continuePlaylist.id}`)} type="button">
+                  Continue
+                </button>
+              </>
+            ) : (
+              <>
+                <h2>Start building your movie collection.</h2>
+                <button className="primary-button" onClick={() => onNavigate("/playlists")} type="button">
+                  Create Playlist
+                </button>
+              </>
+            )}
+          </div>
+        </article>
+
+        <article className="cinema-experience-card movie-night-card">
+          <div className="cinema-card-art">
+            {watchedMovies.length > 0 ? (
+              <div className="watched-poster-stack">
+                {watchedMovies.slice(0, 5).map((movie) =>
+                  movie.posterUrl ? <img alt="" key={movie.tmdbId} src={movie.posterUrl} /> : <span key={movie.tmdbId} />,
+                )}
+              </div>
+            ) : (
+              <div className="popcorn-illustration" aria-hidden="true">
+                <span className="popcorn-kernel one" />
+                <span className="popcorn-kernel two" />
+                <span className="popcorn-kernel three" />
+                <span className="popcorn-bucket" />
+              </div>
+            )}
+          </div>
+          <div className="cinema-card-copy">
+            <span className="eyebrow">Movie Night History</span>
+            {watchedMovies.length > 0 ? (
+              <>
+                <h2>{watchedMovies.length} recent watches</h2>
+                <p>Your watched posters are becoming a little theater archive.</p>
+                <button className="secondary-button" onClick={() => onNavigate("/profile/watched")} type="button">
+                  Open History
+                </button>
+              </>
+            ) : (
+              <>
+                <h2>Your movie nights will appear here.</h2>
+                <p>Watched posters will collect here after the credits roll.</p>
+              </>
+            )}
+          </div>
+        </article>
+      </section>
+
+      <section className="home-stream-section">
+        <div className="shelf-header">
+          <div>
+            <span className="eyebrow">Public Playlists</span>
+            <h2>Shared movie shelves</h2>
+          </div>
+          <button className="secondary-button" onClick={() => onNavigate("/public")} type="button">
+            Browse Public Lists
+          </button>
         </div>
-        <div className="feature-panel">
-          <PosterShelf movies={watchedMovies} onNavigate={onNavigate} title="Recently watched movies" eyebrow="Watched" />
+        {publicPlaylists.length > 0 ? (
+          <PlaylistGrid onNavigate={onNavigate} playlists={publicPlaylists} />
+        ) : (
+          <div className="poster-marquee" aria-label="Public playlist preview">
+            {curatedPosterUrls.slice(0, 5).map((posterUrl) => <img alt="" key={posterUrl} src={posterUrl} />)}
+          </div>
+        )}
+      </section>
+
+      <section className="roulette-home-banner">
+        <div className="roulette-mini-wheel" aria-hidden="true">
+          <span />
         </div>
+        <div>
+          <span className="eyebrow">Roulette</span>
+          <h2>Let movie night pick itself.</h2>
+        </div>
+        <button className="primary-button" onClick={() => onNavigate("/roulette")} type="button">
+          Spin Tonight
+        </button>
       </section>
     </section>
   );
