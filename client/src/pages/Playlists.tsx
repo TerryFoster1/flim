@@ -14,6 +14,15 @@ interface PlaylistsProps {
 
 type PlaylistView = "my" | "public";
 
+const emptyPosterArtwork = [
+  { title: "Moonlit Voyage", label: "Film", tone: "warm" },
+  { title: "Midnight Signal", label: "TV", tone: "blue" },
+  { title: "Golden Street", label: "Film", tone: "gold" },
+  { title: "After Hours", label: "TV", tone: "red" },
+  { title: "Neon Valley", label: "Film", tone: "green" },
+  { title: "Last Train", label: "TV", tone: "violet" },
+];
+
 export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlaylist, currentUser, notice, initialView = "my" }: PlaylistsProps) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -27,6 +36,12 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
   useEffect(() => {
     setView(initialView);
   }, [initialView]);
+
+  useEffect(() => {
+    if (!currentUser) {
+      setShowCreate(false);
+    }
+  }, [currentUser]);
 
   const visiblePlaylists = useMemo(() => {
     const source = view === "public"
@@ -68,6 +83,14 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
     setQuery("");
   }
 
+  function requestCreatePlaylist() {
+    if (!currentUser) {
+      onNavigate("/signup");
+      return;
+    }
+    setShowCreate((current) => !current);
+  }
+
   return (
     <section className="route-page collections-page">
       <section className="collections-cinematic-hero" aria-label="Flim movie playlists">
@@ -85,8 +108,8 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
           <h1>What Are We Watching Tonight?</h1>
           <p>Create, share, and discover movie and TV playlists.</p>
           <div className="button-row">
-            <button className="primary-button" onClick={() => setShowCreate((current) => !current)} type="button">
-              {showCreate ? "Close" : "Create Playlist"}
+            <button className="primary-button" onClick={requestCreatePlaylist} type="button">
+              {!currentUser ? "Create Account" : showCreate ? "Close" : "Create Playlist"}
             </button>
             <button className="secondary-button" onClick={browsePublicPlaylists} type="button">
               Browse Public Playlists
@@ -115,8 +138,8 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
 
       <div className="playlist-shelf-heading">
         <h2>{view === "public" ? "Shared movie lists" : "Playlists"}</h2>
-        <button className="primary-button" onClick={() => setShowCreate((current) => !current)} type="button">
-          {showCreate ? "Close" : "Create Playlist"}
+        <button className="primary-button" onClick={requestCreatePlaylist} type="button">
+          {!currentUser ? "Create Account" : showCreate ? "Close" : "Create Playlist"}
         </button>
       </div>
 
@@ -150,14 +173,19 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
       ) : (
         <div className="collection-empty-cinematic">
           <div className="empty-poster-wall" aria-hidden="true">
-            {Array.from({ length: 6 }).map((_, index) => <span key={index} />)}
+            {emptyPosterArtwork.map((poster) => (
+              <span className={`empty-poster-art tone-${poster.tone}`} key={poster.title}>
+                <b>{poster.title}</b>
+                <small>{poster.label}</small>
+              </span>
+            ))}
           </div>
           <div>
             <span className="eyebrow">{query ? "No matching playlists" : view === "public" ? "Public shelf" : "Your shelf"}</span>
             <h2>{query ? "Try another search." : view === "public" ? "Public playlists will appear here." : "Create Your First Playlist"}</h2>
             {view === "my" && !query ? (
-              <button className="primary-button" onClick={() => setShowCreate(true)} type="button">
-                Create Playlist
+              <button className="primary-button" onClick={requestCreatePlaylist} type="button">
+                {currentUser ? "Create Playlist" : "Create Account"}
               </button>
             ) : null}
           </div>
