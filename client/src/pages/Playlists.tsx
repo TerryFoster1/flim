@@ -79,9 +79,7 @@ export function Playlists({ onNavigate, playlists, onCreatePlaylist, notice, ini
           ))}
         </div>
         <div className="collections-hero-content">
-          <span className="eyebrow">Flim</span>
           <h1>What are we watching tonight?</h1>
-          <p>Build movie playlists, share the list, or let roulette choose the night.</p>
           <div className="button-row">
             <button className="primary-button" onClick={() => setShowCreate((current) => !current)} type="button">
               {showCreate ? "Close" : "Create Playlist"}
@@ -96,7 +94,7 @@ export function Playlists({ onNavigate, playlists, onCreatePlaylist, notice, ini
       <div className="collections-command-bar">
         <label className="collection-search">
           <span>Playlists</span>
-          <input onChange={(event) => setQuery(event.target.value)} placeholder="Search movies or playlists..." type="search" value={query} />
+          <input onChange={(event) => setQuery(event.target.value)} placeholder="Search playlists..." type="search" value={query} />
         </label>
         <div className="collection-toggle" aria-label="Playlist type">
           <button className={view === "my" ? "is-active" : ""} onClick={() => setView("my")} type="button">

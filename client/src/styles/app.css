@@ -48,7 +48,7 @@ button { color: inherit; font: inherit; }
   object-fit: contain;
   filter: drop-shadow(0 12px 26px rgba(255, 134, 45, 0.18));
 }
-.mobile-brand .brand-logo, .top-brand .brand-logo { width: 112px; }
+.mobile-brand .brand-logo, .top-brand .brand-logo { width: 132px; }
 .nav-stack { display: grid; gap: 6px; }
 .nav-stack button, .top-links button, .mobile-nav button, .profile-tabs button {
   color: var(--muted);
@@ -78,30 +78,39 @@ button { color: inherit; font: inherit; }
 .topbar {
   position: sticky;
   top: 0;
-  z-index: 10;
-  height: 72px;
+  z-index: 20;
+  height: 74px;
   display: grid;
   grid-template-columns: minmax(116px, 1fr) auto;
   align-items: center;
   gap: 20px;
   padding: 0 clamp(18px, 4vw, 44px);
-  background: rgba(8, 9, 13, 0.72);
-  backdrop-filter: blur(18px);
-  border-bottom: 1px solid var(--line);
+  background:
+    linear-gradient(180deg, rgba(8,9,13,.94), rgba(8,9,13,.68));
+  backdrop-filter: blur(22px);
+  border-bottom: 1px solid rgba(255,255,255,.09);
 }
 .mobile-brand { display: none; }
-.top-brand { justify-self: start; }
+.top-brand {
+  justify-self: start;
+  min-width: 0;
+  border-radius: 14px;
+}
+.top-brand:focus-visible {
+  outline: 2px solid rgba(255,184,77,.7);
+  outline-offset: 4px;
+}
 .top-links { display: flex; gap: 4px; justify-self: center; }
 .header-menu {
   position: relative;
   justify-self: end;
 }
 .hamburger-button {
-  width: 48px;
-  height: 48px;
+  width: 46px;
+  height: 46px;
   border: 1px solid rgba(255,255,255,.16);
-  border-radius: 999px;
-  background: rgba(255,255,255,.075);
+  border-radius: 14px;
+  background: rgba(255,255,255,.065);
   display: grid;
   place-items: center;
   gap: 4px;
@@ -305,7 +314,7 @@ h3 { margin-bottom: 8px; }
 .split-heading { display: flex; justify-content: space-between; gap: 18px; max-width: none; align-items: end; }
 .collections-page { display: grid; gap: 16px; }
 .collections-cinematic-hero {
-  min-height: clamp(380px, 58vh, 640px);
+  min-height: clamp(410px, 62vh, 660px);
   position: relative;
   display: grid;
   align-items: end;
@@ -347,7 +356,7 @@ h3 { margin-bottom: 8px; }
 .collections-hero-content {
   position: relative;
   z-index: 1;
-  max-width: 680px;
+  max-width: 720px;
   padding: clamp(22px, 5vw, 54px);
   text-shadow: 0 14px 42px rgba(0,0,0,.72);
 }
@@ -355,12 +364,7 @@ h3 { margin-bottom: 8px; }
   max-width: 680px;
   font-size: clamp(2.6rem, 7.6vw, 7rem);
   line-height: .9;
-  margin-bottom: 14px;
-}
-.collections-hero-content p {
-  max-width: 520px;
-  color: #f2e8dc;
-  font-size: clamp(1rem, 1.8vw, 1.22rem);
+  margin-bottom: 18px;
 }
 .collections-command-bar {
   display: grid;
@@ -368,7 +372,7 @@ h3 { margin-bottom: 8px; }
   gap: 12px;
   align-items: end;
   position: sticky;
-  top: 72px;
+  top: 74px;
   z-index: 8;
   padding: 10px;
   border: 1px solid rgba(255,255,255,.09);
@@ -1755,29 +1759,22 @@ textarea { min-height: 42px; resize: vertical; }
 }
 @media (max-width: 620px) {
   .page-container { padding: 16px; padding-bottom: 96px; }
-  .topbar { padding: 0 14px; }
+  .topbar {
+    height: 70px;
+    padding: 0 14px;
+    background: linear-gradient(180deg, rgba(8,9,13,.98), rgba(8,9,13,.72));
+  }
+  .top-brand .brand-logo { width: 136px; }
+  .hamburger-button {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    background: rgba(255,255,255,.08);
+  }
   .ghost-button { display: none; }
   .home-hero, .playlist-hero, .profile-hero { padding: 18px; }
-  .settings-icon-button {
-    min-width: 42px;
-    width: 42px;
-    padding: 0;
-    overflow: hidden;
-    color: transparent;
-    position: relative;
-  }
-  .settings-icon-button::before {
-    content: "S";
-    position: absolute;
-    inset: 0;
-    display: grid;
-    place-items: center;
-    color: var(--text);
-    font-size: .8rem;
-    font-weight: 950;
-  }
   .collections-cinematic-hero {
-    min-height: min(430px, calc(100vh - 190px));
+    min-height: min(510px, calc(100vh - 146px));
     margin-left: -16px;
     margin-right: -16px;
     border-left: 0;
@@ -1785,10 +1782,10 @@ textarea { min-height: 42px; resize: vertical; }
     border-radius: 0;
   }
   .collections-poster-wall {
-    inset: 38% -26% -18% -8%;
+    inset: 30% -30% -12% -12%;
     grid-template-columns: repeat(5, 30vw);
     gap: 8px;
-    opacity: .86;
+    opacity: .82;
   }
   .collections-poster-wall img:nth-child(n) {
     transform: none;
@@ -1797,23 +1794,21 @@ textarea { min-height: 42px; resize: vertical; }
     transform: translateY(20px);
   }
   .collections-hero-content {
-    padding: 22px 16px 148px;
+    padding: 22px 16px 72px;
   }
   .collections-hero-content h1 {
     font-size: clamp(2.7rem, 14vw, 4.1rem);
     max-width: 360px;
   }
-  .collections-hero-content p {
-    max-width: 330px;
-  }
   .collections-command-bar {
-    top: 66px;
+    top: 70px;
     grid-template-columns: 1fr;
     margin-left: -8px;
     margin-right: -8px;
-    margin-top: -88px;
+    margin-top: -18px;
     z-index: 9;
-    background: rgba(8,9,13,.88);
+    background: rgba(8,9,13,.92);
+    border-color: rgba(255,255,255,.1);
   }
   .collection-toggle {
     display: grid;

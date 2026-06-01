@@ -1,9 +1,17 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { RouteAwareProps } from "../types";
 import { BrandMark } from "./BrandMark";
 
 export function NavigationBar({ onNavigate }: RouteAwareProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isInstalled, setIsInstalled] = useState(false);
+
+  useEffect(() => {
+    const standalone =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      ("standalone" in window.navigator && Boolean((window.navigator as Navigator & { standalone?: boolean }).standalone));
+    setIsInstalled(standalone);
+  }, []);
 
   function navigate(path: string) {
     setIsMenuOpen(false);
@@ -30,13 +38,11 @@ export function NavigationBar({ onNavigate }: RouteAwareProps) {
         {isMenuOpen ? (
           <div className="hamburger-panel">
             <button onClick={() => navigate("/settings")} type="button">Settings</button>
-            <button onClick={() => navigate("/settings")} type="button">Install Flim</button>
+            {!isInstalled ? <button onClick={() => navigate("/settings")} type="button">Install Flim</button> : null}
             <button disabled type="button">Help</button>
             <button disabled type="button">About</button>
             <button onClick={() => navigate("/settings")} type="button">Connect Plex</button>
             <button disabled type="button">Future Integrations</button>
-            <button disabled type="button">Account</button>
-            <button disabled type="button">Logout</button>
           </div>
         ) : null}
       </div>
