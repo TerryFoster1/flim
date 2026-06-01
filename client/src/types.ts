@@ -13,6 +13,7 @@ export type AppRoute =
   | "/profile/watched"
   | "/providers"
   | "/settings"
+  | "/@handle"
   | "/privacy"
   | "/terms"
   | "/contact";
@@ -26,6 +27,7 @@ export interface RouteState {
   playlistId?: string;
   publicSlug?: string;
   tmdbId?: string;
+  handle?: string;
 }
 
 export interface RouteAwareProps {
@@ -179,6 +181,30 @@ export interface MovieAvailability {
   availabilityKnown: boolean;
   links: WatchProviderLink[];
   notes: string;
+  regionPrompt?: string;
+}
+
+export interface UserProfile {
+  id?: string;
+  userId?: string;
+  displayName: string;
+  handle: string;
+  bio?: string;
+  countryCode: string;
+  region?: string;
+  postalCode?: string;
+  streamingRegion: string;
+  preferredProviders: string[];
+  showCountryPublicly?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface PublicUserProfile {
+  displayName: string;
+  handle: string;
+  bio?: string;
+  countryCode?: string;
 }
 
 export interface Artist {
@@ -337,6 +363,8 @@ export interface Playlist {
   description: string;
   visibility: "private" | "shared" | "public";
   movies: PlaylistMovie[];
+  creatorHandle?: string;
+  creatorDisplayName?: string;
   createdAt: string;
   updatedAt: string;
   clonedFromId?: string;

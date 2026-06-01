@@ -88,6 +88,28 @@ create table if not exists recommendations (
 create index if not exists recommendations_tmdb_id_idx
   on recommendations (tmdb_id);
 
+create table if not exists user_profiles (
+  id uuid primary key default gen_random_uuid(),
+  user_id text not null unique,
+  display_name text not null default '',
+  handle text not null unique,
+  bio text,
+  country_code text not null default '',
+  region text,
+  postal_code text,
+  streaming_region text not null default '',
+  preferred_providers jsonb not null default '[]'::jsonb,
+  show_country_publicly boolean not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create unique index if not exists user_profiles_handle_unique
+  on user_profiles (handle);
+
+create unique index if not exists user_profiles_user_id_unique
+  on user_profiles (user_id);
+
 create or replace function set_updated_at()
 returns trigger
 language plpgsql
@@ -101,6 +123,12 @@ $$;
 drop trigger if exists playlists_set_updated_at on playlists;
 create trigger playlists_set_updated_at
 before update on playlists
+for each row
+execute function set_updated_at();
+
+drop trigger if exists user_profiles_set_updated_at on user_profiles;
+create trigger user_profiles_set_updated_at
+before update on user_profiles
 for each row
 execute function set_updated_at();
 

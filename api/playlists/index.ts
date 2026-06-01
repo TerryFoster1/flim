@@ -1,4 +1,4 @@
-import { createPublicSlug, createPublicSlugBase, db, mapPlaylist, sendJson, readBody } from "../_db.js";
+import { createPublicSlug, createPublicSlugBase, db, demoUserId, ensureUserProfilesTable, mapPlaylist, sendJson, readBody } from "../_db.js";
 
 async function createUniquePublicSlug(sql: any, name: string) {
   const base = createPublicSlugBase(name);
@@ -15,18 +15,22 @@ async function createUniquePublicSlug(sql: any, name: string) {
 export default async function handler(request: any, response: any) {
   try {
     const sql = db();
+    await ensureUserProfilesTable(sql);
 
     if (request.method === "GET") {
       const playlists = await sql`
         select
           p.*,
+          up.handle as creator_handle,
+          up.display_name as creator_display_name,
           coalesce(
             json_agg(pm order by pm.added_at desc) filter (where pm.id is not null),
             '[]'
           ) as movies
         from playlists p
+        left join user_profiles up on up.user_id = ${demoUserId}
         left join playlist_movies pm on pm.playlist_id = p.id
-        group by p.id
+        group by p.id, up.handle, up.display_name
         order by p.updated_at desc
       `;
 

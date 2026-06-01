@@ -21,6 +21,7 @@ import { ProfileSaved } from "./pages/ProfileSaved";
 import { ProfileWatched } from "./pages/ProfileWatched";
 import { PublicPlaylist } from "./pages/PublicPlaylist";
 import { PublicPlaylists } from "./pages/PublicPlaylists";
+import { PublicProfile } from "./pages/PublicProfile";
 import { Roulette } from "./pages/Roulette";
 import { Settings } from "./pages/Settings";
 import { PrivacyPolicy } from "./pages/PrivacyPolicy";
@@ -44,6 +45,7 @@ function routeFromPath(pathname = window.location.pathname): RouteState {
   if (pathname === "/profile/watched") return { route: "/profile/watched" };
   if (pathname === "/providers") return { route: "/providers" };
   if (pathname === "/settings") return { route: "/settings" };
+  if (pathname.startsWith("/@")) return { route: "/@handle", handle: pathname.slice(2) };
   if (pathname === "/privacy") return { route: "/privacy" };
   if (pathname === "/terms") return { route: "/terms" };
   if (pathname === "/contact") return { route: "/contact" };
@@ -203,6 +205,7 @@ export default function App() {
     "/profile/watched": <ProfileWatched playlists={playlists} onNavigate={navigate} updateWatchStatus={updateWatchStatus} />,
     "/providers": playlistsPage("my"),
     "/settings": <Settings />,
+    "/@handle": <PublicProfile handle={routeState.handle || ""} onNavigate={navigate} />,
     "/privacy": <PrivacyPolicy />,
     "/terms": <TermsOfUse />,
     "/contact": <Contact />,
