@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { InstallFlimPrompt } from "../components/InstallFlimPrompt";
 import { getCurrentProfile, saveCurrentProfile } from "../services/profileService";
 import { watchProviders } from "../services/watchProviderService";
-import type { UserProfile } from "../types";
+import type { CurrentUser, UserProfile } from "../types";
 
 const emptyProfile: UserProfile = {
   displayName: "",
@@ -28,7 +28,12 @@ function cleanHandle(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9_-]/g, "");
 }
 
-export function Settings() {
+interface SettingsProps {
+  currentUser: CurrentUser | null;
+  onNavigate: (path: string) => void;
+}
+
+export function Settings({ currentUser, onNavigate }: SettingsProps) {
   const [profile, setProfile] = useState<UserProfile>(emptyProfile);
   const [status, setStatus] = useState<"loading" | "ready" | "saving" | "saved" | "error">("loading");
   const [message, setMessage] = useState("");
@@ -87,6 +92,27 @@ export function Settings() {
   function saveRegionOnly() {
     const form = document.querySelector<HTMLFormElement>(".settings-profile-form");
     form?.requestSubmit();
+  }
+
+  if (!currentUser) {
+    return (
+      <section className="route-page settings-page">
+        <div className="page-heading">
+          <span className="eyebrow">Settings</span>
+          <h1>Profile and streaming region</h1>
+          <p>Sign in to save your Flim URL and streaming region.</p>
+        </div>
+        <section className="auth-card">
+          <span className="eyebrow">Account Required</span>
+          <h2>Make your playlists yours.</h2>
+          <p>Your username, region, and preferred services belong to your account.</p>
+          <div className="button-row">
+            <button className="primary-button" onClick={() => onNavigate("/signin")} type="button">Sign In</button>
+            <button className="secondary-button" onClick={() => onNavigate("/signup")} type="button">Create Account</button>
+          </div>
+        </section>
+      </section>
+    );
   }
 
   return (

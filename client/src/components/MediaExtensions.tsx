@@ -97,10 +97,10 @@ export function MediaExtensions({ media }: MediaExtensionsProps) {
           </div>
           <div>
             <span className="extension-icon">🎲</span>
-            <h3>Add To Roulette</h3>
-            <p>Roulette currently uses saved playlist movies. Direct movie weighting is planned for advanced Roulette.</p>
+            <h3>Add To Now Playing</h3>
+            <p>Now Playing currently uses saved playlist movies. Direct movie weighting is planned for a future release.</p>
             <button className="secondary-button" onClick={() => window.dispatchEvent(new CustomEvent("flim:open-roulette"))} type="button">
-              Open Roulette
+              Open Now Playing
             </button>
           </div>
         </article>

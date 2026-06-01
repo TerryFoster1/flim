@@ -1,13 +1,22 @@
 import {
   db,
-  demoUserId,
+  clearSessionCookie,
+  createSessionToken,
+  ensureAuthTables,
   ensureUserProfilesTable,
+  getCurrentUser,
+  hashPassword,
+  hashSessionToken,
+  mapCurrentUser,
   mapPublicUserProfile,
   mapUserProfile,
+  normalizeEmail,
   normalizeHandle,
   readBody,
   sendJson,
+  setSessionCookie,
   validateProfileHandle,
+  verifyPassword,
 } from "../_db.js";
 
 const defaultProfile = {
@@ -39,18 +48,22 @@ function cleanProfileInput(body: any) {
 }
 
 function getProfileSegment(request: any) {
-  const value = request.query.profile;
-  const raw = Array.isArray(value) ? String(value[value.length - 1] || "") : String(value || "");
-  const querySegment = raw.split("/").filter(Boolean).pop();
-  if (querySegment) return querySegment;
-
   const pathname = new URL(request.url || "", "https://www.flim.ca").pathname;
-  return pathname.split("/").filter(Boolean).pop() || "";
+  const pathSegment = pathname.split("/api/profiles/").pop()?.split("?")[0];
+  if (pathSegment && pathSegment !== pathname) return pathSegment;
+
+  const value = request.query.profile;
+  const raw = Array.isArray(value) ? value.map(String).join("/") : String(value || "");
+  const querySegment = raw.split("/").filter(Boolean).join("/");
+  return querySegment;
 }
 
 async function handleCurrentProfile(request: any, response: any, sql: any) {
+  const user = await getCurrentUser(sql, request);
+  if (!user) return sendJson(response, 401, { error: "Sign in to manage your profile." });
+
   if (request.method === "GET") {
-    const rows = await sql`select * from user_profiles where user_id = ${demoUserId} limit 1`;
+    const rows = await sql`select * from user_profiles where user_id = ${user.id}::text limit 1`;
     return sendJson(response, 200, rows[0] ? mapUserProfile(rows[0]) : defaultProfile);
   }
 
@@ -64,7 +77,7 @@ async function handleCurrentProfile(request: any, response: any, sql: any) {
 
     const duplicate = await sql`
       select id from user_profiles
-      where handle = ${input.handle} and user_id <> ${demoUserId}
+      where handle = ${input.handle} and user_id <> ${user.id}::text
       limit 1
     `;
 
@@ -86,7 +99,7 @@ async function handleCurrentProfile(request: any, response: any, sql: any) {
         show_country_publicly
       )
       values (
-        ${demoUserId},
+          ${user.id},
         ${input.displayName},
         ${input.handle},
         ${input.bio},
@@ -117,11 +130,81 @@ async function handleCurrentProfile(request: any, response: any, sql: any) {
   return sendJson(response, 405, { error: "Method not allowed." });
 }
 
+async function createSession(sql: any, response: any, userId: string) {
+  const token = createSessionToken();
+  await sql`
+    insert into user_sessions (user_id, token_hash, expires_at)
+    values (${userId}, ${hashSessionToken(token)}, now() + interval '30 days')
+  `;
+  setSessionCookie(response, token);
+}
+
+async function getUserPayload(sql: any, user: any) {
+  const profiles = await sql`select * from user_profiles where user_id = ${user.id}::text limit 1`;
+  return mapCurrentUser(user, profiles[0]);
+}
+
+async function handleAuth(request: any, response: any, sql: any, action: string) {
+  await ensureAuthTables(sql);
+
+  if (action === "session" && request.method === "GET") {
+    const user = await getCurrentUser(sql, request);
+    if (!user) return sendJson(response, 200, { user: null });
+    return sendJson(response, 200, { user: await getUserPayload(sql, user) });
+  }
+
+  if (action === "logout" && request.method === "POST") {
+    const token = request.headers?.cookie ? request.headers.cookie.match(/flim_session=([^;]+)/)?.[1] : "";
+    if (token) await sql`delete from user_sessions where token_hash = ${hashSessionToken(decodeURIComponent(token))}`;
+    clearSessionCookie(response);
+    return sendJson(response, 200, { ok: true });
+  }
+
+  if ((action === "signup" || action === "signin") && request.method === "POST") {
+    const body = await readBody(request);
+    const email = normalizeEmail(String(body.email || ""));
+    const password = String(body.password || "");
+
+    if (!email.includes("@")) return sendJson(response, 400, { error: "Enter a valid email address." });
+    if (password.length < 8) return sendJson(response, 400, { error: "Password must be at least 8 characters." });
+
+    if (action === "signup") {
+      const [user] = await sql`
+        insert into users (email, password_hash)
+        values (${email}, ${hashPassword(password)})
+        returning id, email, created_at
+      `.catch((error: any) => {
+        if (String(error?.message || "").includes("duplicate key")) return [];
+        throw error;
+      });
+      if (!user) return sendJson(response, 409, { error: "An account already exists for that email." });
+
+      await createSession(sql, response, user.id);
+      return sendJson(response, 201, { user: await getUserPayload(sql, user) });
+    }
+
+    const users = await sql`select id, email, password_hash, created_at from users where email = ${email} limit 1`;
+    const user = users[0];
+    if (!user || !verifyPassword(password, user.password_hash)) {
+      return sendJson(response, 401, { error: "Email or password is incorrect." });
+    }
+
+    await createSession(sql, response, user.id);
+    return sendJson(response, 200, { user: await getUserPayload(sql, user) });
+  }
+
+  return sendJson(response, 405, { error: "Method not allowed." });
+}
+
 export default async function handler(request: any, response: any) {
   try {
     const segment = getProfileSegment(request);
     const sql = db();
     await ensureUserProfilesTable(sql);
+
+    if (segment.startsWith("auth/")) {
+      return handleAuth(request, response, sql, segment.split("/").pop() || "");
+    }
 
     if (segment === "me") {
       return handleCurrentProfile(request, response, sql);

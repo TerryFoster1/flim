@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Footer } from "./components/Footer";
 import { InstallFlimPrompt } from "./components/InstallFlimPrompt";
 import { NavigationBar } from "./components/NavigationBar";
-import { FilmReelIcon } from "./components/RouletteAssets";
+import { NowPlayingTicketIcon } from "./components/RouletteAssets";
+import { getSession, logout as logoutSession } from "./services/authService";
 import {
   addMovieToPlaylist,
   clonePlaylist,
@@ -27,8 +28,9 @@ import { Settings } from "./pages/Settings";
 import { PrivacyPolicy } from "./pages/PrivacyPolicy";
 import { TermsOfUse } from "./pages/TermsOfUse";
 import { Contact } from "./pages/Contact";
+import { AuthPage } from "./pages/AuthPage";
 import { createSystemPlaylists } from "./services/systemPlaylists";
-import type { AppRoute, MovieDetails, MovieSearchResult, Playlist, RouteState, WatchStatus } from "./types";
+import type { AppRoute, CurrentUser, MovieDetails, MovieSearchResult, Playlist, RouteState, WatchStatus } from "./types";
 
 function routeFromPath(pathname = window.location.pathname): RouteState {
   if (pathname === "/") return { route: "/" };
@@ -45,25 +47,13 @@ function routeFromPath(pathname = window.location.pathname): RouteState {
   if (pathname === "/profile/watched") return { route: "/profile/watched" };
   if (pathname === "/providers") return { route: "/providers" };
   if (pathname === "/settings") return { route: "/settings" };
+  if (pathname === "/signin") return { route: "/signin" };
+  if (pathname === "/signup") return { route: "/signup" };
   if (pathname.startsWith("/@")) return { route: "/@handle", handle: pathname.slice(2) };
   if (pathname === "/privacy") return { route: "/privacy" };
   if (pathname === "/terms") return { route: "/terms" };
   if (pathname === "/contact") return { route: "/contact" };
   return { route: "/" };
-}
-
-function clearClientSessionArtifacts() {
-  sessionStorage.clear();
-
-  // Auth is not fully implemented yet. Keep this scoped to session-shaped keys so
-  // playlist data, PWA install state, and other non-auth browser data are not wiped.
-  const authKeyPattern = /(auth|session|token|login|user)/i;
-  for (let index = localStorage.length - 1; index >= 0; index -= 1) {
-    const key = localStorage.key(index);
-    if (key && authKeyPattern.test(key)) {
-      localStorage.removeItem(key);
-    }
-  }
 }
 
 export default function App() {
@@ -74,8 +64,10 @@ export default function App() {
   const [dataMessage, setDataMessage] = useState("");
   const [isRouletteOpen, setIsRouletteOpen] = useState(() => window.location.pathname === "/roulette");
   const [roulettePlaylists, setRoulettePlaylists] = useState<Playlist[] | null>(null);
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
 
   useEffect(() => {
+    getSession().then((result) => setCurrentUser(result.user)).catch(() => setCurrentUser(null));
     refreshPlaylists();
   }, []);
 
@@ -151,13 +143,21 @@ export default function App() {
     navigate("/playlists");
   }
 
-  function logout() {
-    clearClientSessionArtifacts();
+  async function handleAuthenticated(user: CurrentUser) {
+    setCurrentUser(user);
+    await refreshPlaylists();
+  }
+
+  async function logout() {
+    await logoutSession().catch(() => undefined);
+    setCurrentUser(null);
+    await refreshPlaylists();
     navigate("/");
     setPlaylistNotice("Signed out.");
   }
 
-  const systemPlaylists = useMemo(() => createSystemPlaylists(playlists), [playlists]);
+  const ownedPlaylists = useMemo(() => playlists.filter((playlist) => playlist.isOwner), [playlists]);
+  const systemPlaylists = useMemo(() => createSystemPlaylists(ownedPlaylists), [ownedPlaylists]);
   const displayPlaylists = useMemo(() => [...systemPlaylists, ...playlists], [playlists, systemPlaylists]);
   const detailPlaylist = useMemo(() => displayPlaylists.find((playlist) => playlist.id === routeState.playlistId), [displayPlaylists, routeState.playlistId]);
 
@@ -165,6 +165,7 @@ export default function App() {
   const playlistsPage = (initialView: "my" | "public" = "my") => (
     <Playlists
       initialView={initialView}
+      currentUser={currentUser}
       notice={playlistNotice}
       onCreatePlaylist={createRemotePlaylist}
       onNavigate={navigate}
@@ -186,13 +187,13 @@ export default function App() {
         updateWatchStatus={updateWatchStatus}
       />
     ) : (
-      <Playlists initialView="my" notice={playlistNotice || "Playlist not found."} onCreatePlaylist={createRemotePlaylist} onNavigate={navigate} playlists={displayPlaylists} />
+      <Playlists currentUser={currentUser} initialView="my" notice={playlistNotice || "Playlist not found."} onCreatePlaylist={createRemotePlaylist} onNavigate={navigate} playlists={displayPlaylists} />
     ),
     "/p/:slug": <PublicPlaylist publicSlug={routeState.publicSlug || ""} onNavigate={navigate} />,
     "/movies/:tmdbId": (
       <MovieDetailsPage
         tmdbId={Number(routeState.tmdbId)}
-        playlists={playlists}
+        playlists={ownedPlaylists}
         addToPlaylist={addToPlaylist}
         updateWatchStatus={updateWatchStatus}
       />
@@ -204,7 +205,9 @@ export default function App() {
     "/profile/saved": <ProfileSaved playlists={playlists} />,
     "/profile/watched": <ProfileWatched playlists={playlists} onNavigate={navigate} updateWatchStatus={updateWatchStatus} />,
     "/providers": playlistsPage("my"),
-    "/settings": <Settings />,
+    "/settings": <Settings currentUser={currentUser} onNavigate={navigate} />,
+    "/signin": <AuthPage mode="signin" onAuth={handleAuthenticated} onNavigate={navigate} />,
+    "/signup": <AuthPage mode="signup" onAuth={handleAuthenticated} onNavigate={navigate} />,
     "/@handle": <PublicProfile handle={routeState.handle || ""} onNavigate={navigate} />,
     "/privacy": <PrivacyPolicy />,
     "/terms": <TermsOfUse />,
@@ -215,7 +218,7 @@ export default function App() {
   return (
     <div className="app-shell">
       <div className="main-shell">
-        <NavigationBar activeRoute={activeRoute} onNavigate={navigate} onLogout={logout} />
+        <NavigationBar activeRoute={activeRoute} currentUser={currentUser} onNavigate={navigate} onLogout={logout} />
         <main className="page-container">
           {dataStatus === "loading" ? <p className="empty-state">Loading playlists...</p> : null}
           {dataStatus === "error" ? <p className="error-message">{dataMessage}</p> : null}
@@ -226,20 +229,20 @@ export default function App() {
       <InstallFlimPrompt />
       <button
         className="floating-roulette-button"
-        aria-label="Open Movie Roulette"
+        aria-label="Open Now Playing"
         onClick={() => {
           setRoulettePlaylists(null);
           setIsRouletteOpen(true);
         }}
         type="button"
       >
-        <FilmReelIcon />
+        <NowPlayingTicketIcon />
       </button>
       {isRouletteOpen ? (
-        <div className="roulette-modal-backdrop" role="dialog" aria-modal="true" aria-label="Movie Night Roulette">
+        <div className="roulette-modal-backdrop" role="dialog" aria-modal="true" aria-label="Now Playing">
           <button
             className="roulette-modal-close"
-            aria-label="Close roulette"
+            aria-label="Close Now Playing"
             onClick={() => {
               setIsRouletteOpen(false);
               setRoulettePlaylists(null);

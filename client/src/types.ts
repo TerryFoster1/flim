@@ -13,6 +13,8 @@ export type AppRoute =
   | "/profile/watched"
   | "/providers"
   | "/settings"
+  | "/signin"
+  | "/signup"
   | "/@handle"
   | "/privacy"
   | "/terms"
@@ -200,6 +202,12 @@ export interface UserProfile {
   updatedAt?: string;
 }
 
+export interface CurrentUser {
+  id: string;
+  email: string;
+  profile: UserProfile | null;
+}
+
 export interface PublicUserProfile {
   displayName: string;
   handle: string;
@@ -365,6 +373,8 @@ export interface Playlist {
   movies: PlaylistMovie[];
   creatorHandle?: string;
   creatorDisplayName?: string;
+  ownerUserId?: string;
+  isOwner?: boolean;
   createdAt: string;
   updatedAt: string;
   clonedFromId?: string;

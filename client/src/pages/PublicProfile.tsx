@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
+import { PlaylistGrid } from "../components/PlaylistGrid";
+import { getPlaylists } from "../services/apiPlaylistStore";
 import { getPublicProfile } from "../services/profileService";
-import type { PublicUserProfile } from "../types";
+import type { Playlist, PublicUserProfile } from "../types";
 
 interface PublicProfileProps {
   handle: string;
@@ -9,6 +11,7 @@ interface PublicProfileProps {
 
 export function PublicProfile({ handle, onNavigate }: PublicProfileProps) {
   const [profile, setProfile] = useState<PublicUserProfile | null>(null);
+  const [publicPlaylists, setPublicPlaylists] = useState<Playlist[]>([]);
   const [status, setStatus] = useState<"loading" | "ready" | "not_found">("loading");
 
   useEffect(() => {
@@ -20,6 +23,11 @@ export function PublicProfile({ handle, onNavigate }: PublicProfileProps) {
         if (!isActive) return;
         setProfile(result);
         setStatus("ready");
+        return getPlaylists();
+      })
+      .then((playlists) => {
+        if (!isActive || !playlists) return;
+        setPublicPlaylists(playlists.filter((playlist) => playlist.visibility === "public" && playlist.creatorHandle === handle));
       })
       .catch(() => {
         if (!isActive) return;
@@ -76,12 +84,13 @@ export function PublicProfile({ handle, onNavigate }: PublicProfileProps) {
         </div>
       </div>
       <section className="settings-panel">
-        <span className="eyebrow">Coming Next</span>
-        <h2>Public playlists</h2>
-        <p>
-          This profile URL is ready for future creator pages. Public playlists, saved/shared lists, and creator stats
-          will appear here without exposing private streaming region or postal code details.
-        </p>
+        <span className="eyebrow">Public Playlists</span>
+        <h2>{profile.displayName}'s movie shelves</h2>
+        {publicPlaylists.length > 0 ? (
+          <PlaylistGrid onNavigate={onNavigate} playlists={publicPlaylists} />
+        ) : (
+          <p>Public playlists from this creator will appear here.</p>
+        )}
       </section>
     </section>
   );

@@ -7,6 +7,7 @@ create extension if not exists pgcrypto;
 create table if not exists playlists (
   id uuid primary key default gen_random_uuid(),
   public_slug text unique,
+  owner_user_id uuid,
   name text not null,
   description text default '',
   visibility text not null default 'private'
@@ -17,6 +18,44 @@ create table if not exists playlists (
 
 alter table playlists
   add column if not exists public_slug text unique;
+
+create table if not exists users (
+  id uuid primary key default gen_random_uuid(),
+  email text not null unique,
+  password_hash text not null,
+  created_at timestamptz not null default now()
+);
+
+create unique index if not exists users_email_unique
+  on users (email);
+
+create table if not exists user_sessions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  token_hash text not null unique,
+  created_at timestamptz not null default now(),
+  expires_at timestamptz not null
+);
+
+create index if not exists user_sessions_user_id_idx
+  on user_sessions (user_id);
+
+create index if not exists user_sessions_expires_at_idx
+  on user_sessions (expires_at);
+
+alter table playlists
+  add column if not exists owner_user_id uuid references users(id) on delete set null;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint where conname = 'playlists_owner_user_id_fkey'
+  ) then
+    alter table playlists
+      add constraint playlists_owner_user_id_fkey
+      foreign key (owner_user_id) references users(id) on delete set null;
+  end if;
+end $$;
 
 update playlists
 set public_slug = 'playlist-' || lower(substr(replace(id::text, '-', ''), 1, 10))
@@ -46,6 +85,9 @@ create unique index if not exists playlists_public_slug_idx
 
 create index if not exists playlists_updated_at_idx
   on playlists (updated_at desc);
+
+create index if not exists playlists_owner_user_id_idx
+  on playlists (owner_user_id);
 
 create index if not exists playlist_movies_playlist_id_idx
   on playlist_movies (playlist_id);

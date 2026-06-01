@@ -1,4 +1,5 @@
 import { neon } from "@neondatabase/serverless";
+import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 
 export function db() {
   const databaseUrl = process.env.DATABASE_URL;
@@ -61,6 +62,8 @@ export function mapPlaylist(row: any, movies: any[] = []) {
     visibility: row.visibility,
     creatorHandle: row.creator_handle || undefined,
     creatorDisplayName: row.creator_display_name || undefined,
+    ownerUserId: row.owner_user_id || undefined,
+    isOwner: Boolean(row.is_owner),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     movies: movies.map(mapPlaylistMovie),
@@ -98,8 +101,100 @@ export const reservedProfileHandles = new Set([
 ]);
 
 export const demoUserId = "demo-user";
+const sessionCookieName = "flim_session";
+
+export async function ensureAuthTables(sql: any) {
+  await sql`create extension if not exists pgcrypto`;
+  await sql`
+    create table if not exists users (
+      id uuid primary key default gen_random_uuid(),
+      email text not null unique,
+      password_hash text not null,
+      created_at timestamptz not null default now()
+    )
+  `;
+  await sql`create unique index if not exists users_email_unique on users (email)`;
+  await sql`
+    create table if not exists user_sessions (
+      id uuid primary key default gen_random_uuid(),
+      user_id uuid not null references users(id) on delete cascade,
+      token_hash text not null unique,
+      created_at timestamptz not null default now(),
+      expires_at timestamptz not null
+    )
+  `;
+  await sql`create index if not exists user_sessions_user_id_idx on user_sessions (user_id)`;
+  await sql`create index if not exists user_sessions_expires_at_idx on user_sessions (expires_at)`;
+}
+
+export function normalizeEmail(email: string) {
+  return email.toLowerCase().trim();
+}
+
+export function hashPassword(password: string, salt = randomBytes(16).toString("hex")) {
+  const hash = scryptSync(password, salt, 64).toString("hex");
+  return `${salt}:${hash}`;
+}
+
+export function verifyPassword(password: string, storedHash: string) {
+  const [salt, hash] = storedHash.split(":");
+  if (!salt || !hash) return false;
+  const candidate = scryptSync(password, salt, 64);
+  const original = Buffer.from(hash, "hex");
+  return original.length === candidate.length && timingSafeEqual(original, candidate);
+}
+
+export function createSessionToken() {
+  return randomBytes(32).toString("hex");
+}
+
+export function hashSessionToken(token: string) {
+  return scryptSync(token, "flim-session-token", 64).toString("hex");
+}
+
+export function getCookie(request: any, name: string) {
+  const header = String(request.headers?.cookie || "");
+  const cookies = header.split(";").map((part) => part.trim());
+  const match = cookies.find((part) => part.startsWith(`${name}=`));
+  return match ? decodeURIComponent(match.slice(name.length + 1)) : "";
+}
+
+export function setSessionCookie(response: any, token: string) {
+  response.setHeader(
+    "Set-Cookie",
+    `${sessionCookieName}=${encodeURIComponent(token)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${60 * 60 * 24 * 30}`,
+  );
+}
+
+export function clearSessionCookie(response: any) {
+  response.setHeader("Set-Cookie", `${sessionCookieName}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`);
+}
+
+export async function getCurrentUser(sql: any, request: any) {
+  await ensureAuthTables(sql);
+  const token = getCookie(request, sessionCookieName);
+  if (!token) return null;
+  const rows = await sql`
+    select u.id, u.email, u.created_at
+    from user_sessions s
+    inner join users u on u.id = s.user_id
+    where s.token_hash = ${hashSessionToken(token)}
+      and s.expires_at > now()
+    limit 1
+  `;
+  return rows[0] || null;
+}
+
+export function mapCurrentUser(user: any, profile?: any) {
+  return {
+    id: user.id,
+    email: user.email,
+    profile: profile ? mapUserProfile(profile) : null,
+  };
+}
 
 export async function ensureUserProfilesTable(sql: any) {
+  await ensureAuthTables(sql);
   await sql`create extension if not exists pgcrypto`;
   await sql`
     create table if not exists user_profiles (

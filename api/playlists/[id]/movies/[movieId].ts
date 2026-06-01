@@ -1,4 +1,4 @@
-import { db, sendJson } from "../../../_db.js";
+import { db, getCurrentUser, sendJson } from "../../../_db.js";
 
 export default async function handler(request: any, response: any) {
   const playlistId = request.query.id as string;
@@ -6,12 +6,17 @@ export default async function handler(request: any, response: any) {
 
   try {
     const sql = db();
+    const user = await getCurrentUser(sql, request);
 
     if (request.method === "DELETE") {
+      if (!user) return sendJson(response, 401, { error: "Sign in to remove movies." });
       await sql`
-        delete from playlist_movies
-        where playlist_id = ${playlistId}
-          and tmdb_id = ${movieId}
+        delete from playlist_movies pm
+        using playlists p
+        where p.id = pm.playlist_id
+          and pm.playlist_id = ${playlistId}
+          and pm.tmdb_id = ${movieId}
+          and p.owner_user_id = ${user.id}
       `;
 
       return sendJson(response, 200, { ok: true });

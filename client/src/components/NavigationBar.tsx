@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
-import type { RouteAwareProps } from "../types";
+import type { CurrentUser, RouteAwareProps } from "../types";
 import { BrandMark } from "./BrandMark";
 
 interface NavigationBarProps extends RouteAwareProps {
+  currentUser: CurrentUser | null;
   onLogout: () => void;
 }
 
-export function NavigationBar({ onNavigate, onLogout }: NavigationBarProps) {
+export function NavigationBar({ currentUser, onNavigate, onLogout }: NavigationBarProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
 
@@ -46,13 +47,22 @@ export function NavigationBar({ onNavigate, onLogout }: NavigationBarProps) {
         </button>
         {isMenuOpen ? (
           <div className="hamburger-panel">
-            <button onClick={() => navigate("/profile")} type="button">Profile</button>
-            <button onClick={() => navigate("/settings")} type="button">Settings</button>
-            <button onClick={() => navigate("/settings")} type="button">Connect Plex</button>
+            {currentUser ? (
+              <>
+                <button onClick={() => navigate("/profile")} type="button">Profile</button>
+                <button onClick={() => navigate("/settings")} type="button">Settings</button>
+                <button onClick={() => navigate("/settings")} type="button">Connect Plex</button>
+              </>
+            ) : (
+              <>
+                <button onClick={() => navigate("/signin")} type="button">Sign In</button>
+                <button onClick={() => navigate("/signup")} type="button">Create Account</button>
+              </>
+            )}
             {!isInstalled ? <button onClick={() => navigate("/settings")} type="button">Install Flim</button> : null}
             <button disabled type="button">Help</button>
             <button disabled type="button">About</button>
-            <button className="logout-menu-item" onClick={logout} type="button">Logout</button>
+            {currentUser ? <button className="logout-menu-item" onClick={logout} type="button">Logout</button> : null}
           </div>
         ) : null}
       </div>

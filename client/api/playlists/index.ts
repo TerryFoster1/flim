@@ -1,4 +1,4 @@
-import { createPublicSlug, createPublicSlugBase, db, demoUserId, ensureUserProfilesTable, mapPlaylist, sendJson, readBody } from "../_db.js";
+import { createPublicSlug, createPublicSlugBase, db, ensureUserProfilesTable, getCurrentUser, mapPlaylist, sendJson, readBody } from "../_db.js";
 
 async function createUniquePublicSlug(sql: any, name: string) {
   const base = createPublicSlugBase(name);
@@ -16,6 +16,8 @@ export default async function handler(request: any, response: any) {
   try {
     const sql = db();
     await ensureUserProfilesTable(sql);
+    await sql`alter table playlists add column if not exists owner_user_id uuid references users(id) on delete set null`;
+    const user = await getCurrentUser(sql, request);
 
     if (request.method === "GET") {
       const playlists = await sql`
@@ -23,13 +25,16 @@ export default async function handler(request: any, response: any) {
           p.*,
           up.handle as creator_handle,
           up.display_name as creator_display_name,
+          case when ${user?.id || null}::uuid is not null and p.owner_user_id = ${user?.id || null}::uuid then true else false end as is_owner,
           coalesce(
             json_agg(pm order by pm.added_at desc) filter (where pm.id is not null),
             '[]'
           ) as movies
         from playlists p
-        left join user_profiles up on up.user_id = ${demoUserId}
+        left join user_profiles up on up.user_id = p.owner_user_id::text
         left join playlist_movies pm on pm.playlist_id = p.id
+        where p.visibility = 'public'
+          or (${user?.id || null}::uuid is not null and p.owner_user_id = ${user?.id || null}::uuid)
         group by p.id, up.handle, up.display_name
         order by p.updated_at desc
       `;
@@ -38,16 +43,17 @@ export default async function handler(request: any, response: any) {
     }
 
     if (request.method === "POST") {
+      if (!user) return sendJson(response, 401, { error: "Sign in to create playlists." });
       const body = await readBody(request);
       const name = (body.name || "Untitled playlist").trim();
       const publicSlug = await createUniquePublicSlug(sql, name);
       const [created] = await sql`
-        insert into playlists (public_slug, name, description, visibility)
-        values (${publicSlug}, ${name}, ${body.description || ""}, ${body.visibility || "private"})
+        insert into playlists (public_slug, name, description, visibility, owner_user_id)
+        values (${publicSlug}, ${name}, ${body.description || ""}, ${body.visibility || "private"}, ${user.id})
         returning *
       `;
 
-      return sendJson(response, 201, mapPlaylist(created));
+      return sendJson(response, 201, mapPlaylist({ ...created, is_owner: true }));
     }
 
     return sendJson(response, 405, { error: "Method not allowed." });

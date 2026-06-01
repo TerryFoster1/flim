@@ -1,4 +1,4 @@
-import { db, demoUserId, ensureUserProfilesTable, mapPlaylist, sendJson } from "../_db.js";
+import { db, ensureUserProfilesTable, getCurrentUser, mapPlaylist, sendJson } from "../_db.js";
 
 export default async function handler(request: any, response: any) {
   const playlistId = request.query.id as string;
@@ -6,6 +6,8 @@ export default async function handler(request: any, response: any) {
   try {
     const sql = db();
     await ensureUserProfilesTable(sql);
+    await sql`alter table playlists add column if not exists owner_user_id uuid references users(id) on delete set null`;
+    const user = await getCurrentUser(sql, request);
 
     if (request.method === "GET") {
       const rows = await sql`
@@ -13,14 +15,19 @@ export default async function handler(request: any, response: any) {
           p.*,
           up.handle as creator_handle,
           up.display_name as creator_display_name,
+          case when ${user?.id || null}::uuid is not null and p.owner_user_id = ${user?.id || null}::uuid then true else false end as is_owner,
           coalesce(
             json_agg(pm order by pm.added_at desc) filter (where pm.id is not null),
             '[]'
           ) as movies
         from playlists p
-        left join user_profiles up on up.user_id = ${demoUserId}
+        left join user_profiles up on up.user_id = p.owner_user_id::text
         left join playlist_movies pm on pm.playlist_id = p.id
         where p.id = ${playlistId}
+          and (
+            p.visibility = 'public'
+            or (${user?.id || null}::uuid is not null and p.owner_user_id = ${user?.id || null}::uuid)
+          )
         group by p.id, up.handle, up.display_name
       `;
 
@@ -29,7 +36,9 @@ export default async function handler(request: any, response: any) {
     }
 
     if (request.method === "DELETE") {
-      await sql`delete from playlists where id = ${playlistId}`;
+      if (!user) return sendJson(response, 401, { error: "Sign in to delete playlists." });
+      const deleted = await sql`delete from playlists where id = ${playlistId} and owner_user_id = ${user.id} returning id`;
+      if (!deleted[0]) return sendJson(response, 403, { error: "Only the playlist owner can delete this playlist." });
       return sendJson(response, 200, { ok: true });
     }
 

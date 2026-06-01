@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { PlaylistGrid } from "../components/PlaylistGrid";
-import type { Playlist } from "../types";
+import type { CurrentUser, Playlist } from "../types";
 
 interface PlaylistsProps {
   onNavigate: (path: string) => void;
   playlists: Playlist[];
   onCreatePlaylist: (input: Pick<Playlist, "name" | "description" | "visibility">) => Promise<Playlist>;
+  currentUser: CurrentUser | null;
   notice?: string;
   initialView?: PlaylistView;
 }
@@ -26,7 +27,7 @@ function getPlaylistHeroPosters(playlists: Playlist[]) {
   return [...savedPosters, ...fallbackHeroPosters].slice(0, 8);
 }
 
-export function Playlists({ onNavigate, playlists, onCreatePlaylist, notice, initialView = "my" }: PlaylistsProps) {
+export function Playlists({ onNavigate, playlists, onCreatePlaylist, currentUser, notice, initialView = "my" }: PlaylistsProps) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [visibility, setVisibility] = useState<Playlist["visibility"]>("private");
@@ -42,7 +43,9 @@ export function Playlists({ onNavigate, playlists, onCreatePlaylist, notice, ini
   }, [initialView]);
 
   const visiblePlaylists = useMemo(() => {
-    const source = view === "public" ? playlists.filter((playlist) => playlist.visibility === "public" && !playlist.isSystem) : playlists;
+    const source = view === "public"
+      ? playlists.filter((playlist) => playlist.visibility === "public" && !playlist.isSystem)
+      : playlists.filter((playlist) => playlist.isSystem || playlist.isOwner);
     const normalizedQuery = query.trim().toLowerCase();
     if (!normalizedQuery) return source;
     return source.filter((playlist) =>
@@ -54,6 +57,10 @@ export function Playlists({ onNavigate, playlists, onCreatePlaylist, notice, ini
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!currentUser) {
+      onNavigate("/signin");
+      return;
+    }
     setIsSaving(true);
     setError("");
     try {
@@ -124,6 +131,7 @@ export function Playlists({ onNavigate, playlists, onCreatePlaylist, notice, ini
 
       {showCreate ? (
         <form className="collection-create-panel" onSubmit={submit}>
+          {!currentUser ? <p className="helper-text">Sign in to create playlists that belong to you.</p> : null}
           <label>
             <span>Playlist name</span>
             <input onChange={(event) => setName(event.target.value)} placeholder="Movie night" required value={name} />

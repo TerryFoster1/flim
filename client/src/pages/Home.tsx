@@ -179,11 +179,11 @@ export function Home({ onNavigate, playlists, notice }: HomeProps) {
           <span />
         </div>
         <div>
-          <span className="eyebrow">Roulette</span>
+          <span className="eyebrow">Now Playing</span>
           <h2>Let movie night pick itself.</h2>
         </div>
         <button className="primary-button" onClick={() => window.dispatchEvent(new CustomEvent("flim:open-roulette"))} type="button">
-          Spin Tonight
+          Choose Tonight
         </button>
       </section>
     </section>

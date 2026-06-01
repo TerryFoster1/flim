@@ -1,4 +1,4 @@
-import { db, demoUserId, ensureUserProfilesTable, mapPlaylist, sendJson } from "../../_db.js";
+import { db, ensureUserProfilesTable, mapPlaylist, sendJson } from "../../_db.js";
 
 export default async function handler(request: any, response: any) {
   const slug = request.query.slug as string;
@@ -15,12 +15,13 @@ export default async function handler(request: any, response: any) {
           p.*,
           up.handle as creator_handle,
           up.display_name as creator_display_name,
+          false as is_owner,
           coalesce(
             json_agg(pm order by pm.added_at desc) filter (where pm.id is not null),
             '[]'
           ) as movies
         from playlists p
-        left join user_profiles up on up.user_id = ${demoUserId}
+        left join user_profiles up on up.user_id = p.owner_user_id::text
         left join playlist_movies pm on pm.playlist_id = p.id
         where p.public_slug = ${slug}
         group by p.id, up.handle, up.display_name

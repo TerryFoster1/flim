@@ -135,19 +135,19 @@ export function Roulette({ playlists, onNavigate }: RouletteProps) {
   const loadedLabel =
     filteredPool.length > 0
       ? `${filteredPool.length} movie${filteredPool.length === 1 ? "" : "s"} loaded from ${selectedPlaylistCount} playlist${selectedPlaylistCount === 1 ? "" : "s"}.`
-      : "Add movies to a playlist to start Movie Night Roulette.";
+      : "Add movies to a playlist to start Now Playing.";
 
   return (
     <section className="route-page roulette-page">
       <section className={`roulette-experience phase-${phase}`}>
         <div className="roulette-copy-panel">
           <span className="eyebrow">Now Playing</span>
-          <h1>Movie Night Roulette</h1>
+          <h1>NOW PLAYING</h1>
           <p>Tap the poster and let Flim choose tonight's movie.</p>
         </div>
 
         <button
-          aria-label={canSpin ? "Tap the poster to spin Movie Night Roulette" : "Create a playlist and add movies to start roulette"}
+          aria-label={canSpin ? "Tap the poster to choose tonight's movie" : "Create a playlist and add movies to start Now Playing"}
           className="roulette-poster-button reset-button"
           disabled={!canSpin}
           onClick={startSpin}
@@ -186,14 +186,14 @@ export function Roulette({ playlists, onNavigate }: RouletteProps) {
                 View Details
               </button>
               <button className="secondary-button" onClick={startSpin} type="button">
-                Spin Again
+                Choose Again
               </button>
             </div>
           ) : null}
         </aside>
       </section>
 
-      <section className="roulette-selection-panel" aria-label="Roulette movie pool">
+      <section className="roulette-selection-panel" aria-label="Now Playing movie pool">
         <div className="roulette-control-header">
           <div>
             <span className="eyebrow">Movie Pool</span>
@@ -220,7 +220,7 @@ export function Roulette({ playlists, onNavigate }: RouletteProps) {
             <TapToSpinPoster empty />
             <div>
               <span className="eyebrow">No Movies Loaded</span>
-              <h2>Add movies to a playlist to start Movie Night Roulette.</h2>
+              <h2>Add movies to a playlist to start Now Playing.</h2>
               <button className="primary-button" onClick={() => onNavigate("/playlists")} type="button">
                 Create Playlist
               </button>

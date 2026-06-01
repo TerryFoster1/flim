@@ -1,4 +1,4 @@
-import { db, readBody, sendJson } from "../../../../_db.js";
+import { db, getCurrentUser, readBody, sendJson } from "../../../../_db.js";
 
 export default async function handler(request: any, response: any) {
   const playlistId = request.query.id as string;
@@ -6,16 +6,21 @@ export default async function handler(request: any, response: any) {
 
   try {
     const sql = db();
+    const user = await getCurrentUser(sql, request);
 
     if (request.method === "PATCH") {
+      if (!user) return sendJson(response, 401, { error: "Sign in to update watched status." });
       const body = await readBody(request);
       const watched = body.watchStatus ? body.watchStatus === "watched" : Boolean(body.watched);
 
       await sql`
-        update playlist_movies
+        update playlist_movies pm
         set watched = ${watched}
-        where playlist_id = ${playlistId}
-          and tmdb_id = ${movieId}
+        from playlists p
+        where p.id = pm.playlist_id
+          and pm.playlist_id = ${playlistId}
+          and pm.tmdb_id = ${movieId}
+          and p.owner_user_id = ${user.id}
       `;
 
       return sendJson(response, 200, { ok: true });

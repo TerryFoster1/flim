@@ -106,7 +106,7 @@ export function PublicPlaylist({ publicSlug, onNavigate }: PublicPlaylistProps) 
             <SharePlaylistButton playlist={playlist} />
             <SharePlaylistButton playlist={playlist} label="QR Code" />
             <button className="secondary-button" onClick={openSharedRoulette} type="button">
-              Spin Roulette
+              Now Playing
             </button>
             <button className="secondary-button" onClick={() => onNavigate("/playlists")} type="button">
               Create your own playlist

@@ -1919,6 +1919,55 @@ textarea { min-height: 42px; resize: vertical; }
   color: #d7ffee;
   padding: 12px 14px;
 }
+
+.auth-page {
+  min-height: 68vh;
+  display: grid;
+  place-items: center;
+}
+
+.auth-card {
+  width: min(100%, 560px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 26px;
+  background:
+    radial-gradient(circle at 20% 0%, rgba(255, 184, 58, 0.20), transparent 32%),
+    linear-gradient(145deg, rgba(22, 22, 28, 0.96), rgba(8, 9, 13, 0.96));
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.38);
+  padding: clamp(22px, 5vw, 36px);
+  display: grid;
+  gap: 16px;
+}
+
+.auth-card h1,
+.auth-card h2 {
+  margin: 0;
+}
+
+.auth-card p {
+  color: var(--muted);
+}
+
+.auth-form {
+  display: grid;
+  gap: 14px;
+}
+
+.auth-form label {
+  display: grid;
+  gap: 8px;
+  font-weight: 800;
+}
+
+.auth-form input {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.36);
+  color: var(--text);
+  font: inherit;
+  padding: 13px 14px;
+}
 .discovery-grid {
   display: grid;
   gap: 28px;
@@ -2666,9 +2715,9 @@ textarea { min-height: 42px; resize: vertical; }
   cursor: pointer;
   animation: reelButtonPulse 2.8s ease-in-out infinite;
 }
-.floating-roulette-button .film-reel-action-svg {
-  width: 64px;
-  height: 64px;
+.floating-roulette-button .now-playing-ticket-svg {
+  width: 76px;
+  height: 54px;
   filter: drop-shadow(0 10px 24px rgba(255,184,77,.34));
 }
 .floating-roulette-button:hover,
@@ -3001,9 +3050,9 @@ textarea { min-height: 42px; resize: vertical; }
     width: 72px;
     height: 72px;
   }
-  .floating-roulette-button .film-reel-action-svg {
-    width: 58px;
-    height: 58px;
+  .floating-roulette-button .now-playing-ticket-svg {
+    width: 72px;
+    height: 50px;
   }
   .projector-roulette-stage {
     margin-left: -16px;
