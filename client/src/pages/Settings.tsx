@@ -10,6 +10,7 @@ const emptyProfile: UserProfile = {
   bio: "",
   countryCode: "",
   region: "",
+  provinceState: "",
   postalCode: "",
   streamingRegion: "",
   preferredProviders: [],
@@ -202,7 +203,10 @@ export function Settings({ currentUser, onNavigate }: SettingsProps) {
             Province / State
             <input
               value={profile.region || ""}
-              onChange={(event) => updateProfile("region", event.target.value)}
+              onChange={(event) => {
+                updateProfile("region", event.target.value);
+                updateProfile("provinceState", event.target.value);
+              }}
               placeholder="Ontario"
             />
           </label>

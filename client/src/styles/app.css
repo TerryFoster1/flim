@@ -3314,3 +3314,23 @@ textarea { min-height: 42px; resize: vertical; }
 }
 
 .rewind-section { margin-top: clamp(28px, 7vw, 64px); padding-top: clamp(18px, 4vw, 28px); border-top: 1px solid rgba(255,255,255,.09); }
+
+.public-profile-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.public-profile-stats span {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--muted);
+  font-size: 0.86rem;
+  padding: 8px 11px;
+}
+
+.public-profile-stats strong {
+  color: var(--text);
+}

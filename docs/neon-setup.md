@@ -28,6 +28,8 @@ It creates:
 - `tmdb_movie_cache`
 - `recommendations`
 
+Identity columns include `playlists.owner_user_id`, `users.updated_at`, and `user_profiles.province_state`. Existing unowned playlists remain legacy/demo content and are not deleted by the migration.
+
 `playlists.public_slug` is the unique public identifier used for share URLs such as:
 
 ```text

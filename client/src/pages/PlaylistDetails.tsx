@@ -18,10 +18,11 @@ interface PlaylistDetailsProps {
 }
 
 export function PlaylistDetails({ playlist, onNavigate, addToPlaylist, clonePlaylist, deletePlaylist, removeMovie, updateWatchStatus }: PlaylistDetailsProps) {
-  const [showAddMovie, setShowAddMovie] = useState(!playlist.isSystem && playlist.movies.length === 0);
+  const [showAddMovie, setShowAddMovie] = useState(!playlist.isSystem && Boolean(playlist.isOwner) && playlist.movies.length === 0);
   const [showPlaylistMenu, setShowPlaylistMenu] = useState(false);
   const [notice, setNotice] = useState("");
-  const editable = !playlist.isSystem;
+  const editable = !playlist.isSystem && Boolean(playlist.isOwner);
+  const shareable = playlist.visibility === "public" || !playlist.ownerUserId || editable;
 
   async function confirmDelete() {
     if (window.confirm("Delete this playlist? This cannot be undone.")) {
@@ -35,10 +36,12 @@ export function PlaylistDetails({ playlist, onNavigate, addToPlaylist, clonePlay
       <div className="playlist-management-bar">
         {editable ? (
           <button className="primary-button" onClick={() => setShowAddMovie((current) => !current)} type="button">
-            Add Movie
+            Add Movie or TV Show
           </button>
+        ) : shareable ? (
+          <SharePlaylistButton playlist={playlist} label="Share Playlist" />
         ) : (
-          <span className="system-playlist-badge">System Playlist</span>
+          <span className="system-playlist-badge">{playlist.isSystem ? "System Playlist" : "View Only"}</span>
         )}
         <div className="playlist-overflow">
           <button className="playlist-menu-button" aria-expanded={showPlaylistMenu} aria-label="Playlist options" onClick={() => setShowPlaylistMenu((current) => !current)} type="button">
@@ -49,8 +52,8 @@ export function PlaylistDetails({ playlist, onNavigate, addToPlaylist, clonePlay
               <button disabled type="button">Edit Playlist</button>
               <button disabled type="button">Rename Playlist</button>
               <button disabled type="button">Change Visibility</button>
-              {editable ? <SharePlaylistButton playlist={playlist} /> : <button disabled type="button">Share Playlist</button>}
-              {editable ? <SharePlaylistButton playlist={playlist} label="QR Code" /> : <button disabled type="button">Generate QR Code</button>}
+              {shareable ? <SharePlaylistButton playlist={playlist} /> : <button disabled type="button">Share Playlist</button>}
+              {shareable ? <SharePlaylistButton playlist={playlist} label="QR Code" /> : <button disabled type="button">Generate QR Code</button>}
               {editable ? <ClonePlaylistButton onClone={() => clonePlaylist(playlist.id)} /> : <button disabled type="button">Clone Playlist</button>}
               <button disabled type="button">Remove Movies</button>
               <button disabled type="button">Manage Playlist</button>
@@ -65,8 +68,8 @@ export function PlaylistDetails({ playlist, onNavigate, addToPlaylist, clonePlay
           <div className="search-modal">
             <div className="modal-header">
               <div>
-                <span className="eyebrow">Add Movie</span>
-                <h2>Search for a movie to add</h2>
+                <span className="eyebrow">Add Title</span>
+                <h2>Search for a movie or TV show</h2>
               </div>
               <button className="ghost-button" onClick={() => setShowAddMovie(false)} type="button">Close</button>
             </div>
@@ -74,7 +77,7 @@ export function PlaylistDetails({ playlist, onNavigate, addToPlaylist, clonePlay
               addToPlaylist={addToPlaylist}
               fixedPlaylistId={playlist.id}
               onMovieAdded={() => {
-                setNotice("Movie added to playlist.");
+                setNotice("Title added to playlist.");
                 setShowAddMovie(false);
               }}
               onNavigate={onNavigate}
@@ -93,7 +96,7 @@ export function PlaylistDetails({ playlist, onNavigate, addToPlaylist, clonePlay
       />
       <MovieGrid
         movies={playlist.movies}
-        emptyMessage={playlist.isSystem ? "This system playlist will fill automatically as Flim learns more from your activity." : "No movies in this playlist yet. Add a movie to begin."}
+        emptyMessage={playlist.isSystem ? "This system playlist will fill automatically as Flim learns more from your activity." : "No titles in this playlist yet."}
         onNavigate={onNavigate}
         onRemove={editable ? removeMovie : undefined}
         onWatchStatusChange={editable ? updateWatchStatus : undefined}

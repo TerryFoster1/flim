@@ -97,7 +97,9 @@ export const reservedProfileHandles = new Set([
   "settings",
   "login",
   "logout",
+  "flix",
   "plex",
+  "movies",
   "public",
   "playlists",
   "roulette",
@@ -114,9 +116,11 @@ export async function ensureAuthTables(sql: any) {
       id uuid primary key default gen_random_uuid(),
       email text not null unique,
       password_hash text not null,
-      created_at timestamptz not null default now()
+      created_at timestamptz not null default now(),
+      updated_at timestamptz not null default now()
     )
   `;
+  await sql`alter table users add column if not exists updated_at timestamptz not null default now()`;
   await sql`create unique index if not exists users_email_unique on users (email)`;
   await sql`
     create table if not exists user_sessions (
@@ -208,6 +212,7 @@ export async function ensureUserProfilesTable(sql: any) {
       handle text not null unique,
       bio text,
       country_code text not null default '',
+      province_state text,
       region text,
       postal_code text,
       streaming_region text not null default '',
@@ -217,6 +222,7 @@ export async function ensureUserProfilesTable(sql: any) {
       updated_at timestamptz not null default now()
     )
   `;
+  await sql`alter table user_profiles add column if not exists province_state text`;
   await sql`create unique index if not exists user_profiles_handle_unique on user_profiles (handle)`;
   await sql`create unique index if not exists user_profiles_user_id_unique on user_profiles (user_id)`;
 }
@@ -255,7 +261,8 @@ export function mapUserProfile(row: any) {
     handle: row.handle || "",
     bio: row.bio || "",
     countryCode: row.country_code || "",
-    region: row.region || "",
+    region: row.province_state || row.region || "",
+    provinceState: row.province_state || row.region || "",
     postalCode: row.postal_code || "",
     streamingRegion: row.streaming_region || "",
     preferredProviders: Array.isArray(row.preferred_providers) ? row.preferred_providers : [],
@@ -266,10 +273,16 @@ export function mapUserProfile(row: any) {
 }
 
 export function mapPublicUserProfile(row: any) {
+  const publicPlaylists = Array.isArray(row.public_playlists)
+    ? row.public_playlists.map((playlist: any) => mapPlaylist(playlist, playlist.movies || []))
+    : [];
+
   return {
     displayName: row.display_name || row.handle,
     handle: row.handle,
     bio: row.bio || "",
     countryCode: row.show_country_publicly ? row.country_code || undefined : undefined,
+    stats: row.stats || undefined,
+    publicPlaylists,
   };
 }

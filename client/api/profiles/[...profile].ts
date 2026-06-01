@@ -49,7 +49,7 @@ function cleanProfileInput(body: any) {
     handle: normalizeHandle(String(body.handle || "")),
     bio: String(body.bio || "").trim().slice(0, 240),
     countryCode: String(body.countryCode || "").trim().toUpperCase().slice(0, 2),
-    region: String(body.region || "").trim().slice(0, 80),
+    provinceState: String(body.provinceState || body.region || "").trim().slice(0, 80),
     postalCode: String(body.postalCode || "").trim().slice(0, 20),
     streamingRegion: String(body.streamingRegion || "").trim().slice(0, 80),
     preferredProviders: Array.isArray(body.preferredProviders)
@@ -105,6 +105,7 @@ async function handleCurrentProfile(request: any, response: any, sql: any) {
         handle,
         bio,
         country_code,
+        province_state,
         region,
         postal_code,
         streaming_region,
@@ -117,7 +118,8 @@ async function handleCurrentProfile(request: any, response: any, sql: any) {
         ${input.handle},
         ${input.bio},
         ${input.countryCode},
-        ${input.region},
+        ${input.provinceState},
+        ${input.provinceState},
         ${input.postalCode},
         ${input.streamingRegion},
         ${JSON.stringify(input.preferredProviders)}::jsonb,
@@ -128,6 +130,7 @@ async function handleCurrentProfile(request: any, response: any, sql: any) {
         handle = excluded.handle,
         bio = excluded.bio,
         country_code = excluded.country_code,
+        province_state = excluded.province_state,
         region = excluded.region,
         postal_code = excluded.postal_code,
         streaming_region = excluded.streaming_region,
@@ -283,7 +286,44 @@ export default async function handler(request: any, response: any) {
     const validationMessage = validateProfileHandle(handle);
     if (validationMessage) return sendJson(response, 404, { error: "Profile not found." });
 
-    const rows = await sql`select * from user_profiles where handle = ${handle} limit 1`;
+    const rows = await sql`
+      select
+        up.*,
+        json_build_object(
+          'playlistCount', count(distinct p.id)::int,
+          'movieCount', count(pm.id)::int,
+          'futureFollowerCount', 0
+        ) as stats,
+        coalesce(
+          json_agg(
+            distinct jsonb_build_object(
+              'id', p.id,
+              'public_slug', p.public_slug,
+              'name', p.name,
+              'description', p.description,
+              'visibility', p.visibility,
+              'creator_handle', up.handle,
+              'creator_display_name', up.display_name,
+              'is_owner', false,
+              'created_at', p.created_at,
+              'updated_at', p.updated_at,
+              'movies', coalesce(movie_rows.movies, '[]'::jsonb)
+            )
+          ) filter (where p.id is not null),
+          '[]'
+        ) as public_playlists
+      from user_profiles up
+      left join playlists p on p.owner_user_id::text = up.user_id and p.visibility = 'public'
+      left join playlist_movies pm on pm.playlist_id = p.id
+      left join lateral (
+        select jsonb_agg(to_jsonb(pm2) order by pm2.added_at desc) as movies
+        from playlist_movies pm2
+        where pm2.playlist_id = p.id
+      ) movie_rows on true
+      where up.handle = ${handle}
+      group by up.id
+      limit 1
+    `;
     if (!rows[0]) return sendJson(response, 404, { error: "Profile not found." });
 
     return sendJson(response, 200, mapPublicUserProfile(rows[0]));

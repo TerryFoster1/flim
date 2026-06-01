@@ -1,6 +1,6 @@
 -- Flim Neon PostgreSQL setup.
--- Demo stage: no auth/user ownership yet. Data is shared until auth introduces
--- owner columns and scoped API authorization.
+-- Production foundation: playlists can be owned by users, public playlists
+-- remain publicly viewable, and legacy unowned playlists remain accessible.
 
 create extension if not exists pgcrypto;
 
@@ -23,8 +23,12 @@ create table if not exists users (
   id uuid primary key default gen_random_uuid(),
   email text not null unique,
   password_hash text not null,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
 );
+
+alter table users
+  add column if not exists updated_at timestamptz not null default now();
 
 create unique index if not exists users_email_unique
   on users (email);
@@ -186,6 +190,7 @@ create table if not exists user_profiles (
   handle text not null unique,
   bio text,
   country_code text not null default '',
+  province_state text,
   region text,
   postal_code text,
   streaming_region text not null default '',
@@ -194,6 +199,9 @@ create table if not exists user_profiles (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table user_profiles
+  add column if not exists province_state text;
 
 create unique index if not exists user_profiles_handle_unique
   on user_profiles (handle);
@@ -220,6 +228,12 @@ execute function set_updated_at();
 drop trigger if exists user_profiles_set_updated_at on user_profiles;
 create trigger user_profiles_set_updated_at
 before update on user_profiles
+for each row
+execute function set_updated_at();
+
+drop trigger if exists users_set_updated_at on users;
+create trigger users_set_updated_at
+before update on users
 for each row
 execute function set_updated_at();
 

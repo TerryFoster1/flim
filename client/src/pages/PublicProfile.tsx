@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { PlaylistGrid } from "../components/PlaylistGrid";
-import { getPlaylists } from "../services/apiPlaylistStore";
 import { getPublicProfile } from "../services/profileService";
 import type { Playlist, PublicUserProfile } from "../types";
 
@@ -22,12 +21,8 @@ export function PublicProfile({ handle, onNavigate }: PublicProfileProps) {
       .then((result) => {
         if (!isActive) return;
         setProfile(result);
+        setPublicPlaylists(result.publicPlaylists || []);
         setStatus("ready");
-        return getPlaylists();
-      })
-      .then((playlists) => {
-        if (!isActive || !playlists) return;
-        setPublicPlaylists(playlists.filter((playlist) => playlist.visibility === "public" && playlist.creatorHandle === handle));
       })
       .catch(() => {
         if (!isActive) return;
@@ -81,11 +76,16 @@ export function PublicProfile({ handle, onNavigate }: PublicProfileProps) {
           <p>@{profile.handle}</p>
           {profile.bio ? <p>{profile.bio}</p> : null}
           {profile.countryCode ? <small>{profile.countryCode}</small> : null}
+          <div className="public-profile-stats" aria-label="Creator stats">
+            <span><strong>{profile.stats?.playlistCount || publicPlaylists.length}</strong> Playlists</span>
+            <span><strong>{profile.stats?.movieCount || publicPlaylists.reduce((total, playlist) => total + playlist.movies.length, 0)}</strong> Titles</span>
+            <span><strong>{profile.stats?.futureFollowerCount || 0}</strong> Followers soon</span>
+          </div>
         </div>
       </div>
       <section className="settings-panel">
         <span className="eyebrow">Public Playlists</span>
-        <h2>{profile.displayName}'s movie shelves</h2>
+        <h2>{profile.displayName}'s playlists</h2>
         {publicPlaylists.length > 0 ? (
           <PlaylistGrid onNavigate={onNavigate} playlists={publicPlaylists} />
         ) : (

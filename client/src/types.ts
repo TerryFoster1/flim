@@ -203,6 +203,7 @@ export interface UserProfile {
   bio?: string;
   countryCode: string;
   region?: string;
+  provinceState?: string;
   postalCode?: string;
   streamingRegion: string;
   preferredProviders: string[];
@@ -222,6 +223,12 @@ export interface PublicUserProfile {
   handle: string;
   bio?: string;
   countryCode?: string;
+  stats?: {
+    playlistCount: number;
+    movieCount: number;
+    futureFollowerCount: number;
+  };
+  publicPlaylists?: Playlist[];
 }
 
 export interface Artist {

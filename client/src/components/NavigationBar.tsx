@@ -49,7 +49,7 @@ export function NavigationBar({ currentUser, onNavigate, onLogout }: NavigationB
           <div className="hamburger-panel">
             {currentUser ? (
               <>
-                <button onClick={() => navigate("/profile")} type="button">Profile</button>
+                <button onClick={() => navigate(currentUser.profile?.handle ? `/@${currentUser.profile.handle}` : "/profile")} type="button">Profile</button>
                 <button onClick={() => navigate("/settings")} type="button">Settings</button>
                 <button onClick={() => navigate("/settings")} type="button">Connect Plex</button>
               </>
@@ -59,7 +59,7 @@ export function NavigationBar({ currentUser, onNavigate, onLogout }: NavigationB
                 <button onClick={() => navigate("/signup")} type="button">Create Account</button>
               </>
             )}
-            {!isInstalled ? <button onClick={() => navigate("/settings")} type="button">Install Flim</button> : null}
+            {currentUser && !isInstalled ? <button onClick={() => navigate("/settings")} type="button">Install Flim</button> : null}
             <button disabled type="button">Help</button>
             <button disabled type="button">About</button>
             {currentUser ? <button className="logout-menu-item" onClick={logout} type="button">Logout</button> : null}

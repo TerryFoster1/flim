@@ -121,6 +121,8 @@ order by table_name, ordinal_position;
 
 Confirm:
 
+- `users.updated_at`
+- `user_profiles.province_state`
 - `playlist_movies.media_type`
 - `playlist_movies.runtime_minutes`
 - `playlist_movies.season_count`

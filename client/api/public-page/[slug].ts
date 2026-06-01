@@ -85,6 +85,7 @@ export default async function handler(request: any, response: any) {
       from playlists p
       left join playlist_movies pm on pm.playlist_id = p.id
       where p.public_slug = ${slug}
+        and (p.visibility = 'public' or p.owner_user_id is null)
       group by p.id
     `;
 
