@@ -61,6 +61,7 @@ function cleanProfileInput(body: any) {
 
 function getProfileSegment(request: any) {
   const pathname = new URL(request.url || "", "https://www.flim.ca").pathname;
+  if (pathname === "/api/admin/export") return "admin/export";
   const pathSegment = pathname.split("/api/profiles/").pop()?.split("?")[0];
   if (pathSegment && pathSegment !== pathname) return pathSegment;
 
