@@ -266,7 +266,7 @@ export default async function handler(request: any, response: any) {
       return handleAuth(request, response, sql, String(action || ""));
     }
 
-    if (segment === "admin-export") {
+    if (segment === "admin-export" || segment === "admin/export") {
       return handleAdminExport(request, response, sql);
     }
 
