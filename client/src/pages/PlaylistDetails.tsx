@@ -45,7 +45,7 @@ export function PlaylistDetails({ playlist, onNavigate, addToPlaylist, clonePlay
               <button disabled type="button">Rename Playlist</button>
               <button disabled type="button">Change Visibility</button>
               <SharePlaylistButton playlist={playlist} />
-              <button disabled type="button">Generate QR Code</button>
+              <SharePlaylistButton playlist={playlist} label="QR Code" />
               <ClonePlaylistButton onClone={() => clonePlaylist(playlist.id)} />
               <button disabled type="button">Remove Movies</button>
               <button disabled type="button">Manage Playlist</button>

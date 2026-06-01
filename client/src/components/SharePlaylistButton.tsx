@@ -4,6 +4,7 @@ import type { Playlist } from "../types";
 
 interface SharePlaylistButtonProps {
   playlist: Playlist;
+  label?: string;
 }
 
 function getPublicOrigin() {
@@ -11,7 +12,7 @@ function getPublicOrigin() {
   return window.location.origin;
 }
 
-export function SharePlaylistButton({ playlist }: SharePlaylistButtonProps) {
+export function SharePlaylistButton({ playlist, label = "Share" }: SharePlaylistButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [status, setStatus] = useState("");
   const [qrCodeUrl, setQrCodeUrl] = useState("");
@@ -70,7 +71,7 @@ export function SharePlaylistButton({ playlist }: SharePlaylistButtonProps) {
   return (
     <>
       <button className="secondary-button" onClick={() => setIsOpen(true)} type="button">
-        Share
+        {label}
       </button>
       {isOpen ? (
         <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Share playlist">
@@ -84,9 +85,25 @@ export function SharePlaylistButton({ playlist }: SharePlaylistButtonProps) {
                 Close
               </button>
             </div>
-            <p className="helper-text">
-              Anyone with this link can view the playlist. Auth and access controls will be added in a later phase.
-            </p>
+            <div className="share-playlist-preview">
+              <div className="share-cover-art" aria-hidden="true">
+                {playlist.movies.slice(0, 4).map((movie) =>
+                  movie.posterUrl ? <img alt="" key={movie.tmdbId} src={movie.posterUrl} /> : <span key={movie.tmdbId} />,
+                )}
+                {playlist.movies.length === 0 ? (
+                  <>
+                    <span />
+                    <span />
+                    <span />
+                    <span />
+                  </>
+                ) : null}
+              </div>
+              <div>
+                <h3>{playlist.name}</h3>
+                <p>{playlist.movies.length} movies</p>
+              </div>
+            </div>
             <div className="share-link-card">
               <span>Playlist URL</span>
               <p>{url}</p>
@@ -102,6 +119,10 @@ export function SharePlaylistButton({ playlist }: SharePlaylistButtonProps) {
               ) : null}
             </div>
             <div className="qr-card">
+              <div className="qr-card-heading">
+                <span className="eyebrow">Scan To Open</span>
+                <strong>{playlist.name}</strong>
+              </div>
               {qrCodeUrl ? <img alt={`QR code for ${playlist.name}`} src={qrCodeUrl} /> : <div className="qr-placeholder">Generating QR code...</div>}
             </div>
             <div className="share-actions secondary-share-actions">

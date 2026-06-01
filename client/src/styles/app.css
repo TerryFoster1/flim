@@ -569,6 +569,30 @@ h3 { margin-bottom: 8px; }
   display: grid;
   gap: 22px;
 }
+.public-loading-card,
+.public-empty-movie-night {
+  display: grid;
+  grid-template-columns: minmax(220px, .55fr) minmax(0, 1fr);
+  gap: clamp(18px, 4vw, 36px);
+  align-items: center;
+  min-height: 420px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 28px;
+  padding: clamp(18px, 4vw, 34px);
+  background:
+    radial-gradient(circle at 20% 18%, rgba(255,184,77,.14), transparent 18rem),
+    linear-gradient(135deg, rgba(255,255,255,.07), rgba(255,255,255,.03));
+}
+.public-loading-card h1,
+.public-empty-movie-night h2 {
+  font-size: clamp(2rem, 5vw, 4.8rem);
+  line-height: .94;
+}
+.public-empty-movie-night p {
+  max-width: 520px;
+  color: var(--muted);
+  line-height: 1.55;
+}
 .public-playlist-hero {
   position: relative;
   min-height: clamp(560px, 74vh, 820px);
@@ -614,6 +638,8 @@ h3 { margin-bottom: 8px; }
 .public-cover-art {
   transform: rotate(-3deg);
   filter: drop-shadow(0 34px 80px rgba(0,0,0,.54));
+  width: min(100%, 460px);
+  justify-self: center;
 }
 .public-playlist-copy h1 {
   max-width: 860px;
@@ -641,6 +667,9 @@ h3 { margin-bottom: 8px; }
   margin: 0;
   color: var(--muted);
   line-height: 1.5;
+}
+.public-playlist-page .movie-grid {
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
 }
 .movie-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px; }
 .roulette-page { display: grid; gap: 24px; }
@@ -1649,12 +1678,53 @@ textarea { min-height: 42px; resize: vertical; }
   padding: clamp(16px, 3vw, 24px);
 }
 .share-panel {
-  width: min(520px, 100%);
+  width: min(560px, 100%);
   border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: #0d0f15;
+  border-radius: 26px;
+  background:
+    radial-gradient(circle at 18% 12%, rgba(255,184,77,.16), transparent 16rem),
+    radial-gradient(circle at 80% 100%, rgba(255,79,109,.13), transparent 18rem),
+    #0d0f15;
   box-shadow: 0 28px 90px rgba(0, 0, 0, 0.55);
   padding: clamp(18px, 4vw, 26px);
+}
+.share-playlist-preview {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+  margin: 14px 0 16px;
+  padding: 12px;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 18px;
+  background: rgba(255,255,255,.045);
+}
+.share-playlist-preview h3 {
+  margin: 0 0 4px;
+  font-size: clamp(1.25rem, 4vw, 1.7rem);
+  line-height: 1;
+}
+.share-playlist-preview p {
+  margin: 0;
+  color: var(--muted);
+  font-weight: 850;
+}
+.share-cover-art {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 4px;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 14px;
+  background: linear-gradient(145deg, rgba(255,79,109,.36), rgba(255,184,77,.16));
+  box-shadow: 0 16px 44px rgba(0,0,0,.34);
+}
+.share-cover-art img,
+.share-cover-art span {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: linear-gradient(145deg, rgba(255,184,77,.48), rgba(169,128,255,.24));
 }
 .share-link-card {
   display: grid;
@@ -1684,14 +1754,31 @@ textarea { min-height: 42px; resize: vertical; }
 .qr-card {
   display: grid;
   place-items: center;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: #fff;
+  gap: 12px;
+  border: 1px solid rgba(255,184,77,.28);
+  border-radius: 22px;
+  background:
+    linear-gradient(180deg, #fff, #fff8ec);
   padding: 16px;
   margin: 16px auto;
-  width: min(100%, 320px);
+  width: min(100%, 340px);
+  box-shadow: 0 18px 52px rgba(0,0,0,.32);
 }
 .qr-card img { width: 100%; max-width: 280px; height: auto; display: block; }
+.qr-card-heading {
+  width: 100%;
+  display: grid;
+  gap: 3px;
+  text-align: center;
+}
+.qr-card-heading .eyebrow {
+  color: #9b4e06;
+}
+.qr-card-heading strong {
+  color: #08090d;
+  font-size: 1rem;
+  line-height: 1.1;
+}
 .qr-placeholder { color: #08090d; min-height: 260px; display: grid; place-items: center; text-align: center; }
 .share-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .share-actions .primary-button, .share-actions .secondary-button { width: 100%; }
@@ -2415,6 +2502,25 @@ textarea { min-height: 42px; resize: vertical; }
   }
   .public-playlist-intro {
     display: grid;
+  }
+  .public-loading-card,
+  .public-empty-movie-night {
+    grid-template-columns: 1fr;
+    min-height: auto;
+    border-radius: 22px;
+  }
+  .public-playlist-page .button-row {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+  .share-panel {
+    width: 100%;
+    max-height: 92vh;
+    overflow: auto;
+    border-radius: 22px 22px 0 0;
+  }
+  .share-playlist-preview {
+    grid-template-columns: 88px minmax(0, 1fr);
   }
   .playlist-management-bar { position: sticky; top: 66px; z-index: 9; background: rgba(8, 9, 13, 0.9); padding: 10px 0; }
   .playlist-management-bar .primary-button { flex: 1; }

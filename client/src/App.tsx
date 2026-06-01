@@ -40,6 +40,7 @@ export default function App() {
   const [dataStatus, setDataStatus] = useState<"loading" | "ready" | "error">("loading");
   const [dataMessage, setDataMessage] = useState("");
   const [isRouletteOpen, setIsRouletteOpen] = useState(() => window.location.pathname === "/roulette");
+  const [roulettePlaylists, setRoulettePlaylists] = useState<Playlist[] | null>(null);
 
   useEffect(() => {
     refreshPlaylists();
@@ -52,13 +53,18 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const openRoulette = () => setIsRouletteOpen(true);
+    const openRoulette = (event: Event) => {
+      const detail = event instanceof CustomEvent ? event.detail : undefined;
+      setRoulettePlaylists(Array.isArray(detail?.playlists) ? detail.playlists : null);
+      setIsRouletteOpen(true);
+    };
     window.addEventListener("flim:open-roulette", openRoulette);
     return () => window.removeEventListener("flim:open-roulette", openRoulette);
   }, []);
 
   function navigate(path: string) {
     setIsRouletteOpen(false);
+    setRoulettePlaylists(null);
     if (path !== "/playlists") {
       setPlaylistNotice("");
     }
@@ -169,7 +175,15 @@ export default function App() {
         <Footer />
       </div>
       <InstallFlimPrompt />
-      <button className="floating-roulette-button" aria-label="Open Movie Night Roulette" onClick={() => setIsRouletteOpen(true)} type="button">
+      <button
+        className="floating-roulette-button"
+        aria-label="Open Movie Night Roulette"
+        onClick={() => {
+          setRoulettePlaylists(null);
+          setIsRouletteOpen(true);
+        }}
+        type="button"
+      >
         <svg viewBox="0 0 64 64" aria-hidden="true">
           <defs>
             <linearGradient id="floatingReelGradient" x1="8" y1="8" x2="56" y2="56">
@@ -189,11 +203,19 @@ export default function App() {
       </button>
       {isRouletteOpen ? (
         <div className="roulette-modal-backdrop" role="dialog" aria-modal="true" aria-label="Movie Night Roulette">
-          <button className="roulette-modal-close" aria-label="Close roulette" onClick={() => setIsRouletteOpen(false)} type="button">
+          <button
+            className="roulette-modal-close"
+            aria-label="Close roulette"
+            onClick={() => {
+              setIsRouletteOpen(false);
+              setRoulettePlaylists(null);
+            }}
+            type="button"
+          >
             X
           </button>
           <div className="roulette-modal-shell">
-            <Roulette playlists={playlists} onNavigate={navigate} />
+            <Roulette playlists={roulettePlaylists || playlists} onNavigate={navigate} />
           </div>
         </div>
       ) : null}

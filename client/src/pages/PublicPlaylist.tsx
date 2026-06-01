@@ -35,7 +35,19 @@ export function PublicPlaylist({ publicSlug, onNavigate }: PublicPlaylistProps) 
   }, [publicSlug]);
 
   if (status === "loading") {
-    return <p className="empty-state">Loading shared playlist...</p>;
+    return (
+      <section className="route-page public-playlist-page">
+        <div className="public-loading-card">
+          <div className="empty-poster-wall" aria-hidden="true">
+            {Array.from({ length: 6 }).map((_, index) => <span key={index} />)}
+          </div>
+          <div>
+            <span className="eyebrow">Shared Playlist</span>
+            <h1>Loading the movie shelf...</h1>
+          </div>
+        </div>
+      </section>
+    );
   }
 
   if (status === "not_found" || !playlist) {
@@ -48,6 +60,10 @@ export function PublicPlaylist({ publicSlug, onNavigate }: PublicPlaylistProps) 
         </div>
       </section>
     );
+  }
+
+  function openSharedRoulette() {
+    window.dispatchEvent(new CustomEvent("flim:open-roulette", { detail: { playlists: [playlist] } }));
   }
 
   return (
@@ -77,10 +93,15 @@ export function PublicPlaylist({ publicSlug, onNavigate }: PublicPlaylistProps) 
           {playlist.description ? <p>{playlist.description}</p> : null}
           <div className="meta-row">
             <span>{playlist.movies.length} movies</span>
+            <span>Curated by a Flim friend</span>
             <span>Shared via Flim</span>
           </div>
           <div className="button-row">
             <SharePlaylistButton playlist={playlist} />
+            <SharePlaylistButton playlist={playlist} label="QR Code" />
+            <button className="secondary-button" onClick={openSharedRoulette} type="button">
+              Spin Roulette
+            </button>
             <button className="secondary-button" onClick={() => onNavigate("/playlists")} type="button">
               Create your own playlist
             </button>
@@ -94,11 +115,23 @@ export function PublicPlaylist({ publicSlug, onNavigate }: PublicPlaylistProps) 
         </div>
         <p>Open any movie to see details, where-to-watch options, trailers, soundtracks, and media extensions.</p>
       </div>
-      <MovieGrid
-        movies={playlist.movies}
-        emptyMessage="No movies have been added to this shared playlist yet."
-        onNavigate={onNavigate}
-      />
+      {playlist.movies.length > 0 ? (
+        <MovieGrid
+          movies={playlist.movies}
+          onNavigate={onNavigate}
+        />
+      ) : (
+        <div className="public-empty-movie-night">
+          <div className="empty-poster-wall" aria-hidden="true">
+            {Array.from({ length: 6 }).map((_, index) => <span key={index} />)}
+          </div>
+          <div>
+            <span className="eyebrow">Movie shelf</span>
+            <h2>This playlist is ready for its first poster.</h2>
+            <p>The shared page will fill with movie artwork as soon as movies are added.</p>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
