@@ -74,12 +74,16 @@ export function mapPlaylistMovie(row: any) {
   return {
     id: row.id,
     playlistId: row.playlist_id,
+    mediaType: row.media_type || "movie",
     tmdbId: row.tmdb_id,
     title: row.title,
     releaseYear: row.year || undefined,
     posterUrl: row.poster_url || undefined,
     overview: row.overview || "",
     genres: [],
+    runtimeMinutes: row.runtime_minutes || undefined,
+    seasonCount: row.season_count || undefined,
+    episodeCount: row.episode_count || undefined,
     addedAt: row.added_at,
     watchStatus: row.watched ? "watched" : "not_watched",
   };
@@ -215,6 +219,16 @@ export async function ensureUserProfilesTable(sql: any) {
   `;
   await sql`create unique index if not exists user_profiles_handle_unique on user_profiles (handle)`;
   await sql`create unique index if not exists user_profiles_user_id_unique on user_profiles (user_id)`;
+}
+
+export async function ensurePlaylistMediaColumns(sql: any) {
+  await sql`alter table playlist_movies add column if not exists media_type text not null default 'movie'`;
+  await sql`alter table playlist_movies add column if not exists runtime_minutes integer`;
+  await sql`alter table playlist_movies add column if not exists season_count integer`;
+  await sql`alter table playlist_movies add column if not exists episode_count integer`;
+  await sql`drop index if exists playlist_movies_playlist_id_tmdb_id_key`;
+  await sql`alter table playlist_movies drop constraint if exists playlist_movies_playlist_id_tmdb_id_key`;
+  await sql`create unique index if not exists playlist_movies_playlist_media_tmdb_unique on playlist_movies (playlist_id, media_type, tmdb_id)`;
 }
 
 export function normalizeHandle(handle: string) {

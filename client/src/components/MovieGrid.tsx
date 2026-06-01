@@ -21,7 +21,7 @@ export function MovieGrid({ movies, playlistId, onNavigate, onRemove, onWatchSta
     <div className="movie-grid">
       {displayMovies.map((movie) => (
         <PosterCard
-          key={movie.tmdbId}
+          key={`${movie.mediaType || "movie"}-${movie.tmdbId}`}
           movie={movie}
           playlistId={playlistId}
           onNavigate={onNavigate}

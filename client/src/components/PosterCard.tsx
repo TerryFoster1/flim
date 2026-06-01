@@ -15,12 +15,15 @@ export function PosterCard({ movie, playlistId, onNavigate, onRemove, onWatchSta
 
   return (
     <article className="poster-card" tabIndex={0} aria-label={`${movie.title} poster card`}>
-      <button className="poster-card-button reset-button" onClick={() => onNavigate?.(`/movies/${movie.tmdbId}`)} type="button">
+      <button className="poster-card-button reset-button" onClick={() => onNavigate?.(movie.mediaType === "tv" ? `/tv/${movie.tmdbId}` : `/movies/${movie.tmdbId}`)} type="button">
         {movie.posterUrl ? <img className="poster-image" src={movie.posterUrl} alt={`${movie.title} poster`} /> : <div className="poster tone-blue" />}
       </button>
       <div className="card-title">{movie.title}</div>
       <div className="card-meta">
         <span>{movie.releaseYear || "Year"}</span>
+        <span className="media-type-badge">{movie.mediaType === "tv" ? "TV Show" : "Movie"}</span>
+        {movie.runtimeMinutes ? <span>{movie.runtimeMinutes} min</span> : null}
+        {movie.seasonCount ? <span>{movie.seasonCount} season{movie.seasonCount === 1 ? "" : "s"}</span> : null}
         {movie.genres.slice(0, 2).map((genre) => (
           <span key={genre}>{genre}</span>
         ))}

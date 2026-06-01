@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { hasTmdbApiKey, searchMovies } from "../services/tmdbService";
+import { hasTmdbApiKey, searchMovies, type MediaSearchMode } from "../services/tmdbService";
 import type { MovieSearchResult, Playlist } from "../types";
 import { AddToPlaylistControl } from "./AddToPlaylistControl";
 
@@ -15,6 +15,7 @@ interface MovieSearchPanelProps {
 export function MovieSearchPanel({ playlists, addToPlaylist, onNavigate, variant = "standard", fixedPlaylistId, onMovieAdded }: MovieSearchPanelProps) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<MovieSearchResult[]>([]);
+  const [mediaType, setMediaType] = useState<MediaSearchMode>("both");
   const [status, setStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
   const [message, setMessage] = useState("");
   const hasKey = hasTmdbApiKey();
@@ -29,7 +30,7 @@ export function MovieSearchPanel({ playlists, addToPlaylist, onNavigate, variant
     setStatus("loading");
     setMessage("");
     try {
-      const movies = await searchMovies(query);
+      const movies = await searchMovies(query, mediaType);
       setResults(movies);
       setStatus("done");
       setMessage(movies.length ? "" : "No movies found.");
@@ -43,9 +44,16 @@ export function MovieSearchPanel({ playlists, addToPlaylist, onNavigate, variant
     <section className={variant === "hero" ? "search-panel hero-search-panel" : "search-panel"} id="movie-search">
       <form className="search-form" onSubmit={submitSearch}>
         <label>
-          <span className="eyebrow">Movie search</span>
-          <input onChange={(event) => setQuery(event.target.value)} placeholder="Search for a movie title" type="search" value={query} />
+          <span className="eyebrow">Search</span>
+          <input onChange={(event) => setQuery(event.target.value)} placeholder="Search movies or TV shows" type="search" value={query} />
         </label>
+        <div className="search-type-toggle" aria-label="Search media type">
+          {(["both", "movie", "tv"] as MediaSearchMode[]).map((option) => (
+            <button className={mediaType === option ? "is-active" : ""} key={option} onClick={() => setMediaType(option)} type="button">
+              {option === "both" ? "Both" : option === "movie" ? "Movies" : "TV Shows"}
+            </button>
+          ))}
+        </div>
         <div className="search-action-row">
           <button className="primary-button search-submit-button" disabled={!query.trim() || status === "loading"} type="submit">
             {status === "loading" ? "Searching..." : "Search"}
@@ -61,23 +69,23 @@ export function MovieSearchPanel({ playlists, addToPlaylist, onNavigate, variant
         <div className="search-results-experience" aria-live="polite">
           <div className="search-results-heading">
             <span className="eyebrow">Results</span>
-            <h2>Choose a movie, then add it to a playlist</h2>
+            <h2>Choose a title, then add it to a playlist</h2>
           </div>
           <div className="search-results">
             {results.map((movie) => (
               <article className="search-result-card" key={movie.tmdbId}>
-                <button className="poster-card-button reset-button" onClick={() => onNavigate(`/movies/${movie.tmdbId}`)} type="button">
+                <button className="poster-card-button reset-button" onClick={() => onNavigate(movie.mediaType === "tv" ? `/tv/${movie.tmdbId}` : `/movies/${movie.tmdbId}`)} type="button">
                   {movie.posterUrl ? <img className="poster-image" src={movie.posterUrl} alt={`${movie.title} poster`} /> : <div className="poster tone-blue" />}
                 </button>
                 <div>
                   <h3>{movie.title}</h3>
                   <div className="card-meta">
                     <span>{movie.releaseYear || "Year"}</span>
-                    <span>TMDb ID {movie.tmdbId}</span>
+                    <span>{movie.mediaType === "tv" ? "TV Show" : "Movie"}</span>
                   </div>
                   <p>{movie.overview}</p>
                   <div className="button-row">
-                    <button className="secondary-button" onClick={() => onNavigate(`/movies/${movie.tmdbId}`)} type="button">
+                    <button className="secondary-button" onClick={() => onNavigate(movie.mediaType === "tv" ? `/tv/${movie.tmdbId}` : `/movies/${movie.tmdbId}`)} type="button">
                       Details
                     </button>
                     {fixedPlaylistId ? (
@@ -89,7 +97,7 @@ export function MovieSearchPanel({ playlists, addToPlaylist, onNavigate, variant
                         }}
                         type="button"
                       >
-                        Add Movie
+                        Add Title
                       </button>
                     ) : playlists.length === 0 ? (
                       <button className="primary-button" onClick={() => onNavigate("/playlists")} type="button">

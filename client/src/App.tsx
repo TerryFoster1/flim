@@ -39,6 +39,7 @@ function routeFromPath(pathname = window.location.pathname): RouteState {
   if (pathname.startsWith("/playlists/")) return { route: "/playlists/:id", playlistId: pathname.split("/")[2] };
   if (pathname.startsWith("/p/")) return { route: "/p/:slug", publicSlug: pathname.split("/")[2] };
   if (pathname.startsWith("/movies/")) return { route: "/movies/:tmdbId", tmdbId: pathname.split("/")[2] };
+  if (pathname.startsWith("/tv/")) return { route: "/tv/:tmdbId", tmdbId: pathname.split("/")[2] };
   if (pathname === "/public") return { route: "/public" };
   if (pathname === "/roulette") return { route: "/" };
   if (pathname === "/profile") return { route: "/profile" };
@@ -158,6 +159,10 @@ export default function App() {
 
   const ownedPlaylists = useMemo(() => playlists.filter((playlist) => playlist.isOwner), [playlists]);
   const systemPlaylists = useMemo(() => createSystemPlaylists(ownedPlaylists), [ownedPlaylists]);
+  const rewindPlaylists = useMemo(
+    () => systemPlaylists.filter((playlist) => playlist.systemType !== "plex_library" && playlist.movies.length > 0),
+    [systemPlaylists],
+  );
   const displayPlaylists = useMemo(() => [...systemPlaylists, ...playlists], [playlists, systemPlaylists]);
   const detailPlaylist = useMemo(() => displayPlaylists.find((playlist) => playlist.id === routeState.playlistId), [displayPlaylists, routeState.playlistId]);
 
@@ -166,10 +171,11 @@ export default function App() {
     <Playlists
       initialView={initialView}
       currentUser={currentUser}
+      rewindPlaylists={rewindPlaylists}
       notice={playlistNotice}
       onCreatePlaylist={createRemotePlaylist}
       onNavigate={navigate}
-      playlists={displayPlaylists}
+      playlists={playlists}
     />
   );
   const pages: Partial<Record<AppRoute, ReactNode>> = {
@@ -187,11 +193,21 @@ export default function App() {
         updateWatchStatus={updateWatchStatus}
       />
     ) : (
-      <Playlists currentUser={currentUser} initialView="my" notice={playlistNotice || "Playlist not found."} onCreatePlaylist={createRemotePlaylist} onNavigate={navigate} playlists={displayPlaylists} />
+      <Playlists currentUser={currentUser} rewindPlaylists={rewindPlaylists} initialView="my" notice={playlistNotice || "Playlist not found."} onCreatePlaylist={createRemotePlaylist} onNavigate={navigate} playlists={playlists} />
     ),
     "/p/:slug": <PublicPlaylist publicSlug={routeState.publicSlug || ""} onNavigate={navigate} />,
     "/movies/:tmdbId": (
       <MovieDetailsPage
+        mediaType="movie"
+        tmdbId={Number(routeState.tmdbId)}
+        playlists={ownedPlaylists}
+        addToPlaylist={addToPlaylist}
+        updateWatchStatus={updateWatchStatus}
+      />
+    ),
+    "/tv/:tmdbId": (
+      <MovieDetailsPage
+        mediaType="tv"
         tmdbId={Number(routeState.tmdbId)}
         playlists={ownedPlaylists}
         addToPlaylist={addToPlaylist}

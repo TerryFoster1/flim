@@ -5,6 +5,7 @@ export type AppRoute =
   | "/playlists/:id"
   | "/p/:slug"
   | "/movies/:tmdbId"
+  | "/tv/:tmdbId"
   | "/public"
   | "/roulette"
   | "/profile"
@@ -39,7 +40,7 @@ export interface RouteAwareProps {
 
 export interface MovieSearchResult {
   tmdbId: number;
-  mediaType?: MediaType;
+  mediaType: MediaType;
   title: string;
   releaseYear?: string;
   overview: string;
@@ -51,6 +52,9 @@ export interface MovieSearchResult {
 export interface MovieDetails extends MovieSearchResult {
   runtimeMinutes?: number;
   genres: string[];
+  seasonCount?: number;
+  episodeCount?: number;
+  firstAirYear?: string;
 }
 
 export interface TvSeriesDetails {
@@ -81,6 +85,8 @@ export interface TvEpisode {
   title: string;
   overview?: string;
   runtimeMinutes?: number;
+  seasonCount?: number;
+  episodeCount?: number;
   airDate?: string;
   stillUrl?: string;
   watchStatus?: WatchStatus;
@@ -105,6 +111,9 @@ export interface PlaylistMovie {
   posterPath?: string;
   posterUrl?: string;
   genres: string[];
+  runtimeMinutes?: number;
+  seasonCount?: number;
+  episodeCount?: number;
   addedAt: string;
   watchStatus: WatchStatus;
   recommendationReason?: string;

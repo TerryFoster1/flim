@@ -1,4 +1,4 @@
-import type { MovieDetails, MovieSearchResult } from "../types";
+import type { MediaType, MovieDetails, MovieSearchResult } from "../types";
 
 async function apiRequest<T>(path: string): Promise<T> {
   const response = await fetch(path, {
@@ -21,11 +21,13 @@ export function hasTmdbApiKey() {
   return true;
 }
 
-export async function searchMovies(query: string): Promise<MovieSearchResult[]> {
+export type MediaSearchMode = MediaType | "both";
+
+export async function searchMovies(query: string, mediaType: MediaSearchMode = "both"): Promise<MovieSearchResult[]> {
   const cleanQuery = query.trim();
   if (!cleanQuery) return [];
 
-  return apiRequest<MovieSearchResult[]>(`/api/movies/search?q=${encodeURIComponent(cleanQuery)}`);
+  return apiRequest<MovieSearchResult[]>(`/api/movies/search?q=${encodeURIComponent(cleanQuery)}&type=${mediaType}`);
 }
 
 export async function getMovieDetails(tmdbId: number): Promise<MovieDetails> {
@@ -34,4 +36,12 @@ export async function getMovieDetails(tmdbId: number): Promise<MovieDetails> {
   }
 
   return apiRequest<MovieDetails>(`/api/movies/${tmdbId}`);
+}
+
+export async function getTvDetails(tmdbId: number): Promise<MovieDetails> {
+  if (!Number.isFinite(tmdbId)) {
+    throw new Error("A valid TMDb TV ID is required.");
+  }
+
+  return apiRequest<MovieDetails>(`/api/movies/tv/${tmdbId}`);
 }

@@ -6,6 +6,7 @@ interface TmdbSearchMovie {
   title?: string;
   name?: string;
   release_date?: string;
+  first_air_date?: string;
   overview?: string;
   poster_path?: string | null;
   genre_ids?: number[];
@@ -14,6 +15,9 @@ interface TmdbSearchMovie {
 interface TmdbMovieDetails extends TmdbSearchMovie {
   runtime?: number;
   genres?: Array<{ id: number; name: string }>;
+  number_of_seasons?: number;
+  number_of_episodes?: number;
+  episode_run_time?: number[];
 }
 
 function tmdbAccessToken() {
@@ -64,11 +68,12 @@ function applyTmdbAuth(url: URL): RequestInit {
   return {};
 }
 
-function mapSearchMovie(movie: TmdbSearchMovie) {
+function mapSearchMovie(movie: TmdbSearchMovie, mediaType: "movie" | "tv" = "movie") {
   return {
     tmdbId: movie.id,
+    mediaType,
     title: movie.title || movie.name || "Untitled movie",
-    releaseYear: releaseYear(movie.release_date),
+    releaseYear: releaseYear(mediaType === "tv" ? movie.first_air_date : movie.release_date),
     overview: movie.overview || "No overview is available yet.",
     posterPath: movie.poster_path || undefined,
     posterUrl: posterUrl(movie.poster_path),
@@ -105,6 +110,7 @@ export async function ensureTmdbCacheTables(sql: any) {
       expires_at timestamptz not null
     )
   `);
+  await runSchemaStatement(sql`alter table tmdb_search_cache add column if not exists media_type text not null default 'movie'`);
   await runSchemaStatement(sql`create index if not exists tmdb_search_cache_expires_at_idx on tmdb_search_cache (expires_at)`);
   await runSchemaStatement(sql`
     create table if not exists tmdb_movie_cache (
@@ -115,15 +121,18 @@ export async function ensureTmdbCacheTables(sql: any) {
       expires_at timestamptz not null
     )
   `);
+  await runSchemaStatement(sql`alter table tmdb_movie_cache add column if not exists media_type text not null default 'movie'`);
+  await runSchemaStatement(sql`alter table tmdb_movie_cache drop constraint if exists tmdb_movie_cache_tmdb_id_key`);
+  await runSchemaStatement(sql`create unique index if not exists tmdb_movie_cache_media_tmdb_unique on tmdb_movie_cache (media_type, tmdb_id)`);
   await runSchemaStatement(sql`create index if not exists tmdb_movie_cache_expires_at_idx on tmdb_movie_cache (expires_at)`);
 }
 
-export async function fetchTmdbSearch(query: string) {
+async function fetchTmdbSearchByType(query: string, mediaType: "movie" | "tv") {
   if (!hasServerTmdbCredential()) {
     throw new Error("TMDb server credentials are missing.");
   }
 
-  const url = new URL(`${TMDB_API_BASE_URL}/search/movie`);
+  const url = new URL(`${TMDB_API_BASE_URL}/search/${mediaType}`);
   url.searchParams.set("query", query);
   url.searchParams.set("include_adult", "false");
   url.searchParams.set("language", "en-US");
@@ -134,15 +143,24 @@ export async function fetchTmdbSearch(query: string) {
   }
 
   const payload = (await response.json()) as { results?: TmdbSearchMovie[] };
-  return (payload.results || []).map(mapSearchMovie);
+  return (payload.results || []).map((item) => mapSearchMovie(item, mediaType));
 }
 
-export async function fetchTmdbMovieDetails(tmdbId: number) {
+export async function fetchTmdbSearch(query: string, mediaType: "movie" | "tv" | "both" = "movie") {
+  if (mediaType === "both") {
+    const [movies, tvShows] = await Promise.all([fetchTmdbSearchByType(query, "movie"), fetchTmdbSearchByType(query, "tv")]);
+    return [...movies, ...tvShows].sort((a, b) => (b.posterUrl ? 1 : 0) - (a.posterUrl ? 1 : 0));
+  }
+
+  return fetchTmdbSearchByType(query, mediaType);
+}
+
+export async function fetchTmdbMovieDetails(tmdbId: number, mediaType: "movie" | "tv" = "movie") {
   if (!hasServerTmdbCredential()) {
     throw new Error("TMDb server credentials are missing.");
   }
 
-  const url = new URL(`${TMDB_API_BASE_URL}/movie/${tmdbId}`);
+  const url = new URL(`${TMDB_API_BASE_URL}/${mediaType}/${tmdbId}`);
   url.searchParams.set("language", "en-US");
 
   const response = await fetch(url, applyTmdbAuth(url));
@@ -151,11 +169,14 @@ export async function fetchTmdbMovieDetails(tmdbId: number) {
   }
 
   const payload = (await response.json()) as TmdbMovieDetails;
-  const base = mapSearchMovie(payload);
+  const base = mapSearchMovie(payload, mediaType);
 
   return {
     ...base,
-    runtimeMinutes: payload.runtime,
+    runtimeMinutes: mediaType === "tv" ? payload.episode_run_time?.[0] : payload.runtime,
     genres: payload.genres?.map((genre) => genre.name) || [],
+    seasonCount: payload.number_of_seasons,
+    episodeCount: payload.number_of_episodes,
+    firstAirYear: releaseYear(payload.first_air_date),
   };
 }

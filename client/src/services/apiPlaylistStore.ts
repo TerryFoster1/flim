@@ -77,12 +77,17 @@ export async function clonePlaylist(playlistId: string) {
   for (const movie of source.movies) {
     await addMovieToPlaylist(clone.id, {
       tmdbId: movie.tmdbId,
+      mediaType: movie.mediaType || "movie",
       title: movie.title,
       releaseYear: movie.releaseYear,
       overview: movie.overview,
       posterUrl: movie.posterUrl,
       posterPath: movie.posterPath,
+      runtimeMinutes: movie.runtimeMinutes,
+      seasonCount: movie.seasonCount,
+      episodeCount: movie.episodeCount,
       genreIds: [],
+      genres: movie.genres || [],
     });
   }
 

@@ -7,7 +7,7 @@ interface RouletteProps {
   onNavigate: (path: string) => void;
 }
 
-type RouletteFilter = "all" | "watched" | "not_watched";
+type RouletteFilter = "all" | "movie" | "tv" | "watched" | "not_watched" | "under_30" | "30_60" | "60_plus";
 type RoulettePhase = "idle" | "spinning" | "countdown" | "revealed";
 
 interface RouletteMovie {
@@ -18,15 +18,16 @@ interface RouletteMovie {
 const spinTicks = [0, 120, 240, 360, 500, 650, 820, 1010, 1230, 1480, 1760, 2070];
 
 function buildMoviePool(playlists: Playlist[], activePlaylistIds: string[]) {
-  const seen = new Set<number>();
+  const seen = new Set<string>();
   const pool: RouletteMovie[] = [];
 
   playlists
     .filter((playlist) => activePlaylistIds.includes(playlist.id))
     .forEach((playlist) => {
       playlist.movies.forEach((movie) => {
-        if (seen.has(movie.tmdbId)) return;
-        seen.add(movie.tmdbId);
+        const key = `${movie.mediaType || "movie"}-${movie.tmdbId}`;
+        if (seen.has(key)) return;
+        seen.add(key);
         pool.push({ movie, playlistName: playlist.name });
       });
     });
@@ -48,7 +49,15 @@ export function Roulette({ playlists, onNavigate }: RouletteProps) {
   const selectedPlaylistCount = selectedPlaylistIds.length > 0 ? selectedPlaylistIds.length : playlists.length;
 
   const moviePool = useMemo(() => buildMoviePool(playlists, activePlaylistIds), [playlists, activePlaylistIds]);
-  const filteredPool = moviePool.filter(({ movie }) => (filter === "all" ? true : movie.watchStatus === filter));
+  const filteredPool = moviePool.filter(({ movie }) => {
+    if (filter === "all") return true;
+    if (filter === "movie" || filter === "tv") return (movie.mediaType || "movie") === filter;
+    if (filter === "watched" || filter === "not_watched") return movie.watchStatus === filter;
+    if (!movie.runtimeMinutes) return true;
+    if (filter === "under_30") return movie.runtimeMinutes < 30;
+    if (filter === "30_60") return movie.runtimeMinutes >= 30 && movie.runtimeMinutes <= 60;
+    return movie.runtimeMinutes > 60;
+  });
   const canSpin = filteredPool.length > 0 && phase !== "spinning" && phase !== "countdown";
   const isBusy = phase === "spinning" || phase === "countdown";
 
@@ -134,7 +143,7 @@ export function Roulette({ playlists, onNavigate }: RouletteProps) {
   const activeMovie = activeEntry?.movie;
   const loadedLabel =
     filteredPool.length > 0
-      ? `${filteredPool.length} movie${filteredPool.length === 1 ? "" : "s"} loaded from ${selectedPlaylistCount} playlist${selectedPlaylistCount === 1 ? "" : "s"}.`
+      ? `${filteredPool.length} title${filteredPool.length === 1 ? "" : "s"} loaded from ${selectedPlaylistCount} playlist${selectedPlaylistCount === 1 ? "" : "s"}.`
       : "Add movies to a playlist to start Now Playing.";
 
   return (
@@ -179,10 +188,10 @@ export function Roulette({ playlists, onNavigate }: RouletteProps) {
           {activeEntry ? <p className="roulette-source">From {activeEntry.playlistName}</p> : null}
           {phase === "revealed" && activeMovie ? (
             <div className="roulette-action-row">
-              <button className="primary-button" onClick={() => onNavigate(`/movies/${activeMovie.tmdbId}`)} type="button">
+              <button className="primary-button" onClick={() => onNavigate((activeMovie.mediaType || "movie") === "tv" ? `/tv/${activeMovie.tmdbId}` : `/movies/${activeMovie.tmdbId}`)} type="button">
                 Watch Tonight
               </button>
-              <button className="secondary-button" onClick={() => onNavigate(`/movies/${activeMovie.tmdbId}`)} type="button">
+              <button className="secondary-button" onClick={() => onNavigate((activeMovie.mediaType || "movie") === "tv" ? `/tv/${activeMovie.tmdbId}` : `/movies/${activeMovie.tmdbId}`)} type="button">
                 View Details
               </button>
               <button className="secondary-button" onClick={startSpin} type="button">
@@ -200,7 +209,7 @@ export function Roulette({ playlists, onNavigate }: RouletteProps) {
             <h2>Choose playlists</h2>
           </div>
           <div className="roulette-filter-pills" aria-label="Watch status filter">
-            {(["all", "not_watched", "watched"] as RouletteFilter[]).map((filterOption) => (
+            {(["all", "movie", "tv", "not_watched", "watched", "under_30", "30_60", "60_plus"] as RouletteFilter[]).map((filterOption) => (
               <button
                 aria-pressed={filter === filterOption}
                 className={filter === filterOption ? "is-active" : ""}
@@ -209,7 +218,21 @@ export function Roulette({ playlists, onNavigate }: RouletteProps) {
                 onClick={() => updateFilter(filterOption)}
                 type="button"
               >
-                {filterOption === "all" ? "All" : filterOption === "not_watched" ? "Unwatched" : "Watched"}
+                {filterOption === "all"
+                  ? "All"
+                  : filterOption === "movie"
+                    ? "Movies"
+                    : filterOption === "tv"
+                      ? "TV Shows"
+                      : filterOption === "not_watched"
+                        ? "Unwatched"
+                        : filterOption === "watched"
+                          ? "Watched"
+                          : filterOption === "under_30"
+                            ? "Under 30"
+                            : filterOption === "30_60"
+                              ? "30-60"
+                              : "60+"}
               </button>
             ))}
           </div>
@@ -237,12 +260,12 @@ export function Roulette({ playlists, onNavigate }: RouletteProps) {
             >
               <span className="roulette-chip-cover">
                 {moviePool.slice(0, 4).map(({ movie }) =>
-                  movie.posterUrl ? <img alt="" key={movie.tmdbId} src={movie.posterUrl} /> : <i key={movie.tmdbId} />,
+                  movie.posterUrl ? <img alt="" key={`${movie.mediaType || "movie"}-${movie.tmdbId}`} src={movie.posterUrl} /> : <i key={`${movie.mediaType || "movie"}-${movie.tmdbId}`} />,
                 )}
                 {moviePool.length === 0 ? <><i /><i /><i /><i /></> : null}
               </span>
               <strong>All playlists</strong>
-              <small>{moviePool.length} movies</small>
+              <small>{moviePool.length} titles</small>
             </button>
 
             {playlists.map((playlist) => {
@@ -258,12 +281,12 @@ export function Roulette({ playlists, onNavigate }: RouletteProps) {
                 >
                   <span className="roulette-chip-cover">
                     {playlist.movies.slice(0, 4).map((movie) =>
-                      movie.posterUrl ? <img alt="" key={movie.tmdbId} src={movie.posterUrl} /> : <i key={movie.tmdbId} />,
+                      movie.posterUrl ? <img alt="" key={`${movie.mediaType || "movie"}-${movie.tmdbId}`} src={movie.posterUrl} /> : <i key={`${movie.mediaType || "movie"}-${movie.tmdbId}`} />,
                     )}
                     {playlist.movies.length === 0 ? <><i /><i /><i /><i /></> : null}
                   </span>
                   <strong>{playlist.name}</strong>
-                  <small>{playlist.movies.length} movies</small>
+                  <small>{playlist.movies.length} titles</small>
                 </button>
               );
             })}

@@ -15,7 +15,7 @@ export function PlaylistCard({ playlist, large, onNavigate }: PlaylistCardProps)
         <div className="playlist-cover poster-collage">
           {coverMovies.length > 0 ? (
             coverMovies.map((movie) =>
-              movie.posterUrl ? <img alt="" key={movie.tmdbId} src={movie.posterUrl} /> : <span key={movie.tmdbId} />,
+              movie.posterUrl ? <img alt="" key={`${movie.mediaType || "movie"}-${movie.tmdbId}`} src={movie.posterUrl} /> : <span key={`${movie.mediaType || "movie"}-${movie.tmdbId}`} />,
             )
           ) : (
             <>
@@ -30,7 +30,7 @@ export function PlaylistCard({ playlist, large, onNavigate }: PlaylistCardProps)
         {playlist.description ? <p>{playlist.description}</p> : null}
         <div className="card-meta">
           <span>{playlist.visibility}</span>
-          <span>{playlist.movies.length} movies</span>
+          <span>{playlist.movies.length} titles</span>
           {playlist.creatorHandle ? <span>by @{playlist.creatorHandle}</span> : null}
         </div>
       </button>

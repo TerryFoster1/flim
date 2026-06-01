@@ -67,15 +67,32 @@ alter table playlists
 create table if not exists playlist_movies (
   id uuid primary key default gen_random_uuid(),
   playlist_id uuid not null references playlists(id) on delete cascade,
+  media_type text not null default 'movie'
+    check (media_type in ('movie', 'tv')),
   tmdb_id integer not null,
   title text not null,
   year text,
   poster_url text,
   overview text,
+  runtime_minutes integer,
+  season_count integer,
+  episode_count integer,
   watched boolean not null default false,
   added_at timestamptz not null default now(),
-  unique (playlist_id, tmdb_id)
+  unique (playlist_id, media_type, tmdb_id)
 );
+
+alter table playlist_movies
+  add column if not exists media_type text not null default 'movie',
+  add column if not exists runtime_minutes integer,
+  add column if not exists season_count integer,
+  add column if not exists episode_count integer;
+
+alter table playlist_movies
+  drop constraint if exists playlist_movies_playlist_id_tmdb_id_key;
+
+create unique index if not exists playlist_movies_playlist_media_tmdb_unique
+  on playlist_movies (playlist_id, media_type, tmdb_id);
 
 create index if not exists playlists_visibility_idx
   on playlists (visibility);
@@ -99,6 +116,7 @@ create table if not exists tmdb_search_cache (
   id uuid primary key default gen_random_uuid(),
   query text not null,
   normalized_query text not null unique,
+  media_type text not null default 'movie',
   response_json jsonb not null,
   created_at timestamptz not null default now(),
   expires_at timestamptz not null
@@ -110,10 +128,23 @@ create index if not exists tmdb_search_cache_expires_at_idx
 create table if not exists tmdb_movie_cache (
   id uuid primary key default gen_random_uuid(),
   tmdb_id integer not null unique,
+  media_type text not null default 'movie',
   response_json jsonb not null,
   created_at timestamptz not null default now(),
   expires_at timestamptz not null
 );
+
+alter table tmdb_search_cache
+  add column if not exists media_type text not null default 'movie';
+
+alter table tmdb_movie_cache
+  add column if not exists media_type text not null default 'movie';
+
+alter table tmdb_movie_cache
+  drop constraint if exists tmdb_movie_cache_tmdb_id_key;
+
+create unique index if not exists tmdb_movie_cache_media_tmdb_unique
+  on tmdb_movie_cache (media_type, tmdb_id);
 
 create index if not exists tmdb_movie_cache_expires_at_idx
   on tmdb_movie_cache (expires_at);

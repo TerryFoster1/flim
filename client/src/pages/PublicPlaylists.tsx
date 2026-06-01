@@ -91,7 +91,7 @@ export function PublicPlaylists({ onNavigate, playlists, clonePlaylist }: Public
         <DiscoveryShelf title="Most Shared Playlists" playlists={popular} onNavigate={onNavigate} />
         <DiscoveryShelf title="Most Viewed Playlists" playlists={trending} onNavigate={onNavigate} />
         <DiscoveryShelf title="Recently Created Public Playlists" playlists={newest} onNavigate={onNavigate} />
-        <DiscoveryShelf title="Recommended For You" playlists={popular} onNavigate={onNavigate} />
+        <DiscoveryShelf title="Recommended Playlists" playlists={popular} onNavigate={onNavigate} />
       </div>
 
       {publicPlaylists.length > 0 ? (

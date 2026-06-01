@@ -5,6 +5,7 @@ import type { CurrentUser, Playlist } from "../types";
 interface PlaylistsProps {
   onNavigate: (path: string) => void;
   playlists: Playlist[];
+  rewindPlaylists: Playlist[];
   onCreatePlaylist: (input: Pick<Playlist, "name" | "description" | "visibility">) => Promise<Playlist>;
   currentUser: CurrentUser | null;
   notice?: string;
@@ -27,7 +28,7 @@ function getPlaylistHeroPosters(playlists: Playlist[]) {
   return [...savedPosters, ...fallbackHeroPosters].slice(0, 8);
 }
 
-export function Playlists({ onNavigate, playlists, onCreatePlaylist, currentUser, notice, initialView = "my" }: PlaylistsProps) {
+export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlaylist, currentUser, notice, initialView = "my" }: PlaylistsProps) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [visibility, setVisibility] = useState<Playlist["visibility"]>("private");
@@ -172,6 +173,18 @@ export function Playlists({ onNavigate, playlists, onCreatePlaylist, currentUser
           </div>
         </div>
       )}
+
+      {view === "my" && rewindPlaylists.length > 0 ? (
+        <section className="rewind-section">
+          <div className="playlist-shelf-heading">
+            <div>
+              <span className="eyebrow">Personal shelf</span>
+              <h2>Rewind</h2>
+            </div>
+          </div>
+          <PlaylistGrid onNavigate={onNavigate} playlists={rewindPlaylists} />
+        </section>
+      ) : null}
     </section>
   );
 }

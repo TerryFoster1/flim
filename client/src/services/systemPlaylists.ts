@@ -1,10 +1,11 @@
 import type { Playlist, PlaylistMovie } from "../types";
 
 function uniqueMovies(movies: PlaylistMovie[]) {
-  const seen = new Set<number>();
+  const seen = new Set<string>();
   return movies.filter((movie) => {
-    if (seen.has(movie.tmdbId)) return false;
-    seen.add(movie.tmdbId);
+    const key = `${movie.mediaType || "movie"}-${movie.tmdbId}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
     return true;
   });
 }

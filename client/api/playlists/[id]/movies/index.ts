@@ -1,10 +1,11 @@
-import { db, getCurrentUser, mapPlaylistMovie, readBody, sendJson } from "../../../_db.js";
+import { db, ensurePlaylistMediaColumns, getCurrentUser, mapPlaylistMovie, readBody, sendJson } from "../../../_db.js";
 
 export default async function handler(request: any, response: any) {
   const playlistId = request.query.id as string;
 
   try {
     const sql = db();
+    await ensurePlaylistMediaColumns(sql);
     const user = await getCurrentUser(sql, request);
 
     if (request.method === "GET") {
@@ -28,15 +29,19 @@ export default async function handler(request: any, response: any) {
       const ownsPlaylist = await sql`select id from playlists where id = ${playlistId} and owner_user_id = ${user.id} limit 1`;
       if (!ownsPlaylist[0]) return sendJson(response, 403, { error: "Only the playlist owner can add movies." });
       const body = await readBody(request);
+      const mediaType = body.mediaType === "tv" ? "tv" : "movie";
       const [movie] = await sql`
-        insert into playlist_movies (playlist_id, tmdb_id, title, year, poster_url, overview, watched)
-        values (${playlistId}, ${body.tmdbId}, ${body.title}, ${body.releaseYear || null}, ${body.posterUrl || null}, ${body.overview || null}, false)
-        on conflict (playlist_id, tmdb_id)
+        insert into playlist_movies (playlist_id, media_type, tmdb_id, title, year, poster_url, overview, runtime_minutes, season_count, episode_count, watched)
+        values (${playlistId}, ${mediaType}, ${body.tmdbId}, ${body.title}, ${body.releaseYear || body.firstAirYear || null}, ${body.posterUrl || null}, ${body.overview || null}, ${body.runtimeMinutes || null}, ${body.seasonCount || null}, ${body.episodeCount || null}, false)
+        on conflict (playlist_id, media_type, tmdb_id)
         do update set
           title = excluded.title,
           year = excluded.year,
           poster_url = excluded.poster_url,
-          overview = excluded.overview
+          overview = excluded.overview,
+          runtime_minutes = excluded.runtime_minutes,
+          season_count = excluded.season_count,
+          episode_count = excluded.episode_count
         returning *
       `;
 
