@@ -62,7 +62,7 @@ TMDb credentials should be configured only on the server/Vercel side:
 - `TMDB_API_KEY` fallback
 
 Do not use `VITE_TMDB_ACCESS_TOKEN`, `VITE_TMDB_API_KEY`, or any `VITE_DATABASE_URL` for production movie search.
-The API no longer reads `VITE_TMDB_ACCESS_TOKEN` or `VITE_TMDB_API_KEY`. Replace older Vercel env vars with `TMDB_ACCESS_TOKEN` or `TMDB_API_KEY`.
+The API temporarily reads the existing Vercel `VITE_TMDB_ACCESS_TOKEN` only inside serverless functions for production continuity. Replace that env var with `TMDB_ACCESS_TOKEN`, then remove the compatibility fallback from `api/_tmdb.ts` and `client/api/_tmdb.ts`.
 
 Admin exports require:
 

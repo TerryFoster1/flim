@@ -31,6 +31,18 @@ const defaultProfile = {
   showCountryPublicly: false,
 };
 
+const exportSchemaVersion = "2026-06-01-neon-hardening";
+
+async function safeRows(query: Promise<any[]>) {
+  try {
+    return await query;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "";
+    if (message.includes("does not exist")) return [];
+    throw error;
+  }
+}
+
 function cleanProfileInput(body: any) {
   return {
     displayName: String(body.displayName || "").trim().slice(0, 80),
@@ -146,6 +158,53 @@ async function getUserPayload(sql: any, user: any) {
 
 async function handleAuth(request: any, response: any, sql: any, action: string) {
   await ensureAuthTables(sql);
+
+  if (action === "admin-export") {
+    if (request.method !== "GET") return sendJson(response, 405, { error: "Method not allowed." });
+
+    const providedSecret = String(request.headers?.["x-admin-export-secret"] || "");
+    const expectedSecret = process.env.ADMIN_EXPORT_SECRET?.trim();
+    if (!providedSecret || !expectedSecret || providedSecret !== expectedSecret) {
+      return sendJson(response, 401, { error: "Unauthorized." });
+    }
+
+    const [
+      playlists,
+      playlistMovies,
+      users,
+      userProfiles,
+      tmdbSearchCache,
+      tmdbMovieCache,
+    ] = await Promise.all([
+      safeRows(sql`select * from playlists order by updated_at desc`),
+      safeRows(sql`select * from playlist_movies order by added_at desc`),
+      safeRows(sql`select id, email, created_at from users order by created_at desc`),
+      safeRows(sql`select * from user_profiles order by updated_at desc`),
+      safeRows(sql`select * from tmdb_search_cache order by created_at desc`),
+      safeRows(sql`select * from tmdb_movie_cache order by created_at desc`),
+    ]);
+
+    return sendJson(response, 200, {
+      generated_at: new Date().toISOString(),
+      schema_version: exportSchemaVersion,
+      table_counts: {
+        playlists: playlists.length,
+        playlist_movies: playlistMovies.length,
+        users: users.length,
+        user_profiles: userProfiles.length,
+        tmdb_search_cache: tmdbSearchCache.length,
+        tmdb_movie_cache: tmdbMovieCache.length,
+      },
+      data: {
+        playlists,
+        playlist_movies: playlistMovies,
+        users,
+        user_profiles: userProfiles,
+        tmdb_search_cache: tmdbSearchCache,
+        tmdb_movie_cache: tmdbMovieCache,
+      },
+    });
+  }
 
   if (action === "session" && request.method === "GET") {
     const user = await getCurrentUser(sql, request);

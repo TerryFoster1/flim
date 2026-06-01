@@ -23,7 +23,11 @@ interface TmdbMovieDetails extends TmdbSearchMovie {
 function tmdbAccessToken() {
   return (
     process.env.TMDB_ACCESS_TOKEN?.trim() ||
-    process.env.MOVIE_API_ACCESS_TOKEN?.trim()
+    process.env.MOVIE_API_ACCESS_TOKEN?.trim() ||
+    // Temporary server-side compatibility for the existing Vercel env name.
+    // The browser bundle does not read this value; migrate Vercel to
+    // TMDB_ACCESS_TOKEN and remove this fallback later.
+    process.env.VITE_TMDB_ACCESS_TOKEN?.trim()
   );
 }
 
@@ -86,7 +90,12 @@ async function runSchemaStatement(statement: Promise<unknown>) {
     await statement;
   } catch (error) {
     const message = error instanceof Error ? error.message : "";
-    if (message.includes("pg_type_typname_nsp_index") || message.includes("already exists")) {
+    if (
+      message.includes("pg_type_typname_nsp_index") ||
+      message.includes("pg_class_relname_nsp_index") ||
+      message.includes("duplicate key value violates unique constraint") ||
+      message.includes("already exists")
+    ) {
       return;
     }
     throw error;

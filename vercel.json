@@ -3,6 +3,10 @@
   "outputDirectory": "client/dist",
   "rewrites": [
     {
+      "source": "/api/admin/export",
+      "destination": "/api/profiles/auth?action=admin-export"
+    },
+    {
       "source": "/p/:slug*",
       "destination": "/api/public-page/:slug*"
     },
