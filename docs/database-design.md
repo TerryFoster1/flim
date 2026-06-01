@@ -114,6 +114,36 @@ Purpose: future general link table for exact links, deep links, and search fallb
 
 Placeholder fields: id, mediaType, movieId, tvShowId, providerId, countryCode, exactUrl, deepLinkUrl, searchFallbackUrl, linkType, createdAt.
 
+## Soundtracks
+
+Purpose: represent future soundtrack metadata for movies and TV shows.
+
+Placeholder fields: id, mediaType, movieId, tvShowId, title, spotifyAlbumId, artworkUrl, availabilityStatus, createdAt, updatedAt.
+
+## SoundtrackArtists
+
+Purpose: represent soundtrack artists and composers.
+
+Placeholder fields: id, soundtrackId, artistName, spotifyArtistId, role, createdAt.
+
+## AlbumLinks
+
+Purpose: represent exact album URLs or search fallbacks for soundtrack destinations.
+
+Placeholder fields: id, soundtrackId, provider, exactUrl, searchFallbackUrl, linkType, createdAt.
+
+## MediaVideos
+
+Purpose: represent trailers and related video links.
+
+Placeholder fields: id, mediaType, movieId, tvShowId, contentType, title, provider, exactUrl, searchFallbackUrl, thumbnailUrl, sourceStatus, createdAt.
+
+## TriviaEntries
+
+Purpose: represent trivia, awards, behind-the-scenes facts, and production information.
+
+Placeholder fields: id, mediaType, movieId, tvShowId, category, title, body, sourceUrl, sourceName, createdAt, updatedAt.
+
 ## PlexServers
 
 Purpose: represent a connected Plex server after auth/security scope opens.

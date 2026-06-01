@@ -10,6 +10,8 @@ Core question:
 
 Flim should help answer that question across movies, TV shows, playlists, streaming providers, Plex libraries, smart TVs, and future playback targets.
 
+After a user chooses what to watch, Flim should also help them continue exploring that title through soundtracks, trailers, trivia, and related media.
+
 ## Product Positioning
 
 Flim is:
@@ -37,6 +39,7 @@ Flim helps users decide what to watch, then opens the best available destination
 5. TV tracking.
 6. Advanced smart TV integration.
 7. Advanced Roulette.
+8. Media extensions: soundtracks, trailers, trivia, and related experiences.
 
 ## Phase 1: Watch Providers
 
@@ -236,6 +239,24 @@ Winner actions:
 - View Details.
 - Add To Playlist.
 - Share Movie Night.
+
+## Phase 6: Media Extensions
+
+Goal: make movie and TV detail pages feel like entertainment hubs.
+
+Planned actions:
+
+- Watch Movie.
+- Listen To Soundtrack.
+- Watch Trailer.
+- Trivia & Facts.
+- Add To Roulette.
+
+Integration foundations:
+
+- Spotify soundtrack lookup.
+- YouTube trailer lookup.
+- Trivia, awards, production, and behind-the-scenes architecture.
 
 ## Future Product Vision
 

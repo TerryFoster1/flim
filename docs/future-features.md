@@ -36,6 +36,18 @@ Support TV shows, mini-series, seasons, episodes, current episode, current seaso
 
 Expand Roulette with provider filters, media type filters, modes, watch status, runtime, genre, decade, and stronger winner actions.
 
+## Soundtracks
+
+Placeholder for Spotify soundtrack lookup, soundtrack albums, artist metadata, album artwork, and direct or fallback music links.
+
+## Trailers And Related Videos
+
+Placeholder for YouTube official trailers, teaser trailers, behind-the-scenes clips, interviews, and featurettes.
+
+## Trivia And Facts
+
+Placeholder for trivia, awards, production notes, behind-the-scenes facts, and source-attributed movie/TV enrichment.
+
 ## Blind Spin
 
 Premium concept where Flim secretly chooses a title and opens the provider destination without revealing it first.

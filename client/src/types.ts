@@ -177,6 +177,75 @@ export interface MovieAvailability {
   notes: string;
 }
 
+export interface Artist {
+  id?: string;
+  name: string;
+}
+
+export interface AlbumLink {
+  provider: "spotify" | "apple_music" | "youtube_music" | "unknown";
+  url: string;
+  linkType: "exact" | "search_fallback";
+  label: string;
+}
+
+export interface SpotifyAlbum {
+  id?: string;
+  name: string;
+  artworkUrl?: string;
+  artists: Artist[];
+  spotifyUrl?: string;
+}
+
+export interface Soundtrack {
+  mediaType: MediaType;
+  tmdbId: number;
+  title: string;
+  query: string;
+  album?: SpotifyAlbum;
+  links: AlbumLink[];
+}
+
+export interface SoundtrackAvailability {
+  tmdbId: number;
+  mediaType: MediaType;
+  title: string;
+  availabilityKnown: boolean;
+  soundtrack?: Soundtrack;
+  notes: string;
+}
+
+export type VideoContentType = "official_trailer" | "teaser_trailer" | "behind_the_scenes" | "interview" | "featurette";
+
+export interface MediaVideoLink {
+  provider: "youtube";
+  contentType: VideoContentType;
+  url: string;
+  linkType: "exact" | "search_fallback";
+  label: string;
+  thumbnailUrl?: string;
+}
+
+export interface TriviaEntry {
+  id?: string;
+  mediaType: MediaType;
+  tmdbId: number;
+  category: "trivia" | "fun_fact" | "award" | "behind_the_scenes" | "production";
+  title: string;
+  body?: string;
+  sourceUrl?: string;
+}
+
+export interface MediaExtensions {
+  mediaType: MediaType;
+  tmdbId: number;
+  title: string;
+  soundtrack: SoundtrackAvailability;
+  videos: MediaVideoLink[];
+  trivia: TriviaEntry[];
+  notes: string;
+}
+
 export interface MovieProviderFilter {
   providerIds: string[];
   countryCode?: string;

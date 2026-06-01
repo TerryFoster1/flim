@@ -1459,6 +1459,104 @@ textarea { min-height: 42px; resize: vertical; }
   min-height: 68px;
   padding: 9px;
 }
+.media-extensions {
+  display: grid;
+  gap: 14px;
+  margin-top: 22px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 20px;
+  padding: 16px;
+  background:
+    radial-gradient(circle at 16% 16%, rgba(255,79,109,.16), transparent 18rem),
+    radial-gradient(circle at 88% 0%, rgba(255,184,77,.14), transparent 16rem),
+    rgba(255,255,255,.045);
+}
+.media-extension-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 12px;
+}
+.media-extension-heading h2 { margin: 0; font-size: clamp(1.35rem, 2vw, 2.1rem); }
+.media-extension-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.media-extension-card {
+  min-height: 248px;
+  display: grid;
+  grid-template-rows: 128px minmax(0, 1fr);
+  gap: 12px;
+  border: 1px solid rgba(255,255,255,.13);
+  border-radius: 18px;
+  padding: 12px;
+  background: linear-gradient(145deg, rgba(255,255,255,.095), rgba(255,255,255,.035));
+  overflow: hidden;
+}
+.media-extension-card h3 { margin: 4px 0 6px; }
+.media-extension-card p {
+  color: var(--muted);
+  line-height: 1.45;
+  font-size: .92rem;
+}
+.media-extension-card .secondary-button {
+  width: 100%;
+  margin-top: 4px;
+}
+.extension-art {
+  position: relative;
+  min-height: 128px;
+  border-radius: 14px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background:
+    linear-gradient(135deg, rgba(255,79,109,.44), rgba(255,184,77,.22)),
+    rgba(255,255,255,.06);
+}
+.extension-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: .42;
+  filter: saturate(1.15) contrast(1.05);
+}
+.extension-art span {
+  position: absolute;
+  inset: 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,.22);
+  background:
+    repeating-linear-gradient(90deg, rgba(255,255,255,.16) 0 8px, transparent 8px 18px),
+    linear-gradient(135deg, rgba(255,79,109,.5), rgba(255,184,77,.22));
+}
+.extension-art strong {
+  position: absolute;
+  width: 54px;
+  height: 54px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(8,9,13,.84);
+  color: #ffe7b8;
+  border: 1px solid rgba(255,255,255,.22);
+  font-size: 1.55rem;
+  box-shadow: 0 18px 50px rgba(0,0,0,.35);
+}
+.extension-icon {
+  display: inline-grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border-radius: 10px;
+  background: rgba(255,255,255,.09);
+}
+.watch-movie-card { border-color: rgba(255,184,77,.24); }
+.soundtrack-card { border-color: rgba(62,226,160,.18); }
+.trailer-card { border-color: rgba(255,184,77,.2); }
+.trivia-card { border-color: rgba(169,128,255,.22); }
+.roulette-card { border-color: rgba(255,79,109,.2); }
 .settings-integration-card {
   margin-top: 22px;
   border: 1px solid var(--line);
@@ -1796,6 +1894,15 @@ textarea { min-height: 42px; resize: vertical; }
   .playlist-cover { height: 250px; }
   .empty-playlists-panel, .movie-detail-hero { grid-template-columns: 1fr; }
   .watch-provider-heading, .plex-provider-card { grid-template-columns: 1fr; }
+  .media-extension-heading {
+    display: grid;
+  }
+  .media-extension-grid {
+    grid-template-columns: 1fr;
+  }
+  .media-extension-card {
+    min-height: auto;
+  }
   .movie-detail-poster { width: min(82vw, 360px); margin: 0 auto; }
   .empty-poster-wall { grid-template-columns: repeat(3, 1fr); }
   .playlist-hero { min-height: auto; gap: 18px; }

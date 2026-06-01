@@ -18,6 +18,7 @@ flowchart LR
   API --> Providers["future /api/providers"]
   API --> Plex["future /api/plex"]
   API --> Devices["future /api/playback-targets"]
+  API --> Extensions["future /api/media/:mediaType/:id/extensions"]
   API --> Sharing["future /api/sharing"]
   API --> Social["future /api/social"]
   API --> Roulette["future /api/roulette"]
@@ -134,6 +135,18 @@ Planned route contracts:
 - `GET /api/playback-targets/:targetId/capabilities`
 - `POST /api/playback-targets/:targetId/play`
 
+## Media Extensions
+
+Future namespace: `/api/media/:mediaType/:id`
+
+Planned route contracts:
+
+- `GET /api/media/:mediaType/:id/extensions`
+- `GET /api/media/:mediaType/:id/soundtrack`
+- `GET /api/media/:mediaType/:id/trailers`
+- `GET /api/media/:mediaType/:id/trivia`
+- `GET /api/media/:mediaType/:id/awards`
+
 ## Future Namespaces
 
 The following remain planned, not implemented:
@@ -142,6 +155,7 @@ The following remain planned, not implemented:
 - `/api/tv`
 - `/api/plex`
 - `/api/playback-targets`
+- `/api/media/:mediaType/:id/extensions`
 - `/api/sharing`
 - `/api/social`
 - `/api/roulette`

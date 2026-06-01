@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { AddToPlaylistControl } from "../components/AddToPlaylistControl";
+import { MediaExtensions } from "../components/MediaExtensions";
 import { PageShell } from "../components/PageShell";
 import { WhereToWatch } from "../components/WhereToWatch";
 import { WatchStatusBadge } from "../components/WatchStatusBadge";
@@ -85,6 +86,7 @@ export function MovieDetailsPage({ tmdbId, playlists, addToPlaylist, updateWatch
             ))}
           </div>
           <WhereToWatch movie={movie} />
+          <MediaExtensions media={movie} />
         </div>
       </div>
     </section>

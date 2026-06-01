@@ -7,6 +7,10 @@ Documents:
 - `product-bible.md` - Product vision, users, use cases, and constraints.
 - `roadmap.md` - Phase-based build plan.
 - `master-entertainment-roadmap.md` - Long-range roadmap for providers, Plex, smart TVs, TV series, and advanced Roulette.
+- `media-extensions-roadmap.md` - Movie and TV hub roadmap for soundtracks, trailers, trivia, and related media.
+- `spotify-integration-strategy.md` - Soundtrack lookup, Spotify fallback links, and future album matching.
+- `youtube-integration-strategy.md` - Trailer lookup, YouTube fallback links, and future official video matching.
+- `trivia-architecture.md` - Trivia, awards, behind-the-scenes, and production information planning.
 - `database-design.md` - PostgreSQL entity placeholders.
 - `api-design.md` - API-first route and contract placeholders.
 - `future-features.md` - Explicit future feature parking lot.

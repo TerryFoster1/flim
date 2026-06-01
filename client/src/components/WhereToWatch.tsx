@@ -14,7 +14,7 @@ export function WhereToWatch({ compact = false, movie }: WhereToWatchProps) {
   const streamingLinks = availability.links.filter((link) => link.provider.id !== "plex");
 
   return (
-    <section className={compact ? "watch-providers compact" : "watch-providers"} aria-label={`Where to watch ${movie.title}`}>
+    <section className={compact ? "watch-providers compact" : "watch-providers"} id={`where-to-watch-${movie.tmdbId}`} aria-label={`Where to watch ${movie.title}`}>
       <div className="watch-provider-heading">
         <div>
           <span className="eyebrow">Where to Watch</span>
