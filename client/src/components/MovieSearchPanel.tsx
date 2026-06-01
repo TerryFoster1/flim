@@ -22,7 +22,7 @@ export function MovieSearchPanel({ playlists, addToPlaylist, onNavigate, variant
   async function submitSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!hasKey) {
-      setMessage("Add VITE_TMDB_ACCESS_TOKEN or VITE_TMDB_API_KEY to search real movies.");
+      setMessage("Movie search is not configured yet.");
       return;
     }
 
@@ -35,7 +35,7 @@ export function MovieSearchPanel({ playlists, addToPlaylist, onNavigate, variant
       setMessage(movies.length ? "" : "No movies found.");
     } catch {
       setStatus("error");
-      setMessage("Movie search failed. Check the API key and try again.");
+      setMessage("Movie search failed. Please try again shortly.");
     }
   }
 
@@ -55,7 +55,7 @@ export function MovieSearchPanel({ playlists, addToPlaylist, onNavigate, variant
           </button>
         </div>
       </form>
-      {!hasKey ? <p className="empty-state">Set `VITE_TMDB_ACCESS_TOKEN` or `VITE_TMDB_API_KEY` in `client/.env.local` to enable TMDb search.</p> : null}
+      {!hasKey ? <p className="empty-state">Movie search is not configured yet.</p> : null}
       {message ? <p className="empty-state">{message}</p> : null}
       {results.length > 0 ? (
         <div className="search-results-experience" aria-live="polite">

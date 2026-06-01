@@ -21,6 +21,8 @@ It creates:
 
 - `playlists`
 - `playlist_movies`
+- `tmdb_search_cache`
+- `tmdb_movie_cache`
 
 `playlists.public_slug` is the unique public identifier used for share URLs such as:
 
@@ -44,3 +46,18 @@ The browser calls server endpoints only:
 - `PATCH /api/playlists/:id/movies/:movieId/watched`
 - `GET /api/public/playlists/:slug`
 - `GET /api/public/playlists/:slug/movies`
+- `GET /api/movies/search?q=movie-title`
+- `GET /api/movies/:tmdbId`
+
+## TMDb Cache Proxy
+
+TMDb credentials should be configured only on the server/Vercel side:
+
+- `TMDB_ACCESS_TOKEN` preferred
+- `TMDB_API_KEY` fallback
+
+Do not use `VITE_TMDB_ACCESS_TOKEN`, `VITE_TMDB_API_KEY`, or any `VITE_DATABASE_URL` for production movie search.
+
+`GET /api/movies/search` normalizes queries by trimming and lowercasing them, returns an unexpired cache hit when available, and stores a fresh TMDb response for 7 days on a miss.
+
+`GET /api/movies/:tmdbId` returns an unexpired movie-detail cache hit when available and stores a fresh TMDb response for 30 days on a miss.

@@ -53,6 +53,29 @@ create index if not exists playlist_movies_playlist_id_idx
 create index if not exists playlist_movies_tmdb_id_idx
   on playlist_movies (tmdb_id);
 
+create table if not exists tmdb_search_cache (
+  id uuid primary key default gen_random_uuid(),
+  query text not null,
+  normalized_query text not null unique,
+  response_json jsonb not null,
+  created_at timestamptz not null default now(),
+  expires_at timestamptz not null
+);
+
+create index if not exists tmdb_search_cache_expires_at_idx
+  on tmdb_search_cache (expires_at);
+
+create table if not exists tmdb_movie_cache (
+  id uuid primary key default gen_random_uuid(),
+  tmdb_id integer not null unique,
+  response_json jsonb not null,
+  created_at timestamptz not null default now(),
+  expires_at timestamptz not null
+);
+
+create index if not exists tmdb_movie_cache_expires_at_idx
+  on tmdb_movie_cache (expires_at);
+
 create or replace function set_updated_at()
 returns trigger
 language plpgsql
