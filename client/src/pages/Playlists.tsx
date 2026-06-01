@@ -70,6 +70,11 @@ export function Playlists({ onNavigate, playlists, onCreatePlaylist, notice, ini
     }
   }
 
+  function browsePublicPlaylists() {
+    setView("public");
+    setQuery("");
+  }
+
   return (
     <section className="route-page collections-page">
       <section className="collections-cinematic-hero" aria-label="Flim movie playlists">
@@ -79,13 +84,15 @@ export function Playlists({ onNavigate, playlists, onCreatePlaylist, notice, ini
           ))}
         </div>
         <div className="collections-hero-content">
-          <h1>What are we watching tonight?</h1>
+          <span className="eyebrow">Flim</span>
+          <h1>Your Movie Playlists</h1>
+          <p>Create, share, and discover movie playlists.</p>
           <div className="button-row">
             <button className="primary-button" onClick={() => setShowCreate((current) => !current)} type="button">
               {showCreate ? "Close" : "Create Playlist"}
             </button>
-            <button className="secondary-button" onClick={() => window.dispatchEvent(new CustomEvent("flim:open-roulette"))} type="button">
-              Spin Roulette
+            <button className="secondary-button" onClick={browsePublicPlaylists} type="button">
+              Browse Public Lists
             </button>
           </div>
         </div>
@@ -108,6 +115,14 @@ export function Playlists({ onNavigate, playlists, onCreatePlaylist, notice, ini
 
       {notice ? <p className="success-message">{notice}</p> : null}
       {error ? <p className="error-message">{error}</p> : null}
+
+      <div className="playlist-shelf-heading">
+        <span className="eyebrow">{view === "public" ? "Public Playlists" : "My Playlists"}</span>
+        <h2>{view === "public" ? "Shared movie lists" : "Playlists"}</h2>
+        <button className="primary-button" onClick={() => setShowCreate((current) => !current)} type="button">
+          {showCreate ? "Close" : "Create Playlist"}
+        </button>
+      </div>
 
       {showCreate ? (
         <form className="collection-create-panel" onSubmit={submit}>
