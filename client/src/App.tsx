@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Footer } from "./components/Footer";
 import { InstallFlimPrompt } from "./components/InstallFlimPrompt";
 import { NavigationBar } from "./components/NavigationBar";
+import { FilmReelIcon } from "./components/RouletteAssets";
 import {
   addMovieToPlaylist,
   clonePlaylist,
@@ -177,29 +178,14 @@ export default function App() {
       <InstallFlimPrompt />
       <button
         className="floating-roulette-button"
-        aria-label="Open Movie Night Roulette"
+        aria-label="Open Movie Roulette"
         onClick={() => {
           setRoulettePlaylists(null);
           setIsRouletteOpen(true);
         }}
         type="button"
       >
-        <svg viewBox="0 0 64 64" aria-hidden="true">
-          <defs>
-            <linearGradient id="floatingReelGradient" x1="8" y1="8" x2="56" y2="56">
-              <stop stopColor="#ff4f6d" />
-              <stop offset="0.55" stopColor="#ffb84d" />
-              <stop offset="1" stopColor="#ffe760" />
-            </linearGradient>
-          </defs>
-          <circle cx="32" cy="32" r="25" fill="url(#floatingReelGradient)" />
-          <circle cx="32" cy="32" r="12" fill="#08090d" opacity=".88" />
-          <circle cx="32" cy="18" r="5" fill="#08090d" />
-          <circle cx="46" cy="32" r="5" fill="#08090d" />
-          <circle cx="32" cy="46" r="5" fill="#08090d" />
-          <circle cx="18" cy="32" r="5" fill="#08090d" />
-          <circle cx="32" cy="32" r="4" fill="#fff7df" />
-        </svg>
+        <FilmReelIcon />
       </button>
       {isRouletteOpen ? (
         <div className="roulette-modal-backdrop" role="dialog" aria-modal="true" aria-label="Movie Night Roulette">

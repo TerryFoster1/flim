@@ -672,7 +672,264 @@ h3 { margin-bottom: 8px; }
   grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
 }
 .movie-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px; }
-.roulette-page { display: grid; gap: 24px; }
+.roulette-page { display: grid; gap: 18px; }
+.roulette-experience {
+  min-height: min(760px, calc(100vh - 110px));
+  display: grid;
+  grid-template-columns: minmax(220px, .78fr) minmax(300px, 460px) minmax(220px, .78fr);
+  gap: clamp(18px, 3.4vw, 36px);
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 30px;
+  padding: clamp(18px, 4vw, 42px);
+  background:
+    radial-gradient(circle at 50% 12%, rgba(255,184,77,.16), transparent 20rem),
+    radial-gradient(circle at 8% 78%, rgba(255,79,109,.18), transparent 24rem),
+    linear-gradient(180deg, rgba(13,10,11,.98), rgba(4,5,8,.98));
+  box-shadow: 0 30px 100px rgba(0,0,0,.4);
+}
+.roulette-experience::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(255,255,255,.03) 1px, transparent 1px) 0 0 / 42px 100%,
+    radial-gradient(circle at 50% 40%, rgba(255,219,122,.1), transparent 22rem);
+  pointer-events: none;
+}
+.roulette-copy-panel,
+.roulette-poster-button,
+.roulette-result-panel {
+  position: relative;
+  z-index: 1;
+}
+.roulette-copy-panel h1 {
+  max-width: 620px;
+  font-size: clamp(3rem, 7.4vw, 6.8rem);
+  line-height: .9;
+  margin-bottom: 14px;
+}
+.roulette-copy-panel p {
+  max-width: 420px;
+  color: #f6ead6;
+  font-size: clamp(1rem, 1.8vw, 1.22rem);
+  line-height: 1.45;
+}
+.roulette-poster-button {
+  width: min(100%, 460px);
+  justify-self: center;
+  display: grid;
+  gap: 12px;
+  color: inherit;
+  text-align: center;
+  cursor: pointer;
+  transform-origin: center;
+  transition: transform .18s ease, filter .18s ease;
+}
+.roulette-poster-button:not(:disabled):hover,
+.roulette-poster-button:not(:disabled):focus-visible {
+  transform: translateY(-3px) scale(1.012);
+  filter: saturate(1.12);
+  outline: none;
+}
+.roulette-poster-button:disabled { cursor: default; }
+.roulette-marquee-sign {
+  min-height: 62px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255,184,77,.52);
+  border-radius: 18px 18px 10px 10px;
+  background:
+    radial-gradient(circle, rgba(255,242,184,.88) 0 2px, transparent 3px) 0 0 / 18px 18px,
+    linear-gradient(180deg, rgba(62,29,18,.98), rgba(22,12,12,.98));
+  box-shadow: 0 0 36px rgba(255,184,77,.2), inset 0 0 26px rgba(255,184,77,.1);
+}
+.roulette-marquee-sign span {
+  color: #ffe7a8;
+  font-size: clamp(1.08rem, 3vw, 1.5rem);
+  font-weight: 950;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+  text-shadow: 0 0 18px rgba(255,184,77,.56);
+}
+.roulette-poster-frame {
+  position: relative;
+  aspect-ratio: 2 / 3;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  border: 8px solid #1b1010;
+  border-radius: 24px;
+  background:
+    linear-gradient(90deg, rgba(255,255,255,.04), transparent 12%, transparent 88%, rgba(255,255,255,.04)),
+    linear-gradient(145deg, rgba(255,184,77,.28), rgba(255,79,109,.16)),
+    #08090d;
+  box-shadow:
+    0 26px 80px rgba(0,0,0,.55),
+    0 0 60px rgba(255,184,77,.16),
+    inset 0 0 0 1px rgba(255,255,255,.14);
+}
+.roulette-poster-frame::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  pointer-events: none;
+  background:
+    linear-gradient(115deg, rgba(255,255,255,.16), transparent 27%, transparent 72%, rgba(255,255,255,.05)),
+    linear-gradient(180deg, transparent 72%, rgba(0,0,0,.34));
+}
+.roulette-sprocket-border {
+  position: absolute;
+  top: 14px;
+  bottom: 14px;
+  z-index: 6;
+  width: 16px;
+  opacity: .66;
+  background: repeating-linear-gradient(to bottom, rgba(255,231,168,.92) 0 9px, transparent 9px 23px);
+  filter: drop-shadow(0 0 10px rgba(255,184,77,.32));
+}
+.roulette-sprocket-border.left { left: 12px; }
+.roulette-sprocket-border.right { right: 12px; }
+.roulette-active-poster,
+.tap-to-spin-poster-svg,
+.vintage-countdown-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.roulette-active-poster {
+  object-fit: cover;
+  animation: roulettePosterSwap .18s ease both;
+}
+.phase-spinning .roulette-active-poster {
+  filter: saturate(1.24) contrast(1.05);
+}
+.phase-revealed .roulette-poster-frame {
+  animation: rouletteWinnerReveal .56s cubic-bezier(.2,.75,.2,1.18);
+  box-shadow:
+    0 30px 90px rgba(0,0,0,.58),
+    0 0 84px rgba(255,184,77,.28),
+    inset 0 0 0 1px rgba(255,255,255,.16);
+}
+.roulette-frame-flicker {
+  position: absolute;
+  inset: 0;
+  z-index: 7;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, transparent, rgba(255,244,214,.12), transparent),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.08) 0 1px, transparent 1px 6px);
+  mix-blend-mode: screen;
+  animation: projectorFlicker .22s steps(2, end) infinite;
+}
+.roulette-result-panel {
+  display: grid;
+  gap: 10px;
+  align-content: center;
+  min-height: 280px;
+  padding: clamp(18px, 3vw, 28px);
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 18% 12%, rgba(255,184,77,.1), transparent 16rem),
+    rgba(255,255,255,.045);
+}
+.roulette-result-panel h2 {
+  font-size: clamp(1.9rem, 4.2vw, 3.8rem);
+  line-height: .96;
+}
+.roulette-result-panel p {
+  color: var(--muted);
+  font-weight: 800;
+  line-height: 1.4;
+}
+.roulette-source {
+  color: #ffe7b8 !important;
+}
+.roulette-selection-panel {
+  display: grid;
+  gap: 14px;
+}
+.roulette-control-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: end;
+}
+.roulette-control-header h2 {
+  margin: 0;
+  font-size: clamp(1.5rem, 3vw, 2.6rem);
+}
+.roulette-chip-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(154px, 1fr));
+  gap: 12px;
+}
+.roulette-playlist-chip {
+  display: grid;
+  gap: 9px;
+  text-align: left;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 18px;
+  padding: 10px;
+  background: rgba(255,255,255,.045);
+  color: var(--text);
+  cursor: pointer;
+  transition: transform .18s ease, border-color .18s ease, background .18s ease, box-shadow .18s ease;
+}
+.roulette-playlist-chip:hover,
+.roulette-playlist-chip.is-selected {
+  transform: translateY(-2px);
+  border-color: rgba(255,184,77,.66);
+  background: rgba(255,184,77,.1);
+  box-shadow: 0 14px 40px rgba(255,184,77,.08);
+}
+.roulette-playlist-chip.is-selected::after {
+  content: "Selected";
+  color: #ffe7b8;
+  font-size: .74rem;
+  font-weight: 900;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.roulette-chip-cover {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 14px;
+  background: #11141c;
+}
+.roulette-chip-cover img,
+.roulette-chip-cover i {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: linear-gradient(145deg, rgba(255,184,77,.5), rgba(169,128,255,.24));
+}
+.roulette-playlist-chip strong {
+  font-size: .98rem;
+  line-height: 1.1;
+}
+.roulette-playlist-chip small {
+  color: var(--muted);
+  font-weight: 800;
+}
+@keyframes roulettePosterSwap {
+  from { transform: scale(1.025); filter: brightness(.82) blur(1px); }
+  to { transform: scale(1); filter: none; }
+}
+@keyframes rouletteWinnerReveal {
+  from { transform: scale(.94); filter: brightness(.78) blur(2px); }
+  to { transform: scale(1); filter: none; }
+}
+@keyframes projectorFlicker {
+  0%, 100% { opacity: .18; }
+  50% { opacity: .38; }
+}
 .now-playing-roulette {
   min-height: min(820px, calc(100vh - 110px));
   display: grid;
@@ -2067,19 +2324,20 @@ textarea { min-height: 42px; resize: vertical; }
   z-index: 28;
   right: max(18px, env(safe-area-inset-right));
   bottom: max(18px, env(safe-area-inset-bottom));
-  width: 72px;
-  height: 72px;
-  border: 1px solid rgba(255,255,255,.22);
+  width: 78px;
+  height: 78px;
+  border: 1px solid rgba(255,184,77,.4);
   border-radius: 999px;
   background: radial-gradient(circle at 35% 25%, rgba(255,255,255,.28), transparent 34%), rgba(8,9,13,.88);
   box-shadow: 0 22px 70px rgba(255, 129, 55, .32), 0 18px 70px rgba(0,0,0,.48);
   display: grid;
   place-items: center;
   cursor: pointer;
+  animation: reelButtonPulse 2.8s ease-in-out infinite;
 }
-.floating-roulette-button svg {
-  width: 54px;
-  height: 54px;
+.floating-roulette-button .film-reel-action-svg {
+  width: 64px;
+  height: 64px;
   filter: drop-shadow(0 10px 24px rgba(255,184,77,.34));
 }
 .floating-roulette-button:hover,
@@ -2087,20 +2345,26 @@ textarea { min-height: 42px; resize: vertical; }
   transform: translateY(-2px) scale(1.02);
   outline: none;
 }
+@keyframes reelButtonPulse {
+  0%, 100% { box-shadow: 0 18px 50px rgba(0,0,0,.5), 0 0 30px rgba(255,184,77,.18); }
+  50% { box-shadow: 0 18px 50px rgba(0,0,0,.5), 0 0 48px rgba(255,184,77,.34); }
+}
 .roulette-modal-backdrop {
   position: fixed;
   inset: 0;
   z-index: 60;
   display: grid;
-  background: rgba(0,0,0,.78);
-  backdrop-filter: blur(14px);
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255,184,77,.12), transparent 28rem),
+    rgba(0,0,0,.82);
+  backdrop-filter: blur(16px);
   animation: modalFadeIn .18s ease both;
 }
 .roulette-modal-shell {
   min-height: 100vh;
   max-height: 100vh;
   overflow-y: auto;
-  padding: clamp(16px, 3vw, 34px);
+  padding: clamp(14px, 2.4vw, 28px);
   padding-top: max(74px, calc(env(safe-area-inset-top) + 58px));
   animation: rouletteSheetIn .28s ease both;
 }
@@ -2143,6 +2407,18 @@ textarea { min-height: 42px; resize: vertical; }
   .now-playing-roulette {
     min-height: auto;
     grid-template-columns: 1fr;
+  }
+  .roulette-experience {
+    min-height: auto;
+    grid-template-columns: 1fr;
+  }
+  .roulette-copy-panel,
+  .roulette-result-panel {
+    text-align: center;
+  }
+  .roulette-copy-panel p,
+  .roulette-result-panel {
+    margin-inline: auto;
   }
   .roulette-theater-copy {
     text-align: center;
@@ -2333,6 +2609,70 @@ textarea { min-height: 42px; resize: vertical; }
   }
   .roulette-reveal-copy {
     text-align: left;
+  }
+  .roulette-modal-shell {
+    padding: 12px;
+    padding-top: max(66px, calc(env(safe-area-inset-top) + 54px));
+  }
+  .roulette-experience {
+    margin-left: -12px;
+    margin-right: -12px;
+    border-left: 0;
+    border-right: 0;
+    border-radius: 0;
+    padding: 18px;
+    gap: 16px;
+  }
+  .roulette-copy-panel {
+    text-align: left;
+  }
+  .roulette-copy-panel h1 {
+    font-size: clamp(2.55rem, 13vw, 3.8rem);
+    max-width: 360px;
+  }
+  .roulette-copy-panel p {
+    max-width: 330px;
+    margin-inline: 0;
+  }
+  .roulette-poster-button {
+    width: min(100%, 360px);
+  }
+  .roulette-marquee-sign {
+    min-height: 54px;
+    border-radius: 16px 16px 9px 9px;
+  }
+  .roulette-poster-frame {
+    border-width: 6px;
+    border-radius: 22px;
+  }
+  .roulette-sprocket-border {
+    width: 13px;
+    top: 12px;
+    bottom: 12px;
+  }
+  .roulette-sprocket-border.left { left: 9px; }
+  .roulette-sprocket-border.right { right: 9px; }
+  .roulette-result-panel {
+    min-height: auto;
+    text-align: left;
+    padding: 16px;
+  }
+  .roulette-control-header {
+    display: grid;
+  }
+  .roulette-chip-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .floating-roulette-button {
+    right: max(16px, env(safe-area-inset-right));
+    bottom: max(16px, env(safe-area-inset-bottom));
+    width: 72px;
+    height: 72px;
+  }
+  .floating-roulette-button .film-reel-action-svg {
+    width: 58px;
+    height: 58px;
   }
   .projector-roulette-stage {
     margin-left: -16px;
