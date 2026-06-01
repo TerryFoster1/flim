@@ -40,7 +40,8 @@ function cleanProfileInput(body: any) {
 
 function getProfileSegment(request: any) {
   const value = request.query.profile;
-  return Array.isArray(value) ? String(value[0] || "") : String(value || "");
+  const raw = Array.isArray(value) ? String(value[value.length - 1] || "") : String(value || "");
+  return raw.split("/").filter(Boolean).pop() || "";
 }
 
 async function handleCurrentProfile(request: any, response: any, sql: any) {
