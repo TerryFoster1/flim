@@ -23,7 +23,7 @@ export function Profile({ onNavigate, playlists }: ProfileProps) {
         <div>
           <span className="eyebrow">Profile</span>
           <h1>Your Flim activity</h1>
-          <p>A simple local summary of the playlists and movies saved in this browser.</p>
+          <p>A simple summary of your playlists and watched movies.</p>
         </div>
       </div>
       <div className="stats-grid">

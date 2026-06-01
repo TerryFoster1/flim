@@ -176,6 +176,16 @@ button { color: inherit; font: inherit; }
   color: rgba(247,244,238,.4);
   cursor: default;
 }
+.hamburger-panel .logout-menu-item {
+  margin-top: 6px;
+  border-top: 1px solid rgba(255,255,255,.1);
+  border-radius: 0 0 12px 12px;
+  color: #ffd5dc;
+}
+.hamburger-panel .logout-menu-item:hover,
+.hamburger-panel .logout-menu-item:focus-visible {
+  background: rgba(255, 79, 109, 0.14);
+}
 .ghost-button, .secondary-button, .primary-button, .playlist-copy button, .spin-button, .blind-button, .danger-button, .settings-icon-button {
   min-height: 42px;
   display: inline-flex;

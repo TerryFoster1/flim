@@ -2,7 +2,11 @@ import { useEffect, useState } from "react";
 import type { RouteAwareProps } from "../types";
 import { BrandMark } from "./BrandMark";
 
-export function NavigationBar({ onNavigate }: RouteAwareProps) {
+interface NavigationBarProps extends RouteAwareProps {
+  onLogout: () => void;
+}
+
+export function NavigationBar({ onNavigate, onLogout }: NavigationBarProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
 
@@ -16,6 +20,11 @@ export function NavigationBar({ onNavigate }: RouteAwareProps) {
   function navigate(path: string) {
     setIsMenuOpen(false);
     onNavigate(path);
+  }
+
+  function logout() {
+    setIsMenuOpen(false);
+    onLogout();
   }
 
   return (
@@ -37,12 +46,13 @@ export function NavigationBar({ onNavigate }: RouteAwareProps) {
         </button>
         {isMenuOpen ? (
           <div className="hamburger-panel">
+            <button onClick={() => navigate("/profile")} type="button">Profile</button>
             <button onClick={() => navigate("/settings")} type="button">Settings</button>
+            <button onClick={() => navigate("/settings")} type="button">Connect Plex</button>
             {!isInstalled ? <button onClick={() => navigate("/settings")} type="button">Install Flim</button> : null}
             <button disabled type="button">Help</button>
             <button disabled type="button">About</button>
-            <button onClick={() => navigate("/settings")} type="button">Connect Plex</button>
-            <button disabled type="button">Future Integrations</button>
+            <button className="logout-menu-item" onClick={logout} type="button">Logout</button>
           </div>
         ) : null}
       </div>

@@ -15,6 +15,10 @@ import {
 import { MovieDetailsPage } from "./pages/MovieDetails";
 import { PlaylistDetails } from "./pages/PlaylistDetails";
 import { Playlists } from "./pages/Playlists";
+import { Profile } from "./pages/Profile";
+import { ProfilePlaylists } from "./pages/ProfilePlaylists";
+import { ProfileSaved } from "./pages/ProfileSaved";
+import { ProfileWatched } from "./pages/ProfileWatched";
 import { PublicPlaylist } from "./pages/PublicPlaylist";
 import { Roulette } from "./pages/Roulette";
 import { Settings } from "./pages/Settings";
@@ -29,9 +33,27 @@ function routeFromPath(pathname = window.location.pathname): RouteState {
   if (pathname.startsWith("/movies/")) return { route: "/movies/:tmdbId", tmdbId: pathname.split("/")[2] };
   if (pathname === "/public") return { route: "/public" };
   if (pathname === "/roulette") return { route: "/" };
+  if (pathname === "/profile") return { route: "/profile" };
+  if (pathname === "/profile/playlists") return { route: "/profile/playlists" };
+  if (pathname === "/profile/saved") return { route: "/profile/saved" };
+  if (pathname === "/profile/watched") return { route: "/profile/watched" };
   if (pathname === "/providers") return { route: "/providers" };
   if (pathname === "/settings") return { route: "/settings" };
   return { route: "/" };
+}
+
+function clearClientSessionArtifacts() {
+  sessionStorage.clear();
+
+  // Auth is not fully implemented yet. Keep this scoped to session-shaped keys so
+  // playlist data, PWA install state, and other non-auth browser data are not wiped.
+  const authKeyPattern = /(auth|session|token|login|user)/i;
+  for (let index = localStorage.length - 1; index >= 0; index -= 1) {
+    const key = localStorage.key(index);
+    if (key && authKeyPattern.test(key)) {
+      localStorage.removeItem(key);
+    }
+  }
 }
 
 export default function App() {
@@ -119,6 +141,12 @@ export default function App() {
     navigate("/playlists");
   }
 
+  function logout() {
+    clearClientSessionArtifacts();
+    navigate("/");
+    setPlaylistNotice("Signed out.");
+  }
+
   const activePlaylist = useMemo(() => playlists.find((playlist) => playlist.id === routeState.playlistId), [playlists, routeState.playlistId]);
 
   const activeRoute: AppRoute = routeState.route;
@@ -159,6 +187,10 @@ export default function App() {
     ),
     "/public": playlistsPage("public"),
     "/roulette": playlistsPage("my"),
+    "/profile": <Profile onNavigate={navigate} playlists={playlists} />,
+    "/profile/playlists": <ProfilePlaylists onNavigate={navigate} playlists={playlists} />,
+    "/profile/saved": <ProfileSaved playlists={playlists} />,
+    "/profile/watched": <ProfileWatched playlists={playlists} onNavigate={navigate} updateWatchStatus={updateWatchStatus} />,
     "/providers": playlistsPage("my"),
     "/settings": <Settings />,
   };
@@ -167,7 +199,7 @@ export default function App() {
   return (
     <div className="app-shell">
       <div className="main-shell">
-        <NavigationBar activeRoute={activeRoute} onNavigate={navigate} />
+        <NavigationBar activeRoute={activeRoute} onNavigate={navigate} onLogout={logout} />
         <main className="page-container">
           {dataStatus === "loading" ? <p className="empty-state">Loading playlists...</p> : null}
           {dataStatus === "error" ? <p className="error-message">{dataMessage}</p> : null}
