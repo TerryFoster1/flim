@@ -1,42 +1,48 @@
-﻿# Product Bible
+# Product Bible
 
 ## Product Vision
 
-Flim is a movie playlist platform.
+Flim is a movie and TV playlist platform.
 
-Think: Spotify playlists for movies.
+Think: Spotify playlists for movies and TV shows.
 
-Flim helps people create collections of movies, browse them visually through posters, and share those collections with friends, family, and the public.
+Flim helps people create playlists of movies and TV shows, browse them visually through posters, and share those playlists with friends, family, and the public.
+
+Long-term, Flim becomes the decision layer above entertainment services: it helps users decide what to watch, then opens the best available place to watch it.
 
 ## What Flim Is Not
 
 - Not a movie review platform.
 - Not a streaming platform.
+- Not a replacement for Netflix, Disney+, Prime Video, Plex, Jellyfin, Emby, or Apple TV.
 - Not an IMDb clone.
 - Not a Letterboxd clone.
 - Not a social feed-first entertainment network.
+- Not a universal smart TV remote.
 
 ## Core Product Promise
 
-When someone says, "You have to watch this movie," Flim gives users a fast, visual place to save it before they forget, organize it into playlists, and return to it later with provider-link support.
+When someone says, "You have to watch this," Flim gives users a fast, visual place to save it before they forget, organize it into playlists, return to it later, and open the best available watch destination.
 
 ## Example Playlists
 
-- Movies Anthony Wants Dad To Watch
-- Movies Dad Wants Anthony To Watch
-- Best Sci-Fi Ever Made
-- Family Movie Night
-- Date Night Movies
-- Movies To Watch This Summer
-- 80s Action Classics
-- Movies Everyone Should See Once
+- Movies Anthony Wants Dad To Watch.
+- Movies Dad Wants Anthony To Watch.
+- Best Sci-Fi Ever Made.
+- Family Movie Night.
+- Date Night Movies.
+- Movies To Watch This Summer.
+- Shows To Watch.
+- Anime List.
+- Shows We Finished.
 
 ## Core User Experience
 
 Future users should be able to:
 
 - Search movies.
-- Add movies to playlists.
+- Search TV shows.
+- Add movies and TV shows to playlists.
 - Create unlimited playlists.
 - Name playlists.
 - Add descriptions to playlists.
@@ -45,52 +51,41 @@ Future users should be able to:
 - Save another user's playlist.
 - Clone another user's playlist.
 - Track watched status.
-- Open streaming providers directly.
-- Use Movie Roulette.
+- Track TV seasons and episodes.
+- See where a title can be watched.
+- See whether a title exists in a connected Plex library.
+- Open streaming provider fallbacks or exact links when known.
+- Use Movie Night Roulette.
 
 ## Poster-First Presentation
 
-Movie posters are the primary UI element.
+Posters are the primary UI element.
 
-Flim should feel closer to Netflix, Prime Video, Disney+, and movie theatre websites than spreadsheets, admin tables, or text lists.
+Flim should feel closer to Netflix, Prime Video, Disney+, Plex, Letterboxd lists, and movie theatre websites than spreadsheets, admin tables, or text lists.
 
-Each future movie card should support poster, title, year, runtime, genres, streaming providers, and watch status.
+Each future media card should support poster, title, year, runtime, genres, media type, streaming providers, Plex availability, and watch status.
 
 ## Product Architecture Diagram
 
 ```mermaid
 flowchart TD
   User["User"] --> Client["Poster-first React client"]
-  Client --> API["API-first Express planning layer"]
+  Client --> API["API-first backend"]
   API --> Playlists["Playlist module"]
-  API --> Movies["Movie module"]
-  API --> Providers["Provider planning module"]
-  API --> Roulette["Roulette planning module"]
-  API --> Social["Social planning module"]
-  API --> DB["PostgreSQL placeholder"]
+  API --> Media["Movies and TV module"]
+  API --> Providers["Provider module"]
+  API --> Plex["Plex module"]
+  API --> Devices["Playback target module"]
+  API --> Roulette["Roulette module"]
+  API --> DB["PostgreSQL"]
 ```
-
-## Phase 1A Constraints
-
-- No authentication.
-- No payments.
-- No notifications.
-- No streaming integrations.
-- No movie database integrations.
-- No recommendation engines.
-- No AI features.
-- No social feeds.
-- No real business logic.
-- No backend services.
-- No database implementation.
-- No external APIs.
-- No email systems.
-- No mock data.
 
 ## Architecture Principles
 
 - API-first so future native clients can share backend contracts.
-- Poster-first so movies feel visual and browsable.
-- Modular so movies, providers, playlists, sharing, social planning, and roulette can evolve independently.
-- Mobile-friendly from the first implemented UI pass.
-- Clear separation between presentation, application services, repositories, schemas, and shared contracts.
+- Poster-first so movies and TV shows feel visual and browsable.
+- Playlists-first so the primary user object stays simple.
+- Honest provider behavior: search fallback unless availability is confirmed.
+- Plex-first for realistic personal library and remote playback planning.
+- Modular boundaries for media, providers, Plex, playback targets, playlists, sharing, and Roulette.
+- Mobile-friendly from every implemented UI pass.

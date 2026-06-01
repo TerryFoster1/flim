@@ -1,28 +1,48 @@
-﻿# Future Features
+# Future Features
 
-These items are intentionally parked outside Phase 1A and should not be implemented until their phase is opened.
+These items are intentionally parked until their phases are explicitly opened.
 
 ## Streaming Provider Availability
 
-Phase 2B placeholder for showing where movies are available to stream, rent, buy, or watch for free.
+Show where movies and TV shows are available to stream, rent, buy, watch free, or watch from a personal library.
 
-Planned providers include Netflix, Amazon Prime, Disney+, Apple TV, Crave, Paramount+, Hulu, Peacock, Tubi, YouTube Movies, and regional providers.
+Planned providers include Plex, Netflix, Amazon Prime, Disney+, Apple TV, Crave, Paramount+, Hulu, Peacock, Tubi, YouTube Movies, and regional providers.
 
-## Provider Logos And Deep Links
+## Provider Logos, Deep Links, And Search Fallbacks
 
-Placeholder for provider logos, platform URLs, deep links, and country-specific availability.
+Support provider logos, platform URLs, deep links, country-specific availability, and search fallback links. Exact availability must not be claimed unless confirmed.
 
-## Movie Roulette
+## Provider Filtering
 
-Placeholder for roulette selection modes and filters.
+Filter playlists and Roulette pools by one or more providers, such as Netflix + Disney+ or Plex only.
+
+## Plex Library Integration
+
+Connect Plex, import library metadata, match Plex items to TMDb movies and TV shows, and display `In Your Plex Library`.
+
+## Plex Remote Playback
+
+Send confirmed Plex library items to supported Plex clients such as living room, bedroom, or office players.
+
+## Smart TV And Casting Targets
+
+Plan for Chromecast, Android TV, Google TV, Plex players, and other reliable playback targets. Flim should not claim universal smart TV support.
+
+## TV Series And Episode Tracking
+
+Support TV shows, mini-series, seasons, episodes, current episode, current season, last watched, continue watching, next episode, and TV Roulette.
+
+## Movie Night Roulette
+
+Expand Roulette with provider filters, media type filters, modes, watch status, runtime, genre, decade, and stronger winner actions.
 
 ## Blind Spin
 
-Placeholder for the premium mode where Flim secretly chooses a movie and opens the provider destination without revealing the title first.
+Premium concept where Flim secretly chooses a title and opens the provider destination without revealing it first.
 
 ## AI Recommendations
 
-Placeholder for AI-assisted playlist or movie suggestions.
+Placeholder for AI-assisted playlist, movie, and TV suggestions after enough product behavior and consent boundaries exist.
 
 ## Movie Night Voting
 
@@ -36,9 +56,9 @@ Placeholder for household or family-level playlist spaces.
 
 Placeholder for browsing, following, saving, and cloning public playlists.
 
-## Movie Discussion And Comments
+## Movie And TV Discussion
 
-Placeholder for comments, notes, and lightweight discussion around movies or playlists.
+Placeholder for comments, notes, and lightweight discussion around titles or playlists.
 
 ## Watch Parties
 

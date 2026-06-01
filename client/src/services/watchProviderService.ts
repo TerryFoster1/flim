@@ -57,6 +57,13 @@ export const watchProviders: WatchProvider[] = [
     searchUrlTemplate: "https://tubitv.com/search/{title}",
     notes: "Tubi catalog availability varies by region and is not confirmed yet.",
   },
+  {
+    id: "paramount",
+    name: "Paramount+",
+    icon: "P+",
+    searchUrlTemplate: "https://www.paramountplus.com/search/?query={title}",
+    notes: "Paramount+ links open search fallback behavior until exact provider availability is supported.",
+  },
 ];
 
 function encodeMovieTitle(title: string) {
