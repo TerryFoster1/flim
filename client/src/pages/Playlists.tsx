@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { PlaylistGrid } from "../components/PlaylistGrid";
+import { landingPosterSeeds } from "../data/landingPosterSeeds";
 import type { CurrentUser, Playlist } from "../types";
 
 interface PlaylistsProps {
@@ -13,15 +14,6 @@ interface PlaylistsProps {
 }
 
 type PlaylistView = "my" | "public";
-
-const emptyPosterArtwork = [
-  { title: "Moonlit Voyage", label: "Film", tone: "warm" },
-  { title: "Midnight Signal", label: "TV", tone: "blue" },
-  { title: "Golden Street", label: "Film", tone: "gold" },
-  { title: "After Hours", label: "TV", tone: "red" },
-  { title: "Neon Valley", label: "Film", tone: "green" },
-  { title: "Last Train", label: "TV", tone: "violet" },
-];
 
 export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlaylist, currentUser, notice, initialView = "my" }: PlaylistsProps) {
   const [name, setName] = useState("");
@@ -173,11 +165,15 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
       ) : (
         <div className="collection-empty-cinematic">
           <div className="empty-poster-wall" aria-hidden="true">
-            {emptyPosterArtwork.map((poster) => (
-              <span className={`empty-poster-art tone-${poster.tone}`} key={poster.title}>
-                <b>{poster.title}</b>
-                <small>{poster.label}</small>
-              </span>
+            {landingPosterSeeds.slice(0, 6).map((poster) => (
+              <img
+                alt=""
+                className="empty-poster-art"
+                decoding="async"
+                key={`${poster.mediaType}-${poster.title}`}
+                loading="lazy"
+                src={poster.posterUrl}
+              />
             ))}
           </div>
           <div>
