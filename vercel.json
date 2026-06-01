@@ -1,17 +1,14 @@
 {
   "buildCommand": "npm run build",
   "outputDirectory": "client/dist",
-  "routes": [
+  "rewrites": [
     {
-      "src": "/p/([^/]+)$",
-      "dest": "/api/public-page/$1"
+      "source": "/p/:slug",
+      "destination": "/api/public-page/:slug"
     },
     {
-      "handle": "filesystem"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
+      "source": "/((?!api/).*)",
+      "destination": "/index.html"
     }
   ]
 }
