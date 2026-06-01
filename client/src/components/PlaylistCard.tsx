@@ -31,6 +31,7 @@ export function PlaylistCard({ playlist, large, onNavigate }: PlaylistCardProps)
         <div className="card-meta">
           <span>{playlist.visibility}</span>
           <span>{playlist.movies.length} movies</span>
+          {playlist.creatorHandle ? <span>by @{playlist.creatorHandle}</span> : null}
         </div>
       </button>
     </article>

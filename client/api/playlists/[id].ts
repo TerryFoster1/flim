@@ -1,23 +1,27 @@
-import { db, mapPlaylist, sendJson } from "../_db.js";
+import { db, demoUserId, ensureUserProfilesTable, mapPlaylist, sendJson } from "../_db.js";
 
 export default async function handler(request: any, response: any) {
   const playlistId = request.query.id as string;
 
   try {
     const sql = db();
+    await ensureUserProfilesTable(sql);
 
     if (request.method === "GET") {
       const rows = await sql`
         select
           p.*,
+          up.handle as creator_handle,
+          up.display_name as creator_display_name,
           coalesce(
             json_agg(pm order by pm.added_at desc) filter (where pm.id is not null),
             '[]'
           ) as movies
         from playlists p
+        left join user_profiles up on up.user_id = ${demoUserId}
         left join playlist_movies pm on pm.playlist_id = p.id
         where p.id = ${playlistId}
-        group by p.id
+        group by p.id, up.handle, up.display_name
       `;
 
       if (!rows[0]) return sendJson(response, 404, { error: "Playlist not found." });

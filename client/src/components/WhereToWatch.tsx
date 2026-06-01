@@ -1,4 +1,7 @@
+import { useEffect, useMemo, useState } from "react";
+import { getCurrentProfile } from "../services/profileService";
 import { getProviderLinksForMovie } from "../services/watchProviderService";
+import type { UserProfile } from "../types";
 
 interface WhereToWatchProps {
   movie: {
@@ -9,9 +12,26 @@ interface WhereToWatchProps {
 }
 
 export function WhereToWatch({ compact = false, movie }: WhereToWatchProps) {
-  const availability = getProviderLinksForMovie(movie);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const streamingRegion = profile?.streamingRegion || profile?.countryCode || "";
+  const availability = useMemo(() => getProviderLinksForMovie(movie, streamingRegion), [movie, streamingRegion]);
   const plexLink = availability.links.find((link) => link.provider.id === "plex");
   const streamingLinks = availability.links.filter((link) => link.provider.id !== "plex");
+
+  useEffect(() => {
+    let isActive = true;
+    getCurrentProfile()
+      .then((result) => {
+        if (isActive) setProfile(result);
+      })
+      .catch(() => {
+        if (isActive) setProfile(null);
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
 
   return (
     <section className={compact ? "watch-providers compact" : "watch-providers"} id={`where-to-watch-${movie.tmdbId}`} aria-label={`Where to watch ${movie.title}`}>
@@ -20,10 +40,15 @@ export function WhereToWatch({ compact = false, movie }: WhereToWatchProps) {
           <span className="eyebrow">Where to Watch</span>
           {!compact ? <h2>Open on provider</h2> : null}
         </div>
-        <span className="provider-status">Availability coming soon</span>
+        <span className="provider-status">{streamingRegion ? `Region: ${streamingRegion}` : "Region not set"}</span>
       </div>
 
       <p className="helper-text">{availability.notes}</p>
+      {!streamingRegion ? (
+        <a className="region-settings-link" href="/settings">
+          Set streaming region
+        </a>
+      ) : null}
 
       {plexLink ? (
         <div className="plex-provider-card">
@@ -55,7 +80,7 @@ export function WhereToWatch({ compact = false, movie }: WhereToWatchProps) {
           >
             <span className="provider-icon">{link.provider.icon}</span>
             <span>{link.provider.name}</span>
-            <small>Search fallback</small>
+            <small>{streamingRegion ? "Search provider" : "Set region first"}</small>
           </a>
         ))}
       </div>

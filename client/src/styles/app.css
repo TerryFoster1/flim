@@ -2428,6 +2428,188 @@ textarea { min-height: 42px; resize: vertical; }
   color: var(--muted);
   line-height: 1.55;
 }
+
+.settings-page {
+  display: grid;
+  gap: 22px;
+}
+
+.region-onboarding-card,
+.settings-panel,
+.public-profile-hero {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at top left, rgba(255, 184, 58, 0.18), transparent 34%),
+    linear-gradient(145deg, rgba(22, 22, 28, 0.94), rgba(8, 9, 13, 0.96));
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+  padding: 22px;
+}
+
+.region-onboarding-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+}
+
+.region-onboarding-card h2,
+.settings-panel h2,
+.public-profile-hero h1 {
+  margin: 4px 0 8px;
+}
+
+.region-onboarding-card p,
+.settings-panel p,
+.public-profile-hero p {
+  color: var(--muted);
+}
+
+.region-onboarding-card small,
+.settings-profile-form small,
+.privacy-note {
+  color: rgba(255, 255, 255, 0.68);
+}
+
+.settings-profile-form {
+  display: grid;
+  gap: 18px;
+}
+
+.settings-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.settings-profile-form label {
+  display: grid;
+  gap: 8px;
+  color: rgba(255, 255, 255, 0.84);
+  font-weight: 700;
+}
+
+.settings-profile-form input,
+.settings-profile-form select,
+.settings-profile-form textarea {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.34);
+  color: var(--text);
+  font: inherit;
+  padding: 13px 14px;
+}
+
+.settings-profile-form textarea {
+  min-height: 110px;
+  resize: vertical;
+}
+
+.handle-input-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.34);
+  padding-left: 13px;
+}
+
+.handle-input-row span,
+.region-settings-link,
+.creator-handle-link {
+  color: var(--accent);
+  font-weight: 900;
+}
+
+.handle-input-row input {
+  border: 0;
+  background: transparent;
+}
+
+.checkbox-row {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+}
+
+.checkbox-row input {
+  width: auto;
+}
+
+.provider-preference-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
+}
+
+.provider-preference {
+  min-height: 58px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.provider-preference span {
+  color: var(--accent);
+}
+
+.provider-preference.selected {
+  border-color: rgba(255, 184, 58, 0.82);
+  background: linear-gradient(135deg, rgba(255, 87, 87, 0.28), rgba(255, 184, 58, 0.20));
+  box-shadow: 0 0 28px rgba(255, 184, 58, 0.16);
+}
+
+.save-settings-button {
+  justify-self: start;
+}
+
+.success-message {
+  border: 1px solid rgba(70, 210, 156, 0.45);
+  border-radius: 14px;
+  background: rgba(70, 210, 156, 0.10);
+  color: #b8ffe3;
+  padding: 12px 14px;
+}
+
+.creator-handle-link {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+}
+
+.public-profile-page {
+  display: grid;
+  gap: 20px;
+}
+
+.public-profile-hero {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 18px;
+}
+
+.profile-avatar-placeholder {
+  width: 96px;
+  height: 96px;
+  border-radius: 24px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, #ff4f4f, #ffbf34);
+  color: #050506;
+  font-weight: 1000;
+  font-size: 2.8rem;
+  box-shadow: 0 18px 50px rgba(255, 132, 39, 0.24);
+}
 .footer {
   display: flex;
   justify-content: space-between;
@@ -2953,6 +3135,23 @@ textarea { min-height: 42px; resize: vertical; }
   .playlist-cover { height: 250px; }
   .empty-playlists-panel, .movie-detail-hero { grid-template-columns: 1fr; }
   .watch-provider-heading, .plex-provider-card { grid-template-columns: 1fr; }
+  .region-onboarding-card,
+  .public-profile-hero {
+    grid-template-columns: 1fr;
+  }
+  .settings-profile-form,
+  .settings-panel {
+    gap: 12px;
+  }
+  .provider-preference-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .profile-avatar-placeholder {
+    width: 78px;
+    height: 78px;
+    border-radius: 20px;
+    font-size: 2.2rem;
+  }
   .media-extension-heading {
     display: grid;
   }

@@ -93,7 +93,13 @@ export function PublicPlaylist({ publicSlug, onNavigate }: PublicPlaylistProps) 
           {playlist.description ? <p>{playlist.description}</p> : null}
           <div className="meta-row">
             <span>{playlist.movies.length} movies</span>
-            <span>Curated by a Flim friend</span>
+            {playlist.creatorHandle ? (
+              <button className="creator-handle-link" onClick={() => onNavigate(`/@${playlist.creatorHandle}`)} type="button">
+                by @{playlist.creatorHandle}
+              </button>
+            ) : (
+              <span>Curated by a Flim friend</span>
+            )}
             <span>Shared via Flim</span>
           </div>
           <div className="button-row">

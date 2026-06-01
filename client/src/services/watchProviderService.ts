@@ -75,7 +75,7 @@ export function buildProviderSearchUrl(provider: WatchProvider, title: string) {
   return provider.searchUrlTemplate.replace("{title}", encodeMovieTitle(title));
 }
 
-export function getProviderLinksForMovie(movie: { title: string; tmdbId: number }): MovieAvailability {
+export function getProviderLinksForMovie(movie: { title: string; tmdbId: number }, streamingRegion?: string): MovieAvailability {
   const links: WatchProviderLink[] = watchProviders.map((provider) => {
     const url = buildProviderSearchUrl(provider, movie.title);
 
@@ -83,16 +83,21 @@ export function getProviderLinksForMovie(movie: { title: string; tmdbId: number 
       provider,
       linkType: provider.id === "plex" ? "connect_placeholder" : "search_fallback",
       url,
-      label: provider.id === "plex" ? "Connect Plex Library" : `Open ${provider.name}`,
+      label: provider.id === "plex" ? "Connect Plex Library" : `Search ${provider.name}`,
       availabilityKnown: false,
     };
   });
+
+  const hasRegion = Boolean(streamingRegion?.trim());
 
   return {
     tmdbId: movie.tmdbId,
     title: movie.title,
     availabilityKnown: false,
     links,
-    notes: "Streaming availability coming soon. Current buttons open provider search fallbacks and do not confirm availability.",
+    notes: hasRegion
+      ? `Streaming availability for ${streamingRegion} is coming soon. Flim will only show confirmed provider availability when regional data is connected.`
+      : "Set your streaming region for more accurate availability.",
+    regionPrompt: hasRegion ? undefined : "Set your streaming region for more accurate availability.",
   };
 }
