@@ -14,20 +14,6 @@ interface PlaylistsProps {
 
 type PlaylistView = "my" | "public";
 
-const fallbackHeroPosters = [
-  "https://image.tmdb.org/t/p/w500/9gk7adHYeDvHkCSEqAvQNLV5Uge.jpg",
-  "https://image.tmdb.org/t/p/w500/qJ2tW6WMUDux911r6m7haRef0WH.jpg",
-  "https://image.tmdb.org/t/p/w500/6FfCtAuVAW8XJjZ7eWeLibRLWTw.jpg",
-  "https://image.tmdb.org/t/p/w500/8UlWHLMpgZm9bx6QYh0NFoq67TZ.jpg",
-  "https://image.tmdb.org/t/p/w500/rCzpDGLbOoPwLjy3OAm5NUPOTrC.jpg",
-  "https://image.tmdb.org/t/p/w500/5KCVkau1HEl7ZzfPsKAPM0sMiKc.jpg",
-];
-
-function getPlaylistHeroPosters(playlists: Playlist[]) {
-  const savedPosters = playlists.flatMap((playlist) => playlist.movies).map((movie) => movie.posterUrl).filter(Boolean) as string[];
-  return [...savedPosters, ...fallbackHeroPosters].slice(0, 8);
-}
-
 export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlaylist, currentUser, notice, initialView = "my" }: PlaylistsProps) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -37,7 +23,6 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
   const [query, setQuery] = useState("");
   const [view, setView] = useState<PlaylistView>(initialView);
   const [showCreate, setShowCreate] = useState(false);
-  const heroPosters = getPlaylistHeroPosters(playlists);
 
   useEffect(() => {
     setView(initialView);
@@ -86,20 +71,25 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
   return (
     <section className="route-page collections-page">
       <section className="collections-cinematic-hero" aria-label="Flim movie playlists">
-        <div className="collections-poster-wall" aria-hidden="true">
-          {heroPosters.map((posterUrl, index) => (
-            <img alt="" key={`${posterUrl}-${index}`} src={posterUrl} />
-          ))}
-        </div>
+        <picture className="collections-hero-picture" aria-hidden="true">
+          <source media="(max-width: 767px)" srcSet="/brand/flim-hero-mobile.png" />
+          <source media="(min-width: 768px)" srcSet="/brand/flim-hero-desktop.png" />
+          <img
+            alt=""
+            decoding="async"
+            fetchPriority="high"
+            src="/brand/flim-hero-desktop.png"
+          />
+        </picture>
         <div className="collections-hero-content">
-          <h1>Your Movie Playlists</h1>
-          <p>Create, share, and discover movie playlists.</p>
+          <h1>What Are We Watching Tonight?</h1>
+          <p>Create, share, and discover movie and TV playlists.</p>
           <div className="button-row">
             <button className="primary-button" onClick={() => setShowCreate((current) => !current)} type="button">
               {showCreate ? "Close" : "Create Playlist"}
             </button>
             <button className="secondary-button" onClick={browsePublicPlaylists} type="button">
-              Browse Public Lists
+              Browse Public Playlists
             </button>
           </div>
         </div>
