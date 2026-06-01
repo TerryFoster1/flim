@@ -9,7 +9,7 @@ interface ProfilePlaylistsProps {
 
 export function ProfilePlaylists({ onNavigate, playlists }: ProfilePlaylistsProps) {
   return (
-    <PageShell eyebrow="Profile" title="My Playlists" description="Playlists are stored locally in this MVP.">
+    <PageShell eyebrow="Profile" title="My Playlists" description="Your movie playlists live here.">
       <PlaylistGrid onNavigate={onNavigate} playlists={playlists} />
     </PageShell>
   );

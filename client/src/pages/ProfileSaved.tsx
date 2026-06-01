@@ -10,7 +10,7 @@ export function ProfileSaved({ playlists }: ProfileSavedProps) {
   const saved = playlists.filter((playlist) => playlist.saved || playlist.clonedFromId);
 
   return (
-    <PageShell eyebrow="Profile" title="Saved Lists" description="Cloned playlists appear here for the local MVP.">
+    <PageShell eyebrow="Profile" title="Saved Lists" description="Saved and cloned playlists appear here.">
       <PlaylistGrid playlists={saved} />
     </PageShell>
   );

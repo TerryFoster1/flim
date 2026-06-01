@@ -64,7 +64,7 @@ export function Playlists({ onNavigate, playlists, onCreatePlaylist, notice, ini
       setShowCreate(false);
       onNavigate(`/playlists/${created.id}`);
     } catch {
-      setError("Could not create playlist. Check Neon setup.");
+      setError("Could not create playlist right now. Please try again shortly.");
     } finally {
       setIsSaving(false);
     }

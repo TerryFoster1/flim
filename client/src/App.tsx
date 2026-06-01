@@ -82,7 +82,7 @@ export default function App() {
       setDataStatus("ready");
     } catch {
       setDataStatus("error");
-      setDataMessage("Could not load playlists from the database. Check Neon setup.");
+      setDataMessage("Could not load playlists right now. Please try again shortly.");
     }
   }
 
