@@ -112,22 +112,37 @@ create index if not exists playlist_movies_playlist_id_idx
 create index if not exists playlist_movies_tmdb_id_idx
   on playlist_movies (tmdb_id);
 
+create index if not exists playlist_movies_media_type_idx
+  on playlist_movies (media_type);
+
+create index if not exists playlist_movies_watched_idx
+  on playlist_movies (watched);
+
 create table if not exists tmdb_search_cache (
   id uuid primary key default gen_random_uuid(),
   query text not null,
-  normalized_query text not null unique,
+  normalized_query text not null,
   media_type text not null default 'movie',
   response_json jsonb not null,
   created_at timestamptz not null default now(),
   expires_at timestamptz not null
 );
 
+alter table tmdb_search_cache
+  drop constraint if exists tmdb_search_cache_normalized_query_key;
+
+create unique index if not exists tmdb_search_cache_media_query_unique
+  on tmdb_search_cache (media_type, normalized_query);
+
+create index if not exists tmdb_search_cache_normalized_query_idx
+  on tmdb_search_cache (normalized_query);
+
 create index if not exists tmdb_search_cache_expires_at_idx
   on tmdb_search_cache (expires_at);
 
 create table if not exists tmdb_movie_cache (
   id uuid primary key default gen_random_uuid(),
-  tmdb_id integer not null unique,
+  tmdb_id integer not null,
   media_type text not null default 'movie',
   response_json jsonb not null,
   created_at timestamptz not null default now(),
@@ -145,6 +160,9 @@ alter table tmdb_movie_cache
 
 create unique index if not exists tmdb_movie_cache_media_tmdb_unique
   on tmdb_movie_cache (media_type, tmdb_id);
+
+create index if not exists tmdb_movie_cache_tmdb_id_idx
+  on tmdb_movie_cache (tmdb_id);
 
 create index if not exists tmdb_movie_cache_expires_at_idx
   on tmdb_movie_cache (expires_at);

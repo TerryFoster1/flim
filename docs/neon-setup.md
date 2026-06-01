@@ -21,8 +21,12 @@ It creates:
 
 - `playlists`
 - `playlist_movies`
+- `users`
+- `user_sessions`
+- `user_profiles`
 - `tmdb_search_cache`
 - `tmdb_movie_cache`
+- `recommendations`
 
 `playlists.public_slug` is the unique public identifier used for share URLs such as:
 
@@ -46,8 +50,9 @@ The browser calls server endpoints only:
 - `PATCH /api/playlists/:id/movies/:movieId/watched`
 - `GET /api/public/playlists/:slug`
 - `GET /api/public/playlists/:slug/movies`
-- `GET /api/movies/search?q=movie-title`
-- `GET /api/movies/:tmdbId`
+- `GET /api/movies/search?q=movie-title&type=movie|tv|both`
+- `GET /api/movies/:tmdbId?type=movie|tv`
+- `GET /api/admin/export`
 
 ## TMDb Cache Proxy
 
@@ -57,10 +62,14 @@ TMDb credentials should be configured only on the server/Vercel side:
 - `TMDB_API_KEY` fallback
 
 Do not use `VITE_TMDB_ACCESS_TOKEN`, `VITE_TMDB_API_KEY`, or any `VITE_DATABASE_URL` for production movie search.
-The API currently accepts the old Vercel `VITE_TMDB_ACCESS_TOKEN` only as a server-side compatibility fallback; replace it with `TMDB_ACCESS_TOKEN` when updating production env vars.
+The API no longer reads `VITE_TMDB_ACCESS_TOKEN` or `VITE_TMDB_API_KEY`. Replace older Vercel env vars with `TMDB_ACCESS_TOKEN` or `TMDB_API_KEY`.
 
-`GET /api/movies/search` normalizes queries by trimming and lowercasing them, returns an unexpired cache hit when available, and stores a fresh TMDb response for 7 days on a miss.
+Admin exports require:
 
-`GET /api/movies/:tmdbId` returns an unexpired movie-detail cache hit when available and stores a fresh TMDb response for 30 days on a miss.
+- `ADMIN_EXPORT_SECRET`
+
+`GET /api/movies/search` normalizes queries by trimming and lowercasing them, scopes cache entries by media type, returns an unexpired cache hit when available, and stores a fresh TMDb response for 7 days on a miss.
+
+`GET /api/movies/:tmdbId?type=` returns an unexpired movie or TV detail cache hit when available and stores a fresh TMDb response for 30 days on a miss.
 
 The movie API also creates these cache tables with `create table if not exists` before the first cache lookup so production can recover if the SQL setup has not been run yet.

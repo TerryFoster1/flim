@@ -229,6 +229,8 @@ export async function ensurePlaylistMediaColumns(sql: any) {
   await sql`drop index if exists playlist_movies_playlist_id_tmdb_id_key`;
   await sql`alter table playlist_movies drop constraint if exists playlist_movies_playlist_id_tmdb_id_key`;
   await sql`create unique index if not exists playlist_movies_playlist_media_tmdb_unique on playlist_movies (playlist_id, media_type, tmdb_id)`;
+  await sql`create index if not exists playlist_movies_media_type_idx on playlist_movies (media_type)`;
+  await sql`create index if not exists playlist_movies_watched_idx on playlist_movies (watched)`;
 }
 
 export function normalizeHandle(handle: string) {

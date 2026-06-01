@@ -17,9 +17,9 @@ async function handleSearch(request: any, response: any) {
   const requestedType = Array.isArray(request.query.type) ? request.query.type[0] : request.query.type;
   const mediaType = requestedType === "movie" || requestedType === "tv" ? requestedType : "both";
   const cleanQuery = typeof query === "string" ? query.trim() : "";
-  const normalizedQuery = `${mediaType}:${normalizeMovieQuery(cleanQuery)}`;
+  const normalizedQuery = normalizeMovieQuery(cleanQuery);
 
-  if (!normalizedQuery) return sendJson(response, 200, []);
+  if (!cleanQuery || !normalizedQuery) return sendJson(response, 200, []);
 
   const sql = db();
   await ensureTmdbCacheTables(sql);
@@ -42,7 +42,7 @@ async function handleSearch(request: any, response: any) {
   await sql`
     insert into tmdb_search_cache (query, normalized_query, media_type, response_json, expires_at)
     values (${cleanQuery}, ${normalizedQuery}, ${mediaType}, ${JSON.stringify(movies)}::jsonb, now() + (${SEARCH_CACHE_DAYS} * interval '1 day'))
-    on conflict (normalized_query)
+    on conflict (media_type, normalized_query)
     do update set
       query = excluded.query,
       response_json = excluded.response_json,
@@ -126,6 +126,7 @@ export default async function handler(request: any, response: any) {
   try {
     const path = moviePath(request);
     if (path === "search") return handleSearch(request, response);
+    const requestedType = Array.isArray(request.query.type) ? request.query.type[0] : request.query.type;
     if (path.startsWith("tv/")) {
       const tmdbId = Number(path.split("/")[1]);
       if (!Number.isFinite(tmdbId)) return sendJson(response, 400, { error: "A valid TMDb TV ID is required." });
@@ -134,6 +135,7 @@ export default async function handler(request: any, response: any) {
 
     const tmdbId = Number(path);
     if (!Number.isFinite(tmdbId)) return sendJson(response, 400, { error: "A valid TMDb movie ID is required." });
+    if (requestedType === "tv") return handleTvDetails(tmdbId, response);
     return handleMovieDetails(tmdbId, response);
   } catch (error) {
     return sendJson(response, 500, { error: error instanceof Error ? error.message : "Movie request failed." });

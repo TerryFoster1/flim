@@ -23,18 +23,14 @@ interface TmdbMovieDetails extends TmdbSearchMovie {
 function tmdbAccessToken() {
   return (
     process.env.TMDB_ACCESS_TOKEN?.trim() ||
-    process.env.MOVIE_API_ACCESS_TOKEN?.trim() ||
-    process.env.VITE_TMDB_ACCESS_TOKEN?.trim() ||
-    process.env.VITE_MOVIE_API_ACCESS_TOKEN?.trim()
+    process.env.MOVIE_API_ACCESS_TOKEN?.trim()
   );
 }
 
 function tmdbApiKey() {
   return (
     process.env.TMDB_API_KEY?.trim() ||
-    process.env.MOVIE_API_KEY?.trim() ||
-    process.env.VITE_TMDB_API_KEY?.trim() ||
-    process.env.VITE_MOVIE_API_KEY?.trim()
+    process.env.MOVIE_API_KEY?.trim()
   );
 }
 
@@ -104,13 +100,17 @@ export async function ensureTmdbCacheTables(sql: any) {
     create table if not exists tmdb_search_cache (
       id uuid primary key default gen_random_uuid(),
       query text not null,
-      normalized_query text not null unique,
+      normalized_query text not null,
+      media_type text not null default 'movie',
       response_json jsonb not null,
       created_at timestamptz not null default now(),
       expires_at timestamptz not null
     )
   `);
   await runSchemaStatement(sql`alter table tmdb_search_cache add column if not exists media_type text not null default 'movie'`);
+  await runSchemaStatement(sql`alter table tmdb_search_cache drop constraint if exists tmdb_search_cache_normalized_query_key`);
+  await runSchemaStatement(sql`create unique index if not exists tmdb_search_cache_media_query_unique on tmdb_search_cache (media_type, normalized_query)`);
+  await runSchemaStatement(sql`create index if not exists tmdb_search_cache_normalized_query_idx on tmdb_search_cache (normalized_query)`);
   await runSchemaStatement(sql`create index if not exists tmdb_search_cache_expires_at_idx on tmdb_search_cache (expires_at)`);
   await runSchemaStatement(sql`
     create table if not exists tmdb_movie_cache (
@@ -124,6 +124,7 @@ export async function ensureTmdbCacheTables(sql: any) {
   await runSchemaStatement(sql`alter table tmdb_movie_cache add column if not exists media_type text not null default 'movie'`);
   await runSchemaStatement(sql`alter table tmdb_movie_cache drop constraint if exists tmdb_movie_cache_tmdb_id_key`);
   await runSchemaStatement(sql`create unique index if not exists tmdb_movie_cache_media_tmdb_unique on tmdb_movie_cache (media_type, tmdb_id)`);
+  await runSchemaStatement(sql`create index if not exists tmdb_movie_cache_tmdb_id_idx on tmdb_movie_cache (tmdb_id)`);
   await runSchemaStatement(sql`create index if not exists tmdb_movie_cache_expires_at_idx on tmdb_movie_cache (expires_at)`);
 }
 
