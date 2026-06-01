@@ -41,7 +41,11 @@ function cleanProfileInput(body: any) {
 function getProfileSegment(request: any) {
   const value = request.query.profile;
   const raw = Array.isArray(value) ? String(value[value.length - 1] || "") : String(value || "");
-  return raw.split("/").filter(Boolean).pop() || "";
+  const querySegment = raw.split("/").filter(Boolean).pop();
+  if (querySegment) return querySegment;
+
+  const pathname = new URL(request.url || "", "https://www.flim.ca").pathname;
+  return pathname.split("/").filter(Boolean).pop() || "";
 }
 
 async function handleCurrentProfile(request: any, response: any, sql: any) {
