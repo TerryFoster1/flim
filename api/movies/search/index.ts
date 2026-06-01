@@ -1,5 +1,5 @@
-import { db, sendJson } from "../_db.js";
-import { fetchTmdbSearch, normalizeMovieQuery } from "./_tmdb.js";
+import { db, sendJson } from "../../_db.js";
+import { fetchTmdbSearch, normalizeMovieQuery } from "../../_tmdb.js";
 
 const SEARCH_CACHE_DAYS = 7;
 

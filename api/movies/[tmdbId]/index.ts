@@ -1,5 +1,5 @@
-import { db, sendJson } from "../_db.js";
-import { fetchTmdbMovieDetails } from "./_tmdb.js";
+import { db, sendJson } from "../../_db.js";
+import { fetchTmdbMovieDetails } from "../../_tmdb.js";
 
 const MOVIE_CACHE_DAYS = 30;
 
