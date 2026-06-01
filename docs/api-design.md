@@ -73,6 +73,8 @@ Client route:
 
 Notes: public share URLs use `playlists.public_slug`. QR codes encode the same public URL. Any playlist with a slug can be opened by direct link during the demo phase.
 
+The `/p/:slug` page is served by a dynamic Vercel HTML wrapper so shared links can include playlist-specific Open Graph metadata before the React app hydrates.
+
 ## Movies
 
 TMDb movie search remains client-side through the existing movie metadata service and environment variables. No movie data is stored outside playlist movie rows in this phase.

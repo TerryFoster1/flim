@@ -36,15 +36,20 @@ export function readBody(request: any): Promise<any> {
   });
 }
 
-export function createPublicSlug(name: string) {
+export function createPublicSlugBase(name: string) {
   const base = name
     .toLowerCase()
     .trim()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 48);
+  return base || "playlist";
+}
+
+export function createPublicSlug(name: string) {
+  const base = createPublicSlugBase(name);
   const suffix = Math.random().toString(36).slice(2, 8);
-  return `${base || "playlist"}-${suffix}`;
+  return `${base}-${suffix}`;
 }
 
 export function mapPlaylist(row: any, movies: any[] = []) {

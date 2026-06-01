@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { MovieGrid } from "../components/MovieGrid";
+import { SharePlaylistButton } from "../components/SharePlaylistButton";
 import { getPublicPlaylistBySlug } from "../services/apiPlaylistStore";
 import type { Playlist } from "../types";
 
@@ -51,8 +52,13 @@ export function PublicPlaylist({ publicSlug, onNavigate }: PublicPlaylistProps) 
 
   return (
     <section className="route-page public-playlist-page">
-      <div className="playlist-hero public-playlist-hero">
-        <div className="playlist-cover-xl" aria-label="Playlist cover">
+      <div className="public-playlist-hero">
+        <div className="public-hero-backdrop" aria-hidden="true">
+          {playlist.movies.slice(0, 9).map((movie, index) =>
+            movie.posterUrl ? <img alt="" key={`${movie.tmdbId}-${index}`} src={movie.posterUrl} /> : <span key={`${movie.tmdbId}-${index}`} />,
+          )}
+        </div>
+        <div className="playlist-cover-xl public-cover-art" aria-label="Playlist cover">
           {playlist.movies.slice(0, 4).map((movie) =>
             movie.posterUrl ? <img alt="" key={movie.tmdbId} src={movie.posterUrl} /> : <div key={movie.tmdbId} />,
           )}
@@ -65,18 +71,28 @@ export function PublicPlaylist({ publicSlug, onNavigate }: PublicPlaylistProps) 
             </>
           ) : null}
         </div>
-        <div className="playlist-copy">
+        <div className="playlist-copy public-playlist-copy">
           <span className="eyebrow">Shared Flim playlist</span>
           <h1>{playlist.name}</h1>
           {playlist.description ? <p>{playlist.description}</p> : null}
           <div className="meta-row">
             <span>{playlist.movies.length} movies</span>
-            <span>{playlist.visibility}</span>
+            <span>Shared via Flim</span>
           </div>
-          <button className="secondary-button" onClick={() => onNavigate("/playlists")} type="button">
-            Create your own playlist
-          </button>
+          <div className="button-row">
+            <SharePlaylistButton playlist={playlist} />
+            <button className="secondary-button" onClick={() => onNavigate("/playlists")} type="button">
+              Create your own playlist
+            </button>
+          </div>
         </div>
+      </div>
+      <div className="public-playlist-intro">
+        <div>
+          <span className="eyebrow">Poster Wall</span>
+          <h2>Browse the list</h2>
+        </div>
+        <p>Open any movie to see details, where-to-watch options, trailers, soundtracks, and media extensions.</p>
       </div>
       <MovieGrid
         movies={playlist.movies}

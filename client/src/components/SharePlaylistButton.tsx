@@ -93,7 +93,7 @@ export function SharePlaylistButton({ playlist }: SharePlaylistButtonProps) {
             </div>
             <div className="share-actions primary-share-actions">
               <button className="primary-button copy-link-button" onClick={copyLink} type="button">
-                {copied ? "✓ Link Copied" : "Copy Link"}
+                {copied ? "Link Copied" : "Copy Link"}
               </button>
               {canNativeShare ? (
                 <button className="secondary-button" onClick={nativeShare} type="button">

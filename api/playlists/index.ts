@@ -1,4 +1,16 @@
-import { createPublicSlug, db, mapPlaylist, sendJson, readBody } from "../_db.js";
+import { createPublicSlug, createPublicSlugBase, db, mapPlaylist, sendJson, readBody } from "../_db.js";
+
+async function createUniquePublicSlug(sql: any, name: string) {
+  const base = createPublicSlugBase(name);
+  const candidates = [base, ...Array.from({ length: 5 }, () => createPublicSlug(name))];
+
+  for (const candidate of candidates) {
+    const existing = await sql`select id from playlists where public_slug = ${candidate} limit 1`;
+    if (!existing[0]) return candidate;
+  }
+
+  return createPublicSlug(name);
+}
 
 export default async function handler(request: any, response: any) {
   try {
@@ -24,9 +36,10 @@ export default async function handler(request: any, response: any) {
     if (request.method === "POST") {
       const body = await readBody(request);
       const name = (body.name || "Untitled playlist").trim();
+      const publicSlug = await createUniquePublicSlug(sql, name);
       const [created] = await sql`
         insert into playlists (public_slug, name, description, visibility)
-        values (${createPublicSlug(name)}, ${name}, ${body.description || ""}, ${body.visibility || "private"})
+        values (${publicSlug}, ${name}, ${body.description || ""}, ${body.visibility || "private"})
         returning *
       `;
 
