@@ -202,8 +202,9 @@ export default async function handler(request: any, response: any) {
     const sql = db();
     await ensureUserProfilesTable(sql);
 
-    if (segment.startsWith("auth/")) {
-      return handleAuth(request, response, sql, segment.split("/").pop() || "");
+    if (segment === "auth") {
+      const action = Array.isArray(request.query.action) ? request.query.action[0] : request.query.action;
+      return handleAuth(request, response, sql, String(action || ""));
     }
 
     if (segment === "me") {

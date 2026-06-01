@@ -19,25 +19,25 @@ async function authRequest<T>(path: string, options: RequestInit = {}): Promise<
 }
 
 export function getSession() {
-  return authRequest<{ user: CurrentUser | null }>("/api/profiles/auth/session");
+  return authRequest<{ user: CurrentUser | null }>("/api/profiles/auth?action=session");
 }
 
 export function signUp(email: string, password: string) {
-  return authRequest<{ user: CurrentUser }>("/api/profiles/auth/signup", {
+  return authRequest<{ user: CurrentUser }>("/api/profiles/auth?action=signup", {
     method: "POST",
     body: JSON.stringify({ email, password }),
   });
 }
 
 export function signIn(email: string, password: string) {
-  return authRequest<{ user: CurrentUser }>("/api/profiles/auth/signin", {
+  return authRequest<{ user: CurrentUser }>("/api/profiles/auth?action=signin", {
     method: "POST",
     body: JSON.stringify({ email, password }),
   });
 }
 
 export function logout() {
-  return authRequest<{ ok: boolean }>("/api/profiles/auth/logout", {
+  return authRequest<{ ok: boolean }>("/api/profiles/auth?action=logout", {
     method: "POST",
   });
 }
