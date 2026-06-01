@@ -57,7 +57,10 @@ TMDb credentials should be configured only on the server/Vercel side:
 - `TMDB_API_KEY` fallback
 
 Do not use `VITE_TMDB_ACCESS_TOKEN`, `VITE_TMDB_API_KEY`, or any `VITE_DATABASE_URL` for production movie search.
+The API currently accepts the old Vercel `VITE_TMDB_ACCESS_TOKEN` only as a server-side compatibility fallback; replace it with `TMDB_ACCESS_TOKEN` when updating production env vars.
 
 `GET /api/movies/search` normalizes queries by trimming and lowercasing them, returns an unexpired cache hit when available, and stores a fresh TMDb response for 7 days on a miss.
 
 `GET /api/movies/:tmdbId` returns an unexpired movie-detail cache hit when available and stores a fresh TMDb response for 30 days on a miss.
+
+The movie API also creates these cache tables with `create table if not exists` before the first cache lookup so production can recover if the SQL setup has not been run yet.

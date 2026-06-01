@@ -1,5 +1,5 @@
 import { db, sendJson } from "../../_db.js";
-import { fetchTmdbSearch, normalizeMovieQuery } from "../../_tmdb.js";
+import { ensureTmdbCacheTables, fetchTmdbSearch, normalizeMovieQuery } from "../../_tmdb.js";
 
 const SEARCH_CACHE_DAYS = 7;
 
@@ -18,6 +18,7 @@ export default async function handler(request: any, response: any) {
 
   try {
     const sql = db();
+    await ensureTmdbCacheTables(sql);
     const cached = await sql`
       select response_json
       from tmdb_search_cache

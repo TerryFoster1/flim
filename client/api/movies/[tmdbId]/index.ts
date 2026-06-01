@@ -1,5 +1,5 @@
 import { db, sendJson } from "../../_db.js";
-import { fetchTmdbMovieDetails } from "../../_tmdb.js";
+import { ensureTmdbCacheTables, fetchTmdbMovieDetails } from "../../_tmdb.js";
 
 const MOVIE_CACHE_DAYS = 30;
 
@@ -15,6 +15,7 @@ export default async function handler(request: any, response: any) {
 
   try {
     const sql = db();
+    await ensureTmdbCacheTables(sql);
     const cached = await sql`
       select response_json
       from tmdb_movie_cache

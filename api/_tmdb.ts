@@ -17,11 +17,21 @@ interface TmdbMovieDetails extends TmdbSearchMovie {
 }
 
 function tmdbAccessToken() {
-  return process.env.TMDB_ACCESS_TOKEN?.trim() || process.env.MOVIE_API_ACCESS_TOKEN?.trim();
+  return (
+    process.env.TMDB_ACCESS_TOKEN?.trim() ||
+    process.env.MOVIE_API_ACCESS_TOKEN?.trim() ||
+    process.env.VITE_TMDB_ACCESS_TOKEN?.trim() ||
+    process.env.VITE_MOVIE_API_ACCESS_TOKEN?.trim()
+  );
 }
 
 function tmdbApiKey() {
-  return process.env.TMDB_API_KEY?.trim() || process.env.MOVIE_API_KEY?.trim();
+  return (
+    process.env.TMDB_API_KEY?.trim() ||
+    process.env.MOVIE_API_KEY?.trim() ||
+    process.env.VITE_TMDB_API_KEY?.trim() ||
+    process.env.VITE_MOVIE_API_KEY?.trim()
+  );
 }
 
 export function hasServerTmdbCredential() {
@@ -68,6 +78,32 @@ function mapSearchMovie(movie: TmdbSearchMovie) {
 
 export function normalizeMovieQuery(query: string) {
   return query.trim().toLowerCase();
+}
+
+export async function ensureTmdbCacheTables(sql: any) {
+  // Additive safety net for Vercel deployments where the SQL setup has not been
+  // applied yet. The canonical schema still lives in server/sql/neon-setup.sql.
+  await sql`
+    create table if not exists tmdb_search_cache (
+      id uuid primary key default gen_random_uuid(),
+      query text not null,
+      normalized_query text not null unique,
+      response_json jsonb not null,
+      created_at timestamptz not null default now(),
+      expires_at timestamptz not null
+    )
+  `;
+  await sql`create index if not exists tmdb_search_cache_expires_at_idx on tmdb_search_cache (expires_at)`;
+  await sql`
+    create table if not exists tmdb_movie_cache (
+      id uuid primary key default gen_random_uuid(),
+      tmdb_id integer not null unique,
+      response_json jsonb not null,
+      created_at timestamptz not null default now(),
+      expires_at timestamptz not null
+    )
+  `;
+  await sql`create index if not exists tmdb_movie_cache_expires_at_idx on tmdb_movie_cache (expires_at)`;
 }
 
 export async function fetchTmdbSearch(query: string) {
