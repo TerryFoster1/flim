@@ -80,10 +80,22 @@ export function normalizeMovieQuery(query: string) {
   return query.trim().toLowerCase();
 }
 
+async function runSchemaStatement(statement: Promise<unknown>) {
+  try {
+    await statement;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "";
+    if (message.includes("pg_type_typname_nsp_index") || message.includes("already exists")) {
+      return;
+    }
+    throw error;
+  }
+}
+
 export async function ensureTmdbCacheTables(sql: any) {
   // Additive safety net for Vercel deployments where the SQL setup has not been
   // applied yet. The canonical schema still lives in server/sql/neon-setup.sql.
-  await sql`
+  await runSchemaStatement(sql`
     create table if not exists tmdb_search_cache (
       id uuid primary key default gen_random_uuid(),
       query text not null,
@@ -92,9 +104,9 @@ export async function ensureTmdbCacheTables(sql: any) {
       created_at timestamptz not null default now(),
       expires_at timestamptz not null
     )
-  `;
-  await sql`create index if not exists tmdb_search_cache_expires_at_idx on tmdb_search_cache (expires_at)`;
-  await sql`
+  `);
+  await runSchemaStatement(sql`create index if not exists tmdb_search_cache_expires_at_idx on tmdb_search_cache (expires_at)`);
+  await runSchemaStatement(sql`
     create table if not exists tmdb_movie_cache (
       id uuid primary key default gen_random_uuid(),
       tmdb_id integer not null unique,
@@ -102,8 +114,8 @@ export async function ensureTmdbCacheTables(sql: any) {
       created_at timestamptz not null default now(),
       expires_at timestamptz not null
     )
-  `;
-  await sql`create index if not exists tmdb_movie_cache_expires_at_idx on tmdb_movie_cache (expires_at)`;
+  `);
+  await runSchemaStatement(sql`create index if not exists tmdb_movie_cache_expires_at_idx on tmdb_movie_cache (expires_at)`);
 }
 
 export async function fetchTmdbSearch(query: string) {
