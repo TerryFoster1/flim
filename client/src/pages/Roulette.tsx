@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { RouletteButton } from "../components/RouletteButton";
 import type { Playlist, PlaylistMovie } from "../types";
 
 interface RouletteProps {
@@ -8,88 +7,41 @@ interface RouletteProps {
 }
 
 type RouletteFilter = "all" | "watched" | "not_watched";
+type RoulettePhase = "idle" | "cycling" | "countdown" | "revealed";
 
-function FilmReelSvg() {
-  return (
-    <svg className="film-reel-svg" viewBox="0 0 240 240" aria-hidden="true">
-      <defs>
-        <linearGradient id="flimReelGradient" x1="34" y1="32" x2="210" y2="208" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#ff4f6d" />
-          <stop offset="0.48" stopColor="#ffb84d" />
-          <stop offset="1" stopColor="#ffe760" />
-        </linearGradient>
-      </defs>
-      <circle cx="120" cy="120" r="96" fill="url(#flimReelGradient)" />
-      <circle cx="120" cy="120" r="64" fill="#0a0b10" opacity="0.9" />
-      {[0, 60, 120, 180, 240, 300].map((angle) => (
-        <circle
-          cx={120 + Math.cos((angle * Math.PI) / 180) * 46}
-          cy={120 + Math.sin((angle * Math.PI) / 180) * 46}
-          fill="#08090d"
-          key={angle}
-          r="16"
-        />
-      ))}
-      <circle cx="120" cy="120" r="14" fill="#fff7df" />
-      <path d="M164 166 C190 172 207 166 224 146 L224 192 C196 212 166 208 142 188 Z" fill="#120b09" opacity="0.7" />
-    </svg>
-  );
-}
+const spinDelays = [0, 70, 125, 180, 245, 320, 410, 520, 650, 800, 970, 1160, 1380, 1640, 1940];
 
-function ProjectorSvg() {
-  return (
-    <svg className="projector-svg" viewBox="0 0 320 180" aria-hidden="true">
-      <defs>
-        <linearGradient id="flimProjectorGradient" x1="34" y1="28" x2="250" y2="164" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#ff4f6d" />
-          <stop offset="0.55" stopColor="#ffb84d" />
-          <stop offset="1" stopColor="#ffe760" />
-        </linearGradient>
-      </defs>
-      <path d="M170 74 L306 26 L306 154 L170 110 Z" fill="#ffb84d" opacity="0.16" />
-      <rect x="76" y="70" width="126" height="62" rx="22" fill="url(#flimProjectorGradient)" />
-      <circle cx="94" cy="54" r="36" fill="#181018" stroke="#ffb84d" strokeWidth="6" />
-      <circle cx="156" cy="46" r="30" fill="#181018" stroke="#ff7a45" strokeWidth="6" />
-      <circle cx="94" cy="54" r="9" fill="#ffb84d" />
-      <circle cx="156" cy="46" r="8" fill="#ffb84d" />
-      <rect x="188" y="85" width="48" height="30" rx="12" fill="#fff7df" />
-      <path d="M96 132 L70 164 M178 132 L210 164" stroke="#ffb84d" strokeWidth="8" strokeLinecap="round" />
-      <path d="M54 164 H230" stroke="#2a2021" strokeWidth="10" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function SpotlightSvg() {
-  return (
-    <svg className="spotlight-svg" viewBox="0 0 320 420" aria-hidden="true">
-      <defs>
-        <radialGradient id="spotlightGlow" cx="50%" cy="14%" r="80%">
-          <stop stopColor="#ffe760" stopOpacity="0.72" />
-          <stop offset="0.38" stopColor="#ffb84d" stopOpacity="0.2" />
-          <stop offset="1" stopColor="#ff4f6d" stopOpacity="0" />
-        </radialGradient>
-      </defs>
-      <path d="M132 0 H188 L300 420 H20 Z" fill="url(#spotlightGlow)" />
-    </svg>
-  );
+function uniqueMovies(movies: PlaylistMovie[]) {
+  const seen = new Set<number>();
+  return movies.filter((movie) => {
+    if (seen.has(movie.tmdbId)) return false;
+    seen.add(movie.tmdbId);
+    return true;
+  });
 }
 
 export function Roulette({ playlists, onNavigate }: RouletteProps) {
   const [filter, setFilter] = useState<RouletteFilter>("all");
   const [selectedPlaylistIds, setSelectedPlaylistIds] = useState<string[]>([]);
+  const [phase, setPhase] = useState<RoulettePhase>("idle");
+  const [displayMovie, setDisplayMovie] = useState<PlaylistMovie | null>(null);
   const [selectedMovie, setSelectedMovie] = useState<PlaylistMovie | null>(null);
-  const [shuffleMovie, setShuffleMovie] = useState<PlaylistMovie | null>(null);
-  const [isSpinning, setIsSpinning] = useState(false);
+  const [countdown, setCountdown] = useState<number | null>(null);
   const spinTimers = useRef<number[]>([]);
 
-  const activePlaylistIds = selectedPlaylistIds.length > 0 ? selectedPlaylistIds : playlists.map((playlist) => playlist.id);
+  const allPlaylistIds = useMemo(() => playlists.map((playlist) => playlist.id), [playlists]);
+  const activePlaylistIds = selectedPlaylistIds.length > 0 ? selectedPlaylistIds : allPlaylistIds;
   const selectedPlaylistCount = selectedPlaylistIds.length > 0 ? selectedPlaylistIds.length : playlists.length;
+
   const savedMovies = useMemo(
-    () => playlists.filter((playlist) => activePlaylistIds.includes(playlist.id)).flatMap((playlist) => playlist.movies),
+    () => uniqueMovies(playlists.filter((playlist) => activePlaylistIds.includes(playlist.id)).flatMap((playlist) => playlist.movies)),
     [playlists, activePlaylistIds],
   );
+
   const pool = savedMovies.filter((movie) => (filter === "all" ? true : movie.watchStatus === filter));
-  const previewMovies = (pool.length > 0 ? pool : savedMovies).slice(0, 12);
+  const previewMovies = (pool.length > 0 ? pool : savedMovies).slice(0, 14);
+  const canSpin = pool.length > 0 && phase !== "cycling" && phase !== "countdown";
+  const isRunning = phase === "cycling" || phase === "countdown";
 
   useEffect(() => {
     return () => {
@@ -97,105 +49,171 @@ export function Roulette({ playlists, onNavigate }: RouletteProps) {
     };
   }, []);
 
+  function clearSpinTimers() {
+    spinTimers.current.forEach(window.clearTimeout);
+    spinTimers.current = [];
+  }
+
   function togglePlaylist(playlistId: string) {
+    if (isRunning) return;
     setSelectedMovie(null);
+    setDisplayMovie(null);
+    setPhase("idle");
+    setCountdown(null);
     setSelectedPlaylistIds((current) => {
-      const playlistIds = playlists.map((playlist) => playlist.id);
-      const activeIds = current.length > 0 ? current : playlistIds;
+      const activeIds = current.length > 0 ? current : allPlaylistIds;
       const nextIds = activeIds.includes(playlistId) ? activeIds.filter((id) => id !== playlistId) : [...activeIds, playlistId];
-      return nextIds.length === 0 || nextIds.length === playlistIds.length ? [] : nextIds;
+      return nextIds.length === 0 || nextIds.length === allPlaylistIds.length ? [] : nextIds;
     });
   }
 
-  function startProjector() {
-    if (pool.length === 0 || isSpinning) {
+  function chooseAllPlaylists() {
+    if (isRunning) return;
+    setSelectedPlaylistIds([]);
+    setSelectedMovie(null);
+    setDisplayMovie(null);
+    setCountdown(null);
+    setPhase("idle");
+  }
+
+  function changeFilter(nextFilter: RouletteFilter) {
+    if (isRunning) return;
+    setFilter(nextFilter);
+    setSelectedMovie(null);
+    setDisplayMovie(null);
+    setCountdown(null);
+    setPhase("idle");
+  }
+
+  function startSpin() {
+    if (!canSpin) {
       setSelectedMovie(null);
       return;
     }
 
-    spinTimers.current.forEach(window.clearTimeout);
-    spinTimers.current = [];
-    setIsSpinning(true);
+    clearSpinTimers();
+    setPhase("cycling");
     setSelectedMovie(null);
+    setCountdown(null);
 
-    // Future audio hooks: projector start, reel acceleration, mechanical clicks, winning reveal.
+    // TODO: Layer in projector sound, film reel sound, countdown beeps, and reveal audio once audio settings exist.
     const winner = pool[Math.floor(Math.random() * pool.length)];
-    const delays = [0, 70, 130, 190, 260, 340, 440, 570, 730, 930, 1180, 1480, 1840, 2260];
 
-    delays.forEach((delay, index) => {
+    spinDelays.forEach((delay, index) => {
       const timer = window.setTimeout(() => {
-        const movie = index === delays.length - 1 ? winner : pool[Math.floor(Math.random() * pool.length)];
-        setShuffleMovie(movie);
+        const movie = index === spinDelays.length - 1 ? winner : pool[Math.floor(Math.random() * pool.length)];
+        setDisplayMovie(movie);
 
-        if (index === delays.length - 1) {
-          setSelectedMovie(winner);
-          setIsSpinning(false);
+        if (index === spinDelays.length - 1) {
+          setPhase("countdown");
+          [3, 2, 1].forEach((number, countdownIndex) => {
+            const countdownTimer = window.setTimeout(() => {
+              setCountdown(number);
+
+              if (number === 1) {
+                const revealTimer = window.setTimeout(() => {
+                  setSelectedMovie(winner);
+                  setDisplayMovie(winner);
+                  setCountdown(null);
+                  setPhase("revealed");
+                }, 520);
+                spinTimers.current.push(revealTimer);
+              }
+            }, countdownIndex * 560);
+            spinTimers.current.push(countdownTimer);
+          });
         }
       }, delay);
       spinTimers.current.push(timer);
     });
   }
 
+  const frameMovie = displayMovie || selectedMovie;
+  const marqueeLabel =
+    phase === "revealed" && selectedMovie
+      ? "Selected For Movie Night"
+      : phase === "countdown"
+        ? "Countdown"
+        : phase === "cycling"
+          ? "Film Strip Spinning"
+          : "Now Playing";
+
   return (
     <section className="route-page roulette-page">
-      <div className={`projector-roulette-stage ${isSpinning ? "is-spinning" : ""} ${selectedMovie ? "has-winner" : ""}`}>
-        <div className="projector-copy">
-          <span className="eyebrow">Flim Roulette</span>
+      <section className={`now-playing-roulette ${isRunning ? "is-running" : ""} ${phase === "revealed" ? "has-winner" : ""}`}>
+        <div className="roulette-theater-copy">
+          <span className="eyebrow">Now Playing</span>
           <h1>Movie Night Roulette</h1>
-          <p>{pool.length === 0 ? "Add movies to a playlist before starting the projector." : `${pool.length} movies loaded from ${selectedPlaylistCount} playlist${selectedPlaylistCount === 1 ? "" : "s"}.`}</p>
+          <p>Tap the reel and let Flim choose tonight's movie.</p>
         </div>
 
-        <div className="projector-machine" aria-label="Film reel roulette projector">
-          <SpotlightSvg />
-          <div className="projector-art">
-            <FilmReelSvg />
-            <ProjectorSvg />
+        <button
+          aria-label={canSpin ? "Tap to spin Movie Night Roulette" : "Add movies to a playlist to start roulette"}
+          className="now-playing-marquee reset-button"
+          disabled={!canSpin}
+          onClick={startSpin}
+          type="button"
+        >
+          <div className="marquee-sign" aria-hidden="true">
+            <span />
+            <strong>Now Playing</strong>
+            <span />
           </div>
 
-          <div className="film-strip-track" aria-hidden="true">
-            <div className="film-strip">
-              {previewMovies.length > 0
-                ? previewMovies.map((movie, index) => (
-                    <span className="film-frame" key={`${movie.tmdbId}-${index}`}>
-                      {movie.posterUrl ? <img alt="" src={movie.posterUrl} /> : <span className="film-frame-placeholder" />}
-                    </span>
-                  ))
-                : Array.from({ length: 10 }).map((_, index) => (
-                    <span className="film-frame empty" key={index}>
-                      <span className="film-frame-placeholder" />
-                    </span>
-                  ))}
-            </div>
-          </div>
+          <div className="marquee-poster-frame">
+            <div className="film-sprocket film-sprocket-left" aria-hidden="true" />
+            <div className="film-sprocket film-sprocket-right" aria-hidden="true" />
 
-          <div className="winner-screen">
-            {shuffleMovie?.posterUrl ? <img alt={`${shuffleMovie.title} poster`} src={shuffleMovie.posterUrl} /> : <div className="winner-placeholder" />}
-            <div className="winner-screen-glow" />
-          </div>
-        </div>
+            {phase === "countdown" && countdown ? (
+              <div className="vintage-countdown" aria-live="polite">
+                <span>{countdown}</span>
+              </div>
+            ) : frameMovie?.posterUrl ? (
+              <img alt={`${frameMovie.title} poster`} className="roulette-feature-poster" src={frameMovie.posterUrl} />
+            ) : (
+              <div className="flim-spin-poster">
+                <span className="flim-ticket-icon">Flim</span>
+                <strong>{pool.length > 0 ? "Tap To Spin" : "Add Movies"}</strong>
+                <small>{pool.length > 0 ? "Movie Night Roulette" : "Create a playlist and add movies to start roulette."}</small>
+              </div>
+            )}
 
-        <div className="winner-reveal-panel">
-          <span className="eyebrow">{selectedMovie ? "Selected For Movie Night" : isSpinning ? "Projector running" : "Ready"}</span>
-          <h2>{selectedMovie ? selectedMovie.title : isSpinning && shuffleMovie ? shuffleMovie.title : "Tonight's Movie"}</h2>
-          <p>{selectedMovie ? selectedMovie.releaseYear || "Year to confirm" : "Start the projector and let the film reel choose."}</p>
-          <div className="roulette-action-row">
-            <RouletteButton disabled={pool.length === 0 || isSpinning} label={isSpinning ? "Projector Running" : "Start Projector"} onSpin={startProjector} />
-            {selectedMovie ? (
-              <>
-                <button className="primary-button" onClick={() => onNavigate(`/movies/${selectedMovie.tmdbId}`)} type="button">
-                  Watch Tonight
-                </button>
-                <button className="secondary-button" onClick={() => onNavigate(`/movies/${selectedMovie.tmdbId}`)} type="button">
-                  View Details
-                </button>
-                <button className="secondary-button" type="button">
-                  Share Movie Night
-                </button>
-              </>
+            {phase === "cycling" ? (
+              <div className="marquee-film-strip" aria-hidden="true">
+                {[...previewMovies, ...previewMovies].slice(0, 18).map((movie, index) => (
+                  <span className="marquee-film-frame" key={`${movie.tmdbId}-${index}`}>
+                    {movie.posterUrl ? <img alt="" src={movie.posterUrl} /> : <span />}
+                  </span>
+                ))}
+              </div>
             ) : null}
+
+            <div className="poster-glass" aria-hidden="true" />
           </div>
+        </button>
+
+        <div className="roulette-reveal-copy" aria-live="polite">
+          <span className="eyebrow">{marqueeLabel}</span>
+          <h2>{selectedMovie ? selectedMovie.title : phase === "cycling" && displayMovie ? displayMovie.title : "Tap To Spin"}</h2>
+          <p>
+            {selectedMovie
+              ? selectedMovie.releaseYear || "Year to confirm"
+              : pool.length > 0
+                ? `${pool.length} movies loaded from ${selectedPlaylistCount} playlist${selectedPlaylistCount === 1 ? "" : "s"}.`
+                : "Create a playlist and add movies to start roulette."}
+          </p>
+          {selectedMovie ? (
+            <div className="roulette-action-row">
+              <button className="primary-button" onClick={() => onNavigate(`/movies/${selectedMovie.tmdbId}`)} type="button">
+                View Details
+              </button>
+              <button className="secondary-button" onClick={startSpin} type="button">
+                Spin Again
+              </button>
+            </div>
+          ) : null}
         </div>
-      </div>
+      </section>
 
       <section className="roulette-control-deck" aria-label="Roulette movie pool">
         <div className="roulette-lineup-heading">
@@ -205,11 +223,9 @@ export function Roulette({ playlists, onNavigate }: RouletteProps) {
               <button
                 aria-pressed={filter === filterOption}
                 className={filter === filterOption ? "is-active" : ""}
+                disabled={isRunning}
                 key={filterOption}
-                onClick={() => {
-                  setFilter(filterOption);
-                  setSelectedMovie(null);
-                }}
+                onClick={() => changeFilter(filterOption)}
                 type="button"
               >
                 {filterOption === "all" ? "All Movies" : filterOption === "not_watched" ? "Unwatched" : "Watched"}
@@ -225,7 +241,7 @@ export function Roulette({ playlists, onNavigate }: RouletteProps) {
             </div>
             <div>
               <span className="eyebrow">No posters loaded</span>
-              <h2>Build a playlist before the projector starts.</h2>
+              <h2>Create a playlist and add movies to start roulette.</h2>
               <button className="primary-button" onClick={() => onNavigate("/playlists")} type="button">
                 Create Playlist
               </button>
@@ -233,12 +249,37 @@ export function Roulette({ playlists, onNavigate }: RouletteProps) {
           </div>
         ) : (
           <div className="roulette-playlist-grid">
+            <button
+              aria-pressed={selectedPlaylistIds.length === 0}
+              className={`roulette-playlist-card roulette-all-card ${selectedPlaylistIds.length === 0 ? "is-selected" : ""}`}
+              disabled={isRunning}
+              onClick={chooseAllPlaylists}
+              type="button"
+            >
+              <div className="roulette-playlist-cover all-playlists-cover">
+                {previewMovies.slice(0, 4).map((movie) =>
+                  movie.posterUrl ? <img alt="" key={movie.tmdbId} src={movie.posterUrl} /> : <span key={movie.tmdbId} />,
+                )}
+                {previewMovies.length === 0 ? (
+                  <>
+                    <span />
+                    <span />
+                    <span />
+                    <span />
+                  </>
+                ) : null}
+              </div>
+              <span>All Playlists</span>
+              <small>{savedMovies.length} movies</small>
+            </button>
+
             {playlists.map((playlist) => {
               const selected = selectedPlaylistIds.length === 0 || selectedPlaylistIds.includes(playlist.id);
               return (
                 <button
                   aria-pressed={selected}
                   className={`roulette-playlist-card ${selected ? "is-selected" : ""}`}
+                  disabled={isRunning}
                   key={playlist.id}
                   onClick={() => togglePlaylist(playlist.id)}
                   type="button"
