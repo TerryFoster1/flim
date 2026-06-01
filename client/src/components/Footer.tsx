@@ -6,9 +6,9 @@ export function Footer() {
         <span>Create, share, and discover movie playlists.</span>
       </div>
       <nav aria-label="Footer links">
-        <a href="/settings">Privacy</a>
-        <a href="/settings">Terms</a>
-        <a href="/settings">Contact</a>
+        <a href="/privacy">Privacy</a>
+        <a href="/terms">Terms</a>
+        <a href="/contact">Contact</a>
       </nav>
     </footer>
   );

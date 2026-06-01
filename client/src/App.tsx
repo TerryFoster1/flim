@@ -20,8 +20,13 @@ import { ProfilePlaylists } from "./pages/ProfilePlaylists";
 import { ProfileSaved } from "./pages/ProfileSaved";
 import { ProfileWatched } from "./pages/ProfileWatched";
 import { PublicPlaylist } from "./pages/PublicPlaylist";
+import { PublicPlaylists } from "./pages/PublicPlaylists";
 import { Roulette } from "./pages/Roulette";
 import { Settings } from "./pages/Settings";
+import { PrivacyPolicy } from "./pages/PrivacyPolicy";
+import { TermsOfUse } from "./pages/TermsOfUse";
+import { Contact } from "./pages/Contact";
+import { createSystemPlaylists } from "./services/systemPlaylists";
 import type { AppRoute, MovieDetails, MovieSearchResult, Playlist, RouteState, WatchStatus } from "./types";
 
 function routeFromPath(pathname = window.location.pathname): RouteState {
@@ -39,6 +44,9 @@ function routeFromPath(pathname = window.location.pathname): RouteState {
   if (pathname === "/profile/watched") return { route: "/profile/watched" };
   if (pathname === "/providers") return { route: "/providers" };
   if (pathname === "/settings") return { route: "/settings" };
+  if (pathname === "/privacy") return { route: "/privacy" };
+  if (pathname === "/terms") return { route: "/terms" };
+  if (pathname === "/contact") return { route: "/contact" };
   return { route: "/" };
 }
 
@@ -147,7 +155,9 @@ export default function App() {
     setPlaylistNotice("Signed out.");
   }
 
-  const activePlaylist = useMemo(() => playlists.find((playlist) => playlist.id === routeState.playlistId), [playlists, routeState.playlistId]);
+  const systemPlaylists = useMemo(() => createSystemPlaylists(playlists), [playlists]);
+  const displayPlaylists = useMemo(() => [...systemPlaylists, ...playlists], [playlists, systemPlaylists]);
+  const detailPlaylist = useMemo(() => displayPlaylists.find((playlist) => playlist.id === routeState.playlistId), [displayPlaylists, routeState.playlistId]);
 
   const activeRoute: AppRoute = routeState.route;
   const playlistsPage = (initialView: "my" | "public" = "my") => (
@@ -156,16 +166,16 @@ export default function App() {
       notice={playlistNotice}
       onCreatePlaylist={createRemotePlaylist}
       onNavigate={navigate}
-      playlists={playlists}
+      playlists={displayPlaylists}
     />
   );
   const pages: Partial<Record<AppRoute, ReactNode>> = {
     "/": playlistsPage("my"),
     "/discover": playlistsPage("my"),
     "/playlists": playlistsPage("my"),
-    "/playlists/:id": activePlaylist ? (
+    "/playlists/:id": detailPlaylist ? (
       <PlaylistDetails
-        playlist={activePlaylist}
+        playlist={detailPlaylist}
         onNavigate={navigate}
         addToPlaylist={addToPlaylist}
         clonePlaylist={cloneRemotePlaylist}
@@ -174,7 +184,7 @@ export default function App() {
         updateWatchStatus={updateWatchStatus}
       />
     ) : (
-      <Playlists initialView="my" notice={playlistNotice || "Playlist not found."} onCreatePlaylist={createRemotePlaylist} onNavigate={navigate} playlists={playlists} />
+      <Playlists initialView="my" notice={playlistNotice || "Playlist not found."} onCreatePlaylist={createRemotePlaylist} onNavigate={navigate} playlists={displayPlaylists} />
     ),
     "/p/:slug": <PublicPlaylist publicSlug={routeState.publicSlug || ""} onNavigate={navigate} />,
     "/movies/:tmdbId": (
@@ -185,14 +195,17 @@ export default function App() {
         updateWatchStatus={updateWatchStatus}
       />
     ),
-    "/public": playlistsPage("public"),
+    "/public": <PublicPlaylists onNavigate={navigate} playlists={playlists} clonePlaylist={cloneRemotePlaylist} />,
     "/roulette": playlistsPage("my"),
-    "/profile": <Profile onNavigate={navigate} playlists={playlists} />,
-    "/profile/playlists": <ProfilePlaylists onNavigate={navigate} playlists={playlists} />,
+    "/profile": <Profile onNavigate={navigate} playlists={displayPlaylists} />,
+    "/profile/playlists": <ProfilePlaylists onNavigate={navigate} playlists={displayPlaylists} />,
     "/profile/saved": <ProfileSaved playlists={playlists} />,
     "/profile/watched": <ProfileWatched playlists={playlists} onNavigate={navigate} updateWatchStatus={updateWatchStatus} />,
     "/providers": playlistsPage("my"),
     "/settings": <Settings />,
+    "/privacy": <PrivacyPolicy />,
+    "/terms": <TermsOfUse />,
+    "/contact": <Contact />,
   };
   const page = pages[activeRoute] ?? playlistsPage("my");
 

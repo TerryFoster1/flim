@@ -76,6 +76,18 @@ create table if not exists tmdb_movie_cache (
 create index if not exists tmdb_movie_cache_expires_at_idx
   on tmdb_movie_cache (expires_at);
 
+create table if not exists recommendations (
+  id uuid primary key default gen_random_uuid(),
+  tmdb_id integer not null,
+  recommendation_reason text not null,
+  source_signal text,
+  created_at timestamptz not null default now(),
+  dismissed_at timestamptz
+);
+
+create index if not exists recommendations_tmdb_id_idx
+  on recommendations (tmdb_id);
+
 create or replace function set_updated_at()
 returns trigger
 language plpgsql

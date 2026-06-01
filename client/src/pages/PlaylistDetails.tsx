@@ -18,9 +18,10 @@ interface PlaylistDetailsProps {
 }
 
 export function PlaylistDetails({ playlist, onNavigate, addToPlaylist, clonePlaylist, deletePlaylist, removeMovie, updateWatchStatus }: PlaylistDetailsProps) {
-  const [showAddMovie, setShowAddMovie] = useState(playlist.movies.length === 0);
+  const [showAddMovie, setShowAddMovie] = useState(!playlist.isSystem && playlist.movies.length === 0);
   const [showPlaylistMenu, setShowPlaylistMenu] = useState(false);
   const [notice, setNotice] = useState("");
+  const editable = !playlist.isSystem;
 
   async function confirmDelete() {
     if (window.confirm("Delete this playlist? This cannot be undone.")) {
@@ -32,9 +33,13 @@ export function PlaylistDetails({ playlist, onNavigate, addToPlaylist, clonePlay
     <section className="route-page">
       <PlaylistHero playlist={playlist} />
       <div className="playlist-management-bar">
-        <button className="primary-button" onClick={() => setShowAddMovie((current) => !current)} type="button">
-          Add Movie
-        </button>
+        {editable ? (
+          <button className="primary-button" onClick={() => setShowAddMovie((current) => !current)} type="button">
+            Add Movie
+          </button>
+        ) : (
+          <span className="system-playlist-badge">System Playlist</span>
+        )}
         <div className="playlist-overflow">
           <button className="playlist-menu-button" aria-expanded={showPlaylistMenu} aria-label="Playlist options" onClick={() => setShowPlaylistMenu((current) => !current)} type="button">
             ...
@@ -44,12 +49,12 @@ export function PlaylistDetails({ playlist, onNavigate, addToPlaylist, clonePlay
               <button disabled type="button">Edit Playlist</button>
               <button disabled type="button">Rename Playlist</button>
               <button disabled type="button">Change Visibility</button>
-              <SharePlaylistButton playlist={playlist} />
-              <SharePlaylistButton playlist={playlist} label="QR Code" />
-              <ClonePlaylistButton onClone={() => clonePlaylist(playlist.id)} />
+              {editable ? <SharePlaylistButton playlist={playlist} /> : <button disabled type="button">Share Playlist</button>}
+              {editable ? <SharePlaylistButton playlist={playlist} label="QR Code" /> : <button disabled type="button">Generate QR Code</button>}
+              {editable ? <ClonePlaylistButton onClone={() => clonePlaylist(playlist.id)} /> : <button disabled type="button">Clone Playlist</button>}
               <button disabled type="button">Remove Movies</button>
               <button disabled type="button">Manage Playlist</button>
-              <button className="danger-menu-item" onClick={confirmDelete} type="button">Delete Playlist</button>
+              <button className="danger-menu-item" disabled={!editable} onClick={confirmDelete} type="button">Delete Playlist</button>
             </div>
           ) : null}
         </div>
@@ -81,17 +86,17 @@ export function PlaylistDetails({ playlist, onNavigate, addToPlaylist, clonePlay
       <PosterShelf
         movies={playlist.movies}
         onNavigate={onNavigate}
-        onRemove={removeMovie}
-        onWatchStatusChange={updateWatchStatus}
+        onRemove={editable ? removeMovie : undefined}
+        onWatchStatusChange={editable ? updateWatchStatus : undefined}
         playlistId={playlist.id}
         title="Movies in this playlist"
       />
       <MovieGrid
         movies={playlist.movies}
-        emptyMessage="No movies in this playlist yet. Add a movie to begin."
+        emptyMessage={playlist.isSystem ? "This system playlist will fill automatically as Flim learns more from your activity." : "No movies in this playlist yet. Add a movie to begin."}
         onNavigate={onNavigate}
-        onRemove={removeMovie}
-        onWatchStatusChange={updateWatchStatus}
+        onRemove={editable ? removeMovie : undefined}
+        onWatchStatusChange={editable ? updateWatchStatus : undefined}
         playlistId={playlist.id}
       />
     </section>

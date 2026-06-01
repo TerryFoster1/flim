@@ -42,7 +42,7 @@ export function Playlists({ onNavigate, playlists, onCreatePlaylist, notice, ini
   }, [initialView]);
 
   const visiblePlaylists = useMemo(() => {
-    const source = view === "public" ? playlists.filter((playlist) => playlist.visibility === "public") : playlists;
+    const source = view === "public" ? playlists.filter((playlist) => playlist.visibility === "public" && !playlist.isSystem) : playlists;
     const normalizedQuery = query.trim().toLowerCase();
     if (!normalizedQuery) return source;
     return source.filter((playlist) =>
@@ -116,7 +116,6 @@ export function Playlists({ onNavigate, playlists, onCreatePlaylist, notice, ini
       {error ? <p className="error-message">{error}</p> : null}
 
       <div className="playlist-shelf-heading">
-        <span className="eyebrow">{view === "public" ? "Public Playlists" : "My Playlists"}</span>
         <h2>{view === "public" ? "Shared movie lists" : "Playlists"}</h2>
         <button className="primary-button" onClick={() => setShowCreate((current) => !current)} type="button">
           {showCreate ? "Close" : "Create Playlist"}

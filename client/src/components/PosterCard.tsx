@@ -25,6 +25,7 @@ export function PosterCard({ movie, playlistId, onNavigate, onRemove, onWatchSta
           <span key={genre}>{genre}</span>
         ))}
       </div>
+      {movie.recommendationReason ? <p className="recommendation-reason">{movie.recommendationReason}</p> : null}
       <WatchStatusBadge label={watched ? "Watched" : "Not watched"} />
       <WhereToWatch compact movie={movie} />
       {playlistId ? (

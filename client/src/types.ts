@@ -12,7 +12,10 @@ export type AppRoute =
   | "/profile/saved"
   | "/profile/watched"
   | "/providers"
-  | "/settings";
+  | "/settings"
+  | "/privacy"
+  | "/terms"
+  | "/contact";
 
 export type WatchStatus = "not_watched" | "watched";
 
@@ -100,6 +103,7 @@ export interface PlaylistMovie {
   genres: string[];
   addedAt: string;
   watchStatus: WatchStatus;
+  recommendationReason?: string;
 }
 
 export type WatchProviderName =
@@ -337,4 +341,6 @@ export interface Playlist {
   updatedAt: string;
   clonedFromId?: string;
   saved?: boolean;
+  isSystem?: boolean;
+  systemType?: "most_watched" | "recommended" | "plex_library";
 }
