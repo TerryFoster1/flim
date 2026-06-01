@@ -4,7 +4,7 @@
   "rewrites": [
     {
       "source": "/api/admin/export",
-      "destination": "/api/profiles/auth?action=admin-export"
+      "destination": "/api/profiles/admin-export"
     },
     {
       "source": "/p/:slug*",
