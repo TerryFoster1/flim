@@ -84,7 +84,6 @@ export function Playlists({ onNavigate, playlists, onCreatePlaylist, notice, ini
           ))}
         </div>
         <div className="collections-hero-content">
-          <span className="eyebrow">Flim</span>
           <h1>Your Movie Playlists</h1>
           <p>Create, share, and discover movie playlists.</p>
           <div className="button-row">

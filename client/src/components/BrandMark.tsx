@@ -1,12 +1,8 @@
 export function BrandMark() {
   return (
-    <img
-      alt="Flim"
-      className="brand-logo"
-      height="54"
-      src="/brand/flim-logo.png"
-      srcSet="/brand/flim-logo.png 1x, /brand/flim-logo@2x.png 2x"
-      width="260"
-    />
+    <span className="brand-logo" aria-label="Flim">
+      <img alt="" src="/brand/flim-icon-192.png" />
+      <span>Flim</span>
+    </span>
   );
 }
