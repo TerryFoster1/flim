@@ -1,4 +1,4 @@
-import { db, getCurrentUser, mapPlaylistMovie, readBody, sendJson } from "../../_db.js";
+import { db, getCurrentUser, mapPlaylistMovie, readBody, sendJson } from "../../../_db.js";
 
 async function ensurePlaylistMovieSchema(sql: any) {
   await sql`alter table playlist_movies add column if not exists media_type text not null default 'movie'`;
@@ -106,6 +106,6 @@ export default async function handler(request: any, response: any) {
       method: request.method,
       message: error instanceof Error ? error.message : "Unknown playlist movie error",
     });
-    return sendJson(response, 500, { error: "Could not save this title to your playlist. Please try again." });
+    return sendJson(response, 500, { error: "Unable to add movie. Please try again." });
   }
 }
