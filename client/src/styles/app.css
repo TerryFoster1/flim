@@ -3302,6 +3302,26 @@ textarea { min-height: 42px; resize: vertical; }
     max-width: 350px;
     margin-bottom: 18px;
   }
+  .landing-page {
+    gap: 0;
+  }
+  .landing-hero {
+    min-height: min(700px, calc(100svh - 82px));
+    align-items: start;
+    padding-top: clamp(178px, 34svh, 250px);
+    padding-bottom: 118px;
+  }
+  .landing-hero .collections-hero-content {
+    align-self: start;
+    padding: 0 16px;
+  }
+  .landing-hero .collections-hero-content h1 {
+    margin-bottom: 12px;
+  }
+  .landing-hero .collections-hero-content p {
+    max-width: 360px;
+    margin-bottom: 0;
+  }
   .collections-command-bar {
     top: 82px;
     grid-template-columns: 1fr;
