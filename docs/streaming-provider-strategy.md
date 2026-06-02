@@ -4,6 +4,21 @@ Flim helps users decide what to watch, then opens the best available place to wa
 
 This strategy does not claim universal provider availability or smart TV launching. Availability must be verified by an approved data source or a connected personal library before it is displayed as fact.
 
+## V1 Provider Source Recommendation
+
+Use Watchmode first for V1.
+
+Reasoning:
+
+- It supports movie and TV availability lookups by TMDb-style title IDs.
+- It supports region filtering, including Canada.
+- It returns provider source names, access type, and web URLs that can be normalized into Flim's cache.
+- It is practical for an early product integration because the API contract is straightforward and can be gated behind `WATCHMODE_API_KEY`.
+
+JustWatch Partner API remains a strong long-term option because JustWatch has broad catalog coverage, but access is partner-oriented and may require commercial approval before it can be used in production.
+
+Streaming Availability API can also be evaluated later if pricing, coverage, and terms fit better, but Flim should keep the same normalized cache contract either way.
+
 ## Provider Support
 
 Planned examples:
@@ -20,6 +35,31 @@ Planned examples:
 - Tubi.
 - YouTube Movies.
 - Other regional providers.
+
+## Current V1 Behavior
+
+Where To Watch now uses a cache-first Flim API endpoint:
+
+```text
+GET /api/providers/availability?mediaType=movie|tv&tmdbId=123&title=Title&region=CA
+```
+
+Flow:
+
+1. Check `title_availability` for unexpired region-specific data.
+2. Return cached links if available.
+3. If no cache exists and `WATCHMODE_API_KEY` is configured, call Watchmode.
+4. Normalize provider names, access type, deep link, search fallback URL, and region.
+5. Store results in Neon.
+6. Future requests use the Neon cache first.
+
+If no provider source is configured, or no provider availability is known, the app shows:
+
+```text
+Streaming availability coming soon.
+```
+
+It does not show fake provider logos or claim availability without confirmed data.
 
 ## Provider Fields
 
@@ -51,6 +91,18 @@ Provider search behavior:
 - Never show "available on" language unless availability is known.
 - Never scrape provider pages.
 - Never claim universal smart TV launch behavior.
+
+## V1 Cache Tables
+
+- `watch_providers`
+- `title_availability`
+- `provider_links`
+- `provider_region`
+- `provider_availability_cache`
+
+Availability rows are keyed by media type, TMDb ID, region, provider, and access type. Canada (`CA`) is the default region for V1.
+
+`provider_availability_cache` records that Flim checked a title and region even when no provider links were returned, so empty results do not repeatedly call the provider source.
 
 ## Contract Placeholders
 

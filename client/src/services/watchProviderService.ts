@@ -1,4 +1,4 @@
-import type { MovieAvailability, WatchProvider, WatchProviderLink } from "../types";
+import type { MediaType, MovieAvailability, ProviderAccessType, WatchProvider, WatchProviderLink } from "../types";
 
 export const watchProviders: WatchProvider[] = [
   {
@@ -99,5 +99,80 @@ export function getProviderLinksForMovie(movie: { title: string; tmdbId: number 
       ? "Streaming availability coming soon."
       : "Set your streaming region for more accurate availability.",
     regionPrompt: hasRegion ? undefined : "Set your streaming region for more accurate availability.",
+  };
+}
+
+interface ProviderAvailabilityApiLink {
+  providerId: string;
+  providerName: string;
+  region: string;
+  availabilityType: ProviderAccessType;
+  deepLink?: string;
+  searchFallbackUrl?: string;
+  logoUrl?: string;
+  source: string;
+}
+
+interface ProviderAvailabilityApiResponse {
+  mediaType: MediaType;
+  tmdbId: number;
+  region: string;
+  availabilityKnown: boolean;
+  sourceConfigured: boolean;
+  links: ProviderAvailabilityApiLink[];
+  notes: string;
+}
+
+function regionOrDefault(region?: string) {
+  return region?.trim().toUpperCase() || "CA";
+}
+
+function providerFromApi(link: ProviderAvailabilityApiLink): WatchProvider {
+  const knownProvider = watchProviders.find((provider) => provider.id === link.providerId);
+  return knownProvider || {
+    id: link.providerId,
+    name: link.providerName as WatchProvider["name"],
+    icon: link.providerName,
+    notes: "Confirmed provider availability.",
+  };
+}
+
+export async function getProviderAvailabilityForTitle(movie: { title: string; tmdbId: number; mediaType?: MediaType }, streamingRegion?: string): Promise<MovieAvailability> {
+  const region = regionOrDefault(streamingRegion);
+  const params = new URLSearchParams({
+    mediaType: movie.mediaType || "movie",
+    tmdbId: String(movie.tmdbId),
+    title: movie.title,
+    region,
+  });
+
+  const response = await fetch(`/api/providers/availability?${params.toString()}`, {
+    headers: {
+      Accept: "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error("Provider availability request failed.");
+  }
+
+  const payload = (await response.json()) as ProviderAvailabilityApiResponse;
+  const links: WatchProviderLink[] = payload.links.map((link) => ({
+    provider: providerFromApi(link),
+    linkType: link.deepLink ? "exact" : "search_fallback",
+    url: link.deepLink || link.searchFallbackUrl,
+    deepLinkUrl: link.deepLink,
+    accessType: link.availabilityType,
+    label: link.deepLink ? `Open ${link.providerName}` : `Search ${link.providerName}`,
+    availabilityKnown: true,
+  }));
+
+  return {
+    tmdbId: payload.tmdbId,
+    mediaType: payload.mediaType,
+    title: movie.title,
+    availabilityKnown: payload.availabilityKnown,
+    links,
+    notes: payload.notes || "Streaming availability coming soon.",
   };
 }

@@ -1,22 +1,24 @@
 import { useEffect, useMemo, useState } from "react";
 import { ProviderLogo } from "./ProviderLogo";
 import { getCurrentProfile } from "../services/profileService";
-import { getProviderLinksForMovie } from "../services/watchProviderService";
-import type { UserProfile } from "../types";
+import { getProviderAvailabilityForTitle } from "../services/watchProviderService";
+import type { MediaType, MovieAvailability, UserProfile } from "../types";
 
 interface WhereToWatchProps {
   movie: {
     tmdbId: number;
     title: string;
+    mediaType?: MediaType;
   };
   compact?: boolean;
 }
 
 export function WhereToWatch({ compact = false, movie }: WhereToWatchProps) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const streamingRegion = profile?.streamingRegion || profile?.countryCode || "";
-  const availability = useMemo(() => getProviderLinksForMovie(movie, streamingRegion), [movie, streamingRegion]);
-  const confirmedLinks = availability.links.filter((link) => link.availabilityKnown && link.url);
+  const [availability, setAvailability] = useState<MovieAvailability | null>(null);
+  const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
+  const streamingRegion = profile?.streamingRegion || profile?.countryCode || "CA";
+  const confirmedLinks = useMemo(() => (availability?.links || []).filter((link) => link.availabilityKnown && link.url), [availability]);
 
   useEffect(() => {
     let isActive = true;
@@ -33,22 +35,46 @@ export function WhereToWatch({ compact = false, movie }: WhereToWatchProps) {
     };
   }, []);
 
+  useEffect(() => {
+    let isActive = true;
+    setStatus("loading");
+    getProviderAvailabilityForTitle(movie, streamingRegion)
+      .then((result) => {
+        if (!isActive) return;
+        setAvailability(result);
+        setStatus("ready");
+      })
+      .catch(() => {
+        if (!isActive) return;
+        setAvailability({
+          tmdbId: movie.tmdbId,
+          mediaType: movie.mediaType || "movie",
+          title: movie.title,
+          availabilityKnown: false,
+          links: [],
+          notes: "Streaming availability coming soon.",
+        });
+        setStatus("error");
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [movie, streamingRegion]);
+
   return (
     <section className={compact ? "watch-providers compact" : "watch-providers"} id={`where-to-watch-${movie.tmdbId}`} aria-label={`Where to watch ${movie.title}`}>
       <div className="watch-provider-heading">
         <div>
           <span className="eyebrow">Where to Watch</span>
-          {!compact ? <h2>Open on provider</h2> : null}
+          {!compact ? <h2>Available On</h2> : null}
         </div>
-        <span className="provider-status">{streamingRegion ? `Region: ${streamingRegion}` : "Region not set"}</span>
+        <span className="provider-status">Region: {streamingRegion}</span>
       </div>
 
-      <p className="helper-text">{availability.notes}</p>
-      {!streamingRegion ? (
-        <a className="region-settings-link" href="/settings">
-          Set streaming region
-        </a>
-      ) : null}
+      <p className="helper-text">
+        {status === "loading" ? "Checking streaming availability..." : availability?.notes || "Streaming availability coming soon."}
+      </p>
 
       {confirmedLinks.length > 0 ? (
         <div className="provider-button-grid">
@@ -61,7 +87,7 @@ export function WhereToWatch({ compact = false, movie }: WhereToWatchProps) {
             target="_blank"
           >
             <ProviderLogo provider={link.provider} />
-            <small>Open provider</small>
+            <small>{link.linkType === "exact" ? "Open provider" : "Search provider"}</small>
           </a>
           ))}
         </div>

@@ -26,6 +26,11 @@ It creates:
 - `user_profiles`
 - `tmdb_search_cache`
 - `tmdb_movie_cache`
+- `watch_providers`
+- `title_availability`
+- `provider_links`
+- `provider_region`
+- `provider_availability_cache`
 - `recommendations`
 - `director_profile`
 
@@ -55,6 +60,7 @@ The browser calls server endpoints only:
 - `GET /api/public/playlists/:slug/movies`
 - `GET /api/movies/search?q=movie-title&type=movie|tv|both`
 - `GET /api/movies/:tmdbId?type=movie|tv`
+- `GET /api/providers/availability?mediaType=movie|tv&tmdbId=&title=&region=CA`
 - `GET /api/admin/export`
 
 ## TMDb Cache Proxy
@@ -85,3 +91,19 @@ These variables are checked only by `/api/director-admin/*`. Do not create `VITE
 The movie API also creates these cache tables with `create table if not exists` before the first cache lookup so production can recover if the SQL setup has not been run yet.
 
 See `movie-cache-strategy.md` for the broader cache-first rule: TMDb is a discovery/import source, Flim should check Neon first, normalize imported records, store metadata and remote poster URLs, and prefer Flim database records for future title, person, genre, decade, similar-media, and playlist-addition flows.
+
+## Where To Watch Cache
+
+Where To Watch uses Flim's server API and Neon cache first. The browser does not call streaming availability providers directly.
+
+Optional server-side provider source:
+
+- `WATCHMODE_API_KEY`
+
+If `WATCHMODE_API_KEY` is missing, `/api/providers/availability` returns an honest unknown state and the UI shows:
+
+```text
+Streaming availability coming soon.
+```
+
+When configured, the endpoint checks `title_availability`, calls Watchmode only on cache miss, stores normalized provider names, region, access type, deep links, search fallback URLs, and source metadata, then returns cached data on future requests. Empty confirmed checks are stored in `provider_availability_cache` so Flim does not repeatedly call Watchmode for the same unavailable title. Canada (`CA`) is the default V1 region.

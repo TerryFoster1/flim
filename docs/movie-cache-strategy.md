@@ -100,6 +100,19 @@ Not allowed:
 - Downloading or storing copyrighted poster files locally.
 - Presenting provider availability as confirmed unless the data source confirms it for the user's region.
 
+## Where To Watch V1 Cache
+
+Provider availability follows the same cache-first rule:
+
+1. Check `title_availability` in Neon by `media_type + tmdb_id + region`.
+2. Return cached provider links if available and unexpired.
+3. Call a configured provider source only on cache miss.
+4. Normalize provider name, provider ID, region, access type, deep link, and search fallback URL.
+5. Store normalized rows in Neon.
+6. Future movie and TV detail pages prefer Flim's cached provider rows.
+
+The current recommended V1 source is Watchmode behind server-only `WATCHMODE_API_KEY`. If no provider source is configured, Flim must not show provider logos as available and should display `Streaming availability coming soon.`
+
 ## Discovery Expansion
 
 Future discovery endpoints should use cache-first logic before calling TMDb:

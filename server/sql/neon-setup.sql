@@ -219,6 +219,90 @@ create index if not exists tmdb_movie_cache_tmdb_id_idx
 create index if not exists tmdb_movie_cache_expires_at_idx
   on tmdb_movie_cache (expires_at);
 
+create table if not exists watch_providers (
+  id text primary key,
+  name text not null,
+  logo_url text,
+  icon_key text,
+  source text not null default 'manual',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create unique index if not exists watch_providers_name_unique
+  on watch_providers (name);
+
+create table if not exists title_availability (
+  id uuid primary key default gen_random_uuid(),
+  media_type text not null
+    check (media_type in ('movie', 'tv')),
+  tmdb_id integer not null,
+  region text not null default 'CA',
+  provider_id text not null,
+  provider_name text not null,
+  logo_url text,
+  availability_type text not null default 'unknown',
+  deep_link text,
+  search_fallback_url text,
+  source text not null default 'manual',
+  cached_at timestamptz not null default now(),
+  expires_at timestamptz not null
+);
+
+create unique index if not exists title_availability_media_provider_region_unique
+  on title_availability (media_type, tmdb_id, region, provider_id, availability_type);
+
+create index if not exists title_availability_media_tmdb_region_idx
+  on title_availability (media_type, tmdb_id, region);
+
+create index if not exists title_availability_expires_at_idx
+  on title_availability (expires_at);
+
+create table if not exists provider_links (
+  id uuid primary key default gen_random_uuid(),
+  media_type text not null
+    check (media_type in ('movie', 'tv')),
+  tmdb_id integer not null,
+  provider_id text not null,
+  region text not null default 'CA',
+  deep_link text,
+  search_fallback_url text,
+  link_type text not null default 'search_fallback',
+  created_at timestamptz not null default now()
+);
+
+create index if not exists provider_links_media_tmdb_region_idx
+  on provider_links (media_type, tmdb_id, region);
+
+create table if not exists provider_region (
+  id uuid primary key default gen_random_uuid(),
+  provider_id text not null,
+  region text not null default 'CA',
+  supported boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create unique index if not exists provider_region_provider_region_unique
+  on provider_region (provider_id, region);
+
+create table if not exists provider_availability_cache (
+  id uuid primary key default gen_random_uuid(),
+  media_type text not null
+    check (media_type in ('movie', 'tv')),
+  tmdb_id integer not null,
+  region text not null default 'CA',
+  source text not null,
+  cached_at timestamptz not null default now(),
+  expires_at timestamptz not null
+);
+
+create unique index if not exists provider_availability_cache_media_region_unique
+  on provider_availability_cache (media_type, tmdb_id, region, source);
+
+create index if not exists provider_availability_cache_expires_at_idx
+  on provider_availability_cache (expires_at);
+
 create table if not exists recommendations (
   id uuid primary key default gen_random_uuid(),
   tmdb_id integer not null,
