@@ -38,9 +38,16 @@ export default async function handler(request: any, response: any) {
         from playlists p
         left join user_profiles up on up.user_id = p.owner_user_id::text
         left join playlist_movies pm on pm.playlist_id = p.id
-        where p.visibility = 'public'
+        where (
+          p.visibility = 'public'
           or p.owner_user_id is null
           or (${user?.id || null}::uuid is not null and p.owner_user_id = ${user?.id || null}::uuid)
+        )
+          and not (
+            lower(p.name) like '%codex vercel curl add test%'
+            or lower(p.name) like '%temporary production verification%'
+            or lower(p.name) like '%production verification playlist%'
+          )
         group by p.id, up.handle, up.display_name
         order by p.updated_at desc
       `;

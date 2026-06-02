@@ -15,6 +15,15 @@ interface PlaylistsProps {
 
 type PlaylistView = "my" | "public";
 
+function isTemporaryVerificationPlaylist(playlist: Playlist) {
+  const name = playlist.name.toLowerCase();
+  return (
+    name.includes("codex vercel curl add test") ||
+    name.includes("temporary production verification") ||
+    name.includes("production verification playlist")
+  );
+}
+
 export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlaylist, currentUser, notice, initialView = "my" }: PlaylistsProps) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -31,7 +40,7 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
   );
   const sourcePlaylists = useMemo(() => {
     return view === "public"
-      ? playlists.filter((playlist) => playlist.visibility === "public" && !playlist.isSystem && playlist.creatorHandle !== "the-director" && playlist.creatorDisplayName !== "The Director")
+      ? playlists.filter((playlist) => playlist.visibility === "public" && !playlist.isSystem && playlist.creatorHandle !== "the-director" && playlist.creatorDisplayName !== "The Director" && !isTemporaryVerificationPlaylist(playlist))
       : playlists.filter((playlist) => playlist.isOwner);
   }, [playlists, view]);
 
@@ -86,10 +95,6 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
     }
   }
 
-  function browsePublicPlaylists() {
-    onNavigate("/public");
-  }
-
   function requestCreatePlaylist() {
     if (!currentUser) {
       onNavigate("/signup");
@@ -110,24 +115,17 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
         </div>
         <label className="collection-search playlist-title-search">
           <span>Search playlists</span>
-          <input onChange={(event) => setQuery(event.target.value)} placeholder={view === "public" ? "Search public playlists..." : "Search playlists..."} type="search" value={query} />
+          <input onChange={(event) => setQuery(event.target.value)} placeholder={view === "public" ? "Search to explore public playlists..." : "Search my playlists..."} type="search" value={query} />
         </label>
       </div>
 
-      <div className="playlist-page-actions">
-        {view === "my" ? (
+      {view === "my" ? (
+        <div className="playlist-page-actions">
           <button className="primary-button" onClick={requestCreatePlaylist} type="button">
             {!currentUser ? "Create Account" : showCreate ? "Close" : "Create Playlist"}
           </button>
-        ) : (
-          <button className="secondary-button" onClick={() => onNavigate("/playlists")} type="button">
-            My Playlists
-          </button>
-        )}
-        <button className="secondary-button" onClick={view === "public" ? () => onNavigate("/playlists") : browsePublicPlaylists} type="button">
-          {view === "public" ? "Browse My Playlists" : "Browse Public Playlists"}
-        </button>
-      </div>
+        </div>
+      ) : null}
 
       {showCreate ? (
         <form className="collection-create-panel" onSubmit={submit}>
