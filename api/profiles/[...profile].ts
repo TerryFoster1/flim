@@ -18,6 +18,7 @@ import {
   validateProfileHandle,
   verifyPassword,
 } from "../_db.js";
+import { directorHandle, ensureDirectorSeed } from "../_director.js";
 
 const defaultProfile = {
   displayName: "",
@@ -285,6 +286,12 @@ export default async function handler(request: any, response: any) {
     const handle = normalizeHandle(segment);
     const validationMessage = validateProfileHandle(handle);
     if (validationMessage) return sendJson(response, 404, { error: "Profile not found." });
+
+    if (handle === directorHandle) {
+      await ensureDirectorSeed(sql).catch((error) => {
+        console.error("director_seed_failed", error instanceof Error ? error.message : "Director seed failed");
+      });
+    }
 
     const rows = await sql`
       select

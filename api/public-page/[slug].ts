@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { db, mapPlaylist } from "../_db.js";
+import { ensureDirectorSeed } from "../_director.js";
 
 function escapeHtml(value: string) {
   return value
@@ -75,6 +76,10 @@ export default async function handler(request: any, response: any) {
 
   try {
     const sql = db();
+    await ensureDirectorSeed(sql).catch((error) => {
+      console.error("director_seed_failed", error instanceof Error ? error.message : "Director seed failed");
+    });
+
     const rows = await sql`
       select
         p.*,

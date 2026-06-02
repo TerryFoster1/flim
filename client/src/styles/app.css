@@ -430,6 +430,92 @@ h3 { margin-bottom: 8px; }
   grid-row: 1 / span 2;
   align-self: end;
 }
+.director-cut-section {
+  position: relative;
+  margin: clamp(24px, 5vw, 56px) 0 clamp(18px, 4vw, 34px);
+  padding: clamp(16px, 3vw, 28px);
+  overflow: hidden;
+  border: 1px solid rgba(255,184,77,.22);
+  border-radius: 26px;
+  background:
+    radial-gradient(circle at 12% 0%, rgba(255,184,77,.18), transparent 32%),
+    radial-gradient(circle at 92% 20%, rgba(255,79,109,.16), transparent 32%),
+    linear-gradient(135deg, rgba(9,9,13,.96), rgba(25,11,15,.94));
+  box-shadow: 0 28px 80px rgba(0,0,0,.35);
+}
+.director-cut-section::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(255,184,77,.08) 1px, transparent 1px) 0 0 / 36px 100%,
+    linear-gradient(rgba(255,255,255,.045) 1px, transparent 1px) 0 0 / 100% 42px;
+  mask-image: linear-gradient(90deg, rgba(0,0,0,.15), rgba(0,0,0,.8), rgba(0,0,0,.15));
+}
+.director-cut-header {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+.director-cut-header h2 {
+  margin: 0;
+  font-size: clamp(2rem, 5vw, 4rem);
+  line-height: .95;
+}
+.director-profile-card {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+  max-width: 760px;
+  margin-bottom: 20px;
+  padding: 14px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 20px;
+  background: rgba(255,255,255,.055);
+}
+.director-profile-mark {
+  width: 58px;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #ff4f6d, #ffb84d);
+  box-shadow: 0 12px 28px rgba(255,130,70,.26);
+}
+.director-profile-mark span {
+  width: 32px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 8px dotted rgba(20,7,10,.86);
+  background: rgba(255,255,255,.75);
+}
+.director-profile-card h3 {
+  margin: 0 0 2px;
+  font-size: 1.15rem;
+}
+.director-profile-card p,
+.director-profile-card blockquote {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.45;
+}
+.director-profile-card blockquote {
+  margin-top: 4px;
+  color: #fff4df;
+  font-weight: 800;
+}
+.director-cut-section .playlist-grid {
+  position: relative;
+  z-index: 1;
+}
 .collection-search input {
   min-height: 50px;
   font-size: 1rem;
@@ -2990,6 +3076,21 @@ textarea { min-height: 42px; resize: vertical; }
     grid-column: 1;
     grid-row: auto;
     justify-self: start;
+  }
+  .director-cut-section {
+    margin-left: -4px;
+    margin-right: -4px;
+    border-radius: 22px;
+  }
+  .director-cut-header {
+    display: grid;
+    align-items: start;
+  }
+  .director-cut-header .secondary-button {
+    justify-self: start;
+  }
+  .director-profile-card {
+    grid-template-columns: 1fr;
   }
   .collection-toggle {
     display: grid;

@@ -1,4 +1,5 @@
 import { createPublicSlug, createPublicSlugBase, db, ensureUserProfilesTable, getCurrentUser, mapPlaylist, sendJson, readBody } from "../_db.js";
+import { ensureDirectorSeed } from "../_director.js";
 
 async function createUniquePublicSlug(sql: any, name: string) {
   const base = createPublicSlugBase(name);
@@ -20,6 +21,10 @@ export default async function handler(request: any, response: any) {
     const user = await getCurrentUser(sql, request);
 
     if (request.method === "GET") {
+      await ensureDirectorSeed(sql).catch((error) => {
+        console.error("director_seed_failed", error instanceof Error ? error.message : "Director seed failed");
+      });
+
       const playlists = await sql`
         select
           p.*,

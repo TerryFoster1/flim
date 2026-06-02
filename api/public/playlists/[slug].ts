@@ -1,4 +1,5 @@
 import { db, ensureUserProfilesTable, mapPlaylist, sendJson } from "../../_db.js";
+import { ensureDirectorSeed } from "../../_director.js";
 
 export default async function handler(request: any, response: any) {
   const slug = request.query.slug as string;
@@ -8,6 +9,10 @@ export default async function handler(request: any, response: any) {
     await ensureUserProfilesTable(sql);
 
     if (request.method === "GET") {
+      await ensureDirectorSeed(sql).catch((error) => {
+        console.error("director_seed_failed", error instanceof Error ? error.message : "Director seed failed");
+      });
+
       // Demo-stage public sharing: any playlist with a public slug can be opened
       // by direct link. Auth, ownership, and access controls arrive later.
       const rows = await sql`

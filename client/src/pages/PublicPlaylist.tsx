@@ -66,6 +66,8 @@ export function PublicPlaylist({ publicSlug, onNavigate }: PublicPlaylistProps) 
     window.dispatchEvent(new CustomEvent("flim:open-roulette", { detail: { playlists: [playlist] } }));
   }
 
+  const isDirectorPlaylist = playlist.creatorHandle === "the-director" || playlist.creatorDisplayName === "The Director";
+
   return (
     <section className="route-page public-playlist-page">
       <div className="public-playlist-hero">
@@ -93,7 +95,11 @@ export function PublicPlaylist({ publicSlug, onNavigate }: PublicPlaylistProps) 
           {playlist.description ? <p>{playlist.description}</p> : null}
           <div className="meta-row">
             <span>{playlist.movies.length} movies</span>
-            {playlist.creatorHandle ? (
+            {isDirectorPlaylist ? (
+              <button className="creator-handle-link" onClick={() => onNavigate("/@the-director")} type="button">
+                Curated by The Director
+              </button>
+            ) : playlist.creatorHandle ? (
               <button className="creator-handle-link" onClick={() => onNavigate(`/@${playlist.creatorHandle}`)} type="button">
                 by @{playlist.creatorHandle}
               </button>

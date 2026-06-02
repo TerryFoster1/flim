@@ -24,6 +24,10 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
   const [query, setQuery] = useState("");
   const [view, setView] = useState<PlaylistView>(initialView);
   const [showCreate, setShowCreate] = useState(false);
+  const directorPlaylists = useMemo(
+    () => playlists.filter((playlist) => playlist.creatorHandle === "the-director" || playlist.creatorDisplayName === "The Director"),
+    [playlists],
+  );
   const sourcePlaylists = useMemo(() => {
     return view === "public"
       ? playlists.filter((playlist) => playlist.visibility === "public" && !playlist.isSystem)
@@ -113,6 +117,31 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
           </div>
         </div>
       </section>
+
+      {directorPlaylists.length > 0 ? (
+        <section className="director-cut-section" aria-label="Director's Cut">
+          <div className="director-cut-header">
+            <div>
+              <span className="eyebrow">Director's Cut</span>
+              <h2>Curated by The Director</h2>
+            </div>
+            <button className="secondary-button" onClick={() => onNavigate("/@the-director")} type="button">
+              Meet The Director
+            </button>
+          </div>
+          <div className="director-profile-card">
+            <div className="director-profile-mark" aria-hidden="true">
+              <span />
+            </div>
+            <div>
+              <h3>The Director</h3>
+              <p>Curating movie collections for Flim.</p>
+              <blockquote>"Some movies deserve a second watch."</blockquote>
+            </div>
+          </div>
+          <PlaylistGrid onNavigate={onNavigate} playlists={directorPlaylists.slice(0, 6)} />
+        </section>
+      ) : null}
 
       <div className="collections-command-bar">
         {showPlaylistSearch ? (

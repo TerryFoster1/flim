@@ -8,6 +8,7 @@ interface PlaylistCardProps {
 
 export function PlaylistCard({ playlist, large, onNavigate }: PlaylistCardProps) {
   const coverMovies = playlist.movies.slice(0, 4);
+  const isDirectorPlaylist = playlist.creatorHandle === "the-director" || playlist.creatorDisplayName === "The Director";
 
   return (
     <article className={`playlist-card ${large ? "large" : ""}`}>
@@ -31,7 +32,7 @@ export function PlaylistCard({ playlist, large, onNavigate }: PlaylistCardProps)
         <div className="card-meta">
           <span>{playlist.visibility}</span>
           <span>{playlist.movies.length} titles</span>
-          {playlist.creatorHandle ? <span>by @{playlist.creatorHandle}</span> : null}
+          {isDirectorPlaylist ? <span>Curated by The Director</span> : playlist.creatorHandle ? <span>by @{playlist.creatorHandle}</span> : null}
         </div>
       </button>
     </article>
