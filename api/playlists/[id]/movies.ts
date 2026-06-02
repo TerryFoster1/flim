@@ -1,4 +1,4 @@
-import { db, getCurrentUser, mapPlaylistMovie, readBody, sendJson } from "../../../_db.js";
+import { db, getCurrentUser, mapPlaylistMovie, readBody, sendJson } from "../../_db.js";
 
 async function ensurePlaylistMovieSchema(sql: any) {
   await sql`alter table playlist_movies add column if not exists media_type text not null default 'movie'`;
