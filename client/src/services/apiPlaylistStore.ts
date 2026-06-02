@@ -73,6 +73,13 @@ export function toggleWatchedStatus(playlistId: string, tmdbId: number, watchSta
   });
 }
 
+export function reorderPlaylistMovies(playlistId: string, movieIds: string[]) {
+  return apiRequest<{ ok: boolean }>(`/api/playlists/${playlistId}/movies/reorder`, {
+    method: "PATCH",
+    body: JSON.stringify({ movieIds }),
+  });
+}
+
 export async function clonePlaylist(playlistId: string) {
   const source = await getPlaylistById(playlistId);
   const clone = await createPlaylist({

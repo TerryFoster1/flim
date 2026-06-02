@@ -13,8 +13,6 @@ export default async function handler(request: any, response: any) {
         console.error("director_seed_failed", error instanceof Error ? error.message : "Director seed failed");
       });
 
-      // Demo-stage public sharing: any playlist with a public slug can be opened
-      // by direct link. Auth, ownership, and access controls arrive later.
       const rows = await sql`
         select
           p.*,
@@ -29,7 +27,7 @@ export default async function handler(request: any, response: any) {
         left join user_profiles up on up.user_id = p.owner_user_id::text
         left join playlist_movies pm on pm.playlist_id = p.id
         where p.public_slug = ${slug}
-          and (p.visibility = 'public' or p.owner_user_id is null)
+          and p.visibility = 'public'
         group by p.id, up.handle, up.display_name
       `;
 

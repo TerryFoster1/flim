@@ -15,10 +15,11 @@ interface PlaylistDetailsProps {
   deletePlaylist: (playlistId: string) => void | Promise<void>;
   updatePlaylist: (playlistId: string, input: Pick<Playlist, "name" | "description" | "visibility">) => Playlist | void | Promise<Playlist | void>;
   removeMovie: (playlistId: string, tmdbId: number, mediaType?: string) => void | Promise<void>;
+  reorderMovies: (playlistId: string, movieIds: string[]) => void | Promise<void>;
   updateWatchStatus: (playlistId: string, tmdbId: number, watchStatus: WatchStatus, mediaType?: string) => void | Promise<void>;
 }
 
-export function PlaylistDetails({ playlist, onNavigate, addToPlaylist, clonePlaylist, deletePlaylist, updatePlaylist, removeMovie, updateWatchStatus }: PlaylistDetailsProps) {
+export function PlaylistDetails({ playlist, onNavigate, addToPlaylist, clonePlaylist, deletePlaylist, updatePlaylist, removeMovie, reorderMovies, updateWatchStatus }: PlaylistDetailsProps) {
   const [showAddMovie, setShowAddMovie] = useState(!playlist.isSystem && Boolean(playlist.isOwner) && playlist.movies.length === 0);
   const [showPlaylistMenu, setShowPlaylistMenu] = useState(false);
   const [showEditPlaylist, setShowEditPlaylist] = useState(false);
@@ -31,7 +32,7 @@ export function PlaylistDetails({ playlist, onNavigate, addToPlaylist, clonePlay
   const [notice, setNotice] = useState("");
   const [noticeType, setNoticeType] = useState<"success" | "error">("success");
   const editable = !playlist.isSystem && Boolean(playlist.isOwner);
-  const shareable = playlist.visibility === "public" || !playlist.ownerUserId || editable;
+  const shareable = playlist.visibility === "public";
 
   function openEditPlaylist() {
     setEditForm({
@@ -67,6 +68,30 @@ export function PlaylistDetails({ playlist, onNavigate, addToPlaylist, clonePlay
   async function confirmDelete() {
     if (window.confirm("Delete this playlist? This cannot be undone.")) {
       await deletePlaylist(playlist.id);
+    }
+  }
+
+  async function moveMovie(index: number, direction: -1 | 1) {
+    const targetIndex = index + direction;
+    if (targetIndex < 0 || targetIndex >= playlist.movies.length) return;
+
+    const nextMovies = [...playlist.movies];
+    [nextMovies[index], nextMovies[targetIndex]] = [nextMovies[targetIndex], nextMovies[index]];
+    const movieIds = nextMovies.map((movie) => movie.id || "").filter(Boolean);
+
+    if (movieIds.length !== nextMovies.length) {
+      setNoticeType("error");
+      setNotice("Unable to reorder movies. Please try again.");
+      return;
+    }
+
+    try {
+      await reorderMovies(playlist.id, movieIds);
+      setNoticeType("success");
+      setNotice("Playlist order saved.");
+    } catch {
+      setNoticeType("error");
+      setNotice("Unable to reorder movies. Please try again.");
     }
   }
 
@@ -180,6 +205,7 @@ export function PlaylistDetails({ playlist, onNavigate, addToPlaylist, clonePlay
         emptyMessage={playlist.isSystem ? "This system playlist will fill automatically as Flim learns more from your activity." : "No titles in this playlist yet."}
         onNavigate={onNavigate}
         onRemove={editable ? removeMovie : undefined}
+        onReorder={editable ? moveMovie : undefined}
         onWatchStatusChange={editable ? updateWatchStatus : undefined}
         playlistId={playlist.id}
       />

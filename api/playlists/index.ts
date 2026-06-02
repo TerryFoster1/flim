@@ -40,7 +40,6 @@ export default async function handler(request: any, response: any) {
         left join playlist_movies pm on pm.playlist_id = p.id
         where (
           p.visibility = 'public'
-          or p.owner_user_id is null
           or (${user?.id || null}::uuid is not null and p.owner_user_id = ${user?.id || null}::uuid)
         )
           and not (

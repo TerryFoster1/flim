@@ -4,14 +4,18 @@ import { WatchStatusBadge } from "./WatchStatusBadge";
 
 interface PosterCardProps {
   movie: PlaylistMovie;
+  index?: number;
+  itemCount?: number;
   playlistId?: string;
   onNavigate?: (path: string) => void;
   onRemove?: (playlistId: string, tmdbId: number, mediaType?: string) => void | Promise<void>;
+  onReorder?: (index: number, direction: -1 | 1) => void | Promise<void>;
   onWatchStatusChange?: (playlistId: string, tmdbId: number, watchStatus: WatchStatus, mediaType?: string) => void | Promise<void>;
 }
 
-export function PosterCard({ movie, playlistId, onNavigate, onRemove, onWatchStatusChange }: PosterCardProps) {
+export function PosterCard({ movie, index, itemCount, playlistId, onNavigate, onRemove, onReorder, onWatchStatusChange }: PosterCardProps) {
   const watched = movie.watchStatus === "watched";
+  const canReorder = typeof index === "number" && typeof itemCount === "number" && Boolean(onReorder);
 
   return (
     <article className="poster-card" tabIndex={0} aria-label={`${movie.title} poster card`}>
@@ -33,6 +37,16 @@ export function PosterCard({ movie, playlistId, onNavigate, onRemove, onWatchSta
       <WhereToWatch compact movie={movie} />
       {playlistId ? (
         <div className="card-actions">
+          {canReorder ? (
+            <div className="reorder-actions" aria-label={`Reorder ${movie.title}`}>
+              <button disabled={index === 0} onClick={() => onReorder?.(index, -1)} type="button">
+                Up
+              </button>
+              <button disabled={index === itemCount - 1} onClick={() => onReorder?.(index, 1)} type="button">
+                Down
+              </button>
+            </div>
+          ) : null}
           <label className="watched-toggle">
             <input
               checked={watched}

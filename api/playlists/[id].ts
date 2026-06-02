@@ -26,7 +26,6 @@ export default async function handler(request: any, response: any) {
         where p.id = ${playlistId}
           and (
             p.visibility = 'public'
-            or p.owner_user_id is null
             or (${user?.id || null}::uuid is not null and p.owner_user_id = ${user?.id || null}::uuid)
           )
         group by p.id, up.handle, up.display_name
