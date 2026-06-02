@@ -27,8 +27,9 @@ It creates:
 - `tmdb_search_cache`
 - `tmdb_movie_cache`
 - `recommendations`
+- `director_profile`
 
-Identity columns include `playlists.owner_user_id`, `users.updated_at`, and `user_profiles.province_state`. Existing unowned playlists remain legacy/demo content and are not deleted by the migration.
+Identity columns include `playlists.owner_user_id`, `users.updated_at`, and `user_profiles.province_state`. Playlist item ordering uses `playlist_movies.sort_order` for editorial curation. Existing unowned playlists remain legacy/demo content and are not deleted by the migration.
 
 `playlists.public_slug` is the unique public identifier used for share URLs such as:
 
@@ -69,6 +70,13 @@ The API temporarily reads the existing Vercel `VITE_TMDB_ACCESS_TOKEN` only insi
 Admin exports require:
 
 - `ADMIN_EXPORT_SECRET`
+
+The private Director editorial admin requires server-side credentials:
+
+- `DIRECTOR_ADMIN_USERNAME`
+- `DIRECTOR_ADMIN_PASSWORD`
+
+These variables are checked only by `/api/director-admin/*`. Do not create `VITE_` versions and do not expose them to the browser.
 
 `GET /api/movies/search` normalizes queries by trimming and lowercasing them, scopes cache entries by media type, returns an unexpired cache hit when available, and stores a fresh TMDb response for 7 days on a miss.
 

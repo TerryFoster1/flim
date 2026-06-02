@@ -28,6 +28,8 @@ import { PrivacyPolicy } from "./pages/PrivacyPolicy";
 import { TermsOfUse } from "./pages/TermsOfUse";
 import { Contact } from "./pages/Contact";
 import { AuthPage } from "./pages/AuthPage";
+import { DirectorAdmin } from "./pages/DirectorAdmin";
+import { LandingPage } from "./pages/LandingPage";
 import { createSystemPlaylists } from "./services/systemPlaylists";
 import type { AppRoute, CurrentUser, MovieDetails, MovieSearchResult, Playlist, RouteState, WatchStatus } from "./types";
 
@@ -39,7 +41,7 @@ function routeFromPath(pathname = window.location.pathname): RouteState {
   if (pathname.startsWith("/p/")) return { route: "/p/:slug", publicSlug: pathname.split("/")[2] };
   if (pathname.startsWith("/movies/")) return { route: "/movies/:tmdbId", tmdbId: pathname.split("/")[2] };
   if (pathname.startsWith("/tv/")) return { route: "/tv/:tmdbId", tmdbId: pathname.split("/")[2] };
-  if (pathname === "/public") return { route: "/public" };
+  if (pathname === "/public" || pathname === "/public-playlists") return { route: "/public" };
   if (pathname === "/roulette") return { route: "/" };
   if (pathname === "/profile") return { route: "/profile" };
   if (pathname === "/profile/playlists") return { route: "/profile/playlists" };
@@ -53,6 +55,11 @@ function routeFromPath(pathname = window.location.pathname): RouteState {
   if (pathname === "/privacy") return { route: "/privacy" };
   if (pathname === "/terms") return { route: "/terms" };
   if (pathname === "/contact") return { route: "/contact" };
+  if (pathname === "/director-admin" || pathname === "/director-admin/dashboard") return { route: "/director-admin/dashboard" };
+  if (pathname === "/director-admin/login") return { route: "/director-admin/login" };
+  if (pathname === "/director-admin/playlists") return { route: "/director-admin/playlists" };
+  if (pathname.startsWith("/director-admin/playlists/")) return { route: "/director-admin/playlists/:id", adminPlaylistId: pathname.split("/")[3] };
+  if (pathname === "/director-admin/analytics") return { route: "/director-admin/analytics" };
   return { route: "/" };
 }
 
@@ -166,6 +173,18 @@ export default function App() {
   const detailPlaylist = useMemo(() => displayPlaylists.find((playlist) => playlist.id === routeState.playlistId), [displayPlaylists, routeState.playlistId]);
 
   const activeRoute: AppRoute = routeState.route;
+  const isDirectorAdminRoute = activeRoute.startsWith("/director-admin");
+  const openNowPlaying = () => {
+    setRoulettePlaylists(null);
+    setIsRouletteOpen(true);
+  };
+  const requestLandingCreate = () => {
+    if (!currentUser) {
+      navigate("/signup");
+      return;
+    }
+    navigate("/playlists");
+  };
   const playlistsPage = (initialView: "my" | "public" = "my") => (
     <Playlists
       initialView={initialView}
@@ -178,7 +197,7 @@ export default function App() {
     />
   );
   const pages: Partial<Record<AppRoute, ReactNode>> = {
-    "/": playlistsPage("my"),
+    "/": <LandingPage currentUser={currentUser} onCreatePlaylist={requestLandingCreate} onNavigate={navigate} onOpenNowPlaying={openNowPlaying} />,
     "/discover": playlistsPage("my"),
     "/playlists": playlistsPage("my"),
     "/playlists/:id": detailPlaylist ? (
@@ -227,6 +246,11 @@ export default function App() {
     "/privacy": <PrivacyPolicy />,
     "/terms": <TermsOfUse />,
     "/contact": <Contact />,
+    "/director-admin/login": <DirectorAdmin page="login" onNavigate={navigate} />,
+    "/director-admin/dashboard": <DirectorAdmin page="dashboard" onNavigate={navigate} />,
+    "/director-admin/playlists": <DirectorAdmin page="playlists" onNavigate={navigate} />,
+    "/director-admin/playlists/:id": <DirectorAdmin page="playlist" playlistId={routeState.adminPlaylistId} onNavigate={navigate} />,
+    "/director-admin/analytics": <DirectorAdmin page="analytics" onNavigate={navigate} />,
   };
   const page = pages[activeRoute] ?? playlistsPage("my");
 
@@ -242,9 +266,9 @@ export default function App() {
         <Footer />
       </div>
       <InstallFlimPrompt />
-      <div className="playlist-bottom-control" role="navigation" aria-label="Playlist controls">
+      {!isDirectorAdminRoute ? <div className="playlist-bottom-control" role="navigation" aria-label="Playlist controls">
         <button
-          className={`bottom-control-tab ${activeRoute === "/" || activeRoute === "/playlists" || activeRoute === "/playlists/:id" || activeRoute === "/discover" ? "is-active" : ""}`}
+          className={`bottom-control-tab ${activeRoute === "/playlists" || activeRoute === "/playlists/:id" || activeRoute === "/discover" ? "is-active" : ""}`}
           onClick={() => navigate("/playlists")}
           type="button"
         >
@@ -253,10 +277,7 @@ export default function App() {
         <button
           className="bottom-now-playing-button"
           aria-label="Open Movie Roulette"
-          onClick={() => {
-            setRoulettePlaylists(null);
-            setIsRouletteOpen(true);
-          }}
+          onClick={openNowPlaying}
           type="button"
         >
           <NowPlayingTicketIcon />
@@ -268,7 +289,7 @@ export default function App() {
         >
           Public Playlists
         </button>
-      </div>
+      </div> : null}
       {isRouletteOpen ? (
         <div className="roulette-modal-backdrop" role="dialog" aria-modal="true" aria-label="Now Playing">
           <button

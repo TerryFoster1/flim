@@ -32,7 +32,7 @@ export default async function handler(request: any, response: any) {
           up.display_name as creator_display_name,
           case when ${user?.id || null}::uuid is not null and p.owner_user_id = ${user?.id || null}::uuid then true else false end as is_owner,
           coalesce(
-            json_agg(pm order by pm.added_at desc) filter (where pm.id is not null),
+            json_agg(pm order by coalesce(pm.sort_order, 2147483647), pm.added_at desc) filter (where pm.id is not null),
             '[]'
           ) as movies
         from playlists p

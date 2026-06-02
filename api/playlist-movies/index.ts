@@ -18,7 +18,7 @@ export default async function handler(request: any, response: any) {
             p.visibility = 'public'
             or (${user?.id || null}::uuid is not null and p.owner_user_id = ${user?.id || null}::uuid)
           )
-        order by added_at desc
+        order by coalesce(pm.sort_order, 2147483647), pm.added_at desc
       `;
 
       return sendJson(response, 200, movies.map(mapPlaylistMovie));

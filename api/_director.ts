@@ -220,6 +220,22 @@ export async function ensureDirectorSeed(sql: any) {
 async function seedDirector(sql: any) {
   await ensureUserProfilesTable(sql);
   await ensurePlaylistMediaColumns(sql);
+  await sql`
+    create table if not exists director_profile (
+      id text primary key default 'the-director',
+      display_name text not null default 'The Director',
+      bio text not null default 'Curating movie collections for Flim.',
+      tagline text not null default 'Official Flim editorial curator.',
+      quote text not null default 'Some movies deserve a second watch.',
+      updated_at timestamptz not null default now()
+    )
+  `;
+  await sql`
+    insert into director_profile (id)
+    values ('the-director')
+    on conflict (id) do nothing
+  `;
+  const [directorProfile] = await sql`select * from director_profile where id = 'the-director' limit 1`;
 
   await sql`
     insert into users (id, email, password_hash)
@@ -229,7 +245,7 @@ async function seedDirector(sql: any) {
 
   await sql`
     insert into user_profiles (user_id, display_name, handle, bio)
-    values (${directorUserId}, ${directorDisplayName}, ${directorHandle}, 'Curating movie collections for Flim.')
+    values (${directorUserId}, ${directorProfile?.display_name || directorDisplayName}, ${directorHandle}, ${directorProfile?.bio || "Curating movie collections for Flim."})
     on conflict (user_id) do update set
       display_name = excluded.display_name,
       handle = excluded.handle,
@@ -242,15 +258,15 @@ async function seedDirector(sql: any) {
       insert into playlists (public_slug, name, description, visibility, owner_user_id)
       values (${playlistSeed.slug}, ${playlistSeed.name}, ${playlistSeed.description}, 'public', ${directorUserId})
       on conflict (public_slug) do update set
-        name = case when playlists.owner_user_id = ${directorUserId} then excluded.name else playlists.name end,
-        description = case when playlists.owner_user_id = ${directorUserId} then excluded.description else playlists.description end,
-        visibility = case when playlists.owner_user_id = ${directorUserId} then 'public' else playlists.visibility end,
         owner_user_id = case when playlists.owner_user_id is null or playlists.owner_user_id = ${directorUserId} then ${directorUserId} else playlists.owner_user_id end,
-        updated_at = case when playlists.owner_user_id = ${directorUserId} then now() else playlists.updated_at end
+        updated_at = playlists.updated_at
       returning id, owner_user_id
     `;
 
     if (!playlist || playlist.owner_user_id !== directorUserId) continue;
+
+    const [movieCount] = await sql`select count(*)::int as count from playlist_movies where playlist_id = ${playlist.id}`;
+    if ((movieCount?.count || 0) > 0) continue;
 
     for (const movieSeed of playlistSeed.movies) {
       try {

@@ -81,6 +81,7 @@ create table if not exists playlist_movies (
   runtime_minutes integer,
   season_count integer,
   episode_count integer,
+  sort_order integer,
   watched boolean not null default false,
   added_at timestamptz not null default now(),
   unique (playlist_id, media_type, tmdb_id)
@@ -90,7 +91,8 @@ alter table playlist_movies
   add column if not exists media_type text not null default 'movie',
   add column if not exists runtime_minutes integer,
   add column if not exists season_count integer,
-  add column if not exists episode_count integer;
+  add column if not exists episode_count integer,
+  add column if not exists sort_order integer;
 
 do $$
 declare
@@ -151,6 +153,22 @@ create index if not exists playlist_movies_media_type_idx
 
 create index if not exists playlist_movies_watched_idx
   on playlist_movies (watched);
+
+create index if not exists playlist_movies_sort_order_idx
+  on playlist_movies (playlist_id, sort_order);
+
+create table if not exists director_profile (
+  id text primary key default 'the-director',
+  display_name text not null default 'The Director',
+  bio text not null default 'Curating movie collections for Flim.',
+  tagline text not null default 'Official Flim editorial curator.',
+  quote text not null default 'Some movies deserve a second watch.',
+  updated_at timestamptz not null default now()
+);
+
+insert into director_profile (id)
+values ('the-director')
+on conflict (id) do nothing;
 
 create table if not exists tmdb_search_cache (
   id uuid primary key default gen_random_uuid(),

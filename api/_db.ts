@@ -84,6 +84,7 @@ export function mapPlaylistMovie(row: any) {
     runtimeMinutes: row.runtime_minutes || undefined,
     seasonCount: row.season_count || undefined,
     episodeCount: row.episode_count || undefined,
+    sortOrder: typeof row.sort_order === "number" ? row.sort_order : undefined,
     addedAt: row.added_at,
     watchStatus: row.watched ? "watched" : "not_watched",
   };
@@ -232,6 +233,7 @@ export async function ensurePlaylistMediaColumns(sql: any) {
   await sql`alter table playlist_movies add column if not exists runtime_minutes integer`;
   await sql`alter table playlist_movies add column if not exists season_count integer`;
   await sql`alter table playlist_movies add column if not exists episode_count integer`;
+  await sql`alter table playlist_movies add column if not exists sort_order integer`;
   await sql`
     do $$
     declare
@@ -269,6 +271,7 @@ export async function ensurePlaylistMediaColumns(sql: any) {
   await sql`create unique index if not exists playlist_movies_playlist_media_tmdb_unique on playlist_movies (playlist_id, media_type, tmdb_id)`;
   await sql`create index if not exists playlist_movies_media_type_idx on playlist_movies (media_type)`;
   await sql`create index if not exists playlist_movies_watched_idx on playlist_movies (watched)`;
+  await sql`create index if not exists playlist_movies_sort_order_idx on playlist_movies (playlist_id, sort_order)`;
 }
 
 export function normalizeHandle(handle: string) {

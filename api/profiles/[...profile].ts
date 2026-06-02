@@ -323,7 +323,7 @@ export default async function handler(request: any, response: any) {
       left join playlists p on p.owner_user_id::text = up.user_id and p.visibility = 'public'
       left join playlist_movies pm on pm.playlist_id = p.id
       left join lateral (
-        select jsonb_agg(to_jsonb(pm2) order by pm2.added_at desc) as movies
+        select jsonb_agg(to_jsonb(pm2) order by coalesce(pm2.sort_order, 2147483647), pm2.added_at desc) as movies
         from playlist_movies pm2
         where pm2.playlist_id = p.id
       ) movie_rows on true

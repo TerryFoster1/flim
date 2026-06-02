@@ -5,6 +5,7 @@ async function ensurePlaylistMovieSchema(sql: any) {
   await sql`alter table playlist_movies add column if not exists runtime_minutes integer`;
   await sql`alter table playlist_movies add column if not exists season_count integer`;
   await sql`alter table playlist_movies add column if not exists episode_count integer`;
+  await sql`alter table playlist_movies add column if not exists sort_order integer`;
   await sql`
     do $$
     declare
@@ -42,6 +43,7 @@ async function ensurePlaylistMovieSchema(sql: any) {
   await sql`create unique index if not exists playlist_movies_playlist_media_tmdb_unique on playlist_movies (playlist_id, media_type, tmdb_id)`;
   await sql`create index if not exists playlist_movies_media_type_idx on playlist_movies (media_type)`;
   await sql`create index if not exists playlist_movies_watched_idx on playlist_movies (watched)`;
+  await sql`create index if not exists playlist_movies_sort_order_idx on playlist_movies (playlist_id, sort_order)`;
 }
 
 export default async function handler(request: any, response: any) {
@@ -62,7 +64,7 @@ export default async function handler(request: any, response: any) {
             p.visibility = 'public'
             or (${user?.id || null}::uuid is not null and p.owner_user_id = ${user?.id || null}::uuid)
           )
-        order by added_at desc
+        order by coalesce(pm.sort_order, 2147483647), pm.added_at desc
       `;
 
       return sendJson(response, 200, movies.map(mapPlaylistMovie));

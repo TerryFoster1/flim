@@ -19,7 +19,12 @@ export type AppRoute =
   | "/@handle"
   | "/privacy"
   | "/terms"
-  | "/contact";
+  | "/contact"
+  | "/director-admin/login"
+  | "/director-admin/dashboard"
+  | "/director-admin/playlists"
+  | "/director-admin/playlists/:id"
+  | "/director-admin/analytics";
 
 export type WatchStatus = "not_watched" | "watched";
 
@@ -31,6 +36,7 @@ export interface RouteState {
   publicSlug?: string;
   tmdbId?: string;
   handle?: string;
+  adminPlaylistId?: string;
 }
 
 export interface RouteAwareProps {
@@ -122,6 +128,7 @@ export interface PlaylistMovie {
   runtimeMinutes?: number;
   seasonCount?: number;
   episodeCount?: number;
+  sortOrder?: number;
   addedAt: string;
   watchStatus: WatchStatus;
   recommendationReason?: string;
