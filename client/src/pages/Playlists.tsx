@@ -24,6 +24,11 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
   const [query, setQuery] = useState("");
   const [view, setView] = useState<PlaylistView>(initialView);
   const [showCreate, setShowCreate] = useState(false);
+  const sourcePlaylists = useMemo(() => {
+    return view === "public"
+      ? playlists.filter((playlist) => playlist.visibility === "public" && !playlist.isSystem)
+      : playlists.filter((playlist) => playlist.isSystem || playlist.isOwner);
+  }, [playlists, view]);
 
   useEffect(() => {
     setView(initialView);
@@ -36,17 +41,16 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
   }, [currentUser]);
 
   const visiblePlaylists = useMemo(() => {
-    const source = view === "public"
-      ? playlists.filter((playlist) => playlist.visibility === "public" && !playlist.isSystem)
-      : playlists.filter((playlist) => playlist.isSystem || playlist.isOwner);
     const normalizedQuery = query.trim().toLowerCase();
-    if (!normalizedQuery) return source;
-    return source.filter((playlist) =>
+    if (!normalizedQuery) return sourcePlaylists;
+    return sourcePlaylists.filter((playlist) =>
       [playlist.name, playlist.description, playlist.visibility, ...playlist.movies.map((movie) => movie.title)].some((value) =>
         value.toLowerCase().includes(normalizedQuery),
       ),
     );
-  }, [playlists, query, view]);
+  }, [query, sourcePlaylists]);
+
+  const showPlaylistSearch = query.trim().length > 0 || sourcePlaylists.length > 8;
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -111,10 +115,12 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
       </section>
 
       <div className="collections-command-bar">
-        <label className="collection-search">
-          <span>Playlists</span>
-          <input onChange={(event) => setQuery(event.target.value)} placeholder="Search playlists..." type="search" value={query} />
-        </label>
+        {showPlaylistSearch ? (
+          <label className="collection-search">
+            <span>Search playlists</span>
+            <input onChange={(event) => setQuery(event.target.value)} placeholder="Search playlists..." type="search" value={query} />
+          </label>
+        ) : null}
         <div className="collection-toggle" aria-label="Playlist type">
           <button className={view === "my" ? "is-active" : ""} onClick={() => setView("my")} type="button">
             My Playlists
@@ -130,9 +136,6 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
 
       <div className="playlist-shelf-heading">
         <h2>{view === "public" ? "Shared movie lists" : "Playlists"}</h2>
-        <button className="primary-button" onClick={requestCreatePlaylist} type="button">
-          {!currentUser ? "Create Account" : showCreate ? "Close" : "Create Playlist"}
-        </button>
       </div>
 
       {showCreate ? (

@@ -18,8 +18,10 @@ export function MovieSearchPanel({ playlists, addToPlaylist, onNavigate, variant
   const [mediaType, setMediaType] = useState<MediaSearchMode>("both");
   const [status, setStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
   const [message, setMessage] = useState("");
+  const [addingId, setAddingId] = useState<number | null>(null);
   const hasKey = hasTmdbApiKey();
   const targetPlaylists = fixedPlaylistId ? playlists.filter((playlist) => playlist.id === fixedPlaylistId) : playlists;
+  const fixedPlaylist = fixedPlaylistId ? targetPlaylists[0] : null;
 
   async function submitSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -41,6 +43,21 @@ export function MovieSearchPanel({ playlists, addToPlaylist, onNavigate, variant
     }
   }
 
+  async function addToCurrentPlaylist(movie: MovieSearchResult) {
+    if (!fixedPlaylistId) return;
+
+    setAddingId(movie.tmdbId);
+    setMessage("");
+    try {
+      await addToPlaylist(fixedPlaylistId, movie);
+      onMovieAdded?.();
+    } catch {
+      setMessage("Unable to add movie. Please try again.");
+    } finally {
+      setAddingId(null);
+    }
+  }
+
   return (
     <section className={variant === "hero" ? "search-panel hero-search-panel" : "search-panel"} id="movie-search">
       <form className="search-form" onSubmit={submitSearch}>
@@ -59,9 +76,11 @@ export function MovieSearchPanel({ playlists, addToPlaylist, onNavigate, variant
           <button className="primary-button search-submit-button" disabled={!query.trim() || status === "loading"} type="submit">
             {status === "loading" ? "Searching..." : "Search"}
           </button>
-          <button className="secondary-button" onClick={() => onNavigate("/playlists")} type="button">
-            Create Playlist
-          </button>
+          {!fixedPlaylistId ? (
+            <button className="secondary-button" onClick={() => onNavigate("/playlists")} type="button">
+              Create Playlist
+            </button>
+          ) : null}
         </div>
       </form>
       {!hasKey ? <p className="empty-state">Movie search is not configured yet.</p> : null}
@@ -70,7 +89,7 @@ export function MovieSearchPanel({ playlists, addToPlaylist, onNavigate, variant
         <div className="search-results-experience" aria-live="polite">
           <div className="search-results-heading">
             <span className="eyebrow">Results</span>
-            <h2>Choose a title, then add it to a playlist</h2>
+            <h2>{fixedPlaylistId ? "Choose a title to add it to this playlist" : "Choose a title, then add it to a playlist"}</h2>
           </div>
           <div className="search-results">
             {results.map((movie) => (
@@ -89,7 +108,25 @@ export function MovieSearchPanel({ playlists, addToPlaylist, onNavigate, variant
                     <button className="secondary-button" onClick={() => onNavigate(movie.mediaType === "tv" ? `/tv/${movie.tmdbId}` : `/movies/${movie.tmdbId}`)} type="button">
                       Details
                     </button>
-                    {targetPlaylists.length === 0 ? (
+                    {fixedPlaylistId ? (
+                      <button
+                        className="primary-button"
+                        disabled={
+                          addingId === movie.tmdbId ||
+                          fixedPlaylist?.movies.some((item) => item.tmdbId === movie.tmdbId && (item.mediaType || "movie") === (movie.mediaType || "movie"))
+                        }
+                        onClick={() => addToCurrentPlaylist(movie)}
+                        type="button"
+                      >
+                        {fixedPlaylist?.movies.some((item) => item.tmdbId === movie.tmdbId && (item.mediaType || "movie") === (movie.mediaType || "movie"))
+                          ? "Added"
+                          : addingId === movie.tmdbId
+                            ? "Adding..."
+                            : movie.mediaType === "tv"
+                              ? "Add TV Show"
+                              : "Add Movie"}
+                      </button>
+                    ) : targetPlaylists.length === 0 ? (
                       <button className="primary-button" onClick={() => onNavigate("/playlists")} type="button">
                         Create Playlist
                       </button>

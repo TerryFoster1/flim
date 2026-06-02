@@ -41,8 +41,8 @@ export function AddToPlaylistControl({ movie, playlists, addToPlaylist }: AddToP
       await Promise.all(playlistIds.map((playlistId) => addToPlaylist(playlistId, movie)));
       setMessage(`Added to ${playlistIds.length} playlist${playlistIds.length === 1 ? "" : "s"}.`);
       setSelectedIds([]);
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Could not add this title. Please try again.");
+    } catch {
+      setMessage("Unable to add movie. Please try again.");
     } finally {
       setIsSaving(false);
     }

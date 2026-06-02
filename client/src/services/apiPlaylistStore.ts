@@ -26,7 +26,7 @@ export function getPlaylistById(playlistId: string) {
 }
 
 export function getMoviesForPlaylist(playlistId: string) {
-  return apiRequest<PlaylistMovie[]>(`/api/playlist-movies?id=${playlistId}`);
+  return apiRequest<PlaylistMovie[]>(`/api/playlists/${playlistId}/movies`);
 }
 
 export function getPublicPlaylistBySlug(publicSlug: string) {
@@ -47,7 +47,7 @@ export function deletePlaylist(playlistId: string) {
 }
 
 export function addMovieToPlaylist(playlistId: string, movie: MovieSearchResult | MovieDetails) {
-  return apiRequest<PlaylistMovie>(`/api/playlist-movies?id=${playlistId}`, {
+  return apiRequest<PlaylistMovie>(`/api/playlists/${playlistId}/movies`, {
     method: "POST",
     body: JSON.stringify(movie),
   });
