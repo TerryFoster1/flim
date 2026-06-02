@@ -7,21 +7,35 @@ async function ensurePlaylistMovieSchema(sql: any) {
   await sql`alter table playlist_movies add column if not exists episode_count integer`;
   await sql`
     do $$
+    declare
+      legacy_constraint record;
     begin
-      if exists (
-        select 1
+      for legacy_constraint in
+        select conname
         from pg_constraint
         where conname = 'playlist_movies_playlist_id_tmdb_id_key'
           and conrelid = 'playlist_movies'::regclass
-      ) then
-        alter table playlist_movies drop constraint playlist_movies_playlist_id_tmdb_id_key;
-      elsif exists (
+        union
+        select conname
+        from pg_constraint
+        where conrelid = 'playlist_movies'::regclass
+          and conindid = (
+            select oid
+            from pg_class
+            where relname = 'playlist_movies_playlist_id_tmdb_id_key'
+            limit 1
+          )
+      loop
+        execute format('alter table playlist_movies drop constraint %I', legacy_constraint.conname);
+      end loop;
+
+      if exists (
         select 1
         from pg_class
         where relname = 'playlist_movies_playlist_id_tmdb_id_key'
           and relkind = 'i'
       ) then
-        drop index playlist_movies_playlist_id_tmdb_id_key;
+        drop index if exists playlist_movies_playlist_id_tmdb_id_key;
       end if;
     end $$;
   `;
