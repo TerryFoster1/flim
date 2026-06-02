@@ -1,4 +1,4 @@
-import { db, getCurrentUser, readBody, sendJson } from "../../../../_db.js";
+import { db, getCurrentUser, readBody, sendJson } from "../../../_db.js";
 
 export default async function handler(request: any, response: any) {
   const playlistId = request.query.id as string;
