@@ -2325,27 +2325,17 @@ textarea { min-height: 42px; resize: vertical; }
   font-weight: 850;
   white-space: nowrap;
 }
-.plex-provider-card {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 14px;
-  align-items: center;
-  border: 1px solid rgba(255,184,77,.22);
-  border-radius: 16px;
-  padding: 14px;
-  background: linear-gradient(135deg, rgba(255,184,77,.13), rgba(255,255,255,.04));
-}
-.plex-provider-card p { margin: 4px 0 0; color: var(--muted); line-height: 1.45; }
 .provider-button-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
   gap: 10px;
 }
 .provider-watch-button {
   display: grid;
-  gap: 6px;
-  min-height: 96px;
+  gap: 8px;
+  min-height: 88px;
   align-content: center;
+  justify-items: center;
   border: 1px solid rgba(255,255,255,.12);
   border-radius: 14px;
   padding: 12px;
@@ -2359,30 +2349,30 @@ textarea { min-height: 42px; resize: vertical; }
   border-color: rgba(62,226,160,.32);
   background: rgba(62,226,160,.08);
 }
-.provider-icon {
-  width: fit-content;
-  min-width: 38px;
-  min-height: 32px;
-  display: inline-grid;
-  place-items: center;
-  border-radius: 10px;
-  padding: 6px 8px;
-  background: rgba(255,255,255,.1);
-  color: #ffe7b8;
-  font-size: .78rem;
-  font-weight: 950;
-}
+.provider-logo { width: min(100%, 148px); height: auto; display: block; }
+.provider-logo-bg { fill: rgba(255,255,255,.08); stroke: rgba(255,255,255,.16); stroke-width: 2; }
+.provider-logo-text { font-family: Inter, system-ui, sans-serif; font-size: 21px; font-weight: 950; letter-spacing: .02em; fill: #fff; dominant-baseline: middle; }
+.provider-logo-netflix .provider-logo-text { fill: #e50914; letter-spacing: .08em; }
+.provider-logo-prime .provider-logo-bg { fill: #071927; stroke: rgba(74,189,255,.42); }
+.provider-logo-prime .provider-logo-text { fill: #6bd6ff; font-size: 19px; }
+.provider-logo-disney .provider-logo-bg { fill: #081641; stroke: rgba(139,176,255,.42); }
+.provider-logo-disney .provider-logo-text { fill: #dbe8ff; font-size: 24px; }
+.provider-logo-apple .provider-logo-bg { fill: #f8f8f8; stroke: rgba(255,255,255,.36); }
+.provider-logo-apple .provider-logo-text { fill: #050505; font-size: 20px; }
+.provider-logo-crave .provider-logo-bg { fill: #111; stroke: rgba(255,255,255,.22); }
+.provider-logo-crave .provider-logo-text { fill: #fff; letter-spacing: .14em; }
+.provider-logo-youtube .provider-logo-bg { fill: #210506; stroke: rgba(255,0,0,.5); }
+.provider-logo-youtube .provider-logo-text { fill: #ff2f2f; font-size: 21px; }
+.provider-logo-tubi .provider-logo-bg { fill: #111; stroke: rgba(255,221,0,.48); }
+.provider-logo-tubi .provider-logo-text { fill: #ffde00; font-size: 25px; letter-spacing: 0; }
+.provider-logo-paramount .provider-logo-bg { fill: #071b62; stroke: rgba(92,152,255,.5); }
+.provider-logo-paramount .provider-logo-text { fill: #f4f8ff; font-size: 18px; }
+.provider-logo-plex .provider-logo-bg { fill: #15110a; stroke: rgba(229,160,13,.58); }
+.provider-logo-plex .provider-logo-text { fill: #e5a00d; letter-spacing: .14em; }
 .provider-watch-button small { color: var(--muted); }
 .watch-providers.compact .helper-text,
-.watch-providers.compact .plex-provider-card p,
 .watch-providers.compact .provider-status {
   display: none;
-}
-.watch-providers.compact .plex-provider-card {
-  grid-template-columns: 1fr;
-}
-.watch-providers.compact .plex-provider-card .secondary-button {
-  min-height: 38px;
 }
 .watch-providers.compact .provider-button-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2491,6 +2481,10 @@ textarea { min-height: 42px; resize: vertical; }
 .roulette-card { border-color: rgba(255,79,109,.2); }
 .settings-integration-card {
   margin-top: 22px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 18px;
   border: 1px solid var(--line);
   border-radius: 22px;
   padding: clamp(18px, 4vw, 28px);
@@ -2502,6 +2496,14 @@ textarea { min-height: 42px; resize: vertical; }
   max-width: 760px;
   color: var(--muted);
   line-height: 1.55;
+}
+.settings-integration-actions {
+  display: grid;
+  gap: 10px;
+  justify-items: end;
+}
+.settings-integration-actions .provider-logo {
+  width: 146px;
 }
 
 .settings-page {
@@ -2619,21 +2621,21 @@ textarea { min-height: 42px; resize: vertical; }
 }
 
 .provider-preference {
-  min-height: 58px;
+  min-height: 68px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.06);
   color: var(--text);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
+  display: grid;
+  place-items: center;
+  padding: 8px;
   font-weight: 800;
   cursor: pointer;
 }
 
-.provider-preference span {
-  color: var(--accent);
+.provider-preference .provider-logo {
+  width: 100%;
+  max-width: 150px;
 }
 
 .provider-preference.selected {
@@ -3205,7 +3207,8 @@ textarea { min-height: 42px; resize: vertical; }
   .playlist-card { padding: 14px; }
   .playlist-cover { height: 250px; }
   .empty-playlists-panel, .movie-detail-hero { grid-template-columns: 1fr; }
-  .watch-provider-heading, .plex-provider-card { grid-template-columns: 1fr; }
+  .watch-provider-heading, .settings-integration-card { grid-template-columns: 1fr; }
+  .settings-integration-actions { justify-items: start; }
   .region-onboarding-card,
   .public-profile-hero {
     grid-template-columns: 1fr;

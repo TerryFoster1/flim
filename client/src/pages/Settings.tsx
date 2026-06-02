@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { InstallFlimPrompt } from "../components/InstallFlimPrompt";
+import { ProviderLogo } from "../components/ProviderLogo";
 import { getCurrentProfile, saveCurrentProfile } from "../services/profileService";
 import { watchProviders } from "../services/watchProviderService";
 import type { CurrentUser, UserProfile } from "../types";
@@ -39,6 +40,7 @@ export function Settings({ currentUser, onNavigate }: SettingsProps) {
   const [status, setStatus] = useState<"loading" | "ready" | "saving" | "saved" | "error">("loading");
   const [message, setMessage] = useState("");
   const vanityUrl = useMemo(() => (profile.handle ? `https://www.flim.ca/@${profile.handle}` : "Choose a username to create your Flim URL."), [profile.handle]);
+  const streamingProviders = useMemo(() => watchProviders.filter((provider) => provider.id !== "plex"), []);
 
   useEffect(() => {
     let isActive = true;
@@ -244,14 +246,15 @@ export function Settings({ currentUser, onNavigate }: SettingsProps) {
             <h2>Your watch services</h2>
           </div>
           <div className="provider-preference-grid">
-            {watchProviders.map((provider) => (
+            {streamingProviders.map((provider) => (
               <button
                 className={profile.preferredProviders.includes(provider.id) ? "provider-preference selected" : "provider-preference"}
                 key={provider.id}
                 onClick={() => toggleProvider(provider.id)}
+                aria-label={provider.name}
                 type="button"
               >
-                {provider.name}
+                <ProviderLogo provider={provider} />
               </button>
             ))}
           </div>
@@ -259,12 +262,15 @@ export function Settings({ currentUser, onNavigate }: SettingsProps) {
         </section>
 
         <section className="settings-integration-card">
-          <span className="eyebrow">Plex Library</span>
-          <h2>Connect Plex</h2>
-          <p>
-            Link your Plex library so Flim can know what you already own and prioritize Plex when choosing what to watch.
-          </p>
-          <div className="button-row">
+          <div className="settings-integration-copy">
+            <span className="eyebrow">Plex Library</span>
+            <h2>Connect Plex</h2>
+            <p>
+              Link your Plex library so Flim can know what you already own and prioritize Plex when choosing what to watch.
+            </p>
+          </div>
+          <div className="settings-integration-actions">
+            <ProviderLogo provider={watchProviders.find((provider) => provider.id === "plex") || { id: "plex", name: "Plex" }} />
             <button className="secondary-button" disabled type="button">
               Coming Soon
             </button>

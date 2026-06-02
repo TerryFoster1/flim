@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { ProviderLogo } from "./ProviderLogo";
 import { getCurrentProfile } from "../services/profileService";
 import { getProviderLinksForMovie } from "../services/watchProviderService";
 import type { UserProfile } from "../types";
@@ -59,8 +60,7 @@ export function WhereToWatch({ compact = false, movie }: WhereToWatchProps) {
             rel="noreferrer"
             target="_blank"
           >
-            <span className="provider-icon">{link.provider.icon}</span>
-            <span>{link.provider.name}</span>
+            <ProviderLogo provider={link.provider} />
             <small>Open provider</small>
           </a>
           ))}
