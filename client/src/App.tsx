@@ -6,7 +6,6 @@ import { NowPlayingTicketIcon } from "./components/RouletteAssets";
 import { getSession, logout as logoutSession } from "./services/authService";
 import {
   addMovieToPlaylist,
-  clonePlaylist,
   createPlaylist,
   deletePlaylist,
   getPlaylists,
@@ -145,11 +144,6 @@ export default function App() {
     await refreshPlaylists();
   }
 
-  async function cloneRemotePlaylist(playlistId: string) {
-    await clonePlaylist(playlistId);
-    await refreshPlaylists();
-  }
-
   async function deleteRemotePlaylist(playlistId: string) {
     await deletePlaylist(playlistId);
     await refreshPlaylists();
@@ -211,7 +205,6 @@ export default function App() {
         playlist={detailPlaylist}
         onNavigate={navigate}
         addToPlaylist={addToPlaylist}
-        clonePlaylist={cloneRemotePlaylist}
         deletePlaylist={deleteRemotePlaylist}
         updatePlaylist={updateRemotePlaylist}
         removeMovie={removeFromPlaylist}

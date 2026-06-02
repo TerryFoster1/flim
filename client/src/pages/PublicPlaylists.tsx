@@ -5,7 +5,6 @@ import type { Playlist, PlaylistMovie } from "../types";
 interface PublicPlaylistsProps {
   onNavigate: (path: string) => void;
   playlists: Playlist[];
-  clonePlaylist: (playlistId: string) => void | Promise<void>;
 }
 
 function byMovieCount(playlists: Playlist[]) {
@@ -44,7 +43,7 @@ function DiscoveryShelf({ title, playlists, onNavigate }: { title: string; playl
   );
 }
 
-export function PublicPlaylists({ onNavigate, playlists, clonePlaylist }: PublicPlaylistsProps) {
+export function PublicPlaylists({ onNavigate, playlists }: PublicPlaylistsProps) {
   const publicPlaylists = playlists.filter((playlist) => playlist.visibility === "public" && !playlist.isSystem);
   const popular = byMovieCount(publicPlaylists);
   const trending = byUpdated(publicPlaylists);
@@ -94,15 +93,6 @@ export function PublicPlaylists({ onNavigate, playlists, clonePlaylist }: Public
         <DiscoveryShelf title="Recommended Playlists" playlists={popular} onNavigate={onNavigate} />
       </div>
 
-      {publicPlaylists.length > 0 ? (
-        <div className="clone-action-row">
-          {publicPlaylists.slice(0, 6).map((playlist) => (
-            <button className="secondary-button" key={playlist.id} onClick={() => clonePlaylist(playlist.id)} type="button">
-              Clone {playlist.name}
-            </button>
-          ))}
-        </div>
-      ) : null}
     </PageShell>
   );
 }

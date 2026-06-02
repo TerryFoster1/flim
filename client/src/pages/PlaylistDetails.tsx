@@ -3,7 +3,6 @@ import { MovieGrid } from "../components/MovieGrid";
 import { MovieSearchPanel } from "../components/MovieSearchPanel";
 import { PlaylistHero } from "../components/PlaylistHero";
 import { PosterShelf } from "../components/PosterShelf";
-import { ClonePlaylistButton } from "../components/ClonePlaylistButton";
 import { SharePlaylistButton } from "../components/SharePlaylistButton";
 import type { MovieSearchResult, Playlist, WatchStatus } from "../types";
 
@@ -11,7 +10,6 @@ interface PlaylistDetailsProps {
   playlist: Playlist;
   onNavigate: (path: string) => void;
   addToPlaylist: (playlistId: string, movie: MovieSearchResult) => void | Promise<void>;
-  clonePlaylist: (playlistId: string) => void | Promise<void>;
   deletePlaylist: (playlistId: string) => void | Promise<void>;
   updatePlaylist: (playlistId: string, input: Pick<Playlist, "name" | "description" | "visibility">) => Playlist | void | Promise<Playlist | void>;
   removeMovie: (playlistId: string, tmdbId: number, mediaType?: string) => void | Promise<void>;
@@ -19,7 +17,7 @@ interface PlaylistDetailsProps {
   updateWatchStatus: (playlistId: string, tmdbId: number, watchStatus: WatchStatus, mediaType?: string) => void | Promise<void>;
 }
 
-export function PlaylistDetails({ playlist, onNavigate, addToPlaylist, clonePlaylist, deletePlaylist, updatePlaylist, removeMovie, reorderMovies, updateWatchStatus }: PlaylistDetailsProps) {
+export function PlaylistDetails({ playlist, onNavigate, addToPlaylist, deletePlaylist, updatePlaylist, removeMovie, reorderMovies, updateWatchStatus }: PlaylistDetailsProps) {
   const [showAddMovie, setShowAddMovie] = useState(!playlist.isSystem && Boolean(playlist.isOwner) && playlist.movies.length === 0);
   const [showPlaylistMenu, setShowPlaylistMenu] = useState(false);
   const [showEditPlaylist, setShowEditPlaylist] = useState(false);
@@ -29,10 +27,41 @@ export function PlaylistDetails({ playlist, onNavigate, addToPlaylist, clonePlay
     visibility: playlist.visibility,
   });
   const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [showSharePrompt, setShowSharePrompt] = useState(false);
+  const [isMakingPublic, setIsMakingPublic] = useState(false);
+  const [shareOpenToken, setShareOpenToken] = useState(0);
   const [notice, setNotice] = useState("");
   const [noticeType, setNoticeType] = useState<"success" | "error">("success");
   const editable = !playlist.isSystem && Boolean(playlist.isOwner);
   const shareable = playlist.visibility === "public";
+
+  async function ensurePublicBeforeShare() {
+    if (playlist.visibility === "public") return true;
+    if (!editable) return false;
+    setShowSharePrompt(true);
+    return false;
+  }
+
+  async function makePublicAndShare() {
+    setIsMakingPublic(true);
+    setNotice("");
+    try {
+      await updatePlaylist(playlist.id, {
+        name: playlist.name,
+        description: playlist.description,
+        visibility: "public",
+      });
+      setShowSharePrompt(false);
+      setNoticeType("success");
+      setNotice("Playlist is public. Share it with the link or QR code.");
+      setShareOpenToken((token) => token + 1);
+    } catch {
+      setNoticeType("error");
+      setNotice("Unable to make playlist public. Please try again.");
+    } finally {
+      setIsMakingPublic(false);
+    }
+  }
 
   function openEditPlaylist() {
     setEditForm({
@@ -97,12 +126,17 @@ export function PlaylistDetails({ playlist, onNavigate, addToPlaylist, clonePlay
 
   return (
     <section className="route-page">
-      <PlaylistHero playlist={playlist} />
+      <PlaylistHero
+        playlist={playlist}
+        secondaryMeta={shareable || editable ? <SharePlaylistButton label="Share Playlist" onBeforeOpen={ensurePublicBeforeShare} openToken={shareOpenToken} playlist={playlist} /> : undefined}
+      />
       <div className="playlist-management-bar">
         {editable ? (
-          <button className="primary-button" onClick={() => setShowAddMovie((current) => !current)} type="button">
-            Add Movie or TV Show
-          </button>
+          <div className="button-row">
+            <button className="primary-button" onClick={() => setShowAddMovie((current) => !current)} type="button">
+              Add Movie or TV Show
+            </button>
+          </div>
         ) : shareable ? (
           <SharePlaylistButton playlist={playlist} label="Share Playlist" />
         ) : (
@@ -116,15 +150,32 @@ export function PlaylistDetails({ playlist, onNavigate, addToPlaylist, clonePlay
             <div className="playlist-menu-panel">
               {editable ? <button onClick={openEditPlaylist} type="button">Edit Playlist</button> : null}
               {editable ? <button onClick={openEditPlaylist} type="button">{playlist.visibility === "public" ? "Make Private" : "Change Visibility"}</button> : null}
-              {shareable ? <SharePlaylistButton playlist={playlist} /> : null}
-              {shareable ? <SharePlaylistButton playlist={playlist} label="QR Code" /> : null}
-              {editable ? <ClonePlaylistButton onClone={() => clonePlaylist(playlist.id)} /> : null}
               {editable ? <button className="danger-menu-item" onClick={confirmDelete} type="button">Delete Playlist</button> : null}
             </div>
           ) : null}
         </div>
       </div>
       {notice ? <p className={noticeType === "success" ? "success-message" : "error-message"}>{notice}</p> : null}
+      {showSharePrompt ? (
+        <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Make playlist public to share">
+          <div className="share-panel make-public-panel">
+            <div className="modal-header">
+              <div>
+                <span className="eyebrow">Share Playlist</span>
+                <h2>Make this playlist public to share it.</h2>
+              </div>
+            </div>
+            <div className="button-row">
+              <button className="secondary-button" disabled={isMakingPublic} onClick={() => setShowSharePrompt(false)} type="button">
+                Cancel
+              </button>
+              <button className="primary-button" disabled={isMakingPublic} onClick={makePublicAndShare} type="button">
+                {isMakingPublic ? "Making Public..." : "Make Public"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
       {showEditPlaylist ? (
         <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Edit playlist">
           <form className="search-modal playlist-edit-modal" onSubmit={savePlaylist}>

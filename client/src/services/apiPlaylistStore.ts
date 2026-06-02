@@ -79,31 +79,3 @@ export function reorderPlaylistMovies(playlistId: string, movieIds: string[]) {
     body: JSON.stringify({ movieIds }),
   });
 }
-
-export async function clonePlaylist(playlistId: string) {
-  const source = await getPlaylistById(playlistId);
-  const clone = await createPlaylist({
-    name: `${source.name} Copy`,
-    description: source.description,
-    visibility: "private",
-  });
-
-  for (const movie of source.movies) {
-    await addMovieToPlaylist(clone.id, {
-      tmdbId: movie.tmdbId,
-      mediaType: movie.mediaType || "movie",
-      title: movie.title,
-      releaseYear: movie.releaseYear,
-      overview: movie.overview,
-      posterUrl: movie.posterUrl,
-      posterPath: movie.posterPath,
-      runtimeMinutes: movie.runtimeMinutes,
-      seasonCount: movie.seasonCount,
-      episodeCount: movie.episodeCount,
-      genreIds: [],
-      genres: movie.genres || [],
-    });
-  }
-
-  return getPlaylistById(clone.id);
-}

@@ -5,6 +5,8 @@ import type { Playlist } from "../types";
 interface SharePlaylistButtonProps {
   playlist: Playlist;
   label?: string;
+  onBeforeOpen?: () => boolean | Promise<boolean>;
+  openToken?: number;
 }
 
 function getPublicOrigin() {
@@ -12,7 +14,7 @@ function getPublicOrigin() {
   return window.location.origin;
 }
 
-export function SharePlaylistButton({ playlist, label = "Share" }: SharePlaylistButtonProps) {
+export function SharePlaylistButton({ playlist, label = "Share", onBeforeOpen, openToken = 0 }: SharePlaylistButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [status, setStatus] = useState("");
   const [qrCodeUrl, setQrCodeUrl] = useState("");
@@ -38,6 +40,10 @@ export function SharePlaylistButton({ playlist, label = "Share" }: SharePlaylist
       .then(setQrCodeUrl)
       .catch(() => setStatus("QR code could not be generated."));
   }, [isOpen, url]);
+
+  useEffect(() => {
+    if (openToken > 0) setIsOpen(true);
+  }, [openToken]);
 
   async function copyLink() {
     try {
@@ -68,9 +74,17 @@ export function SharePlaylistButton({ playlist, label = "Share" }: SharePlaylist
     }
   }
 
+  async function openShare() {
+    if (onBeforeOpen) {
+      const canOpen = await onBeforeOpen();
+      if (!canOpen) return;
+    }
+    setIsOpen(true);
+  }
+
   return (
     <>
-      <button className="secondary-button" onClick={() => setIsOpen(true)} type="button">
+      <button className="secondary-button" onClick={openShare} type="button">
         {label}
       </button>
       {isOpen ? (

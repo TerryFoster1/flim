@@ -95,6 +95,9 @@ export function PublicPlaylist({ publicSlug, onNavigate }: PublicPlaylistProps) 
           {playlist.description ? <p>{playlist.description}</p> : null}
           <div className="meta-row">
             <span>{playlist.movies.length} movies</span>
+            <SharePlaylistButton playlist={playlist} label="Share Playlist" />
+          </div>
+          <div className="meta-row public-creator-row">
             {isDirectorPlaylist ? (
               <button className="creator-handle-link" onClick={() => onNavigate("/@the-director")} type="button">
                 Curated by The Director
@@ -109,8 +112,6 @@ export function PublicPlaylist({ publicSlug, onNavigate }: PublicPlaylistProps) 
             <span>Shared via Flim</span>
           </div>
           <div className="button-row">
-            <SharePlaylistButton playlist={playlist} />
-            <SharePlaylistButton playlist={playlist} label="QR Code" />
             <button className="secondary-button" onClick={openSharedRoulette} type="button">
               Now Playing
             </button>
