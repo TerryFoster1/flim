@@ -75,3 +75,5 @@ Admin exports require:
 `GET /api/movies/:tmdbId?type=` returns an unexpired movie or TV detail cache hit when available and stores a fresh TMDb response for 30 days on a miss.
 
 The movie API also creates these cache tables with `create table if not exists` before the first cache lookup so production can recover if the SQL setup has not been run yet.
+
+See `movie-cache-strategy.md` for the broader cache-first rule: TMDb is a discovery/import source, Flim should check Neon first, normalize imported records, store metadata and remote poster URLs, and prefer Flim database records for future title, person, genre, decade, similar-media, and playlist-addition flows.
