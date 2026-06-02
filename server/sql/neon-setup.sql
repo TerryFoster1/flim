@@ -95,34 +95,34 @@ alter table playlist_movies
 do $$
 declare
   legacy_constraint record;
+  legacy_index record;
 begin
   for legacy_constraint in
-    select conname
-    from pg_constraint
-    where conname = 'playlist_movies_playlist_id_tmdb_id_key'
-      and conrelid = 'playlist_movies'::regclass
-    union
-    select conname
-    from pg_constraint
-    where conrelid = 'playlist_movies'::regclass
-      and conindid = (
-        select oid
-        from pg_class
-        where relname = 'playlist_movies_playlist_id_tmdb_id_key'
-        limit 1
+    select distinct c.conname
+    from pg_constraint c
+    left join pg_class i on i.oid = c.conindid
+    where c.conrelid = 'playlist_movies'::regclass
+      and (
+        c.conname = 'playlist_movies_playlist_id_tmdb_id_key'
+        or i.relname = 'playlist_movies_playlist_id_tmdb_id_key'
       )
   loop
     execute format('alter table playlist_movies drop constraint %I', legacy_constraint.conname);
   end loop;
 
-  if exists (
-    select 1
-    from pg_class
-    where relname = 'playlist_movies_playlist_id_tmdb_id_key'
-      and relkind = 'i'
-  ) then
-    drop index if exists playlist_movies_playlist_id_tmdb_id_key;
-  end if;
+  for legacy_index in
+    select i.oid::regclass::text as index_name
+    from pg_class i
+    where i.relname = 'playlist_movies_playlist_id_tmdb_id_key'
+      and i.relkind = 'i'
+      and not exists (
+        select 1
+        from pg_constraint c
+        where c.conindid = i.oid
+      )
+  loop
+    execute format('drop index if exists %s', legacy_index.index_name);
+  end loop;
 end $$;
 
 create unique index if not exists playlist_movies_playlist_media_tmdb_unique
