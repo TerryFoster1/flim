@@ -24,6 +24,12 @@ Connect Plex, import library metadata, match Plex items to TMDb movies and TV sh
 
 Send confirmed Plex library items to supported Plex clients such as living room, bedroom, or office players.
 
+## Follow Title
+
+Allow users to follow movies, TV shows, upcoming releases, and future seasons so Flim can surface in-app alerts for theater releases, streaming availability, trailers, soundtrack releases, Plex availability, new seasons, and new episodes.
+
+See `follow-title-architecture.md`.
+
 ## Smart TV And Casting Targets
 
 Plan for Chromecast, Android TV, Google TV, Plex players, and other reliable playback targets. Flim should not claim universal smart TV support.

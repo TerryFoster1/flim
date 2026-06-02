@@ -6,7 +6,9 @@ Documents:
 
 - `product-bible.md` - Product vision, users, use cases, and constraints.
 - `roadmap.md` - Phase-based build plan.
+- `master-product-execution-plan.md` - Strict phase order, verification rule, and phase reporting template.
 - `master-entertainment-roadmap.md` - Long-range roadmap for providers, Plex, smart TVs, TV series, and advanced Roulette.
+- `follow-title-architecture.md` - Future retention architecture for followed movies, TV shows, releases, seasons, and in-app alerts.
 - `media-extensions-roadmap.md` - Movie and TV hub roadmap for soundtracks, trailers, trivia, and related media.
 - `spotify-integration-strategy.md` - Soundtrack lookup, Spotify fallback links, and future album matching.
 - `youtube-integration-strategy.md` - Trailer lookup, YouTube fallback links, and future official video matching.
