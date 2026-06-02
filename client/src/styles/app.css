@@ -2922,22 +2922,6 @@ textarea { min-height: 42px; resize: vertical; }
   min-height: min(78vh, 820px);
 }
 
-.landing-choice-row {
-  width: min(760px, 100%);
-  margin: 0 auto 14px;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-  align-items: center;
-  gap: 12px;
-  padding: 12px;
-  border: 1px solid rgba(255, 184, 77, .18);
-  border-radius: 22px;
-  background: rgba(7, 8, 11, .82);
-  box-shadow: 0 22px 70px rgba(0, 0, 0, .5), 0 0 36px rgba(255, 146, 42, .12);
-  backdrop-filter: blur(18px);
-}
-
-.landing-choice-tab,
 .director-admin-tabs button {
   border: 0;
   border-radius: 16px;
@@ -2949,29 +2933,9 @@ textarea { min-height: 42px; resize: vertical; }
   cursor: pointer;
 }
 
-.landing-choice-tab:hover,
-.landing-choice-tab:focus-visible,
 .director-admin-tabs button:hover,
 .director-admin-tabs button:focus-visible {
   background: rgba(255, 184, 77, .15);
-}
-
-.landing-now-playing-ticket {
-  border: 0;
-  border-radius: 20px;
-  width: 116px;
-  min-height: 76px;
-  padding: 0;
-  display: grid;
-  place-items: center;
-  background: linear-gradient(135deg, #ff5d5d, #ffb34a 55%, #ffe05f);
-  box-shadow: 0 0 30px rgba(255, 150, 48, .35);
-  cursor: pointer;
-}
-
-.landing-now-playing-ticket .now-playing-ticket-svg {
-  width: 92px;
-  height: auto;
 }
 
 .playlist-page-actions,
@@ -3536,28 +3500,6 @@ textarea { min-height: 42px; resize: vertical; }
   .bottom-now-playing-button:hover,
   .bottom-now-playing-button:focus-visible {
     transform: translateY(-12px) scale(1.02);
-  }
-  .landing-choice-row {
-    position: sticky;
-    bottom: 104px;
-    z-index: 5;
-    grid-template-columns: minmax(0, 1fr) 88px minmax(0, 1fr);
-    gap: 8px;
-    border-radius: 18px;
-    padding: 8px;
-  }
-  .landing-choice-tab {
-    min-height: 42px;
-    padding: 0 10px;
-    font-size: .76rem;
-  }
-  .landing-now-playing-ticket {
-    width: 88px;
-    min-height: 62px;
-    border-radius: 16px;
-  }
-  .landing-now-playing-ticket .now-playing-ticket-svg {
-    width: 72px;
   }
   .playlist-page-actions {
     margin-top: -4px;

@@ -178,13 +178,6 @@ export default function App() {
     setRoulettePlaylists(null);
     setIsRouletteOpen(true);
   };
-  const requestLandingCreate = () => {
-    if (!currentUser) {
-      navigate("/signup");
-      return;
-    }
-    navigate("/playlists");
-  };
   const playlistsPage = (initialView: "my" | "public" = "my") => (
     <Playlists
       initialView={initialView}
@@ -197,7 +190,7 @@ export default function App() {
     />
   );
   const pages: Partial<Record<AppRoute, ReactNode>> = {
-    "/": <LandingPage currentUser={currentUser} onCreatePlaylist={requestLandingCreate} onNavigate={navigate} onOpenNowPlaying={openNowPlaying} />,
+    "/": <LandingPage />,
     "/discover": playlistsPage("my"),
     "/playlists": playlistsPage("my"),
     "/playlists/:id": detailPlaylist ? (
