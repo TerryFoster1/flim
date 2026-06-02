@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { MovieGrid } from "../components/MovieGrid";
 import { MovieSearchPanel } from "../components/MovieSearchPanel";
 import { PlaylistHero } from "../components/PlaylistHero";
@@ -13,16 +13,56 @@ interface PlaylistDetailsProps {
   addToPlaylist: (playlistId: string, movie: MovieSearchResult) => void | Promise<void>;
   clonePlaylist: (playlistId: string) => void | Promise<void>;
   deletePlaylist: (playlistId: string) => void | Promise<void>;
+  updatePlaylist: (playlistId: string, input: Pick<Playlist, "name" | "description" | "visibility">) => Playlist | void | Promise<Playlist | void>;
   removeMovie: (playlistId: string, tmdbId: number, mediaType?: string) => void | Promise<void>;
   updateWatchStatus: (playlistId: string, tmdbId: number, watchStatus: WatchStatus, mediaType?: string) => void | Promise<void>;
 }
 
-export function PlaylistDetails({ playlist, onNavigate, addToPlaylist, clonePlaylist, deletePlaylist, removeMovie, updateWatchStatus }: PlaylistDetailsProps) {
+export function PlaylistDetails({ playlist, onNavigate, addToPlaylist, clonePlaylist, deletePlaylist, updatePlaylist, removeMovie, updateWatchStatus }: PlaylistDetailsProps) {
   const [showAddMovie, setShowAddMovie] = useState(!playlist.isSystem && Boolean(playlist.isOwner) && playlist.movies.length === 0);
   const [showPlaylistMenu, setShowPlaylistMenu] = useState(false);
+  const [showEditPlaylist, setShowEditPlaylist] = useState(false);
+  const [editForm, setEditForm] = useState({
+    name: playlist.name,
+    description: playlist.description,
+    visibility: playlist.visibility,
+  });
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [notice, setNotice] = useState("");
+  const [noticeType, setNoticeType] = useState<"success" | "error">("success");
   const editable = !playlist.isSystem && Boolean(playlist.isOwner);
   const shareable = playlist.visibility === "public" || !playlist.ownerUserId || editable;
+
+  function openEditPlaylist() {
+    setEditForm({
+      name: playlist.name,
+      description: playlist.description,
+      visibility: playlist.visibility,
+    });
+    setShowPlaylistMenu(false);
+    setShowEditPlaylist(true);
+  }
+
+  async function savePlaylist(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setIsSavingEdit(true);
+    setNotice("");
+    try {
+      await updatePlaylist(playlist.id, {
+        name: editForm.name,
+        description: editForm.description,
+        visibility: editForm.visibility,
+      });
+      setShowEditPlaylist(false);
+      setNoticeType("success");
+      setNotice("Playlist saved.");
+    } catch {
+      setNoticeType("error");
+      setNotice("Unable to save playlist. Please try again.");
+    } finally {
+      setIsSavingEdit(false);
+    }
+  }
 
   async function confirmDelete() {
     if (window.confirm("Delete this playlist? This cannot be undone.")) {
@@ -49,20 +89,61 @@ export function PlaylistDetails({ playlist, onNavigate, addToPlaylist, clonePlay
           </button>
           {showPlaylistMenu ? (
             <div className="playlist-menu-panel">
-              <button disabled type="button">Edit Playlist</button>
-              <button disabled type="button">Rename Playlist</button>
-              <button disabled type="button">Change Visibility</button>
-              {shareable ? <SharePlaylistButton playlist={playlist} /> : <button disabled type="button">Share Playlist</button>}
-              {shareable ? <SharePlaylistButton playlist={playlist} label="QR Code" /> : <button disabled type="button">Generate QR Code</button>}
-              {editable ? <ClonePlaylistButton onClone={() => clonePlaylist(playlist.id)} /> : <button disabled type="button">Clone Playlist</button>}
-              <button disabled type="button">Remove Movies</button>
-              <button disabled type="button">Manage Playlist</button>
-              <button className="danger-menu-item" disabled={!editable} onClick={confirmDelete} type="button">Delete Playlist</button>
+              {editable ? <button onClick={openEditPlaylist} type="button">Edit Playlist</button> : null}
+              {editable ? <button onClick={openEditPlaylist} type="button">{playlist.visibility === "public" ? "Make Private" : "Change Visibility"}</button> : null}
+              {shareable ? <SharePlaylistButton playlist={playlist} /> : null}
+              {shareable ? <SharePlaylistButton playlist={playlist} label="QR Code" /> : null}
+              {editable ? <ClonePlaylistButton onClone={() => clonePlaylist(playlist.id)} /> : null}
+              {editable ? <button className="danger-menu-item" onClick={confirmDelete} type="button">Delete Playlist</button> : null}
             </div>
           ) : null}
         </div>
       </div>
-      {notice ? <p className="success-message">{notice}</p> : null}
+      {notice ? <p className={noticeType === "success" ? "success-message" : "error-message"}>{notice}</p> : null}
+      {showEditPlaylist ? (
+        <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Edit playlist">
+          <form className="search-modal playlist-edit-modal" onSubmit={savePlaylist}>
+            <div className="modal-header">
+              <div>
+                <span className="eyebrow">Playlist Settings</span>
+                <h2>Edit Playlist</h2>
+              </div>
+              <button className="ghost-button" onClick={() => setShowEditPlaylist(false)} type="button">Cancel</button>
+            </div>
+            <label>
+              <span>Playlist title</span>
+              <input
+                maxLength={120}
+                onChange={(event) => setEditForm((current) => ({ ...current, name: event.target.value }))}
+                required
+                value={editForm.name}
+              />
+            </label>
+            <label>
+              <span>Description</span>
+              <textarea
+                maxLength={600}
+                onChange={(event) => setEditForm((current) => ({ ...current, description: event.target.value }))}
+                value={editForm.description}
+              />
+            </label>
+            <label>
+              <span>Visibility</span>
+              <select
+                onChange={(event) => setEditForm((current) => ({ ...current, visibility: event.target.value as Playlist["visibility"] }))}
+                value={editForm.visibility}
+              >
+                <option value="private">private</option>
+                <option value="public">public</option>
+              </select>
+            </label>
+            <div className="button-row">
+              <button className="primary-button" disabled={isSavingEdit} type="submit">{isSavingEdit ? "Saving..." : "Save Playlist"}</button>
+              <button className="secondary-button" onClick={() => setShowEditPlaylist(false)} type="button">Cancel</button>
+            </div>
+          </form>
+        </div>
+      ) : null}
       {showAddMovie ? (
         <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Add movie to playlist">
           <div className="search-modal">
@@ -71,14 +152,14 @@ export function PlaylistDetails({ playlist, onNavigate, addToPlaylist, clonePlay
                 <span className="eyebrow">Add Title</span>
                 <h2>Search for a movie or TV show</h2>
               </div>
-              <button className="ghost-button" onClick={() => setShowAddMovie(false)} type="button">Close</button>
+              <button className="ghost-button" onClick={() => setShowAddMovie(false)} type="button">Done</button>
             </div>
             <MovieSearchPanel
               addToPlaylist={addToPlaylist}
               fixedPlaylistId={playlist.id}
               onMovieAdded={() => {
+                setNoticeType("success");
                 setNotice("Title added to playlist.");
-                setShowAddMovie(false);
               }}
               onNavigate={onNavigate}
               playlists={[playlist]}

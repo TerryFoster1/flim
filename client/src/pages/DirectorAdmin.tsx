@@ -112,7 +112,7 @@ export function DirectorAdminLogin({ onNavigate }: Pick<DirectorAdminProps, "onN
         {error ? <p className="error-message">{error}</p> : null}
         <label>
           <span>Username</span>
-          <input autoComplete="username" onChange={(event) => setUsername(event.target.value)} required value={username} />
+          <input autoComplete="username" onChange={(event) => setUsername(event.target.value)} placeholder="Enter username" required value={username} />
         </label>
         <label>
           <span>Password</span>

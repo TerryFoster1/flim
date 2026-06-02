@@ -12,6 +12,7 @@ import {
   getPlaylists,
   removeMovieFromPlaylist,
   toggleWatchedStatus,
+  updatePlaylist,
 } from "./services/apiPlaylistStore";
 import { MovieDetailsPage } from "./pages/MovieDetails";
 import { PlaylistDetails } from "./pages/PlaylistDetails";
@@ -150,6 +151,12 @@ export default function App() {
     navigate("/playlists");
   }
 
+  async function updateRemotePlaylist(playlistId: string, input: Pick<Playlist, "name" | "description" | "visibility">) {
+    const updated = await updatePlaylist(playlistId, input);
+    await refreshPlaylists();
+    return updated;
+  }
+
   async function handleAuthenticated(user: CurrentUser) {
     setCurrentUser(user);
     await refreshPlaylists();
@@ -200,6 +207,7 @@ export default function App() {
         addToPlaylist={addToPlaylist}
         clonePlaylist={cloneRemotePlaylist}
         deletePlaylist={deleteRemotePlaylist}
+        updatePlaylist={updateRemotePlaylist}
         removeMovie={removeFromPlaylist}
         updateWatchStatus={updateWatchStatus}
       />

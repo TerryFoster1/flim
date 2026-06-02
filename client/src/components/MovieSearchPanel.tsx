@@ -18,10 +18,22 @@ export function MovieSearchPanel({ playlists, addToPlaylist, onNavigate, variant
   const [mediaType, setMediaType] = useState<MediaSearchMode>("both");
   const [status, setStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
   const [message, setMessage] = useState("");
-  const [addingId, setAddingId] = useState<number | null>(null);
+  const [addingKey, setAddingKey] = useState<string | null>(null);
+  const [addedKeys, setAddedKeys] = useState<Set<string>>(() => new Set());
   const hasKey = hasTmdbApiKey();
   const targetPlaylists = fixedPlaylistId ? playlists.filter((playlist) => playlist.id === fixedPlaylistId) : playlists;
   const fixedPlaylist = fixedPlaylistId ? targetPlaylists[0] : null;
+
+  function resultKey(movie: MovieSearchResult) {
+    return `${movie.mediaType || "movie"}-${movie.tmdbId}`;
+  }
+
+  function alreadyInFixedPlaylist(movie: MovieSearchResult) {
+    return Boolean(
+      fixedPlaylist?.movies.some((item) => item.tmdbId === movie.tmdbId && (item.mediaType || "movie") === (movie.mediaType || "movie")) ||
+      addedKeys.has(resultKey(movie)),
+    );
+  }
 
   async function submitSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -46,15 +58,18 @@ export function MovieSearchPanel({ playlists, addToPlaylist, onNavigate, variant
   async function addToCurrentPlaylist(movie: MovieSearchResult) {
     if (!fixedPlaylistId) return;
 
-    setAddingId(movie.tmdbId);
+    const key = resultKey(movie);
+    setAddingKey(key);
     setMessage("");
     try {
       await addToPlaylist(fixedPlaylistId, movie);
+      setAddedKeys((current) => new Set(current).add(key));
+      setMessage(`${movie.title} added.`);
       onMovieAdded?.();
     } catch {
-      setMessage("Unable to add movie. Please try again.");
+      setMessage("Unable to add. Try again.");
     } finally {
-      setAddingId(null);
+      setAddingKey(null);
     }
   }
 
@@ -93,7 +108,7 @@ export function MovieSearchPanel({ playlists, addToPlaylist, onNavigate, variant
           </div>
           <div className="search-results">
             {results.map((movie) => (
-              <article className="search-result-card" key={movie.tmdbId}>
+              <article className="search-result-card" key={resultKey(movie)}>
                 <button className="poster-card-button reset-button" onClick={() => onNavigate(movie.mediaType === "tv" ? `/tv/${movie.tmdbId}` : `/movies/${movie.tmdbId}`)} type="button">
                   {movie.posterUrl ? <img className="poster-image" src={movie.posterUrl} alt={`${movie.title} poster`} /> : <div className="poster tone-blue" />}
                 </button>
@@ -111,16 +126,15 @@ export function MovieSearchPanel({ playlists, addToPlaylist, onNavigate, variant
                     {fixedPlaylistId ? (
                       <button
                         className="primary-button"
-                        disabled={
-                          addingId === movie.tmdbId ||
-                          fixedPlaylist?.movies.some((item) => item.tmdbId === movie.tmdbId && (item.mediaType || "movie") === (movie.mediaType || "movie"))
-                        }
+                        disabled={addingKey === resultKey(movie) || alreadyInFixedPlaylist(movie)}
                         onClick={() => addToCurrentPlaylist(movie)}
                         type="button"
                       >
-                        {fixedPlaylist?.movies.some((item) => item.tmdbId === movie.tmdbId && (item.mediaType || "movie") === (movie.mediaType || "movie"))
-                          ? "Added"
-                          : addingId === movie.tmdbId
+                        {alreadyInFixedPlaylist(movie)
+                          ? fixedPlaylist?.movies.some((item) => item.tmdbId === movie.tmdbId && (item.mediaType || "movie") === (movie.mediaType || "movie"))
+                            ? "Already Added"
+                            : "Added"
+                          : addingKey === resultKey(movie)
                             ? "Adding..."
                             : movie.mediaType === "tv"
                               ? "Add TV Show"

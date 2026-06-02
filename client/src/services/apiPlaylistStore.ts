@@ -46,6 +46,13 @@ export function deletePlaylist(playlistId: string) {
   });
 }
 
+export function updatePlaylist(playlistId: string, input: Pick<Playlist, "name" | "description" | "visibility">) {
+  return apiRequest<Playlist>(`/api/playlists/${playlistId}`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+}
+
 export function addMovieToPlaylist(playlistId: string, movie: MovieSearchResult | MovieDetails) {
   return apiRequest<PlaylistMovie>(`/api/playlist-movies?id=${playlistId}`, {
     method: "POST",

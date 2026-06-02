@@ -148,7 +148,7 @@ async function handleSession(request: any, response: any) {
 
     if (!safeEqual(username, config.username) || !safeEqual(password, config.password)) {
       clearAdminCookie(response);
-      return sendJson(response, 401, { error: "Director admin credentials are incorrect." });
+      return sendJson(response, 401, { error: "Invalid username or password." });
     }
 
     setAdminCookie(response, createAdminToken(config.username, config.password));
