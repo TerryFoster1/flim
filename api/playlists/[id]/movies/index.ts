@@ -62,6 +62,6 @@ export default async function handler(request: any, response: any) {
       method: request.method,
       message: error instanceof Error ? error.message : "Unknown playlist movie error",
     });
-    return sendJson(response, 500, { error: error instanceof Error ? error.message : "Playlist movie request failed." });
+    return sendJson(response, 500, { error: "Could not save this title to your playlist. Please try again." });
   }
 }

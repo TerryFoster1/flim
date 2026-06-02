@@ -92,8 +92,24 @@ alter table playlist_movies
   add column if not exists season_count integer,
   add column if not exists episode_count integer;
 
-alter table playlist_movies
-  drop constraint if exists playlist_movies_playlist_id_tmdb_id_key;
+do $$
+begin
+  if exists (
+    select 1
+    from pg_constraint
+    where conname = 'playlist_movies_playlist_id_tmdb_id_key'
+      and conrelid = 'playlist_movies'::regclass
+  ) then
+    alter table playlist_movies drop constraint playlist_movies_playlist_id_tmdb_id_key;
+  elsif exists (
+    select 1
+    from pg_class
+    where relname = 'playlist_movies_playlist_id_tmdb_id_key'
+      and relkind = 'i'
+  ) then
+    drop index playlist_movies_playlist_id_tmdb_id_key;
+  end if;
+end $$;
 
 create unique index if not exists playlist_movies_playlist_media_tmdb_unique
   on playlist_movies (playlist_id, media_type, tmdb_id);

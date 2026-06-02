@@ -18,8 +18,8 @@ export function MovieSearchPanel({ playlists, addToPlaylist, onNavigate, variant
   const [mediaType, setMediaType] = useState<MediaSearchMode>("both");
   const [status, setStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
   const [message, setMessage] = useState("");
-  const [addMessage, setAddMessage] = useState("");
   const hasKey = hasTmdbApiKey();
+  const targetPlaylists = fixedPlaylistId ? playlists.filter((playlist) => playlist.id === fixedPlaylistId) : playlists;
 
   async function submitSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -89,35 +89,25 @@ export function MovieSearchPanel({ playlists, addToPlaylist, onNavigate, variant
                     <button className="secondary-button" onClick={() => onNavigate(movie.mediaType === "tv" ? `/tv/${movie.tmdbId}` : `/movies/${movie.tmdbId}`)} type="button">
                       Details
                     </button>
-                    {fixedPlaylistId ? (
-                      <button
-                        className="primary-button"
-                        onClick={async () => {
-                          setAddMessage("");
-                          try {
-                            await addToPlaylist(fixedPlaylistId, movie);
-                            onMovieAdded?.();
-                          } catch (error) {
-                            setAddMessage(error instanceof Error ? error.message : "Could not add this title. Please try again.");
-                          }
-                        }}
-                        type="button"
-                      >
-                        Add Title
-                      </button>
-                    ) : playlists.length === 0 ? (
+                    {targetPlaylists.length === 0 ? (
                       <button className="primary-button" onClick={() => onNavigate("/playlists")} type="button">
                         Create Playlist
                       </button>
                     ) : (
-                      <AddToPlaylistControl addToPlaylist={addToPlaylist} movie={movie} playlists={playlists} />
+                      <AddToPlaylistControl
+                        addToPlaylist={async (playlistId, selectedMovie) => {
+                          await addToPlaylist(playlistId, selectedMovie);
+                          onMovieAdded?.();
+                        }}
+                        movie={movie}
+                        playlists={targetPlaylists}
+                      />
                     )}
                   </div>
                 </div>
               </article>
             ))}
           </div>
-          {addMessage ? <p className="error-message">{addMessage}</p> : null}
         </div>
       ) : null}
     </section>

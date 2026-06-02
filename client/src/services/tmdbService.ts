@@ -32,7 +32,7 @@ export async function searchMovies(query: string, mediaType: MediaSearchMode = "
 
 export async function getMovieDetails(tmdbId: number): Promise<MovieDetails> {
   if (!Number.isFinite(tmdbId)) {
-    throw new Error("A valid TMDb movie ID is required.");
+    throw new Error("A valid movie ID is required.");
   }
 
   return apiRequest<MovieDetails>(`/api/movies/${tmdbId}`);
@@ -40,7 +40,7 @@ export async function getMovieDetails(tmdbId: number): Promise<MovieDetails> {
 
 export async function getTvDetails(tmdbId: number): Promise<MovieDetails> {
   if (!Number.isFinite(tmdbId)) {
-    throw new Error("A valid TMDb TV ID is required.");
+    throw new Error("A valid TV show ID is required.");
   }
 
   return apiRequest<MovieDetails>(`/api/movies/tv/${tmdbId}`);

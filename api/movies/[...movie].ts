@@ -67,7 +67,7 @@ async function handleMovieDetails(tmdbId: number, response: any) {
     limit 1
   `;
 
-  if (cached[0]) {
+  if (cached[0]?.response_json?.contentRatings) {
     response.setHeader("X-Flim-Cache", "HIT");
     return sendJson(response, 200, cached[0].response_json);
   }
@@ -129,12 +129,12 @@ export default async function handler(request: any, response: any) {
     const requestedType = Array.isArray(request.query.type) ? request.query.type[0] : request.query.type;
     if (path.startsWith("tv/")) {
       const tmdbId = Number(path.split("/")[1]);
-      if (!Number.isFinite(tmdbId)) return sendJson(response, 400, { error: "A valid TMDb TV ID is required." });
+      if (!Number.isFinite(tmdbId)) return sendJson(response, 400, { error: "A valid TV show ID is required." });
       return handleTvDetails(tmdbId, response);
     }
 
     const tmdbId = Number(path);
-    if (!Number.isFinite(tmdbId)) return sendJson(response, 400, { error: "A valid TMDb movie ID is required." });
+    if (!Number.isFinite(tmdbId)) return sendJson(response, 400, { error: "A valid movie ID is required." });
     if (requestedType === "tv") return handleTvDetails(tmdbId, response);
     return handleMovieDetails(tmdbId, response);
   } catch (error) {

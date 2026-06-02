@@ -1727,6 +1727,62 @@ textarea { min-height: 42px; resize: vertical; }
 .select-action-stack { display: grid; gap: 6px; align-items: start; }
 .success-text { color: var(--mint); font-weight: 800; }
 .error-text { color: #ff9cae; font-weight: 800; }
+.add-playlists-panel {
+  display: grid;
+  gap: 12px;
+  width: min(100%, 520px);
+}
+.add-playlists-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  font-weight: 950;
+}
+.add-playlists-heading small {
+  color: var(--muted);
+  font-size: .78rem;
+}
+.add-playlist-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+}
+.add-playlist-option {
+  min-height: 58px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 10px;
+  align-items: center;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 14px;
+  padding: 10px;
+  background: rgba(255,255,255,.055);
+  cursor: pointer;
+}
+.add-playlist-option input {
+  grid-row: span 2;
+  width: 18px;
+  height: 18px;
+}
+.add-playlist-option span {
+  font-weight: 900;
+}
+.add-playlist-option small {
+  color: var(--muted);
+}
+.add-playlist-option:has(input:checked) {
+  border-color: rgba(255,184,77,.7);
+  background: rgba(255,184,77,.12);
+}
+.add-playlist-option.already-added {
+  opacity: .74;
+}
+.add-playlists-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
 .helper-text, .empty-state { color: var(--muted); }
 .empty-playlists-panel {
   display: grid;

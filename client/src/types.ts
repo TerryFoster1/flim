@@ -55,6 +55,13 @@ export interface MovieDetails extends MovieSearchResult {
   seasonCount?: number;
   episodeCount?: number;
   firstAirYear?: string;
+  contentRating?: string;
+  contentRatings?: ContentRating[];
+}
+
+export interface ContentRating {
+  countryCode: string;
+  rating: string;
 }
 
 export interface TvSeriesDetails {

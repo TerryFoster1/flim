@@ -18,6 +18,18 @@ interface TmdbMovieDetails extends TmdbSearchMovie {
   number_of_seasons?: number;
   number_of_episodes?: number;
   episode_run_time?: number[];
+  release_dates?: {
+    results?: Array<{
+      iso_3166_1: string;
+      release_dates?: Array<{ certification?: string }>;
+    }>;
+  };
+  content_ratings?: {
+    results?: Array<{
+      iso_3166_1: string;
+      rating?: string;
+    }>;
+  };
 }
 
 function tmdbAccessToken() {
@@ -79,6 +91,36 @@ function mapSearchMovie(movie: TmdbSearchMovie, mediaType: "movie" | "tv" = "mov
     posterUrl: posterUrl(movie.poster_path),
     genreIds: movie.genre_ids || [],
   };
+}
+
+function firstNonEmptyRating(values: Array<string | undefined>) {
+  return values.find((value) => Boolean(value?.trim()))?.trim();
+}
+
+function mapContentRatings(payload: TmdbMovieDetails, mediaType: "movie" | "tv") {
+  if (mediaType === "tv") {
+    return (payload.content_ratings?.results || [])
+      .map((result) => ({
+        countryCode: result.iso_3166_1,
+        rating: result.rating?.trim() || "",
+      }))
+      .filter((result) => result.countryCode && result.rating);
+  }
+
+  return (payload.release_dates?.results || [])
+    .map((result) => ({
+      countryCode: result.iso_3166_1,
+      rating: firstNonEmptyRating((result.release_dates || []).map((release) => release.certification)) || "",
+    }))
+    .filter((result) => result.countryCode && result.rating);
+}
+
+function chooseContentRating(ratings: Array<{ countryCode: string; rating: string }>) {
+  return (
+    ratings.find((rating) => rating.countryCode === "CA") ||
+    ratings.find((rating) => rating.countryCode === "US") ||
+    ratings[0]
+  )?.rating;
 }
 
 export function normalizeMovieQuery(query: string) {
@@ -149,7 +191,7 @@ async function fetchTmdbSearchByType(query: string, mediaType: "movie" | "tv") {
 
   const response = await fetch(url, applyTmdbAuth(url));
   if (!response.ok) {
-    throw new Error("TMDb movie search failed.");
+    throw new Error("Movie search failed.");
   }
 
   const payload = (await response.json()) as { results?: TmdbSearchMovie[] };
@@ -172,14 +214,16 @@ export async function fetchTmdbMovieDetails(tmdbId: number, mediaType: "movie" |
 
   const url = new URL(`${TMDB_API_BASE_URL}/${mediaType}/${tmdbId}`);
   url.searchParams.set("language", "en-US");
+  url.searchParams.set("append_to_response", mediaType === "tv" ? "content_ratings" : "release_dates");
 
   const response = await fetch(url, applyTmdbAuth(url));
   if (!response.ok) {
-    throw new Error("TMDb movie details failed.");
+    throw new Error("Title details failed.");
   }
 
   const payload = (await response.json()) as TmdbMovieDetails;
   const base = mapSearchMovie(payload, mediaType);
+  const contentRatings = mapContentRatings(payload, mediaType);
 
   return {
     ...base,
@@ -188,5 +232,7 @@ export async function fetchTmdbMovieDetails(tmdbId: number, mediaType: "movie" |
     seasonCount: payload.number_of_seasons,
     episodeCount: payload.number_of_episodes,
     firstAirYear: releaseYear(payload.first_air_date),
+    contentRating: chooseContentRating(contentRatings),
+    contentRatings,
   };
 }
