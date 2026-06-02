@@ -1,6 +1,9 @@
 import { db, readBody, sendJson } from "./_db.js";
+import { ensureTmdbCacheTables, fetchTmdbMovieDetails } from "./_tmdb.js";
 
 const schemaVersion = "2026-06-01-neon-hardening";
+const titleDetailsCacheDays = 30;
+const contentRatingVersion = 1;
 
 function utilityPath(request: any) {
   const pathname = new URL(request.url || "", "https://www.flim.ca").pathname;
@@ -87,11 +90,57 @@ async function handleAdminExport(request: any, response: any) {
   });
 }
 
+async function handleTitleDetails(request: any, response: any) {
+  if (request.method !== "GET") {
+    return sendJson(response, 405, { error: "Method not allowed." });
+  }
+
+  response.setHeader("X-Flim-Title-Details", "ratings-v1");
+  const requestedType = Array.isArray(request.query.type) ? request.query.type[0] : request.query.type;
+  const mediaType = requestedType === "tv" ? "tv" : "movie";
+  const tmdbId = Number(Array.isArray(request.query.id) ? request.query.id[0] : request.query.id);
+  if (!Number.isFinite(tmdbId)) {
+    return sendJson(response, 400, { error: mediaType === "tv" ? "A valid TV show ID is required." : "A valid movie ID is required." });
+  }
+
+  const sql = db();
+  await ensureTmdbCacheTables(sql);
+  const cached = await sql`
+    select response_json
+    from tmdb_movie_cache
+    where tmdb_id = ${tmdbId}
+      and media_type = ${mediaType}
+      and expires_at > now()
+    order by created_at desc
+    limit 1
+  `;
+
+  if (cached[0]?.response_json?.contentRatingVersion === contentRatingVersion) {
+    response.setHeader("X-Flim-Cache", "HIT");
+    return sendJson(response, 200, cached[0].response_json);
+  }
+
+  const title = await fetchTmdbMovieDetails(tmdbId, mediaType);
+  await sql`
+    insert into tmdb_movie_cache (tmdb_id, media_type, response_json, expires_at)
+    values (${tmdbId}, ${mediaType}, ${JSON.stringify(title)}::jsonb, now() + (${titleDetailsCacheDays} * interval '1 day'))
+    on conflict (media_type, tmdb_id)
+    do update set
+      response_json = excluded.response_json,
+      created_at = now(),
+      expires_at = excluded.expires_at
+  `;
+
+  response.setHeader("X-Flim-Cache", "MISS");
+  return sendJson(response, 200, title);
+}
+
 export default async function handler(request: any, response: any) {
   try {
     const path = utilityPath(request);
     if (path === "contact") return handleContact(request, response);
     if (path === "admin/export") return handleAdminExport(request, response);
+    if (path === "title-details") return handleTitleDetails(request, response);
     return sendJson(response, 404, { error: "Not found." });
   } catch (error) {
     return sendJson(response, 500, { error: error instanceof Error ? error.message : "Request failed." });
