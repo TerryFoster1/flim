@@ -234,5 +234,6 @@ export async function fetchTmdbMovieDetails(tmdbId: number, mediaType: "movie" |
     firstAirYear: releaseYear(payload.first_air_date),
     contentRating: chooseContentRating(contentRatings),
     contentRatings,
+    contentRatingVersion: 1,
   };
 }

@@ -43,5 +43,5 @@ export async function getTvDetails(tmdbId: number): Promise<MovieDetails> {
     throw new Error("A valid TV show ID is required.");
   }
 
-  return apiRequest<MovieDetails>(`/api/movies/tv/${tmdbId}`);
+  return apiRequest<MovieDetails>(`/api/movies/${tmdbId}?type=tv`);
 }

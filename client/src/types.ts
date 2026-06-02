@@ -57,6 +57,7 @@ export interface MovieDetails extends MovieSearchResult {
   firstAirYear?: string;
   contentRating?: string;
   contentRatings?: ContentRating[];
+  contentRatingVersion?: number;
 }
 
 export interface ContentRating {

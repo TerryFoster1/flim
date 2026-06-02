@@ -67,7 +67,7 @@ async function handleMovieDetails(tmdbId: number, response: any) {
     limit 1
   `;
 
-  if (cached[0]?.response_json?.contentRatings) {
+  if (cached[0]?.response_json?.contentRatingVersion === 1) {
     response.setHeader("X-Flim-Cache", "HIT");
     return sendJson(response, 200, cached[0].response_json);
   }
@@ -100,7 +100,7 @@ async function handleTvDetails(tmdbId: number, response: any) {
     limit 1
   `;
 
-  if (cached[0]) {
+  if (cached[0]?.response_json?.contentRatingVersion === 1) {
     response.setHeader("X-Flim-Cache", "HIT");
     return sendJson(response, 200, cached[0].response_json);
   }
