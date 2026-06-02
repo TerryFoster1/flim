@@ -30,9 +30,16 @@ export default async function handler(request: any, response: any) {
       if (!ownsPlaylist[0]) return sendJson(response, 403, { error: "Only the playlist owner can add movies." });
       const body = await readBody(request);
       const mediaType = body.mediaType === "tv" ? "tv" : "movie";
+      const tmdbId = Number(body.tmdbId);
+      const title = String(body.title || "").trim();
+
+      if (!Number.isFinite(tmdbId) || tmdbId <= 0 || !title) {
+        return sendJson(response, 400, { error: "Choose a valid movie or TV show before adding it." });
+      }
+
       const [movie] = await sql`
         insert into playlist_movies (playlist_id, media_type, tmdb_id, title, year, poster_url, overview, runtime_minutes, season_count, episode_count, watched)
-        values (${playlistId}, ${mediaType}, ${body.tmdbId}, ${body.title}, ${body.releaseYear || body.firstAirYear || null}, ${body.posterUrl || null}, ${body.overview || null}, ${body.runtimeMinutes || null}, ${body.seasonCount || null}, ${body.episodeCount || null}, false)
+        values (${playlistId}, ${mediaType}, ${tmdbId}, ${title}, ${body.releaseYear || body.firstAirYear || null}, ${body.posterUrl || null}, ${body.overview || null}, ${body.runtimeMinutes || null}, ${body.seasonCount || null}, ${body.episodeCount || null}, false)
         on conflict (playlist_id, media_type, tmdb_id)
         do update set
           title = excluded.title,
@@ -50,6 +57,11 @@ export default async function handler(request: any, response: any) {
 
     return sendJson(response, 405, { error: "Method not allowed." });
   } catch (error) {
+    console.error("playlist_movie_save_failed", {
+      playlistId,
+      method: request.method,
+      message: error instanceof Error ? error.message : "Unknown playlist movie error",
+    });
     return sendJson(response, 500, { error: error instanceof Error ? error.message : "Playlist movie request failed." });
   }
 }

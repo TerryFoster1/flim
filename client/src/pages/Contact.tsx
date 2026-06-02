@@ -47,7 +47,7 @@ export function Contact() {
           {status === "sending" ? "Sending..." : "Send Message"}
         </button>
       </form>
-      {status === "sent" ? <p className="success-message">Message received. Email delivery will be wired to the backend notification provider next.</p> : null}
+      {status === "sent" ? <p className="success-message">Message received. Thanks for reaching out to Flim.</p> : null}
       {status === "error" ? <p className="error-message">Could not send your message right now. Please try again shortly.</p> : null}
     </PageShell>
   );

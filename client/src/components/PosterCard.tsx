@@ -6,8 +6,8 @@ interface PosterCardProps {
   movie: PlaylistMovie;
   playlistId?: string;
   onNavigate?: (path: string) => void;
-  onRemove?: (playlistId: string, tmdbId: number) => void | Promise<void>;
-  onWatchStatusChange?: (playlistId: string, tmdbId: number, watchStatus: WatchStatus) => void | Promise<void>;
+  onRemove?: (playlistId: string, tmdbId: number, mediaType?: string) => void | Promise<void>;
+  onWatchStatusChange?: (playlistId: string, tmdbId: number, watchStatus: WatchStatus, mediaType?: string) => void | Promise<void>;
 }
 
 export function PosterCard({ movie, playlistId, onNavigate, onRemove, onWatchStatusChange }: PosterCardProps) {
@@ -36,12 +36,12 @@ export function PosterCard({ movie, playlistId, onNavigate, onRemove, onWatchSta
           <label className="watched-toggle">
             <input
               checked={watched}
-              onChange={(event) => onWatchStatusChange?.(playlistId, movie.tmdbId, event.target.checked ? "watched" : "not_watched")}
+              onChange={(event) => onWatchStatusChange?.(playlistId, movie.tmdbId, event.target.checked ? "watched" : "not_watched", movie.mediaType || "movie")}
               type="checkbox"
             />
             Watched
           </label>
-          <button className="text-button" onClick={() => onRemove?.(playlistId, movie.tmdbId)} type="button">
+          <button className="text-button" onClick={() => onRemove?.(playlistId, movie.tmdbId, movie.mediaType || "movie")} type="button">
             Remove
           </button>
         </div>

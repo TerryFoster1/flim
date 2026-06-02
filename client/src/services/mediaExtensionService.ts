@@ -36,7 +36,7 @@ export function getSoundtrackAvailability(media: { tmdbId: number; title: string
         },
       ],
     },
-    notes: "Soundtrack lookup is planned. Current Spotify action opens a search fallback and does not confirm album availability.",
+    notes: "Find soundtrack albums and playlists on Spotify.",
   };
 }
 
@@ -72,6 +72,6 @@ export function getMediaExtensions(media: { tmdbId: number; title: string; media
     soundtrack: getSoundtrackAvailability(media),
     videos: getTrailerLinks(media),
     trivia: getTriviaPlaceholders(media),
-    notes: "Media extensions are Phase 1 placeholders. Spotify, YouTube, and trivia integrations are not connected yet.",
+    notes: "Explore more ways to enjoy this title.",
   };
 }

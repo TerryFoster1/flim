@@ -22,7 +22,7 @@ export function MediaExtensions({ media }: MediaExtensionsProps) {
           <span className="eyebrow">Media Extensions</span>
           <h2>Keep exploring</h2>
         </div>
-        <span className="provider-status">Foundation only</span>
+        <span className="provider-status">Movie Hub</span>
       </div>
 
       <div className="media-extension-grid">
@@ -68,7 +68,7 @@ export function MediaExtensions({ media }: MediaExtensionsProps) {
           <div>
             <span className="extension-icon">🎞</span>
             <h3>Watch Trailer</h3>
-            <p>Official trailer support is planned. This opens a YouTube search fallback for now.</p>
+            <p>Open trailer results on YouTube.</p>
             {trailerLink ? (
               <a className="secondary-button" href={trailerLink.url} rel="noreferrer" target="_blank">
                 Open In YouTube
@@ -85,7 +85,7 @@ export function MediaExtensions({ media }: MediaExtensionsProps) {
           <div>
             <span className="extension-icon">📖</span>
             <h3>Trivia & Facts</h3>
-            <p>Trivia, awards, production notes, and behind-the-scenes content are planned for a later phase.</p>
+            <p>Trivia, awards, production notes, and behind-the-scenes stories.</p>
             <button className="secondary-button" disabled type="button">Coming Soon</button>
           </div>
         </article>
@@ -98,7 +98,7 @@ export function MediaExtensions({ media }: MediaExtensionsProps) {
           <div>
             <span className="extension-icon">🎲</span>
             <h3>Add To Now Playing</h3>
-            <p>Now Playing currently uses saved playlist movies. Direct movie weighting is planned for a future release.</p>
+            <p>Use your saved playlist titles to choose tonight's pick.</p>
             <button className="secondary-button" onClick={() => window.dispatchEvent(new CustomEvent("flim:open-roulette"))} type="button">
               Open Now Playing
             </button>

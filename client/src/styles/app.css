@@ -1724,6 +1724,9 @@ input, textarea, select {
 }
 textarea { min-height: 42px; resize: vertical; }
 .select-action { min-width: 180px; }
+.select-action-stack { display: grid; gap: 6px; align-items: start; }
+.success-text { color: var(--mint); font-weight: 800; }
+.error-text { color: #ff9cae; font-weight: 800; }
 .helper-text, .empty-state { color: var(--muted); }
 .empty-playlists-panel {
   display: grid;

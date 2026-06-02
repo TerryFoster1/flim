@@ -13,8 +13,8 @@ interface PlaylistDetailsProps {
   addToPlaylist: (playlistId: string, movie: MovieSearchResult) => void | Promise<void>;
   clonePlaylist: (playlistId: string) => void | Promise<void>;
   deletePlaylist: (playlistId: string) => void | Promise<void>;
-  removeMovie: (playlistId: string, tmdbId: number) => void | Promise<void>;
-  updateWatchStatus: (playlistId: string, tmdbId: number, watchStatus: WatchStatus) => void | Promise<void>;
+  removeMovie: (playlistId: string, tmdbId: number, mediaType?: string) => void | Promise<void>;
+  updateWatchStatus: (playlistId: string, tmdbId: number, watchStatus: WatchStatus, mediaType?: string) => void | Promise<void>;
 }
 
 export function PlaylistDetails({ playlist, onNavigate, addToPlaylist, clonePlaylist, deletePlaylist, removeMovie, updateWatchStatus }: PlaylistDetailsProps) {

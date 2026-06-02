@@ -5,8 +5,8 @@ interface MovieGridProps {
   movies?: PlaylistMovie[];
   playlistId?: string;
   onNavigate?: (path: string) => void;
-  onRemove?: (playlistId: string, tmdbId: number) => void | Promise<void>;
-  onWatchStatusChange?: (playlistId: string, tmdbId: number, watchStatus: WatchStatus) => void | Promise<void>;
+  onRemove?: (playlistId: string, tmdbId: number, mediaType?: string) => void | Promise<void>;
+  onWatchStatusChange?: (playlistId: string, tmdbId: number, watchStatus: WatchStatus, mediaType?: string) => void | Promise<void>;
   emptyMessage?: string;
 }
 

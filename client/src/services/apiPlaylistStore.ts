@@ -53,14 +53,14 @@ export function addMovieToPlaylist(playlistId: string, movie: MovieSearchResult 
   });
 }
 
-export function removeMovieFromPlaylist(playlistId: string, tmdbId: number) {
-  return apiRequest<{ ok: boolean }>(`/api/playlists/${playlistId}/movies/${tmdbId}`, {
+export function removeMovieFromPlaylist(playlistId: string, tmdbId: number, mediaType = "movie") {
+  return apiRequest<{ ok: boolean }>(`/api/playlists/${playlistId}/movies/${tmdbId}?type=${mediaType}`, {
     method: "DELETE",
   });
 }
 
-export function toggleWatchedStatus(playlistId: string, tmdbId: number, watchStatus: WatchStatus) {
-  return apiRequest<{ ok: boolean }>(`/api/playlists/${playlistId}/movies/${tmdbId}/watched`, {
+export function toggleWatchedStatus(playlistId: string, tmdbId: number, watchStatus: WatchStatus, mediaType = "movie") {
+  return apiRequest<{ ok: boolean }>(`/api/playlists/${playlistId}/movies/${tmdbId}/watched?type=${mediaType}`, {
     method: "PATCH",
     body: JSON.stringify({ watchStatus }),
   });

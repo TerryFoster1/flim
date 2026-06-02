@@ -6,7 +6,7 @@ export const watchProviders: WatchProvider[] = [
     name: "Plex",
     icon: "Plex",
     searchUrlTemplate: "https://watch.plex.tv/search?q={title}",
-    notes: "Plex is Flim's first planned serious library and remote playback target. Account connection is not implemented yet.",
+    notes: "Connect Plex from Settings when library linking becomes available.",
   },
   {
     id: "netflix",
@@ -20,7 +20,7 @@ export const watchProviders: WatchProvider[] = [
     name: "Prime Video",
     icon: "Prime",
     searchUrlTemplate: "https://www.primevideo.com/search/ref=atv_nb_sr?phrase={title}",
-    notes: "Prime Video search links are fallbacks, not confirmed availability.",
+    notes: "Availability varies by region and device.",
   },
   {
     id: "disney",
@@ -41,14 +41,14 @@ export const watchProviders: WatchProvider[] = [
     name: "Crave",
     icon: "Crave",
     searchUrlTemplate: "https://www.crave.ca/en/search?query={title}",
-    notes: "Crave availability is regional and not confirmed by this placeholder link.",
+    notes: "Availability varies by region.",
   },
   {
     id: "youtube",
     name: "YouTube",
     icon: "YT",
     searchUrlTemplate: "https://www.youtube.com/results?search_query={title}+movie",
-    notes: "YouTube fallback opens a movie search and does not confirm rental or purchase availability.",
+    notes: "Availability varies by region.",
   },
   {
     id: "tubi",
@@ -62,7 +62,7 @@ export const watchProviders: WatchProvider[] = [
     name: "Paramount+",
     icon: "P+",
     searchUrlTemplate: "https://www.paramountplus.com/search/?query={title}",
-    notes: "Paramount+ links open search fallback behavior until exact provider availability is supported.",
+    notes: "Availability varies by region.",
   },
 ];
 
@@ -96,7 +96,7 @@ export function getProviderLinksForMovie(movie: { title: string; tmdbId: number 
     availabilityKnown: false,
     links,
     notes: hasRegion
-      ? `Streaming availability for ${streamingRegion} is coming soon. Flim will only show confirmed provider availability when regional data is connected.`
+      ? "Streaming availability coming soon."
       : "Set your streaming region for more accurate availability.",
     regionPrompt: hasRegion ? undefined : "Set your streaming region for more accurate availability.",
   };

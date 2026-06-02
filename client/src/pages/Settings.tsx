@@ -241,7 +241,7 @@ export function Settings({ currentUser, onNavigate }: SettingsProps) {
         <section className="settings-panel">
           <div className="settings-panel-heading">
             <span className="eyebrow">Preferred Services</span>
-            <h2>Provider filters foundation</h2>
+            <h2>Your watch services</h2>
           </div>
           <div className="provider-preference-grid">
             {watchProviders.map((provider) => (
@@ -251,27 +251,22 @@ export function Settings({ currentUser, onNavigate }: SettingsProps) {
                 onClick={() => toggleProvider(provider.id)}
                 type="button"
               >
-                <span>{provider.icon}</span>
                 {provider.name}
               </button>
             ))}
           </div>
-          <p className="helper-text">Future filters will support combinations like Netflix Canada, Disney+ Canada, Prime Video Canada, Crave Canada, Tubi Canada, and Plex Library.</p>
+          <p className="helper-text">Choose the services you use most so Flim can personalize watch options as availability improves.</p>
         </section>
 
         <section className="settings-integration-card">
           <span className="eyebrow">Plex Library</span>
-          <h2>Plex connection placeholder</h2>
+          <h2>Connect Plex</h2>
           <p>
-            Plex will become Flim's first preferred playback source when a movie exists in your library. Account
-            connection, library import, matching, and player control are still planned for a later authenticated phase.
+            Link your Plex library so Flim can know what you already own and prioritize Plex when choosing what to watch.
           </p>
           <div className="button-row">
             <button className="secondary-button" disabled type="button">
-              Connect Plex
-            </button>
-            <button className="secondary-button" disabled type="button">
-              Import Plex Library
+              Coming Soon
             </button>
           </div>
         </section>

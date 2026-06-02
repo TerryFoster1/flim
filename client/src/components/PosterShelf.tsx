@@ -7,8 +7,8 @@ interface PosterShelfProps {
   movies?: PlaylistMovie[];
   playlistId?: string;
   onNavigate?: (path: string) => void;
-  onRemove?: (playlistId: string, tmdbId: number) => void | Promise<void>;
-  onWatchStatusChange?: (playlistId: string, tmdbId: number, watchStatus: WatchStatus) => void | Promise<void>;
+  onRemove?: (playlistId: string, tmdbId: number, mediaType?: string) => void | Promise<void>;
+  onWatchStatusChange?: (playlistId: string, tmdbId: number, watchStatus: WatchStatus, mediaType?: string) => void | Promise<void>;
 }
 
 export function PosterShelf({ title, eyebrow = "Poster shelf", movies, playlistId, onNavigate, onRemove, onWatchStatusChange }: PosterShelfProps) {
@@ -25,7 +25,7 @@ export function PosterShelf({ title, eyebrow = "Poster shelf", movies, playlistI
         <div className="poster-row">
           {displayMovies.map((movie) => (
             <PosterCard
-              key={`${title}-${movie.tmdbId}`}
+              key={`${title}-${movie.mediaType || "movie"}-${movie.tmdbId}`}
               movie={movie}
               playlistId={playlistId}
               onNavigate={onNavigate}

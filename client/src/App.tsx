@@ -122,13 +122,13 @@ export default function App() {
     await refreshPlaylists();
   }
 
-  async function removeFromPlaylist(playlistId: string, tmdbId: number) {
-    await removeMovieFromPlaylist(playlistId, tmdbId);
+  async function removeFromPlaylist(playlistId: string, tmdbId: number, mediaType = "movie") {
+    await removeMovieFromPlaylist(playlistId, tmdbId, mediaType);
     await refreshPlaylists();
   }
 
-  async function updateWatchStatus(playlistId: string, tmdbId: number, watchStatus: WatchStatus) {
-    await toggleWatchedStatus(playlistId, tmdbId, watchStatus);
+  async function updateWatchStatus(playlistId: string, tmdbId: number, watchStatus: WatchStatus, mediaType = "movie") {
+    await toggleWatchedStatus(playlistId, tmdbId, watchStatus, mediaType);
     await refreshPlaylists();
   }
 

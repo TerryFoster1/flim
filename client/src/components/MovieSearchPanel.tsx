@@ -18,6 +18,7 @@ export function MovieSearchPanel({ playlists, addToPlaylist, onNavigate, variant
   const [mediaType, setMediaType] = useState<MediaSearchMode>("both");
   const [status, setStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
   const [message, setMessage] = useState("");
+  const [addMessage, setAddMessage] = useState("");
   const hasKey = hasTmdbApiKey();
 
   async function submitSearch(event: FormEvent<HTMLFormElement>) {
@@ -92,8 +93,13 @@ export function MovieSearchPanel({ playlists, addToPlaylist, onNavigate, variant
                       <button
                         className="primary-button"
                         onClick={async () => {
-                          await addToPlaylist(fixedPlaylistId, movie);
-                          onMovieAdded?.();
+                          setAddMessage("");
+                          try {
+                            await addToPlaylist(fixedPlaylistId, movie);
+                            onMovieAdded?.();
+                          } catch (error) {
+                            setAddMessage(error instanceof Error ? error.message : "Could not add this title. Please try again.");
+                          }
                         }}
                         type="button"
                       >
@@ -111,6 +117,7 @@ export function MovieSearchPanel({ playlists, addToPlaylist, onNavigate, variant
               </article>
             ))}
           </div>
+          {addMessage ? <p className="error-message">{addMessage}</p> : null}
         </div>
       ) : null}
     </section>

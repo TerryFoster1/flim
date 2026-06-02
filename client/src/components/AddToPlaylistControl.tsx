@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { MovieDetails, MovieSearchResult, Playlist } from "../types";
 
 interface AddToPlaylistControlProps {
@@ -7,29 +8,40 @@ interface AddToPlaylistControlProps {
 }
 
 export function AddToPlaylistControl({ movie, playlists, addToPlaylist }: AddToPlaylistControlProps) {
+  const [message, setMessage] = useState("");
+
   if (playlists.length === 0) {
     return <span className="helper-text">Create a playlist first.</span>;
   }
 
   return (
-    <label className="select-action">
-      <span>Add to</span>
-      <select
-        defaultValue=""
-        onChange={async (event) => {
-          if (event.target.value) {
-            await addToPlaylist(event.target.value, movie);
-            event.target.value = "";
-          }
-        }}
-      >
-        <option value="">Choose playlist</option>
-        {playlists.map((playlist) => (
-          <option key={playlist.id} value={playlist.id}>
-            {playlist.name}
-          </option>
-        ))}
-      </select>
-    </label>
+    <div className="select-action-stack">
+      <label className="select-action">
+        <span>Add to</span>
+        <select
+          defaultValue=""
+          onChange={async (event) => {
+            const playlistId = event.target.value;
+            if (!playlistId) return;
+            setMessage("");
+            try {
+              await addToPlaylist(playlistId, movie);
+              setMessage("Added to playlist.");
+              event.target.value = "";
+            } catch (error) {
+              setMessage(error instanceof Error ? error.message : "Could not add this title. Please try again.");
+            }
+          }}
+        >
+          <option value="">Choose playlist</option>
+          {playlists.map((playlist) => (
+            <option key={playlist.id} value={playlist.id}>
+              {playlist.name}
+            </option>
+          ))}
+        </select>
+      </label>
+      {message ? <small className={message.startsWith("Added") ? "success-text" : "error-text"}>{message}</small> : null}
+    </div>
   );
 }

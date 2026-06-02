@@ -3,6 +3,7 @@ import { db, getCurrentUser, readBody, sendJson } from "../../../../_db.js";
 export default async function handler(request: any, response: any) {
   const playlistId = request.query.id as string;
   const movieId = Number(request.query.movieId);
+  const mediaType = request.query.type === "tv" ? "tv" : "movie";
 
   try {
     const sql = db();
@@ -20,6 +21,7 @@ export default async function handler(request: any, response: any) {
         where p.id = pm.playlist_id
           and pm.playlist_id = ${playlistId}
           and pm.tmdb_id = ${movieId}
+          and pm.media_type = ${mediaType}
           and p.owner_user_id = ${user.id}
       `;
 
