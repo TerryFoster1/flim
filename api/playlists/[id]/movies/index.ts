@@ -1,11 +1,41 @@
-import { db, ensurePlaylistMediaColumns, getCurrentUser, mapPlaylistMovie, readBody, sendJson } from "../../../_db.js";
+import { db, getCurrentUser, mapPlaylistMovie, readBody, sendJson } from "../../../_db.js";
+
+async function ensurePlaylistMovieSchema(sql: any) {
+  await sql`alter table playlist_movies add column if not exists media_type text not null default 'movie'`;
+  await sql`alter table playlist_movies add column if not exists runtime_minutes integer`;
+  await sql`alter table playlist_movies add column if not exists season_count integer`;
+  await sql`alter table playlist_movies add column if not exists episode_count integer`;
+  await sql`
+    do $$
+    begin
+      if exists (
+        select 1
+        from pg_constraint
+        where conname = 'playlist_movies_playlist_id_tmdb_id_key'
+          and conrelid = 'playlist_movies'::regclass
+      ) then
+        alter table playlist_movies drop constraint playlist_movies_playlist_id_tmdb_id_key;
+      elsif exists (
+        select 1
+        from pg_class
+        where relname = 'playlist_movies_playlist_id_tmdb_id_key'
+          and relkind = 'i'
+      ) then
+        drop index playlist_movies_playlist_id_tmdb_id_key;
+      end if;
+    end $$;
+  `;
+  await sql`create unique index if not exists playlist_movies_playlist_media_tmdb_unique on playlist_movies (playlist_id, media_type, tmdb_id)`;
+  await sql`create index if not exists playlist_movies_media_type_idx on playlist_movies (media_type)`;
+  await sql`create index if not exists playlist_movies_watched_idx on playlist_movies (watched)`;
+}
 
 export default async function handler(request: any, response: any) {
   const playlistId = request.query.id as string;
 
   try {
     const sql = db();
-    await ensurePlaylistMediaColumns(sql);
+    await ensurePlaylistMovieSchema(sql);
     const user = await getCurrentUser(sql, request);
 
     if (request.method === "GET") {
