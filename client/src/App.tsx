@@ -21,7 +21,6 @@ import { ProfilePlaylists } from "./pages/ProfilePlaylists";
 import { ProfileSaved } from "./pages/ProfileSaved";
 import { ProfileWatched } from "./pages/ProfileWatched";
 import { PublicPlaylist } from "./pages/PublicPlaylist";
-import { PublicPlaylists } from "./pages/PublicPlaylists";
 import { PublicProfile } from "./pages/PublicProfile";
 import { Roulette } from "./pages/Roulette";
 import { Settings } from "./pages/Settings";
@@ -214,7 +213,7 @@ export default function App() {
         updateWatchStatus={updateWatchStatus}
       />
     ),
-    "/public": <PublicPlaylists onNavigate={navigate} playlists={playlists} clonePlaylist={cloneRemotePlaylist} />,
+    "/public": playlistsPage("public"),
     "/roulette": playlistsPage("my"),
     "/profile": <Profile onNavigate={navigate} playlists={displayPlaylists} />,
     "/profile/playlists": <ProfilePlaylists onNavigate={navigate} playlists={displayPlaylists} />,
@@ -243,17 +242,33 @@ export default function App() {
         <Footer />
       </div>
       <InstallFlimPrompt />
-      <button
-        className="floating-roulette-button"
-        aria-label="Open Now Playing"
-        onClick={() => {
-          setRoulettePlaylists(null);
-          setIsRouletteOpen(true);
-        }}
-        type="button"
-      >
-        <NowPlayingTicketIcon />
-      </button>
+      <div className="playlist-bottom-control" role="navigation" aria-label="Playlist controls">
+        <button
+          className={`bottom-control-tab ${activeRoute === "/" || activeRoute === "/playlists" || activeRoute === "/playlists/:id" || activeRoute === "/discover" ? "is-active" : ""}`}
+          onClick={() => navigate("/playlists")}
+          type="button"
+        >
+          My Playlists
+        </button>
+        <button
+          className="bottom-now-playing-button"
+          aria-label="Open Movie Roulette"
+          onClick={() => {
+            setRoulettePlaylists(null);
+            setIsRouletteOpen(true);
+          }}
+          type="button"
+        >
+          <NowPlayingTicketIcon />
+        </button>
+        <button
+          className={`bottom-control-tab ${activeRoute === "/public" ? "is-active" : ""}`}
+          onClick={() => navigate("/public")}
+          type="button"
+        >
+          Public Playlists
+        </button>
+      </div>
       {isRouletteOpen ? (
         <div className="roulette-modal-backdrop" role="dialog" aria-modal="true" aria-label="Now Playing">
           <button

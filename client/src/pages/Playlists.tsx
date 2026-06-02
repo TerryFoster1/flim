@@ -54,8 +54,6 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
     );
   }, [query, sourcePlaylists]);
 
-  const showPlaylistSearch = query.trim().length > 0 || sourcePlaylists.length > 8;
-
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!currentUser) {
@@ -79,8 +77,7 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
   }
 
   function browsePublicPlaylists() {
-    setView("public");
-    setQuery("");
+    onNavigate("/public");
   }
 
   function requestCreatePlaylist() {
@@ -143,28 +140,15 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
         </section>
       ) : null}
 
-      <div className="collections-command-bar">
-        {showPlaylistSearch ? (
-          <label className="collection-search">
-            <span>Search playlists</span>
-            <input onChange={(event) => setQuery(event.target.value)} placeholder="Search playlists..." type="search" value={query} />
-          </label>
-        ) : null}
-        <div className="collection-toggle" aria-label="Playlist type">
-          <button className={view === "my" ? "is-active" : ""} onClick={() => setView("my")} type="button">
-            My Playlists
-          </button>
-          <button className={view === "public" ? "is-active" : ""} onClick={() => setView("public")} type="button">
-            Public Playlists
-          </button>
-        </div>
-      </div>
-
       {notice ? <p className="success-message">{notice}</p> : null}
       {error ? <p className="error-message">{error}</p> : null}
 
-      <div className="playlist-shelf-heading">
-        <h2>{view === "public" ? "Shared movie lists" : "Playlists"}</h2>
+      <div className="playlist-shelf-heading playlist-shelf-heading-with-search">
+        <h2>{view === "public" ? "Public Playlists" : "Playlists"}</h2>
+        <label className="collection-search playlist-title-search">
+          <span>Search playlists</span>
+          <input onChange={(event) => setQuery(event.target.value)} placeholder="Search playlists..." type="search" value={query} />
+        </label>
       </div>
 
       {showCreate ? (

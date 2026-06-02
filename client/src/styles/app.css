@@ -212,7 +212,7 @@ button { color: inherit; font: inherit; }
   font-size: .88rem;
   border-radius: 999px;
 }
-.page-container { width: min(1480px, 100%); margin: 0 auto; padding: clamp(16px, 3vw, 44px); padding-bottom: 104px; }
+.page-container { width: min(1480px, 100%); margin: 0 auto; padding: clamp(16px, 3vw, 44px); padding-bottom: 136px; }
 .route-page { animation: pageIn 0.28s ease; }
 @keyframes pageIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 .cinema-hero {
@@ -429,6 +429,28 @@ h3 { margin-bottom: 8px; }
   grid-column: 2;
   grid-row: 1 / span 2;
   align-self: end;
+}
+.playlist-shelf-heading-with-search {
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 420px);
+  align-items: center;
+  margin-top: clamp(18px, 4vw, 34px);
+}
+.playlist-title-search {
+  display: grid;
+  gap: 6px;
+}
+.playlist-title-search span {
+  color: var(--muted);
+  font-size: .76rem;
+  font-weight: 900;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.playlist-title-search input {
+  width: 100%;
+  border-color: rgba(255,184,77,.24);
+  background: rgba(255,255,255,.065);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.035);
 }
 .director-cut-section {
   position: relative;
@@ -2869,30 +2891,73 @@ textarea { min-height: 42px; resize: vertical; }
   text-decoration: underline;
 }
 .mobile-nav { display: none; }
-.floating-roulette-button {
+.playlist-bottom-control {
   position: fixed;
   z-index: 28;
-  right: max(18px, env(safe-area-inset-right));
-  bottom: max(18px, env(safe-area-inset-bottom));
-  width: 78px;
-  height: 78px;
-  border: 1px solid rgba(255,184,77,.4);
+  left: 50%;
+  bottom: max(14px, env(safe-area-inset-bottom));
+  display: grid;
+  grid-template-columns: minmax(96px, 1fr) 86px minmax(106px, 1fr);
+  align-items: center;
+  gap: 6px;
+  width: min(520px, calc(100vw - 24px));
+  min-height: 72px;
+  padding: 8px;
+  border: 1px solid rgba(255,184,77,.24);
   border-radius: 999px;
-  background: radial-gradient(circle at 35% 25%, rgba(255,255,255,.28), transparent 34%), rgba(8,9,13,.88);
-  box-shadow: 0 22px 70px rgba(255, 129, 55, .32), 0 18px 70px rgba(0,0,0,.48);
+  background:
+    radial-gradient(circle at 50% -20%, rgba(255,184,77,.18), transparent 38%),
+    rgba(8,9,13,.92);
+  box-shadow: 0 20px 70px rgba(0,0,0,.56), 0 0 40px rgba(255,184,77,.12);
+  backdrop-filter: blur(22px);
+  transform: translateX(-50%);
+}
+.bottom-control-tab {
+  min-height: 52px;
+  border: 0;
+  border-radius: 999px;
+  padding: 0 12px;
+  background: transparent;
+  color: rgba(255,255,255,.72);
+  font-size: .86rem;
+  font-weight: 950;
+  cursor: pointer;
+  transition: background .18s ease, color .18s ease, transform .18s ease;
+}
+.bottom-control-tab.is-active {
+  background: rgba(255,255,255,.11);
+  color: #fff8e8;
+  box-shadow: inset 0 0 0 1px rgba(255,184,77,.22);
+}
+.bottom-control-tab:hover,
+.bottom-control-tab:focus-visible {
+  color: #fff;
+  background: rgba(255,255,255,.1);
+  outline: none;
+}
+.bottom-now-playing-button {
+  width: 86px;
+  height: 68px;
+  border: 1px solid rgba(255,184,77,.46);
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 50% 16%, rgba(255,255,255,.28), transparent 32%),
+    rgba(11,8,10,.95);
+  box-shadow: 0 12px 34px rgba(0,0,0,.48), 0 0 38px rgba(255,184,77,.24);
   display: grid;
   place-items: center;
   cursor: pointer;
+  transform: translateY(-12px);
   animation: reelButtonPulse 2.8s ease-in-out infinite;
 }
-.floating-roulette-button .now-playing-ticket-svg {
-  width: 76px;
-  height: 54px;
+.bottom-now-playing-button .now-playing-ticket-svg {
+  width: 80px;
+  height: 56px;
   filter: drop-shadow(0 10px 24px rgba(255,184,77,.34));
 }
-.floating-roulette-button:hover,
-.floating-roulette-button:focus-visible {
-  transform: translateY(-2px) scale(1.02);
+.bottom-now-playing-button:hover,
+.bottom-now-playing-button:focus-visible {
+  transform: translateY(-14px) scale(1.02);
   outline: none;
 }
 @keyframes reelButtonPulse {
@@ -3005,7 +3070,7 @@ textarea { min-height: 42px; resize: vertical; }
   .floating-install-card { left: 16px; right: 16px; bottom: 88px; width: auto; }
 }
 @media (max-width: 620px) {
-  .page-container { padding: 16px; padding-bottom: 96px; }
+  .page-container { padding: 16px; padding-bottom: 132px; }
   .topbar {
     height: 82px;
     padding: 0 16px;
@@ -3076,6 +3141,13 @@ textarea { min-height: 42px; resize: vertical; }
     grid-column: 1;
     grid-row: auto;
     justify-self: start;
+  }
+  .playlist-shelf-heading-with-search {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+  .playlist-title-search {
+    width: 100%;
   }
   .director-cut-section {
     margin-left: -4px;
@@ -3225,15 +3297,29 @@ textarea { min-height: 42px; resize: vertical; }
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
   }
-  .floating-roulette-button {
-    right: max(16px, env(safe-area-inset-right));
-    bottom: max(16px, env(safe-area-inset-bottom));
-    width: 72px;
-    height: 72px;
+  .playlist-bottom-control {
+    grid-template-columns: minmax(0, 1fr) 78px minmax(0, 1fr);
+    width: min(100% - 18px, 430px);
+    min-height: 66px;
+    padding: 7px;
   }
-  .floating-roulette-button .now-playing-ticket-svg {
-    width: 72px;
-    height: 50px;
+  .bottom-control-tab {
+    min-height: 48px;
+    padding: 0 8px;
+    font-size: .76rem;
+  }
+  .bottom-now-playing-button {
+    width: 78px;
+    height: 62px;
+    transform: translateY(-10px);
+  }
+  .bottom-now-playing-button .now-playing-ticket-svg {
+    width: 74px;
+    height: 51px;
+  }
+  .bottom-now-playing-button:hover,
+  .bottom-now-playing-button:focus-visible {
+    transform: translateY(-12px) scale(1.02);
   }
   .projector-roulette-stage {
     margin-left: -16px;
