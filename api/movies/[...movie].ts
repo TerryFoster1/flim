@@ -55,6 +55,7 @@ async function handleSearch(request: any, response: any) {
 }
 
 async function handleMovieDetails(tmdbId: number, response: any) {
+  response.setHeader("X-Flim-Movie-Function", "ratings-v1");
   const sql = db();
   await ensureTmdbCacheTables(sql);
   const cached = await sql`
@@ -88,6 +89,7 @@ async function handleMovieDetails(tmdbId: number, response: any) {
 }
 
 async function handleTvDetails(tmdbId: number, response: any) {
+  response.setHeader("X-Flim-Movie-Function", "ratings-v1");
   const sql = db();
   await ensureTmdbCacheTables(sql);
   const cached = await sql`
