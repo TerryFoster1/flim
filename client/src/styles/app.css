@@ -834,7 +834,7 @@ h3 { margin-bottom: 8px; }
 .public-share-actions .secondary-button {
   min-height: 46px;
 }
-.follow-playlist-button {
+.public-playlist-copy .public-share-actions .follow-playlist-button {
   min-height: 48px;
   display: inline-flex;
   align-items: center;
@@ -849,27 +849,31 @@ h3 { margin-bottom: 8px; }
   box-shadow: 0 16px 34px rgba(255, 108, 78, 0.22);
   transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
 }
-.follow-playlist-button:hover,
-.follow-playlist-button:focus-visible {
+.public-playlist-copy .public-share-actions .follow-playlist-button:hover,
+.public-playlist-copy .public-share-actions .follow-playlist-button:focus-visible {
   transform: translateY(-1px);
   border-color: rgba(255, 242, 213, 0.92);
   background: linear-gradient(135deg, #ff667d, #ffc66f);
   color: #0f0508;
   outline: none;
 }
-.follow-playlist-button.is-following {
-  border-color: rgba(62, 226, 160, 0.58);
-  background: rgba(62, 226, 160, 0.18);
-  color: #ecfff7;
-  box-shadow: 0 14px 30px rgba(62, 226, 160, 0.12);
+.public-playlist-copy .public-share-actions .follow-playlist-button.is-following {
+  border-color: rgba(255, 184, 77, 0.72);
+  background:
+    linear-gradient(135deg, rgba(62, 226, 160, 0.28), rgba(62, 226, 160, 0.08)),
+    linear-gradient(135deg, #ff4f6d, #ffb84d);
+  color: #120609;
+  box-shadow: 0 16px 34px rgba(255, 108, 78, 0.2);
 }
-.follow-playlist-button.is-following:hover,
-.follow-playlist-button.is-following:focus-visible {
-  border-color: rgba(62, 226, 160, 0.76);
-  background: rgba(62, 226, 160, 0.24);
-  color: #ffffff;
+.public-playlist-copy .public-share-actions .follow-playlist-button.is-following:hover,
+.public-playlist-copy .public-share-actions .follow-playlist-button.is-following:focus-visible {
+  border-color: rgba(255, 242, 213, 0.92);
+  background:
+    linear-gradient(135deg, rgba(62, 226, 160, 0.34), rgba(62, 226, 160, 0.1)),
+    linear-gradient(135deg, #ff667d, #ffc66f);
+  color: #0f0508;
 }
-.follow-playlist-button:disabled {
+.public-playlist-copy .public-share-actions .follow-playlist-button:disabled {
   cursor: wait;
   opacity: 0.82;
 }
