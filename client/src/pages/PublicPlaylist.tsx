@@ -19,11 +19,15 @@ function generatedCreatorHandle(playlist: Playlist) {
   return playlist.ownerUserId || playlist.id ? "Playlist Creator" : "The Director";
 }
 
+function isGeneratedHandle(handle?: string) {
+  return Boolean(handle && /^flim-user-[a-z0-9]+$/i.test(handle));
+}
+
 function creatorLabel(playlist: Playlist) {
   const isDirectorPlaylist = playlist.creatorHandle === "the-director" || playlist.creatorDisplayName === "The Director";
   if (isDirectorPlaylist) return "Curated by The Director";
   if (playlist.creatorDisplayName) return `Created by ${playlist.creatorDisplayName}`;
-  if (playlist.creatorHandle) return `Created by @${playlist.creatorHandle}`;
+  if (playlist.creatorHandle && !isGeneratedHandle(playlist.creatorHandle)) return `Created by @${playlist.creatorHandle}`;
   return `Created by ${generatedCreatorHandle(playlist)}`;
 }
 
@@ -63,7 +67,7 @@ export function PublicPlaylist({ publicSlug, onNavigate, currentUser, onFollowCh
           </div>
           <div>
             <span className="eyebrow">Shared Playlist</span>
-            <h1>Loading the movie shelf...</h1>
+            <h1>Loading the title shelf...</h1>
           </div>
         </div>
       </section>
@@ -147,7 +151,7 @@ export function PublicPlaylist({ publicSlug, onNavigate, currentUser, onFollowCh
               <button className="creator-handle-link" onClick={() => onNavigate("/@the-director")} type="button">
                 {creatorText}
               </button>
-            ) : playlist.creatorHandle ? (
+            ) : playlist.creatorHandle && !isGeneratedHandle(playlist.creatorHandle) ? (
               <button className="creator-handle-link" onClick={() => onNavigate(`/@${playlist.creatorHandle}`)} type="button">
                 {creatorText}
               </button>
@@ -161,7 +165,7 @@ export function PublicPlaylist({ publicSlug, onNavigate, currentUser, onFollowCh
           </div>
           <div className="public-share-actions">
             {!playlist.isOwner ? (
-              <button className={playlist.isFollowing ? "secondary-button" : "primary-button"} disabled={isUpdatingFollow} onClick={toggleFollow} type="button">
+              <button className={playlist.isFollowing ? "follow-playlist-button is-following" : "follow-playlist-button"} disabled={isUpdatingFollow} onClick={toggleFollow} type="button">
                 {isUpdatingFollow ? "Updating..." : playlist.isFollowing ? "Following \u2713" : "Follow Playlist"}
               </button>
             ) : null}
@@ -175,7 +179,7 @@ export function PublicPlaylist({ publicSlug, onNavigate, currentUser, onFollowCh
           <span className="eyebrow">Poster Wall</span>
           <h2>Browse the list</h2>
         </div>
-        <p>Open any movie to see details, where-to-watch options, trailers, soundtracks, and media extensions.</p>
+        <p>Open any title to see details and keep exploring the playlist.</p>
       </div>
       {playlist.movies.length > 0 ? (
         <MovieGrid
@@ -188,9 +192,9 @@ export function PublicPlaylist({ publicSlug, onNavigate, currentUser, onFollowCh
             {Array.from({ length: 6 }).map((_, index) => <span key={index} />)}
           </div>
           <div>
-            <span className="eyebrow">Movie shelf</span>
+            <span className="eyebrow">Title shelf</span>
             <h2>This playlist is ready for its first poster.</h2>
-            <p>The shared page will fill with movie artwork as soon as movies are added.</p>
+            <p>The shared page will fill with poster artwork as soon as titles are added.</p>
           </div>
         </div>
       )}

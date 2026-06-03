@@ -28,6 +28,8 @@ import { Settings } from "./pages/Settings";
 import { PrivacyPolicy } from "./pages/PrivacyPolicy";
 import { TermsOfUse } from "./pages/TermsOfUse";
 import { Contact } from "./pages/Contact";
+import { Help } from "./pages/Help";
+import { About } from "./pages/About";
 import { AuthPage } from "./pages/AuthPage";
 import { DirectorAdmin } from "./pages/DirectorAdmin";
 import { LandingPage } from "./pages/LandingPage";
@@ -56,6 +58,8 @@ function routeFromPath(pathname = window.location.pathname): RouteState {
   if (pathname === "/privacy") return { route: "/privacy" };
   if (pathname === "/terms") return { route: "/terms" };
   if (pathname === "/contact") return { route: "/contact" };
+  if (pathname === "/help") return { route: "/help" };
+  if (pathname === "/about") return { route: "/about" };
   if (pathname === "/director-admin" || pathname === "/director-admin/dashboard") return { route: "/director-admin/dashboard" };
   if (pathname === "/director-admin/login") return { route: "/director-admin/login" };
   if (pathname === "/director-admin/playlists") return { route: "/director-admin/playlists" };
@@ -255,6 +259,8 @@ export default function App() {
     "/privacy": <PrivacyPolicy />,
     "/terms": <TermsOfUse />,
     "/contact": <Contact />,
+    "/help": <Help />,
+    "/about": <About />,
     "/director-admin/login": <DirectorAdmin page="login" onNavigate={navigate} />,
     "/director-admin/dashboard": <DirectorAdmin page="dashboard" onNavigate={navigate} />,
     "/director-admin/playlists": <DirectorAdmin page="playlists" onNavigate={navigate} />,

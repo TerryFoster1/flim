@@ -11,7 +11,7 @@ interface MovieGridProps {
   emptyMessage?: string;
 }
 
-export function MovieGrid({ movies, playlistId, onNavigate, onRemove, onReorder, onWatchStatusChange, emptyMessage = "No movies in this playlist yet." }: MovieGridProps) {
+export function MovieGrid({ movies, playlistId, onNavigate, onRemove, onReorder, onWatchStatusChange, emptyMessage = "No titles in this playlist yet." }: MovieGridProps) {
   const displayMovies = movies || [];
 
   if (displayMovies.length === 0) {

@@ -20,6 +20,8 @@ export type AppRoute =
   | "/privacy"
   | "/terms"
   | "/contact"
+  | "/help"
+  | "/about"
   | "/director-admin/login"
   | "/director-admin/dashboard"
   | "/director-admin/playlists"

@@ -8,6 +8,7 @@ interface PlaylistHeroProps {
 
 export function PlaylistHero({ playlist, secondaryMeta }: PlaylistHeroProps) {
   const isPublic = playlist.visibility === "public";
+  const titleCount = playlist.movies.length;
 
   return (
     <div className="playlist-hero">
@@ -29,7 +30,7 @@ export function PlaylistHero({ playlist, secondaryMeta }: PlaylistHeroProps) {
         <h1>{playlist.name}</h1>
         {playlist.description ? <p>{playlist.description}</p> : null}
         <div className="meta-row">
-          <span>{playlist.movies.length} movies</span>
+          <span>{titleCount} {titleCount === 1 ? "Title" : "Titles"}</span>
           {secondaryMeta || (!isPublic ? <span>{playlist.movies.filter((movie) => movie.watchStatus === "watched").length} watched</span> : null)}
         </div>
       </div>

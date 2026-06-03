@@ -60,8 +60,8 @@ export function NavigationBar({ currentUser, onNavigate, onLogout }: NavigationB
               </>
             )}
             {currentUser && !isInstalled ? <button onClick={() => navigate("/settings")} type="button">Install Flim</button> : null}
-            <button disabled type="button">Help</button>
-            <button disabled type="button">About</button>
+            <button onClick={() => navigate("/help")} type="button">Help</button>
+            <button onClick={() => navigate("/about")} type="button">About</button>
             {currentUser ? <button className="logout-menu-item" onClick={logout} type="button">Logout</button> : null}
           </div>
         ) : null}

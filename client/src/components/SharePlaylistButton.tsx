@@ -6,7 +6,7 @@ interface SharePlaylistButtonProps {
   playlist: Playlist;
   label?: string;
   iconOnly?: boolean;
-  onBeforeOpen?: () => boolean | Promise<boolean>;
+  onMakePublic?: () => void | Promise<void>;
   openToken?: number;
 }
 
@@ -15,16 +15,23 @@ function getPublicOrigin() {
   return window.location.origin;
 }
 
-export function SharePlaylistButton({ playlist, label = "Share", iconOnly = false, onBeforeOpen, openToken = 0 }: SharePlaylistButtonProps) {
+function titleCountLabel(count: number) {
+  return `${count} ${count === 1 ? "Title" : "Titles"}`;
+}
+
+export function SharePlaylistButton({ playlist, label = "Share", iconOnly = false, onMakePublic, openToken = 0 }: SharePlaylistButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [status, setStatus] = useState("");
   const [qrCodeUrl, setQrCodeUrl] = useState("");
   const [canNativeShare, setCanNativeShare] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [madePublic, setMadePublic] = useState(false);
+  const [isMakingPublic, setIsMakingPublic] = useState(false);
+  const isPublicShareable = playlist.visibility === "public" || madePublic;
   const url = useMemo(() => `${getPublicOrigin()}/p/${playlist.publicSlug}`, [playlist.publicSlug]);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || !isPublicShareable) return;
 
     setCopied(false);
     setStatus("");
@@ -40,7 +47,7 @@ export function SharePlaylistButton({ playlist, label = "Share", iconOnly = fals
     })
       .then(setQrCodeUrl)
       .catch(() => setStatus("QR code could not be generated."));
-  }, [isOpen, url]);
+  }, [isOpen, isPublicShareable, url]);
 
   useEffect(() => {
     if (openToken > 0) setIsOpen(true);
@@ -75,12 +82,23 @@ export function SharePlaylistButton({ playlist, label = "Share", iconOnly = fals
     }
   }
 
-  async function openShare() {
-    if (onBeforeOpen) {
-      const canOpen = await onBeforeOpen();
-      if (!canOpen) return;
-    }
+  function openShare() {
     setIsOpen(true);
+  }
+
+  async function makePublic() {
+    if (!onMakePublic) return;
+    setIsMakingPublic(true);
+    setStatus("");
+    try {
+      await onMakePublic();
+      setMadePublic(true);
+      setStatus("Playlist is public. Share it with the link or QR code.");
+    } catch {
+      setStatus("Unable to make playlist public. Please try again.");
+    } finally {
+      setIsMakingPublic(false);
+    }
   }
 
   return (
@@ -103,13 +121,28 @@ export function SharePlaylistButton({ playlist, label = "Share", iconOnly = fals
           <div className="share-panel">
             <div className="modal-header">
               <div>
-                <span className="eyebrow">Public Share</span>
-                <h2>Share this playlist</h2>
+                <span className="eyebrow">Share Playlist</span>
+                <h2>{isPublicShareable ? "Share this playlist" : "This playlist is private."}</h2>
               </div>
               <button className="ghost-button" onClick={() => setIsOpen(false)} type="button">
                 Close
               </button>
             </div>
+            {!isPublicShareable ? (
+              <>
+                <p className="helper-text">Make this playlist public to share a link or QR code.</p>
+                <div className="share-actions primary-share-actions">
+                  <button className="primary-button" disabled={isMakingPublic || !onMakePublic} onClick={makePublic} type="button">
+                    {isMakingPublic ? "Making Public..." : "Make Public"}
+                  </button>
+                  <button className="secondary-button" disabled={isMakingPublic} onClick={() => setIsOpen(false)} type="button">
+                    Cancel
+                  </button>
+                </div>
+                {status ? <p className={status.startsWith("Unable") ? "error-message" : "success-message"}>{status}</p> : null}
+              </>
+            ) : (
+              <>
             <div className="share-playlist-preview">
               <div className="share-cover-art" aria-hidden="true">
                 {playlist.movies.slice(0, 4).map((movie) =>
@@ -126,7 +159,7 @@ export function SharePlaylistButton({ playlist, label = "Share", iconOnly = fals
               </div>
               <div>
                 <h3>{playlist.name}</h3>
-                <p>{playlist.movies.length} movies</p>
+                <p>{titleCountLabel(playlist.movies.length)}</p>
               </div>
             </div>
             <div className="share-link-card">
@@ -158,6 +191,8 @@ export function SharePlaylistButton({ playlist, label = "Share", iconOnly = fals
               ) : null}
             </div>
             {status ? <p className="success-message">{status}</p> : null}
+              </>
+            )}
           </div>
         </div>
       ) : null}

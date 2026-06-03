@@ -48,7 +48,7 @@ export function MovieSearchPanel({ playlists, addToPlaylist, onNavigate, variant
       const movies = await searchMovies(query, mediaType);
       setResults(movies);
       setStatus("done");
-      setMessage(movies.length ? "" : "No movies found.");
+      setMessage(movies.length ? "" : "No titles found.");
     } catch {
       setStatus("error");
       setMessage("Movie search failed. Please try again shortly.");
@@ -136,9 +136,7 @@ export function MovieSearchPanel({ playlists, addToPlaylist, onNavigate, variant
                             : "Added"
                           : addingKey === resultKey(movie)
                             ? "Adding..."
-                            : movie.mediaType === "tv"
-                              ? "Add TV Show"
-                              : "Add Movie"}
+                            : "Add Title"}
                       </button>
                     ) : targetPlaylists.length === 0 ? (
                       <button className="primary-button" onClick={() => onNavigate("/playlists")} type="button">
