@@ -1263,12 +1263,21 @@ h3 { margin-bottom: 8px; }
   margin: 0;
   font-size: clamp(1.5rem, 3vw, 2.6rem);
 }
+.roulette-control-header p {
+  margin: 6px 0 0;
+  color: var(--muted);
+  max-width: 52ch;
+}
+.roulette-advanced-toggle {
+  white-space: nowrap;
+}
 .roulette-chip-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(154px, 1fr));
   gap: 12px;
 }
 .roulette-playlist-chip {
+  position: relative;
   display: grid;
   gap: 9px;
   text-align: left;
@@ -1288,12 +1297,35 @@ h3 { margin-bottom: 8px; }
   box-shadow: 0 14px 40px rgba(255,184,77,.08);
 }
 .roulette-playlist-chip.is-selected::after {
-  content: "Selected";
+  content: "Included";
   color: #ffe7b8;
   font-size: .74rem;
   font-weight: 900;
   letter-spacing: .06em;
   text-transform: uppercase;
+}
+.roulette-playlist-chip.is-excluded {
+  opacity: .58;
+}
+.roulette-selection-mark {
+  position: absolute;
+  z-index: 2;
+  top: 12px;
+  right: 12px;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid rgba(255,255,255,.22);
+  border-radius: 999px;
+  background: rgba(4,6,10,.78);
+  color: #141006;
+  font-weight: 950;
+}
+.roulette-playlist-chip.is-selected .roulette-selection-mark {
+  border-color: rgba(255,184,77,.92);
+  background: linear-gradient(135deg, #ff5f6d, #ffb84d);
+  box-shadow: 0 10px 22px rgba(255,95,109,.2);
 }
 .roulette-chip-cover {
   display: grid;
@@ -1317,6 +1349,19 @@ h3 { margin-bottom: 8px; }
 .roulette-playlist-chip small {
   color: var(--muted);
   font-weight: 800;
+}
+.roulette-advanced-filters {
+  display: grid;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 22px;
+  background: rgba(255,255,255,.045);
+}
+.roulette-advanced-filters h3 {
+  margin: 0 0 10px;
+  font-size: .88rem;
+  letter-spacing: 0;
 }
 @keyframes roulettePosterSwap {
   from { transform: scale(1.025); filter: brightness(.82) blur(1px); }
