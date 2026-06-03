@@ -30,7 +30,10 @@ export default async function handler(request: any, response: any) {
         select
           p.*,
           up.handle as creator_handle,
-          up.display_name as creator_display_name,
+          coalesce(
+            nullif(up.display_name, ''),
+            nullif(initcap(trim(regexp_replace(split_part(u.email, '@', 1), '[^a-zA-Z0-9]+', ' ', 'g'))), '')
+          ) as creator_display_name,
           case when ${user?.id || null}::uuid is not null and p.owner_user_id = ${user?.id || null}::uuid then true else false end as is_owner,
           (
             select count(*)::int
@@ -50,6 +53,7 @@ export default async function handler(request: any, response: any) {
           ) as movies
         from playlists p
         left join user_profiles up on up.user_id = p.owner_user_id::text
+        left join users u on u.id = p.owner_user_id
         left join playlist_movies pm on pm.playlist_id = p.id
         where (
           p.visibility = 'public'
@@ -60,7 +64,7 @@ export default async function handler(request: any, response: any) {
             or lower(p.name) like '%temporary production verification%'
             or lower(p.name) like '%production verification playlist%'
           )
-        group by p.id, up.handle, up.display_name
+        group by p.id, up.handle, up.display_name, u.email
         order by p.updated_at desc
       `;
 

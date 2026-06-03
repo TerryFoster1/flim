@@ -16,8 +16,7 @@ function formatFollowerCount(count = 0) {
 }
 
 function generatedCreatorHandle(playlist: Playlist) {
-  const seed = (playlist.ownerUserId || playlist.id || "flim").replace(/-/g, "").slice(0, 8);
-  return `@flim-user-${seed || "playlist"}`;
+  return playlist.ownerUserId || playlist.id ? "Playlist Creator" : "The Director";
 }
 
 function creatorLabel(playlist: Playlist) {
@@ -163,7 +162,7 @@ export function PublicPlaylist({ publicSlug, onNavigate, currentUser, onFollowCh
           <div className="public-share-actions">
             {!playlist.isOwner ? (
               <button className={playlist.isFollowing ? "secondary-button" : "primary-button"} disabled={isUpdatingFollow} onClick={toggleFollow} type="button">
-                {isUpdatingFollow ? "Updating..." : playlist.isFollowing ? "Following ✓" : "Follow Playlist"}
+                {isUpdatingFollow ? "Updating..." : playlist.isFollowing ? "Following \u2713" : "Follow Playlist"}
               </button>
             ) : null}
             <SharePlaylistButton iconOnly playlist={playlist} label="Share Playlist" />
