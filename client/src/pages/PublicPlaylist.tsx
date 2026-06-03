@@ -66,7 +66,6 @@ export function PublicPlaylist({ publicSlug, onNavigate, currentUser, onFollowCh
             {Array.from({ length: 6 }).map((_, index) => <span key={index} />)}
           </div>
           <div>
-            <span className="eyebrow">Shared Playlist</span>
             <h1>Loading the title shelf...</h1>
           </div>
         </div>
@@ -78,7 +77,6 @@ export function PublicPlaylist({ publicSlug, onNavigate, currentUser, onFollowCh
     return (
       <section className="route-page public-playlist-page">
         <div className="page-heading">
-          <span className="eyebrow">Shared Playlist</span>
           <h1>Playlist not found</h1>
           <p>This public playlist may have been deleted or the link may be incorrect.</p>
         </div>
@@ -143,7 +141,6 @@ export function PublicPlaylist({ publicSlug, onNavigate, currentUser, onFollowCh
           ) : null}
         </div>
         <div className="playlist-copy public-playlist-copy">
-          <span className="eyebrow">Shared Flim playlist</span>
           <h1>{playlist.name}</h1>
           {playlist.description ? <p>{playlist.description}</p> : null}
           <div className="public-creator-row">
@@ -176,7 +173,6 @@ export function PublicPlaylist({ publicSlug, onNavigate, currentUser, onFollowCh
       </div>
       <div className="public-playlist-intro">
         <div>
-          <span className="eyebrow">Poster Wall</span>
           <h2>Browse the list</h2>
         </div>
         <p>Open any title to see details and keep exploring the playlist.</p>
@@ -192,7 +188,6 @@ export function PublicPlaylist({ publicSlug, onNavigate, currentUser, onFollowCh
             {Array.from({ length: 6 }).map((_, index) => <span key={index} />)}
           </div>
           <div>
-            <span className="eyebrow">Title shelf</span>
             <h2>This playlist is ready for its first poster.</h2>
             <p>The shared page will fill with poster artwork as soon as titles are added.</p>
           </div>

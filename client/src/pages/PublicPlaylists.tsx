@@ -58,7 +58,6 @@ export function PublicPlaylists({ onNavigate, playlists }: PublicPlaylistsProps)
             {Array.from({ length: 6 }).map((_, index) => <span key={index} />)}
           </div>
           <div className="empty-copy">
-            <span className="eyebrow">Public shelf</span>
             <h2>Public playlists will appear here.</h2>
           </div>
         </section>

@@ -67,7 +67,6 @@ function AdminShell({ children, onNavigate }: { children: ReactNode; onNavigate:
     <section className="route-page director-admin-page">
       <header className="director-admin-header">
         <div>
-          <span className="eyebrow">Internal editorial</span>
           <h1>Director Admin</h1>
         </div>
         <nav className="director-admin-tabs" aria-label="Director admin">
@@ -106,7 +105,6 @@ export function DirectorAdminLogin({ onNavigate }: Pick<DirectorAdminProps, "onN
   return (
     <section className="route-page director-admin-login">
       <form className="director-login-card" onSubmit={submit}>
-        <span className="eyebrow">The Director</span>
         <h1>Editorial Login</h1>
         <p>Private access for managing Flim's official curated playlists.</p>
         {error ? <p className="error-message">{error}</p> : null}
@@ -151,7 +149,6 @@ function DirectorProfileEditor() {
   return (
     <form className="director-admin-card director-profile-form" onSubmit={submit}>
       <div>
-        <span className="eyebrow">Profile</span>
         <h2>The Director</h2>
       </div>
       {status ? <p className={status.includes("saved") ? "success-message" : "error-message"}>{status}</p> : null}
@@ -219,7 +216,6 @@ export function DirectorAdminDashboard({ onNavigate }: Pick<DirectorAdminProps, 
         <section className="director-admin-card">
           <div className="director-card-heading">
             <div>
-              <span className="eyebrow">Playlists</span>
               <h2>Recently updated</h2>
             </div>
             <button className="primary-button" onClick={() => onNavigate("/director-admin/playlists")} type="button">Manage Playlists</button>
@@ -405,7 +401,6 @@ export function DirectorAdminPlaylistEditor({ playlistId, onNavigate }: Pick<Dir
       {status ? <p className={status.includes("saved") || status.includes("added") ? "success-message" : "error-message"}>{status}</p> : null}
       <section className="director-editor-layout">
         <form className="director-admin-card director-playlist-form" onSubmit={savePlaylist}>
-          <span className="eyebrow">Director playlist</span>
           <label>
             <span>Title</span>
             <input onChange={(event) => setPlaylist({ ...playlist, name: event.target.value })} value={playlist.name} />
@@ -436,7 +431,6 @@ export function DirectorAdminPlaylistEditor({ playlistId, onNavigate }: Pick<Dir
         <section className="director-admin-card">
           <div className="director-card-heading">
             <div>
-              <span className="eyebrow">Add title</span>
               <h2>Search movies</h2>
             </div>
           </div>
@@ -473,7 +467,6 @@ export function DirectorAdminPlaylistEditor({ playlistId, onNavigate }: Pick<Dir
       <section className="director-admin-card">
         <div className="director-card-heading">
           <div>
-            <span className="eyebrow">Movie order</span>
             <h2>{playlist.movies.length} titles</h2>
           </div>
         </div>

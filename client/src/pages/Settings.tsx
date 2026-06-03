@@ -101,12 +101,10 @@ export function Settings({ currentUser, onNavigate }: SettingsProps) {
     return (
       <section className="route-page settings-page">
         <div className="page-heading">
-          <span className="eyebrow">Settings</span>
           <h1>Profile and streaming region</h1>
           <p>Sign in to save your Flim URL and streaming region.</p>
         </div>
         <section className="auth-card">
-          <span className="eyebrow">Account Required</span>
           <h2>Make your playlists yours.</h2>
           <p>Your username, region, and preferred services belong to your account.</p>
           <div className="button-row">
@@ -121,14 +119,12 @@ export function Settings({ currentUser, onNavigate }: SettingsProps) {
   return (
     <section className="route-page settings-page">
       <div className="page-heading">
-        <span className="eyebrow">Settings</span>
         <h1>Profile and streaming region</h1>
         <p>Choose your Flim URL and set where you watch so provider results can become more accurate.</p>
       </div>
 
       <section className="region-onboarding-card">
         <div>
-          <span className="eyebrow">Set Your Streaming Region</span>
           <h2>Make Where to Watch trustworthy</h2>
           <p>
             Streaming availability changes by country. Set your region so Flim does not tell you a movie is available
@@ -149,7 +145,6 @@ export function Settings({ currentUser, onNavigate }: SettingsProps) {
       <form className="settings-profile-form" onSubmit={saveProfile}>
         <section className="settings-panel">
           <div className="settings-panel-heading">
-            <span className="eyebrow">Public Profile</span>
             <h2>Creator identity</h2>
           </div>
           <label>
@@ -188,7 +183,6 @@ export function Settings({ currentUser, onNavigate }: SettingsProps) {
 
         <section className="settings-panel">
           <div className="settings-panel-heading">
-            <span className="eyebrow">Streaming Region</span>
             <h2>Location for availability</h2>
           </div>
           <label>
@@ -242,7 +236,6 @@ export function Settings({ currentUser, onNavigate }: SettingsProps) {
 
         <section className="settings-panel">
           <div className="settings-panel-heading">
-            <span className="eyebrow">Preferred Services</span>
             <h2>Your watch services</h2>
           </div>
           <div className="provider-preference-grid">
@@ -263,7 +256,6 @@ export function Settings({ currentUser, onNavigate }: SettingsProps) {
 
         <section className="settings-integration-card">
           <div className="settings-integration-copy">
-            <span className="eyebrow">Plex Library</span>
             <h2>Connect Plex</h2>
             <p>
               Link your Plex library so Flim can know what you already own and prioritize Plex when choosing what to watch.

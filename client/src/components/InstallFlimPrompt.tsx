@@ -71,7 +71,6 @@ export function InstallFlimPrompt({ mode = "floating" }: InstallFlimPromptProps)
       <div className="install-card-brand">
         <img alt="" src="/brand/flim-icon-192.png" />
         <div>
-          <span className="eyebrow">Install Flim</span>
           <h2>{ios && !installEvent ? "Add Flim to your Home Screen" : "Install Flim"}</h2>
         </div>
       </div>

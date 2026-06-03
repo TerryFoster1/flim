@@ -151,7 +151,6 @@ export function PlaylistDetails({ playlist, onNavigate, addToPlaylist, deletePla
           <form className="search-modal playlist-edit-modal" onSubmit={savePlaylist}>
             <div className="modal-header">
               <div>
-                <span className="eyebrow">Playlist Settings</span>
                 <h2>Edit Playlist</h2>
               </div>
               <button className="ghost-button" onClick={() => setShowEditPlaylist(false)} type="button">Cancel</button>
@@ -195,7 +194,6 @@ export function PlaylistDetails({ playlist, onNavigate, addToPlaylist, deletePla
           <div className="search-modal">
             <div className="modal-header">
               <div>
-                <span className="eyebrow">Add Title</span>
                 <h2>Search for a movie or TV show</h2>
               </div>
               <button className="ghost-button" onClick={() => setShowAddMovie(false)} type="button">Done</button>

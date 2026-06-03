@@ -67,8 +67,7 @@ export function WhereToWatch({ compact = false, movie }: WhereToWatchProps) {
     <section className={compact ? "watch-providers compact" : "watch-providers"} id={`where-to-watch-${movie.tmdbId}`} aria-label={`Where to watch ${movie.title}`}>
       <div className="watch-provider-heading">
         <div>
-          <span className="eyebrow">Where to Watch</span>
-          {!compact ? <h2>{hasConfirmedLinks ? "Available On" : "Where To Watch"}</h2> : null}
+          {!compact ? <h2>Where To Watch</h2> : null}
         </div>
         <span className="provider-status">Region: {streamingRegion}</span>
       </div>

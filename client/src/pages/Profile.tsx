@@ -21,7 +21,6 @@ export function Profile({ onNavigate, playlists }: ProfileProps) {
     <section className="route-page">
       <div className="profile-hero">
         <div>
-          <span className="eyebrow">Profile</span>
           <h1>Your Flim activity</h1>
           <p>A simple summary of your playlists and watched movies.</p>
         </div>

@@ -19,7 +19,6 @@ export function MediaExtensions({ media }: MediaExtensionsProps) {
     <section className="media-extensions" aria-label={`Media extensions for ${media.title}`}>
       <div className="media-extension-heading">
         <div>
-          <span className="eyebrow">Media Extensions</span>
           <h2>Keep exploring</h2>
         </div>
         <span className="provider-status">Movie Hub</span>

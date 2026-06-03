@@ -34,7 +34,6 @@ export function AuthPage({ mode, onAuth, onNavigate }: AuthPageProps) {
   return (
     <section className="route-page auth-page">
       <div className="auth-card">
-        <span className="eyebrow">{isSignup ? "Create Account" : "Sign In"}</span>
         <h1>{isSignup ? "Make these playlists yours." : "Welcome back to Flim."}</h1>
         <p>{isSignup ? "Create an account to save your playlists." : "Sign in to manage your playlists and profile."}</p>
         <form className="auth-form" onSubmit={submit}>

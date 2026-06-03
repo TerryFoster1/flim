@@ -23,8 +23,8 @@ Do not scrape provider websites.
 ## Cache Flow
 
 ```text
-Flim database
-Provider cache
+media_items
+title_availability / provider_availability_cache
 External provider API
 Normalize
 Store
@@ -39,12 +39,13 @@ GET /api/providers/availability?mediaType=movie|tv&tmdbId=&title=&region=CA
 
 The endpoint:
 
-1. Checks `title_availability` by `media_type + tmdb_id + region`.
-2. Returns unexpired cached provider links when present.
-3. Checks `provider_availability_cache` so empty confirmed checks are not repeated.
-4. Calls Watchmode only when `WATCHMODE_API_KEY` exists and no fresh cache exists.
-5. Normalizes provider IDs, names, region, access type, deep links, and search fallbacks.
-6. Stores rows for future reuse.
+1. Resolves the title from `media_items` by `media_type + tmdb_id`.
+2. Checks `title_availability` by `media_type + tmdb_id + region`.
+3. Returns unexpired cached provider links when present.
+4. Checks `provider_availability_cache` so empty confirmed checks are not repeated.
+5. Calls Watchmode only when `WATCHMODE_API_KEY` exists, no fresh cache exists, and Flim has a title to query.
+6. Normalizes provider IDs, names, region, access type, deep links, and search fallbacks.
+7. Stores rows for future reuse and updates `media_items.provider_last_checked`.
 
 Default V1 region: `CA`.
 
@@ -83,4 +84,3 @@ Future confirmed states:
 - `Connect Plex`
 
 Do not implement Plex auth or claim Plex availability until a connected library confirms the title.
-

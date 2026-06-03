@@ -40,7 +40,6 @@ export function Home({ onNavigate, playlists, notice }: HomeProps) {
           ))}
         </div>
         <div className="cinema-hero-overlay">
-          <span className="eyebrow">Flim</span>
           <h1>Your Movie Playlists</h1>
           <p>Create, share, and discover movie playlists.</p>
           <div className="button-row">
@@ -62,7 +61,6 @@ export function Home({ onNavigate, playlists, notice }: HomeProps) {
             {Array.from({ length: 6 }).map((_, index) => <span key={index} />)}
           </div>
           <div className="empty-copy">
-            <span className="eyebrow">No playlists yet</span>
             <h2>Create your first playlist.</h2>
             <button className="primary-button" onClick={() => onNavigate("/playlists")} type="button">Create Playlist</button>
           </div>
@@ -98,7 +96,6 @@ export function Home({ onNavigate, playlists, notice }: HomeProps) {
             )}
           </div>
           <div className="cinema-card-copy">
-            <span className="eyebrow">Continue Watching</span>
             {continuePlaylist ? (
               <>
                 <h2>{continuePlaylist.name}</h2>
@@ -136,7 +133,6 @@ export function Home({ onNavigate, playlists, notice }: HomeProps) {
             )}
           </div>
           <div className="cinema-card-copy">
-            <span className="eyebrow">Movie Night History</span>
             {watchedMovies.length > 0 ? (
               <>
                 <h2>{watchedMovies.length} recent watches</h2>
@@ -158,7 +154,6 @@ export function Home({ onNavigate, playlists, notice }: HomeProps) {
       <section className="home-stream-section">
         <div className="shelf-header">
           <div>
-            <span className="eyebrow">Public Playlists</span>
             <h2>Shared movie shelves</h2>
           </div>
           <button className="secondary-button" onClick={() => onNavigate("/public")} type="button">
@@ -179,7 +174,6 @@ export function Home({ onNavigate, playlists, notice }: HomeProps) {
           <span />
         </div>
         <div>
-          <span className="eyebrow">Now Playing</span>
           <h2>Let movie night pick itself.</h2>
         </div>
         <button className="primary-button" onClick={() => window.dispatchEvent(new CustomEvent("flim:open-roulette"))} type="button">

@@ -158,7 +158,6 @@ export function Roulette({ playlists, onNavigate }: RouletteProps) {
     <section className="route-page roulette-page">
       <section className={`roulette-experience phase-${phase}`}>
         <div className="roulette-copy-panel">
-          <span className="eyebrow">Now Playing</span>
           <h1>NOW PLAYING</h1>
           <p>Tap the poster and let Flim choose tonight's movie.</p>
         </div>
@@ -190,7 +189,6 @@ export function Roulette({ playlists, onNavigate }: RouletteProps) {
         </button>
 
         <aside className="roulette-result-panel" aria-live="polite">
-          <span className="eyebrow">{phase === "revealed" ? "Now Playing" : "Ready"}</span>
           <h2>{resultMovie ? resultMovie.title : phase === "spinning" || phase === "countdown" ? "Choosing tonight's title..." : "Ready when you are."}</h2>
           <p>{resultMovie ? resultMovie.releaseYear || "Year to confirm" : suspenseCopy}</p>
           {resultEntry ? <p className="roulette-source">From {resultEntry.playlistName}</p> : null}
@@ -213,7 +211,6 @@ export function Roulette({ playlists, onNavigate }: RouletteProps) {
       <section className="roulette-selection-panel" aria-label="Now Playing movie pool">
         <div className="roulette-control-header">
           <div>
-            <span className="eyebrow">Movie Pool</span>
             <h2>Choose playlists</h2>
           </div>
           <div className="roulette-filter-pills" aria-label="Watch status filter">
@@ -250,7 +247,6 @@ export function Roulette({ playlists, onNavigate }: RouletteProps) {
           <div className="roulette-empty-cinema">
             <TapToSpinPoster empty />
             <div>
-              <span className="eyebrow">No Movies Loaded</span>
               <h2>Add movies to a playlist to start Now Playing.</h2>
               <button className="primary-button" onClick={() => onNavigate("/playlists")} type="button">
                 Create Playlist

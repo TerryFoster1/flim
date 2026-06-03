@@ -120,7 +120,6 @@ export function NavigationBar({ currentUser, onNavigate, onLogout }: NavigationB
               <div className="notification-panel">
                 <div className="notification-panel-header">
                   <div>
-                    <span className="eyebrow">Notifications</span>
                     <h2>Activity</h2>
                   </div>
                   {unreadCount > 0 ? <button onClick={markAllRead} type="button">Mark all read</button> : null}

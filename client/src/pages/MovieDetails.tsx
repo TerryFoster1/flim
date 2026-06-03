@@ -96,7 +96,6 @@ export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addTo
       <div className="movie-detail-hero">
         {movie.posterUrl ? <img className="movie-detail-poster" src={movie.posterUrl} alt={`${movie.title} poster`} /> : <div className="poster tone-blue" />}
         <div className="movie-detail-copy">
-          <span className="eyebrow">{mediaType === "tv" ? "TV Show" : "Movie"}</span>
           <h1>{movie.title}</h1>
           <div className="meta-row">
             {movie.releaseYear ? <span>{movie.releaseYear}</span> : null}

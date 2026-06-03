@@ -8,12 +8,11 @@ interface PageShellProps {
   children?: ReactNode;
 }
 
-export function PageShell({ eyebrow, title, description, action, children }: PageShellProps) {
+export function PageShell({ title, description, action, children }: PageShellProps) {
   return (
     <section className="route-page">
       <div className={`page-heading ${action ? "split-heading" : ""}`}>
         <div>
-          {eyebrow ? <span className="eyebrow">{eyebrow}</span> : null}
           <h1>{title}</h1>
           {description ? <p>{description}</p> : null}
         </div>

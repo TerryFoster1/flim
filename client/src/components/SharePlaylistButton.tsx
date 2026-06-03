@@ -121,7 +121,6 @@ export function SharePlaylistButton({ playlist, label = "Share", iconOnly = fals
           <div className="share-panel">
             <div className="modal-header">
               <div>
-                <span className="eyebrow">Share Playlist</span>
                 <h2>{isPublicShareable ? "Share this playlist" : "This playlist is private."}</h2>
               </div>
               <button className="ghost-button" onClick={() => setIsOpen(false)} type="button">
@@ -178,7 +177,6 @@ export function SharePlaylistButton({ playlist, label = "Share", iconOnly = fals
             </div>
             <div className="qr-card">
               <div className="qr-card-heading">
-                <span className="eyebrow">Scan To Open</span>
                 <strong>{playlist.name}</strong>
               </div>
               {qrCodeUrl ? <img alt={`QR code for ${playlist.name}`} src={qrCodeUrl} /> : <div className="qr-placeholder">Generating QR code...</div>}

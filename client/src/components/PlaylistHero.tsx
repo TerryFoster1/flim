@@ -26,7 +26,6 @@ export function PlaylistHero({ playlist, secondaryMeta }: PlaylistHeroProps) {
         ) : null}
       </div>
       <div className="playlist-copy">
-        <span className="eyebrow">{playlist.visibility} playlist</span>
         <h1>{playlist.name}</h1>
         {playlist.description ? <p>{playlist.description}</p> : null}
         <div className="meta-row">

@@ -41,7 +41,6 @@ export function PublicProfile({ handle, onNavigate }: PublicProfileProps) {
         <div className="public-loading-card">
           <div className="profile-avatar-placeholder" aria-hidden="true">@</div>
           <div>
-            <span className="eyebrow">Creator Profile</span>
             <h1>Loading profile...</h1>
           </div>
         </div>
@@ -53,7 +52,6 @@ export function PublicProfile({ handle, onNavigate }: PublicProfileProps) {
     return (
       <section className="route-page public-profile-page">
         <div className="page-heading">
-          <span className="eyebrow">Creator Profile</span>
           <h1>Profile not found</h1>
           <p>This Flim creator profile may not exist yet.</p>
           <button className="primary-button" onClick={() => onNavigate("/settings")} type="button">
@@ -71,7 +69,6 @@ export function PublicProfile({ handle, onNavigate }: PublicProfileProps) {
           {profile.displayName.charAt(0) || profile.handle.charAt(0)}
         </div>
         <div>
-          <span className="eyebrow">Flim Creator</span>
           <h1>{profile.displayName}</h1>
           <p>@{profile.handle}</p>
           {profile.bio ? <p>{profile.bio}</p> : null}
@@ -84,7 +81,6 @@ export function PublicProfile({ handle, onNavigate }: PublicProfileProps) {
         </div>
       </div>
       <section className="settings-panel">
-        <span className="eyebrow">Public Playlists</span>
         <h2>{profile.displayName}'s playlists</h2>
         {publicPlaylists.length > 0 ? (
           <PlaylistGrid onNavigate={onNavigate} playlists={publicPlaylists} />

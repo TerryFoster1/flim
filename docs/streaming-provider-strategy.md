@@ -46,12 +46,14 @@ GET /api/providers/availability?mediaType=movie|tv&tmdbId=123&title=Title&region
 
 Flow:
 
-1. Check `title_availability` for unexpired region-specific data.
-2. Return cached links if available.
-3. If no cache exists and `WATCHMODE_API_KEY` is configured, call Watchmode.
-4. Normalize provider names, access type, deep link, search fallback URL, and region.
-5. Store results in Neon.
-6. Future requests use the Neon cache first.
+1. Resolve the title from `media_items` by media type and TMDb ID.
+2. Check `title_availability` for unexpired region-specific data.
+3. Return cached links if available.
+4. Check `provider_availability_cache` so empty confirmed checks are not repeated.
+5. If no cache exists and `WATCHMODE_API_KEY` is configured, call Watchmode.
+6. Normalize provider names, access type, deep link, search fallback URL, and region.
+7. Store results in Neon and update `media_items.provider_last_checked`.
+8. Future requests use the Neon cache first.
 
 If no provider source is configured, or no provider availability is known, the app shows:
 

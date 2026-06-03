@@ -142,7 +142,6 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
 
       <div className="playlist-shelf-heading playlist-shelf-heading-with-search">
         <div>
-          <span className="eyebrow">{view === "public" ? "Shared shelves" : "Your shelves"}</span>
           <h1>{view === "public" ? "Public Playlists" : "My Playlists"}</h1>
         </div>
         <label className="collection-search playlist-title-search">
@@ -210,7 +209,6 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
             ))}
           </div>
           <div>
-            <span className="eyebrow">{query ? "No matching playlists" : view === "public" ? "Public shelf" : "Your shelf"}</span>
             <h2>{query ? "Try another search." : view === "public" ? "Public playlists will appear here." : "Create Your First Playlist"}</h2>
             {view === "my" && !query ? (
               <button className="primary-button" onClick={requestCreatePlaylist} type="button">
@@ -225,7 +223,6 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
         <section className="director-cut-section director-cut-secondary" aria-label="Director's Cut">
           <div className="director-cut-header">
             <div>
-              <span className="eyebrow">Director's Cut</span>
               <h2>Curated by The Director</h2>
             </div>
             <button className="secondary-button" onClick={() => onNavigate("/@the-director")} type="button">
@@ -240,7 +237,6 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
         <section className="rewind-section">
           <div className="playlist-shelf-heading">
             <div>
-              <span className="eyebrow">Personal shelf</span>
               <h2>Rewind</h2>
             </div>
           </div>

@@ -3,7 +3,6 @@ import { PosterCard } from "./PosterCard";
 
 interface PosterShelfProps {
   title: string;
-  eyebrow?: string;
   movies?: PlaylistMovie[];
   playlistId?: string;
   onNavigate?: (path: string) => void;
@@ -11,14 +10,13 @@ interface PosterShelfProps {
   onWatchStatusChange?: (playlistId: string, tmdbId: number, watchStatus: WatchStatus, mediaType?: string) => void | Promise<void>;
 }
 
-export function PosterShelf({ title, eyebrow = "Poster shelf", movies, playlistId, onNavigate, onRemove, onWatchStatusChange }: PosterShelfProps) {
+export function PosterShelf({ title, movies, playlistId, onNavigate, onRemove, onWatchStatusChange }: PosterShelfProps) {
   const displayMovies = movies || [];
 
   return (
     <section className="shelf" aria-label={title}>
       <div className="shelf-header">
         <div className="shelf-title">{title}</div>
-        <span className="eyebrow">{eyebrow}</span>
       </div>
       {displayMovies.length === 0 ? <p className="empty-state">No movies here yet.</p> : null}
       {displayMovies.length > 0 ? (
