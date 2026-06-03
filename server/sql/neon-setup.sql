@@ -297,6 +297,18 @@ create table if not exists provider_links (
 create index if not exists provider_links_media_tmdb_region_idx
   on provider_links (media_type, tmdb_id, region);
 
+delete from provider_links a
+using provider_links b
+where a.ctid < b.ctid
+  and a.media_type = b.media_type
+  and a.tmdb_id = b.tmdb_id
+  and a.provider_id = b.provider_id
+  and a.region = b.region
+  and a.link_type = b.link_type;
+
+create unique index if not exists provider_links_media_provider_region_unique
+  on provider_links (media_type, tmdb_id, provider_id, region, link_type);
+
 create table if not exists provider_region (
   id uuid primary key default gen_random_uuid(),
   provider_id text not null,
@@ -325,6 +337,23 @@ create unique index if not exists provider_availability_cache_media_region_uniqu
 
 create index if not exists provider_availability_cache_expires_at_idx
   on provider_availability_cache (expires_at);
+
+create or replace view provider_availability as
+select
+  id,
+  media_type,
+  tmdb_id,
+  region,
+  provider_id,
+  provider_name,
+  logo_url,
+  availability_type,
+  deep_link,
+  search_fallback_url,
+  source,
+  cached_at,
+  expires_at
+from title_availability;
 
 create table if not exists recommendations (
   id uuid primary key default gen_random_uuid(),

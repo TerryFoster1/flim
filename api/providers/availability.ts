@@ -53,7 +53,7 @@ export default async function handler(request: any, response: any) {
         mediaType,
         tmdbId,
         region,
-        availabilityKnown: true,
+        availabilityKnown: false,
         sourceConfigured: hasProviderAvailabilitySource(),
         links: [],
         notes: "No confirmed streaming availability found for this region yet.",
@@ -63,14 +63,15 @@ export default async function handler(request: any, response: any) {
     if (hasProviderAvailabilitySource() && title) {
       const freshLinks = await fetchAndCacheProviderAvailability(mediaType, tmdbId, region, title);
       response.setHeader("X-Flim-Provider-Cache", "MISS");
+      const links = freshLinks || [];
       return sendJson(response, 200, {
         mediaType,
         tmdbId,
         region,
-        availabilityKnown: Boolean(freshLinks),
+        availabilityKnown: links.length > 0,
         sourceConfigured: true,
-        links: freshLinks || [],
-        notes: freshLinks?.length
+        links,
+        notes: links.length
           ? "Confirmed provider availability for this region."
           : "No confirmed streaming availability found for this region yet.",
       });

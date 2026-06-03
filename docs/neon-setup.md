@@ -107,3 +107,7 @@ Streaming availability coming soon.
 ```
 
 When configured, the endpoint checks `title_availability`, calls Watchmode only on cache miss, stores normalized provider names, region, access type, deep links, search fallback URLs, and source metadata, then returns cached data on future requests. Empty confirmed checks are stored in `provider_availability_cache` so Flim does not repeatedly call Watchmode for the same unavailable title. Canada (`CA`) is the default V1 region.
+
+`provider_availability` is a compatibility view over `title_availability`, so future admin/reporting queries can use the product language without duplicating provider rows.
+
+See `where-to-watch-v1.md` for the full Where To Watch V1 strategy.

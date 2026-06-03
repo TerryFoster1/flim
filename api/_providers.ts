@@ -157,9 +157,38 @@ export async function ensureProviderAvailabilityTables(sql: any) {
   await runSchemaStatement(sql`create index if not exists title_availability_media_tmdb_region_idx on title_availability (media_type, tmdb_id, region)`);
   await runSchemaStatement(sql`create index if not exists title_availability_expires_at_idx on title_availability (expires_at)`);
   await runSchemaStatement(sql`create index if not exists provider_links_media_tmdb_region_idx on provider_links (media_type, tmdb_id, region)`);
+  await runSchemaStatement(sql`
+    delete from provider_links a
+    using provider_links b
+    where a.ctid < b.ctid
+      and a.media_type = b.media_type
+      and a.tmdb_id = b.tmdb_id
+      and a.provider_id = b.provider_id
+      and a.region = b.region
+      and a.link_type = b.link_type
+  `);
+  await runSchemaStatement(sql`create unique index if not exists provider_links_media_provider_region_unique on provider_links (media_type, tmdb_id, provider_id, region, link_type)`);
   await runSchemaStatement(sql`create unique index if not exists provider_region_provider_region_unique on provider_region (provider_id, region)`);
   await runSchemaStatement(sql`create unique index if not exists provider_availability_cache_media_region_unique on provider_availability_cache (media_type, tmdb_id, region, source)`);
   await runSchemaStatement(sql`create index if not exists provider_availability_cache_expires_at_idx on provider_availability_cache (expires_at)`);
+  await runSchemaStatement(sql`
+    create or replace view provider_availability as
+    select
+      id,
+      media_type,
+      tmdb_id,
+      region,
+      provider_id,
+      provider_name,
+      logo_url,
+      availability_type,
+      deep_link,
+      search_fallback_url,
+      source,
+      cached_at,
+      expires_at
+    from title_availability
+  `);
 }
 
 async function fetchWatchmodeAvailability(mediaType: ProviderMediaType, tmdbId: number, region: string, title: string) {
@@ -334,6 +363,30 @@ export async function fetchAndCacheProviderAvailability(mediaType: ProviderMedia
         source = excluded.source,
         cached_at = now(),
         expires_at = excluded.expires_at
+    `;
+    await sql`
+      insert into provider_links (
+        media_type,
+        tmdb_id,
+        provider_id,
+        region,
+        deep_link,
+        search_fallback_url,
+        link_type
+      )
+      values (
+        ${mediaType},
+        ${tmdbId},
+        ${link.providerId},
+        ${cleanRegion},
+        ${link.deepLink || null},
+        ${link.searchFallbackUrl || null},
+        ${link.deepLink ? "exact" : "search_fallback"}
+      )
+      on conflict (media_type, tmdb_id, provider_id, region, link_type)
+      do update set
+        deep_link = excluded.deep_link,
+        search_fallback_url = excluded.search_fallback_url
     `;
   }
 

@@ -19,6 +19,7 @@ export function WhereToWatch({ compact = false, movie }: WhereToWatchProps) {
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const streamingRegion = profile?.streamingRegion || profile?.countryCode || "CA";
   const confirmedLinks = useMemo(() => (availability?.links || []).filter((link) => link.availabilityKnown && link.url), [availability]);
+  const hasConfirmedLinks = confirmedLinks.length > 0;
 
   useEffect(() => {
     let isActive = true;
@@ -67,7 +68,7 @@ export function WhereToWatch({ compact = false, movie }: WhereToWatchProps) {
       <div className="watch-provider-heading">
         <div>
           <span className="eyebrow">Where to Watch</span>
-          {!compact ? <h2>Available On</h2> : null}
+          {!compact ? <h2>{hasConfirmedLinks ? "Available On" : "Where To Watch"}</h2> : null}
         </div>
         <span className="provider-status">Region: {streamingRegion}</span>
       </div>
@@ -76,7 +77,7 @@ export function WhereToWatch({ compact = false, movie }: WhereToWatchProps) {
         {status === "loading" ? "Checking streaming availability..." : availability?.notes || "Streaming availability coming soon."}
       </p>
 
-      {confirmedLinks.length > 0 ? (
+      {hasConfirmedLinks ? (
         <div className="provider-button-grid">
           {confirmedLinks.map((link) => (
           <a

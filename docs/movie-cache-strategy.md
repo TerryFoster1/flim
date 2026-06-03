@@ -111,7 +111,9 @@ Provider availability follows the same cache-first rule:
 5. Store normalized rows in Neon.
 6. Future movie and TV detail pages prefer Flim's cached provider rows.
 
-The current recommended V1 source is Watchmode behind server-only `WATCHMODE_API_KEY`. If no provider source is configured, Flim must not show provider logos as available and should display `Streaming availability coming soon.`
+The current recommended V1 source is Watchmode behind server-only `WATCHMODE_API_KEY`. `provider_availability` is a compatibility view over `title_availability` for future reporting and admin use. If no provider source is configured, Flim must not show provider logos as available and should display `Streaming availability coming soon.`
+
+See `where-to-watch-v1.md` for the provider source recommendation, schema, UI rules, and Plex preparation notes.
 
 ## Discovery Expansion
 
