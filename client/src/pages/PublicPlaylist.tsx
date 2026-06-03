@@ -12,15 +12,20 @@ interface PublicPlaylistProps {
 }
 
 function formatFollowerCount(count = 0) {
-  return `${count} ${count === 1 ? "follower" : "followers"}`;
+  return `${count} ${count === 1 ? "Follower" : "Followers"}`;
+}
+
+function generatedCreatorHandle(playlist: Playlist) {
+  const seed = (playlist.ownerUserId || playlist.id || "flim").replace(/-/g, "").slice(0, 8);
+  return `@flim-user-${seed || "playlist"}`;
 }
 
 function creatorLabel(playlist: Playlist) {
   const isDirectorPlaylist = playlist.creatorHandle === "the-director" || playlist.creatorDisplayName === "The Director";
   if (isDirectorPlaylist) return "Curated by The Director";
-  if (playlist.creatorHandle) return `Created by @${playlist.creatorHandle}`;
   if (playlist.creatorDisplayName) return `Created by ${playlist.creatorDisplayName}`;
-  return "Created by Flim user";
+  if (playlist.creatorHandle) return `Created by @${playlist.creatorHandle}`;
+  return `Created by ${generatedCreatorHandle(playlist)}`;
 }
 
 export function PublicPlaylist({ publicSlug, onNavigate, currentUser, onFollowChanged }: PublicPlaylistProps) {
@@ -76,10 +81,6 @@ export function PublicPlaylist({ publicSlug, onNavigate, currentUser, onFollowCh
         </div>
       </section>
     );
-  }
-
-  function openSharedRoulette() {
-    window.dispatchEvent(new CustomEvent("flim:open-roulette", { detail: { playlists: [playlist] } }));
   }
 
   const isDirectorPlaylist = playlist.creatorHandle === "the-director" || playlist.creatorDisplayName === "The Director";
@@ -142,11 +143,7 @@ export function PublicPlaylist({ publicSlug, onNavigate, currentUser, onFollowCh
           <span className="eyebrow">Shared Flim playlist</span>
           <h1>{playlist.name}</h1>
           {playlist.description ? <p>{playlist.description}</p> : null}
-          <div className="meta-row">
-            <span>{playlist.movies.length} titles</span>
-            <span>{formatFollowerCount(playlist.followerCount || 0)}</span>
-          </div>
-          <div className="meta-row public-creator-row">
+          <div className="public-creator-row">
             {isDirectorPlaylist ? (
               <button className="creator-handle-link" onClick={() => onNavigate("/@the-director")} type="button">
                 {creatorText}
@@ -158,25 +155,20 @@ export function PublicPlaylist({ publicSlug, onNavigate, currentUser, onFollowCh
             ) : (
               <span>{creatorText}</span>
             )}
-            <span>Shared via Flim</span>
           </div>
-          <div className="button-row public-share-actions">
+          <div className="meta-row public-playlist-meta">
+            <span>{playlist.movies.length} {playlist.movies.length === 1 ? "Title" : "Titles"}</span>
+            <span>{formatFollowerCount(playlist.followerCount || 0)}</span>
+          </div>
+          <div className="public-share-actions">
             {!playlist.isOwner ? (
               <button className={playlist.isFollowing ? "secondary-button" : "primary-button"} disabled={isUpdatingFollow} onClick={toggleFollow} type="button">
-                {isUpdatingFollow ? "Saving..." : playlist.isFollowing ? "Following" : "Follow Playlist"}
+                {isUpdatingFollow ? "Updating..." : playlist.isFollowing ? "Following ✓" : "Follow Playlist"}
               </button>
             ) : null}
-            <SharePlaylistButton playlist={playlist} label="Share Playlist" />
+            <SharePlaylistButton iconOnly playlist={playlist} label="Share Playlist" />
           </div>
           {followStatus ? <p className={followStatus.startsWith("Unable") ? "error-message" : "success-message"}>{followStatus}</p> : null}
-          <div className="button-row">
-            <button className="secondary-button" onClick={openSharedRoulette} type="button">
-              Now Playing
-            </button>
-            <button className="secondary-button" onClick={() => onNavigate("/playlists")} type="button">
-              Create your own playlist
-            </button>
-          </div>
         </div>
       </div>
       <div className="public-playlist-intro">

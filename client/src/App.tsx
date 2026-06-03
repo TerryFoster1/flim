@@ -64,6 +64,10 @@ function routeFromPath(pathname = window.location.pathname): RouteState {
   return { route: "/" };
 }
 
+function isDirectorPlaylist(playlist: Playlist) {
+  return playlist.creatorHandle === "the-director" || playlist.creatorDisplayName === "The Director";
+}
+
 export default function App() {
   const [routeState, setRouteState] = useState<RouteState>(routeFromPath);
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
@@ -177,6 +181,10 @@ export default function App() {
     [systemPlaylists],
   );
   const displayPlaylists = useMemo(() => [...systemPlaylists, ...playlists], [playlists, systemPlaylists]);
+  const nowPlayingPlaylists = useMemo(
+    () => playlists.filter((playlist) => playlist.isOwner || playlist.isFollowing || isDirectorPlaylist(playlist)),
+    [playlists],
+  );
   const detailPlaylist = useMemo(() => displayPlaylists.find((playlist) => playlist.id === routeState.playlistId), [displayPlaylists, routeState.playlistId]);
 
   const activeRoute: AppRoute = routeState.route;
@@ -305,7 +313,7 @@ export default function App() {
             X
           </button>
           <div className="roulette-modal-shell">
-            <Roulette playlists={roulettePlaylists || playlists} onNavigate={navigate} />
+            <Roulette playlists={roulettePlaylists || nowPlayingPlaylists} onNavigate={navigate} />
           </div>
         </div>
       ) : null}

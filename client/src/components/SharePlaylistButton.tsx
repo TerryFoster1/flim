@@ -5,6 +5,7 @@ import type { Playlist } from "../types";
 interface SharePlaylistButtonProps {
   playlist: Playlist;
   label?: string;
+  iconOnly?: boolean;
   onBeforeOpen?: () => boolean | Promise<boolean>;
   openToken?: number;
 }
@@ -14,7 +15,7 @@ function getPublicOrigin() {
   return window.location.origin;
 }
 
-export function SharePlaylistButton({ playlist, label = "Share", onBeforeOpen, openToken = 0 }: SharePlaylistButtonProps) {
+export function SharePlaylistButton({ playlist, label = "Share", iconOnly = false, onBeforeOpen, openToken = 0 }: SharePlaylistButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [status, setStatus] = useState("");
   const [qrCodeUrl, setQrCodeUrl] = useState("");
@@ -84,8 +85,18 @@ export function SharePlaylistButton({ playlist, label = "Share", onBeforeOpen, o
 
   return (
     <>
-      <button className="secondary-button" onClick={openShare} type="button">
-        {label}
+      <button className={iconOnly ? "share-icon-button" : "secondary-button"} aria-label={label} onClick={openShare} type="button">
+        {iconOnly ? (
+          <>
+            <svg aria-hidden="true" fill="none" height="20" viewBox="0 0 24 24" width="20">
+              <path d="M16 8.5 8.8 12 16 15.5" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
+              <circle cx="18" cy="7.5" r="2.5" stroke="currentColor" strokeWidth="2" />
+              <circle cx="6" cy="12" r="2.5" stroke="currentColor" strokeWidth="2" />
+              <circle cx="18" cy="16.5" r="2.5" stroke="currentColor" strokeWidth="2" />
+            </svg>
+            <span className="sr-only">{label}</span>
+          </>
+        ) : label}
       </button>
       {isOpen ? (
         <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Share playlist">
