@@ -1,4 +1,4 @@
-import { db, ensurePlaylistFollowsTable, getCurrentUser, sendJson } from "../../_db.js";
+import { db, ensureNotificationsTable, ensurePlaylistFollowsTable, ensureUserProfilesTable, getCurrentUser, sendJson } from "../../_db.js";
 
 async function readFollowState(sql: any, playlistId: string, userId: string) {
   const [state] = await sql`
@@ -28,16 +28,30 @@ export default async function handler(request: any, response: any) {
 
   try {
     const sql = db();
+    await ensureUserProfilesTable(sql);
     await ensurePlaylistFollowsTable(sql);
+    await ensureNotificationsTable(sql);
     const user = await getCurrentUser(sql, request);
 
     if (!user) return sendJson(response, 401, { error: "Sign in to follow playlists." });
 
     const [playlist] = await sql`
-      select id, owner_user_id
+      select
+        p.id,
+        p.owner_user_id,
+        p.name,
+        coalesce(
+          nullif(actor_profile.display_name, ''),
+          nullif(actor_profile.handle, ''),
+          nullif(initcap(trim(regexp_replace(split_part(actor.email, '@', 1), '[^a-zA-Z0-9]+', ' ', 'g'))), ''),
+          'Someone'
+        ) as actor_name
       from playlists
-      where id = ${playlistId}
-        and visibility = 'public'
+      p
+      left join user_profiles actor_profile on actor_profile.user_id = ${user?.id || null}::text
+      left join users actor on actor.id = ${user?.id || null}::uuid
+      where p.id = ${playlistId}
+        and p.visibility = 'public'
       limit 1
     `;
 
@@ -53,11 +67,35 @@ export default async function handler(request: any, response: any) {
     }
 
     if (request.method === "POST") {
-      await sql`
+      const inserted = await sql`
         insert into playlist_follows (playlist_id, follower_user_id)
         values (${playlistId}, ${user.id})
         on conflict do nothing
+        returning id
       `;
+      if (inserted[0] && playlist.owner_user_id) {
+        await sql`
+          insert into notifications (
+            recipient_user_id,
+            actor_user_id,
+            type,
+            entity_type,
+            entity_id,
+            title,
+            message
+          )
+          values (
+            ${playlist.owner_user_id},
+            ${user.id},
+            'playlist_followed',
+            'playlist',
+            ${playlistId},
+            'New playlist follower',
+            ${`${playlist.actor_name} followed your playlist "${playlist.name}."`}
+          )
+          on conflict do nothing
+        `;
+      }
       const state = await readFollowState(sql, playlistId, user.id);
       return sendJson(response, 200, {
         ok: true,

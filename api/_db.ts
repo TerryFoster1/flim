@@ -306,6 +306,32 @@ export async function ensurePlaylistFollowsTable(sql: any) {
   await sql`create index if not exists playlist_follows_user_id_idx on playlist_follows (follower_user_id)`;
 }
 
+export async function ensureNotificationsTable(sql: any) {
+  await ensureAuthTables(sql);
+  await sql`create extension if not exists pgcrypto`;
+  await sql`
+    create table if not exists notifications (
+      id uuid primary key default gen_random_uuid(),
+      recipient_user_id uuid not null references users(id) on delete cascade,
+      actor_user_id uuid references users(id) on delete set null,
+      type text not null,
+      entity_type text not null,
+      entity_id uuid,
+      title text not null,
+      message text not null,
+      read_at timestamptz,
+      created_at timestamptz not null default now()
+    )
+  `;
+  await sql`create index if not exists notifications_recipient_created_idx on notifications (recipient_user_id, created_at desc)`;
+  await sql`create index if not exists notifications_recipient_unread_idx on notifications (recipient_user_id, read_at)`;
+  await sql`
+    create unique index if not exists notifications_playlist_followed_unique
+    on notifications (recipient_user_id, actor_user_id, type, entity_type, entity_id)
+    where actor_user_id is not null
+  `;
+}
+
 export function normalizeHandle(handle: string) {
   return handle.toLowerCase().trim();
 }

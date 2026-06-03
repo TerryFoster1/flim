@@ -3,6 +3,7 @@ import {
   clearSessionCookie,
   createSessionToken,
   ensureAuthTables,
+  ensureNotificationsTable,
   ensurePlaylistFollowsTable,
   ensureUserProfilesTable,
   getCurrentUser,
@@ -229,6 +230,7 @@ async function handleAdminExport(request: any, response: any, sql: any) {
     users,
     userProfiles,
     playlistFollows,
+    notifications,
     tmdbSearchCache,
     tmdbMovieCache,
   ] = await Promise.all([
@@ -237,6 +239,7 @@ async function handleAdminExport(request: any, response: any, sql: any) {
     safeRows(sql`select id, email, created_at from users order by created_at desc`),
     safeRows(sql`select * from user_profiles order by updated_at desc`),
     safeRows(sql`select * from playlist_follows order by created_at desc`),
+    safeRows(sql`select * from notifications order by created_at desc`),
     safeRows(sql`select * from tmdb_search_cache order by created_at desc`),
     safeRows(sql`select * from tmdb_movie_cache order by created_at desc`),
   ]);
@@ -250,6 +253,7 @@ async function handleAdminExport(request: any, response: any, sql: any) {
       users: users.length,
       user_profiles: userProfiles.length,
       playlist_follows: playlistFollows.length,
+      notifications: notifications.length,
       tmdb_search_cache: tmdbSearchCache.length,
       tmdb_movie_cache: tmdbMovieCache.length,
     },
@@ -259,6 +263,7 @@ async function handleAdminExport(request: any, response: any, sql: any) {
       users,
       user_profiles: userProfiles,
       playlist_follows: playlistFollows,
+      notifications,
       tmdb_search_cache: tmdbSearchCache,
       tmdb_movie_cache: tmdbMovieCache,
     },
@@ -271,6 +276,7 @@ export default async function handler(request: any, response: any) {
     const sql = db();
     await ensureUserProfilesTable(sql);
     await ensurePlaylistFollowsTable(sql);
+    await ensureNotificationsTable(sql);
 
     if (segment === "auth") {
       const action = Array.isArray(request.query.action) ? request.query.action[0] : request.query.action;

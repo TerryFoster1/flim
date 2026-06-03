@@ -236,6 +236,28 @@ export interface CurrentUser {
   profile: UserProfile | null;
 }
 
+export type NotificationType = "playlist_followed";
+
+export interface AppNotification {
+  id: string;
+  recipientUserId: string;
+  actorUserId?: string;
+  actorDisplayName: string;
+  type: NotificationType;
+  entityType: "playlist";
+  entityId?: string;
+  entityPath?: string;
+  title: string;
+  message: string;
+  readAt?: string;
+  createdAt: string;
+}
+
+export interface NotificationFeed {
+  unreadCount: number;
+  notifications: AppNotification[];
+}
+
 export interface PublicUserProfile {
   displayName: string;
   handle: string;
