@@ -33,45 +33,48 @@ The current production implementation has server-side TMDb proxy endpoints:
 
 The browser calls these Flim API routes, not TMDb directly.
 
-The current Neon cache tables are:
+The current Neon catalog and cache tables are:
 
+- `media_items`
+- `people`
+- `media_people`
 - `tmdb_search_cache`
 - `tmdb_movie_cache`
 
-Search results are normalized by lowercased, trimmed query and media type. Search cache entries expire after 7 days.
+Search now checks `media_items` first by title/original title and media type. If no catalog records match, search checks `tmdb_search_cache`. Search cache entries are normalized by lowercased, trimmed query and media type and expire after 7 days.
 
-Movie and TV details are keyed by `media_type + tmdb_id`. Detail cache entries expire after 30 days.
+Movie and TV details check `media_items` first when the catalog row is detail-ready. If the catalog row is missing or still sparse from playlist backfill, details fall through to `tmdb_movie_cache` and then TMDb. Detail cache entries are keyed by `media_type + tmdb_id` and expire after 30 days.
 
-The API returns `X-Flim-Cache: HIT` or `X-Flim-Cache: MISS` so cache behavior can be tested without exposing credentials.
+The API returns `X-Flim-Catalog` and `X-Flim-Cache` headers so catalog/cache behavior can be tested without exposing credentials.
 
-## Future Internal Media Records
+## Internal Media Records
 
-The next cache expansion should add normalized Flim-owned media tables, for example:
+Flim has a normalized internal media catalog foundation:
 
 - `media_items`
+- `people`
 - `media_people`
-- `media_genres`
-- `media_credits`
-- `media_similar`
-- `media_provider_availability`
 
-Suggested `media_items` fields:
+Current `media_items` fields:
 
 - `id`
 - `media_type`
 - `tmdb_id`
 - `title`
-- `year`
+- `original_title`
 - `overview`
+- `release_date`
+- `year`
 - `poster_url`
 - `backdrop_url`
-- `runtime_minutes`
-- `season_count`
-- `episode_count`
-- `content_rating`
+- `runtime`
+- `rating`
+- `status`
+- `popularity`
 - `genres`
-- `source`
-- `source_updated_at`
+- `language`
+- `provider_last_checked`
+- `source_payload`
 - `created_at`
 - `updated_at`
 
@@ -79,7 +82,31 @@ Use a unique key on:
 
 `media_type + tmdb_id`
 
-Playlist additions should upsert `media_items` first, then attach the item to `playlist_movies` or a future generalized playlist-items table.
+Playlist additions upsert `media_items` first, then attach the item to `playlist_movies.media_item_id` while preserving the legacy denormalized playlist columns for backward compatibility.
+
+## Current Search Order
+
+```text
+media_items
+tmdb_search_cache
+TMDb
+normalize
+store in media_items
+store in tmdb_search_cache
+```
+
+## Current Detail Order
+
+```text
+media_items
+tmdb_movie_cache
+TMDb
+normalize
+update media_items
+store in tmdb_movie_cache
+```
+
+Playlist rows, Director's Cut seed rows, search results, cached search results, and detail responses all upsert into `media_items`.
 
 ## Source Rules
 

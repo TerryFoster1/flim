@@ -117,6 +117,7 @@ export interface SeriesProgress {
 export interface PlaylistMovie {
   id?: string;
   playlistId?: string;
+  mediaItemId?: string;
   mediaType?: MediaType;
   tmdbId: number;
   title: string;

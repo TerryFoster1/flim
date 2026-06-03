@@ -1,4 +1,5 @@
 import { ensurePlaylistMediaColumns, ensureUserProfilesTable } from "./_db.js";
+import { upsertMediaItem } from "./_mediaCatalog.js";
 import { fetchTmdbMovieDetails } from "./_tmdb.js";
 
 export const directorUserId = "11111111-1111-4111-8111-111111111111";
@@ -280,11 +281,13 @@ async function seedDirector(sql: any) {
         if (existingMovie[0]) continue;
 
         const movie = await fetchTmdbMovieDetails(movieSeed.tmdbId, "movie");
+        const mediaItem = await upsertMediaItem(sql, movie);
         await sql`
-          insert into playlist_movies (playlist_id, media_type, tmdb_id, title, year, poster_url, overview, runtime_minutes, season_count, episode_count, watched)
-          values (${playlist.id}, 'movie', ${movie.tmdbId}, ${movie.title}, ${movie.releaseYear || null}, ${movie.posterUrl || null}, ${movie.overview || ""}, ${movie.runtimeMinutes || null}, null, null, false)
+          insert into playlist_movies (playlist_id, media_item_id, media_type, tmdb_id, title, year, poster_url, overview, runtime_minutes, season_count, episode_count, watched)
+          values (${playlist.id}, ${mediaItem?.id || null}, 'movie', ${movie.tmdbId}, ${movie.title}, ${movie.releaseYear || null}, ${movie.posterUrl || null}, ${movie.overview || ""}, ${movie.runtimeMinutes || null}, null, null, false)
           on conflict (playlist_id, media_type, tmdb_id)
           do update set
+            media_item_id = coalesce(excluded.media_item_id, playlist_movies.media_item_id),
             title = excluded.title,
             year = excluded.year,
             poster_url = excluded.poster_url,

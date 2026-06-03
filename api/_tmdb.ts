@@ -5,15 +5,21 @@ interface TmdbSearchMovie {
   id: number;
   title?: string;
   name?: string;
+  original_title?: string;
+  original_name?: string;
   release_date?: string;
   first_air_date?: string;
   overview?: string;
   poster_path?: string | null;
+  backdrop_path?: string | null;
   genre_ids?: number[];
+  original_language?: string;
+  popularity?: number;
 }
 
 interface TmdbMovieDetails extends TmdbSearchMovie {
   runtime?: number;
+  status?: string;
   genres?: Array<{ id: number; name: string }>;
   number_of_seasons?: number;
   number_of_episodes?: number;
@@ -81,15 +87,21 @@ function applyTmdbAuth(url: URL): RequestInit {
 }
 
 function mapSearchMovie(movie: TmdbSearchMovie, mediaType: "movie" | "tv" = "movie") {
+  const releaseDate = mediaType === "tv" ? movie.first_air_date : movie.release_date;
   return {
     tmdbId: movie.id,
     mediaType,
     title: movie.title || movie.name || "Untitled movie",
-    releaseYear: releaseYear(mediaType === "tv" ? movie.first_air_date : movie.release_date),
+    originalTitle: movie.original_title || movie.original_name || undefined,
+    releaseDate: releaseDate || undefined,
+    releaseYear: releaseYear(releaseDate),
     overview: movie.overview || "No overview is available yet.",
     posterPath: movie.poster_path || undefined,
     posterUrl: posterUrl(movie.poster_path),
+    backdropUrl: posterUrl(movie.backdrop_path),
     genreIds: movie.genre_ids || [],
+    language: movie.original_language || undefined,
+    popularity: movie.popularity,
   };
 }
 
@@ -235,5 +247,6 @@ export async function fetchTmdbMovieDetails(tmdbId: number, mediaType: "movie" |
     contentRating: chooseContentRating(contentRatings),
     contentRatings,
     contentRatingVersion: 1,
+    status: payload.status,
   };
 }

@@ -78,6 +78,7 @@ export function mapPlaylistMovie(row: any) {
   return {
     id: row.id,
     playlistId: row.playlist_id,
+    mediaItemId: row.media_item_id || undefined,
     mediaType: row.media_type || "movie",
     tmdbId: row.tmdb_id,
     title: row.title,

@@ -1,4 +1,5 @@
 import { db, ensurePlaylistMediaColumns, getCurrentUser, mapPlaylistMovie, readBody, sendJson } from "../_db.js";
+import { upsertMediaItem } from "../_mediaCatalog.js";
 
 export default async function handler(request: any, response: any) {
   const playlistId = String(Array.isArray(request.query.id) ? request.query.id[0] : request.query.id || "");
@@ -38,11 +39,13 @@ export default async function handler(request: any, response: any) {
         return sendJson(response, 400, { error: "Choose a valid movie or TV show before adding it." });
       }
 
+      const mediaItem = await upsertMediaItem(sql, { ...body, mediaType, tmdbId, title });
       const [movie] = await sql`
-        insert into playlist_movies (playlist_id, media_type, tmdb_id, title, year, poster_url, overview, runtime_minutes, season_count, episode_count, watched)
-        values (${playlistId}, ${mediaType}, ${tmdbId}, ${title}, ${body.releaseYear || body.firstAirYear || null}, ${body.posterUrl || null}, ${body.overview || null}, ${body.runtimeMinutes || null}, ${body.seasonCount || null}, ${body.episodeCount || null}, false)
+        insert into playlist_movies (playlist_id, media_item_id, media_type, tmdb_id, title, year, poster_url, overview, runtime_minutes, season_count, episode_count, watched)
+        values (${playlistId}, ${mediaItem?.id || null}, ${mediaType}, ${tmdbId}, ${title}, ${body.releaseYear || body.firstAirYear || null}, ${body.posterUrl || null}, ${body.overview || null}, ${body.runtimeMinutes || null}, ${body.seasonCount || null}, ${body.episodeCount || null}, false)
         on conflict (playlist_id, media_type, tmdb_id)
         do update set
+          media_item_id = coalesce(excluded.media_item_id, playlist_movies.media_item_id),
           title = excluded.title,
           year = excluded.year,
           poster_url = excluded.poster_url,

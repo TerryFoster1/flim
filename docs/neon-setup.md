@@ -26,6 +26,9 @@ It creates:
 - `user_profiles`
 - `tmdb_search_cache`
 - `tmdb_movie_cache`
+- `media_items`
+- `people`
+- `media_people`
 - `watch_providers`
 - `title_availability`
 - `provider_links`
@@ -87,6 +90,8 @@ These variables are checked only by `/api/director-admin/*`. Do not create `VITE
 `GET /api/movies/search` normalizes queries by trimming and lowercasing them, scopes cache entries by media type, returns an unexpired cache hit when available, and stores a fresh TMDb response for 7 days on a miss.
 
 `GET /api/movies/:tmdbId?type=` returns an unexpired movie or TV detail cache hit when available and stores a fresh TMDb response for 30 days on a miss.
+
+`media_items` now sits above the TMDb caches. Search checks catalog records first, then `tmdb_search_cache`, then TMDb. Details use catalog rows when they are detail-ready, then `tmdb_movie_cache`, then TMDb. Existing playlist rows are backfilled into `media_items`, and new playlist additions store `playlist_movies.media_item_id` when possible.
 
 The movie API also creates these cache tables with `create table if not exists` before the first cache lookup so production can recover if the SQL setup has not been run yet.
 
