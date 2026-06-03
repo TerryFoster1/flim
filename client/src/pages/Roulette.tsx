@@ -40,9 +40,10 @@ export function Roulette({ playlists, onNavigate }: RouletteProps) {
   const [selectedPlaylistIds, setSelectedPlaylistIds] = useState<string[]>([]);
   const [phase, setPhase] = useState<RoulettePhase>("idle");
   const [displayedEntry, setDisplayedEntry] = useState<RouletteMovie | null>(null);
-  const [winnerEntry, setWinnerEntry] = useState<RouletteMovie | null>(null);
+  const [revealedEntry, setRevealedEntry] = useState<RouletteMovie | null>(null);
   const [countdown, setCountdown] = useState(3);
   const timers = useRef<number[]>([]);
+  const selectedEntryRef = useRef<RouletteMovie | null>(null);
 
   const allPlaylistIds = useMemo(() => playlists.map((playlist) => playlist.id), [playlists]);
   const activePlaylistIds = selectedPlaylistIds.length > 0 ? selectedPlaylistIds : allPlaylistIds;
@@ -75,7 +76,8 @@ export function Roulette({ playlists, onNavigate }: RouletteProps) {
     clearTimers();
     setPhase("idle");
     setDisplayedEntry(null);
-    setWinnerEntry(null);
+    selectedEntryRef.current = null;
+    setRevealedEntry(null);
     setCountdown(3);
   }
 
@@ -106,14 +108,16 @@ export function Roulette({ playlists, onNavigate }: RouletteProps) {
 
     clearTimers();
     setPhase("spinning");
-    setWinnerEntry(null);
+    selectedEntryRef.current = null;
+    setRevealedEntry(null);
 
     // TODO: Add projector hum, reel clicks, countdown beeps, and a reveal sting when audio settings exist.
     const winner = filteredPool[Math.floor(Math.random() * filteredPool.length)];
+    selectedEntryRef.current = winner;
 
     spinTicks.forEach((delay, index) => {
       const timer = window.setTimeout(() => {
-        const entry = index === spinTicks.length - 1 ? winner : filteredPool[Math.floor(Math.random() * filteredPool.length)];
+        const entry = filteredPool[Math.floor(Math.random() * filteredPool.length)];
         setDisplayedEntry(entry);
 
         if (index === spinTicks.length - 1) {
@@ -124,8 +128,7 @@ export function Roulette({ playlists, onNavigate }: RouletteProps) {
 
               if (value === 1) {
                 const revealTimer = window.setTimeout(() => {
-                  setWinnerEntry(winner);
-                  setDisplayedEntry(winner);
+                  setRevealedEntry(selectedEntryRef.current || winner);
                   setPhase("revealed");
                 }, 520);
                 timers.current.push(revealTimer);
@@ -139,12 +142,17 @@ export function Roulette({ playlists, onNavigate }: RouletteProps) {
     });
   }
 
-  const activeEntry = winnerEntry || displayedEntry;
-  const activeMovie = activeEntry?.movie;
+  const posterEntry = phase === "revealed" ? revealedEntry : displayedEntry;
+  const posterMovie = posterEntry?.movie;
+  const resultEntry = phase === "revealed" ? revealedEntry : null;
+  const resultMovie = resultEntry?.movie;
   const loadedLabel =
     filteredPool.length > 0
       ? `${filteredPool.length} title${filteredPool.length === 1 ? "" : "s"} loaded from ${selectedPlaylistCount} playlist${selectedPlaylistCount === 1 ? "" : "s"}.`
       : "Add movies to a playlist to start Now Playing.";
+  const suspenseCopy = phase === "spinning" || phase === "countdown"
+    ? "The reel is spinning..."
+    : loadedLabel;
 
   return (
     <section className="route-page roulette-page">
@@ -171,8 +179,8 @@ export function Roulette({ playlists, onNavigate }: RouletteProps) {
 
             {phase === "countdown" ? (
               <VintageCountdown value={countdown} />
-            ) : activeMovie?.posterUrl ? (
-              <img className="roulette-active-poster" alt={`${activeMovie.title} poster`} src={activeMovie.posterUrl} />
+            ) : posterMovie?.posterUrl ? (
+              <img className="roulette-active-poster" alt={`${posterMovie.title} poster`} src={posterMovie.posterUrl} />
             ) : (
               <TapToSpinPoster empty={filteredPool.length === 0} />
             )}
@@ -183,15 +191,15 @@ export function Roulette({ playlists, onNavigate }: RouletteProps) {
 
         <aside className="roulette-result-panel" aria-live="polite">
           <span className="eyebrow">{phase === "revealed" ? "Now Playing" : "Ready"}</span>
-          <h2>{activeMovie ? activeMovie.title : "Ready when you are."}</h2>
-          <p>{activeMovie ? activeMovie.releaseYear || "Year to confirm" : loadedLabel}</p>
-          {activeEntry ? <p className="roulette-source">From {activeEntry.playlistName}</p> : null}
-          {phase === "revealed" && activeMovie ? (
+          <h2>{resultMovie ? resultMovie.title : phase === "spinning" || phase === "countdown" ? "Choosing tonight's title..." : "Ready when you are."}</h2>
+          <p>{resultMovie ? resultMovie.releaseYear || "Year to confirm" : suspenseCopy}</p>
+          {resultEntry ? <p className="roulette-source">From {resultEntry.playlistName}</p> : null}
+          {phase === "revealed" && resultMovie ? (
             <div className="roulette-action-row">
-              <button className="primary-button" onClick={() => onNavigate((activeMovie.mediaType || "movie") === "tv" ? `/tv/${activeMovie.tmdbId}` : `/movies/${activeMovie.tmdbId}`)} type="button">
+              <button className="primary-button" onClick={() => onNavigate((resultMovie.mediaType || "movie") === "tv" ? `/tv/${resultMovie.tmdbId}` : `/movies/${resultMovie.tmdbId}`)} type="button">
                 Watch Tonight
               </button>
-              <button className="secondary-button" onClick={() => onNavigate((activeMovie.mediaType || "movie") === "tv" ? `/tv/${activeMovie.tmdbId}` : `/movies/${activeMovie.tmdbId}`)} type="button">
+              <button className="secondary-button" onClick={() => onNavigate((resultMovie.mediaType || "movie") === "tv" ? `/tv/${resultMovie.tmdbId}` : `/movies/${resultMovie.tmdbId}`)} type="button">
                 View Details
               </button>
               <button className="secondary-button" onClick={startSpin} type="button">
