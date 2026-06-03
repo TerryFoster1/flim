@@ -34,6 +34,7 @@ export function PlaylistDetails({ playlist, onNavigate, addToPlaylist, deletePla
   const [noticeType, setNoticeType] = useState<"success" | "error">("success");
   const editable = !playlist.isSystem && Boolean(playlist.isOwner);
   const shareable = playlist.visibility === "public";
+  const followerCount = playlist.followerCount || 0;
 
   async function ensurePublicBeforeShare() {
     if (playlist.visibility === "public") return true;
@@ -128,7 +129,12 @@ export function PlaylistDetails({ playlist, onNavigate, addToPlaylist, deletePla
     <section className="route-page">
       <PlaylistHero
         playlist={playlist}
-        secondaryMeta={shareable || editable ? <SharePlaylistButton label="Share Playlist" onBeforeOpen={ensurePublicBeforeShare} openToken={shareOpenToken} playlist={playlist} /> : undefined}
+        secondaryMeta={shareable || editable ? (
+          <>
+            {shareable ? <span>{followerCount} {followerCount === 1 ? "follower" : "followers"}</span> : null}
+            <SharePlaylistButton label="Share Playlist" onBeforeOpen={ensurePublicBeforeShare} openToken={shareOpenToken} playlist={playlist} />
+          </>
+        ) : undefined}
       />
       <div className="playlist-management-bar">
         {editable ? (

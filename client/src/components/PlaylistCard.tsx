@@ -9,10 +9,12 @@ interface PlaylistCardProps {
 export function PlaylistCard({ playlist, large, onNavigate }: PlaylistCardProps) {
   const coverMovies = playlist.movies.slice(0, 4);
   const isDirectorPlaylist = playlist.creatorHandle === "the-director" || playlist.creatorDisplayName === "The Director";
+  const detailPath = playlist.visibility === "public" && !playlist.isOwner ? `/p/${playlist.publicSlug}` : `/playlists/${playlist.id}`;
+  const followerCount = playlist.followerCount || 0;
 
   return (
     <article className={`playlist-card ${large ? "large" : ""}`}>
-      <button className="playlist-card-button reset-button" onClick={() => onNavigate?.(`/playlists/${playlist.id}`)} type="button">
+      <button className="playlist-card-button reset-button" onClick={() => onNavigate?.(detailPath)} type="button">
         <div className="playlist-cover poster-collage">
           {coverMovies.length > 0 ? (
             coverMovies.map((movie) =>
@@ -32,6 +34,8 @@ export function PlaylistCard({ playlist, large, onNavigate }: PlaylistCardProps)
         <div className="card-meta">
           <span>{playlist.visibility}</span>
           <span>{playlist.movies.length} titles</span>
+          {playlist.visibility === "public" ? <span>{followerCount} {followerCount === 1 ? "follower" : "followers"}</span> : null}
+          {playlist.isFollowing ? <span>Following</span> : null}
           {isDirectorPlaylist ? <span>Curated by The Director</span> : playlist.creatorHandle ? <span>by @{playlist.creatorHandle}</span> : null}
         </div>
       </button>

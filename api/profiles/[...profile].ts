@@ -3,6 +3,7 @@ import {
   clearSessionCookie,
   createSessionToken,
   ensureAuthTables,
+  ensurePlaylistFollowsTable,
   ensureUserProfilesTable,
   getCurrentUser,
   hashPassword,
@@ -227,6 +228,7 @@ async function handleAdminExport(request: any, response: any, sql: any) {
     playlistMovies,
     users,
     userProfiles,
+    playlistFollows,
     tmdbSearchCache,
     tmdbMovieCache,
   ] = await Promise.all([
@@ -234,6 +236,7 @@ async function handleAdminExport(request: any, response: any, sql: any) {
     safeRows(sql`select * from playlist_movies order by added_at desc`),
     safeRows(sql`select id, email, created_at from users order by created_at desc`),
     safeRows(sql`select * from user_profiles order by updated_at desc`),
+    safeRows(sql`select * from playlist_follows order by created_at desc`),
     safeRows(sql`select * from tmdb_search_cache order by created_at desc`),
     safeRows(sql`select * from tmdb_movie_cache order by created_at desc`),
   ]);
@@ -246,6 +249,7 @@ async function handleAdminExport(request: any, response: any, sql: any) {
       playlist_movies: playlistMovies.length,
       users: users.length,
       user_profiles: userProfiles.length,
+      playlist_follows: playlistFollows.length,
       tmdb_search_cache: tmdbSearchCache.length,
       tmdb_movie_cache: tmdbMovieCache.length,
     },
@@ -254,6 +258,7 @@ async function handleAdminExport(request: any, response: any, sql: any) {
       playlist_movies: playlistMovies,
       users,
       user_profiles: userProfiles,
+      playlist_follows: playlistFollows,
       tmdb_search_cache: tmdbSearchCache,
       tmdb_movie_cache: tmdbMovieCache,
     },
@@ -265,6 +270,7 @@ export default async function handler(request: any, response: any) {
     const segment = getProfileSegment(request);
     const sql = db();
     await ensureUserProfilesTable(sql);
+    await ensurePlaylistFollowsTable(sql);
 
     if (segment === "auth") {
       const action = Array.isArray(request.query.action) ? request.query.action[0] : request.query.action;
@@ -312,6 +318,7 @@ export default async function handler(request: any, response: any) {
               'creator_handle', up.handle,
               'creator_display_name', up.display_name,
               'is_owner', false,
+              'follower_count', coalesce(follower_rows.follower_count, 0),
               'created_at', p.created_at,
               'updated_at', p.updated_at,
               'movies', coalesce(movie_rows.movies, '[]'::jsonb)
@@ -327,6 +334,11 @@ export default async function handler(request: any, response: any) {
         from playlist_movies pm2
         where pm2.playlist_id = p.id
       ) movie_rows on true
+      left join lateral (
+        select count(*)::int as follower_count
+        from playlist_follows pf
+        where pf.playlist_id = p.id
+      ) follower_rows on true
       where up.handle = ${handle}
       group by up.id
       limit 1

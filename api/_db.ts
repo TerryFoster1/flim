@@ -54,6 +54,8 @@ export function createPublicSlug(name: string) {
 }
 
 export function mapPlaylist(row: any, movies: any[] = []) {
+  const followerCount = Number(row.follower_count || 0);
+
   return {
     id: row.id,
     publicSlug: row.public_slug,
@@ -64,6 +66,8 @@ export function mapPlaylist(row: any, movies: any[] = []) {
     creatorDisplayName: row.creator_display_name || undefined,
     ownerUserId: row.owner_user_id || undefined,
     isOwner: Boolean(row.is_owner),
+    isFollowing: Boolean(row.is_following),
+    followerCount: Number.isFinite(followerCount) ? followerCount : 0,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     movies: movies.map(mapPlaylistMovie),
@@ -272,6 +276,33 @@ export async function ensurePlaylistMediaColumns(sql: any) {
   await sql`create index if not exists playlist_movies_media_type_idx on playlist_movies (media_type)`;
   await sql`create index if not exists playlist_movies_watched_idx on playlist_movies (watched)`;
   await sql`create index if not exists playlist_movies_sort_order_idx on playlist_movies (playlist_id, sort_order)`;
+}
+
+export async function ensurePlaylistFollowsTable(sql: any) {
+  await ensureAuthTables(sql);
+  await sql`create extension if not exists pgcrypto`;
+  await sql`
+    create table if not exists playlist_follows (
+      id uuid primary key default gen_random_uuid(),
+      playlist_id uuid not null references playlists(id) on delete cascade,
+      follower_user_id uuid references users(id) on delete cascade,
+      follower_session_id text,
+      created_at timestamptz not null default now(),
+      check (follower_user_id is not null or nullif(follower_session_id, '') is not null)
+    )
+  `;
+  await sql`
+    create unique index if not exists playlist_follows_user_unique
+    on playlist_follows (playlist_id, follower_user_id)
+    where follower_user_id is not null
+  `;
+  await sql`
+    create unique index if not exists playlist_follows_session_unique
+    on playlist_follows (playlist_id, follower_session_id)
+    where follower_session_id is not null
+  `;
+  await sql`create index if not exists playlist_follows_playlist_id_idx on playlist_follows (playlist_id)`;
+  await sql`create index if not exists playlist_follows_user_id_idx on playlist_follows (follower_user_id)`;
 }
 
 export function normalizeHandle(handle: string) {

@@ -24,6 +24,26 @@ function isTemporaryVerificationPlaylist(playlist: Playlist) {
   );
 }
 
+function isDirectorPlaylist(playlist: Playlist) {
+  return playlist.creatorHandle === "the-director" || playlist.creatorDisplayName === "The Director";
+}
+
+function rankPublicPlaylist(playlist: Playlist) {
+  if (playlist.isFollowing) return 0;
+  if (isDirectorPlaylist(playlist)) return 1;
+  return 2;
+}
+
+function scorePlaylistSearch(playlist: Playlist, normalizedQuery: string) {
+  const name = playlist.name.toLowerCase();
+  const description = playlist.description.toLowerCase();
+  if (name === normalizedQuery) return 0;
+  if (name.startsWith(normalizedQuery)) return 1;
+  if (name.includes(normalizedQuery)) return 2;
+  if (description.includes(normalizedQuery)) return 3;
+  return 4;
+}
+
 export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlaylist, currentUser, notice, initialView = "my" }: PlaylistsProps) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -35,13 +55,19 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
   const [showCreate, setShowCreate] = useState(false);
   const [visibleCount, setVisibleCount] = useState(7);
   const directorPlaylists = useMemo(
-    () => playlists.filter((playlist) => playlist.creatorHandle === "the-director" || playlist.creatorDisplayName === "The Director"),
+    () => playlists.filter(isDirectorPlaylist),
     [playlists],
   );
   const sourcePlaylists = useMemo(() => {
-    return view === "public"
-      ? playlists.filter((playlist) => playlist.visibility === "public" && !playlist.isSystem && playlist.creatorHandle !== "the-director" && playlist.creatorDisplayName !== "The Director" && !isTemporaryVerificationPlaylist(playlist))
-      : playlists.filter((playlist) => playlist.isOwner);
+    if (view !== "public") return playlists.filter((playlist) => playlist.isOwner);
+
+    return playlists
+      .filter((playlist) => playlist.visibility === "public" && !playlist.isSystem && !isTemporaryVerificationPlaylist(playlist))
+      .sort((a, b) => {
+        const rankDelta = rankPublicPlaylist(a) - rankPublicPlaylist(b);
+        if (rankDelta !== 0) return rankDelta;
+        return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+      });
   }, [playlists, view]);
 
   useEffect(() => {
@@ -63,11 +89,17 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
   const visiblePlaylists = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
     if (!normalizedQuery) return sourcePlaylists;
-    return sourcePlaylists.filter((playlist) =>
-      [playlist.name, playlist.description, playlist.visibility, ...playlist.movies.map((movie) => movie.title)].some((value) =>
-        value.toLowerCase().includes(normalizedQuery),
-      ),
-    );
+    return sourcePlaylists
+      .filter((playlist) =>
+        [playlist.name, playlist.description, playlist.visibility, ...playlist.movies.map((movie) => movie.title)].some((value) =>
+          value.toLowerCase().includes(normalizedQuery),
+        ),
+      )
+      .sort((a, b) => {
+        const scoreDelta = scorePlaylistSearch(a, normalizedQuery) - scorePlaylistSearch(b, normalizedQuery);
+        if (scoreDelta !== 0) return scoreDelta;
+        return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+      });
   }, [query, sourcePlaylists]);
 
   const visiblePagePlaylists = visiblePlaylists.slice(0, visibleCount);
@@ -189,7 +221,7 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
         </div>
       )}
 
-      {directorPlaylists.length > 0 ? (
+      {view === "my" && directorPlaylists.length > 0 ? (
         <section className="director-cut-section director-cut-secondary" aria-label="Director's Cut">
           <div className="director-cut-header">
             <div>

@@ -33,6 +33,18 @@ export function getPublicPlaylistBySlug(publicSlug: string) {
   return apiRequest<Playlist>(`/api/public/playlists/${publicSlug}`);
 }
 
+export function followPlaylist(playlistId: string) {
+  return apiRequest<{ ok: boolean; followerCount: number; isFollowing: boolean; isOwner?: boolean }>(`/api/playlists/${playlistId}/follow`, {
+    method: "POST",
+  });
+}
+
+export function unfollowPlaylist(playlistId: string) {
+  return apiRequest<{ ok: boolean; followerCount: number; isFollowing: boolean; isOwner?: boolean }>(`/api/playlists/${playlistId}/follow`, {
+    method: "DELETE",
+  });
+}
+
 export function createPlaylist(input: Pick<Playlist, "name" | "description" | "visibility">) {
   return apiRequest<Playlist>("/api/playlists", {
     method: "POST",

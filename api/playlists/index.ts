@@ -1,4 +1,4 @@
-import { createPublicSlug, createPublicSlugBase, db, ensureUserProfilesTable, getCurrentUser, mapPlaylist, sendJson, readBody } from "../_db.js";
+import { createPublicSlug, createPublicSlugBase, db, ensurePlaylistFollowsTable, ensureUserProfilesTable, getCurrentUser, mapPlaylist, sendJson, readBody } from "../_db.js";
 import { ensureDirectorSeed } from "../_director.js";
 
 async function createUniquePublicSlug(sql: any, name: string) {
@@ -17,6 +17,7 @@ export default async function handler(request: any, response: any) {
   try {
     const sql = db();
     await ensureUserProfilesTable(sql);
+    await ensurePlaylistFollowsTable(sql);
     await sql`alter table playlists add column if not exists owner_user_id uuid references users(id) on delete set null`;
     const user = await getCurrentUser(sql, request);
 
@@ -31,6 +32,18 @@ export default async function handler(request: any, response: any) {
           up.handle as creator_handle,
           up.display_name as creator_display_name,
           case when ${user?.id || null}::uuid is not null and p.owner_user_id = ${user?.id || null}::uuid then true else false end as is_owner,
+          (
+            select count(*)::int
+            from playlist_follows pf
+            where pf.playlist_id = p.id
+          ) as follower_count,
+          exists (
+            select 1
+            from playlist_follows my_pf
+            where my_pf.playlist_id = p.id
+              and ${user?.id || null}::uuid is not null
+              and my_pf.follower_user_id = ${user?.id || null}::uuid
+          ) as is_following,
           coalesce(
             json_agg(pm order by coalesce(pm.sort_order, 2147483647), pm.added_at desc) filter (where pm.id is not null),
             '[]'

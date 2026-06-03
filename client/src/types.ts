@@ -406,6 +406,8 @@ export interface Playlist {
   creatorDisplayName?: string;
   ownerUserId?: string;
   isOwner?: boolean;
+  isFollowing?: boolean;
+  followerCount?: number;
   createdAt: string;
   updatedAt: string;
   clonedFromId?: string;

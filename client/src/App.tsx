@@ -214,7 +214,7 @@ export default function App() {
     ) : (
       <Playlists currentUser={currentUser} rewindPlaylists={rewindPlaylists} initialView="my" notice={playlistNotice || "Playlist not found."} onCreatePlaylist={createRemotePlaylist} onNavigate={navigate} playlists={playlists} />
     ),
-    "/p/:slug": <PublicPlaylist publicSlug={routeState.publicSlug || ""} onNavigate={navigate} />,
+    "/p/:slug": <PublicPlaylist currentUser={currentUser} onFollowChanged={refreshPlaylists} publicSlug={routeState.publicSlug || ""} onNavigate={navigate} />,
     "/movies/:tmdbId": (
       <MovieDetailsPage
         mediaType="movie"

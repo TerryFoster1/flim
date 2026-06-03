@@ -1,17 +1,33 @@
 import { useEffect, useState } from "react";
 import { MovieGrid } from "../components/MovieGrid";
 import { SharePlaylistButton } from "../components/SharePlaylistButton";
-import { getPublicPlaylistBySlug } from "../services/apiPlaylistStore";
-import type { Playlist } from "../types";
+import { followPlaylist, getPublicPlaylistBySlug, unfollowPlaylist } from "../services/apiPlaylistStore";
+import type { CurrentUser, Playlist } from "../types";
 
 interface PublicPlaylistProps {
   publicSlug: string;
   onNavigate: (path: string) => void;
+  currentUser: CurrentUser | null;
+  onFollowChanged?: () => void | Promise<void>;
 }
 
-export function PublicPlaylist({ publicSlug, onNavigate }: PublicPlaylistProps) {
+function formatFollowerCount(count = 0) {
+  return `${count} ${count === 1 ? "follower" : "followers"}`;
+}
+
+function creatorLabel(playlist: Playlist) {
+  const isDirectorPlaylist = playlist.creatorHandle === "the-director" || playlist.creatorDisplayName === "The Director";
+  if (isDirectorPlaylist) return "Curated by The Director";
+  if (playlist.creatorHandle) return `Created by @${playlist.creatorHandle}`;
+  if (playlist.creatorDisplayName) return `Created by ${playlist.creatorDisplayName}`;
+  return "Created by Flim user";
+}
+
+export function PublicPlaylist({ publicSlug, onNavigate, currentUser, onFollowChanged }: PublicPlaylistProps) {
   const [playlist, setPlaylist] = useState<Playlist | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "not_found">("loading");
+  const [followStatus, setFollowStatus] = useState("");
+  const [isUpdatingFollow, setIsUpdatingFollow] = useState(false);
 
   useEffect(() => {
     let isActive = true;
@@ -67,6 +83,39 @@ export function PublicPlaylist({ publicSlug, onNavigate }: PublicPlaylistProps) 
   }
 
   const isDirectorPlaylist = playlist.creatorHandle === "the-director" || playlist.creatorDisplayName === "The Director";
+  const creatorText = creatorLabel(playlist);
+
+  async function toggleFollow() {
+    const currentPlaylist = playlist;
+    if (!currentPlaylist) return;
+    if (!currentUser) {
+      onNavigate("/signin");
+      return;
+    }
+    if (currentPlaylist.isOwner) return;
+
+    setIsUpdatingFollow(true);
+    setFollowStatus("");
+
+    try {
+      const result = currentPlaylist.isFollowing ? await unfollowPlaylist(currentPlaylist.id) : await followPlaylist(currentPlaylist.id);
+      setPlaylist((current) =>
+        current
+          ? {
+              ...current,
+              followerCount: result.followerCount,
+              isFollowing: result.isFollowing,
+            }
+          : current,
+      );
+      setFollowStatus(result.isFollowing ? "Playlist followed." : "Playlist unfollowed.");
+      await onFollowChanged?.();
+    } catch {
+      setFollowStatus("Unable to update follow. Please try again.");
+    } finally {
+      setIsUpdatingFollow(false);
+    }
+  }
 
   return (
     <section className="route-page public-playlist-page">
@@ -94,23 +143,32 @@ export function PublicPlaylist({ publicSlug, onNavigate }: PublicPlaylistProps) 
           <h1>{playlist.name}</h1>
           {playlist.description ? <p>{playlist.description}</p> : null}
           <div className="meta-row">
-            <span>{playlist.movies.length} movies</span>
-            <SharePlaylistButton playlist={playlist} label="Share Playlist" />
+            <span>{playlist.movies.length} titles</span>
+            <span>{formatFollowerCount(playlist.followerCount || 0)}</span>
           </div>
           <div className="meta-row public-creator-row">
             {isDirectorPlaylist ? (
               <button className="creator-handle-link" onClick={() => onNavigate("/@the-director")} type="button">
-                Curated by The Director
+                {creatorText}
               </button>
             ) : playlist.creatorHandle ? (
               <button className="creator-handle-link" onClick={() => onNavigate(`/@${playlist.creatorHandle}`)} type="button">
-                by @{playlist.creatorHandle}
+                {creatorText}
               </button>
             ) : (
-              <span>Curated by a Flim friend</span>
+              <span>{creatorText}</span>
             )}
             <span>Shared via Flim</span>
           </div>
+          <div className="button-row public-share-actions">
+            {!playlist.isOwner ? (
+              <button className={playlist.isFollowing ? "secondary-button" : "primary-button"} disabled={isUpdatingFollow} onClick={toggleFollow} type="button">
+                {isUpdatingFollow ? "Saving..." : playlist.isFollowing ? "Following" : "Follow Playlist"}
+              </button>
+            ) : null}
+            <SharePlaylistButton playlist={playlist} label="Share Playlist" />
+          </div>
+          {followStatus ? <p className={followStatus.startsWith("Unable") ? "error-message" : "success-message"}>{followStatus}</p> : null}
           <div className="button-row">
             <button className="secondary-button" onClick={openSharedRoulette} type="button">
               Now Playing

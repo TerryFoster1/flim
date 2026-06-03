@@ -157,6 +157,29 @@ create index if not exists playlist_movies_watched_idx
 create index if not exists playlist_movies_sort_order_idx
   on playlist_movies (playlist_id, sort_order);
 
+create table if not exists playlist_follows (
+  id uuid primary key default gen_random_uuid(),
+  playlist_id uuid not null references playlists(id) on delete cascade,
+  follower_user_id uuid references users(id) on delete cascade,
+  follower_session_id text,
+  created_at timestamptz not null default now(),
+  check (follower_user_id is not null or nullif(follower_session_id, '') is not null)
+);
+
+create unique index if not exists playlist_follows_user_unique
+  on playlist_follows (playlist_id, follower_user_id)
+  where follower_user_id is not null;
+
+create unique index if not exists playlist_follows_session_unique
+  on playlist_follows (playlist_id, follower_session_id)
+  where follower_session_id is not null;
+
+create index if not exists playlist_follows_playlist_id_idx
+  on playlist_follows (playlist_id);
+
+create index if not exists playlist_follows_user_id_idx
+  on playlist_follows (follower_user_id);
+
 create table if not exists director_profile (
   id text primary key default 'the-director',
   display_name text not null default 'The Director',
