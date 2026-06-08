@@ -78,7 +78,7 @@ export default async function handler(request: any, response: any) {
         availabilityKnown: false,
         sourceConfigured: hasProviderAvailabilitySource(),
         links: [],
-        notes: "No confirmed streaming availability found for this region yet.",
+        notes: "Streaming availability coming soon.",
       });
     }
 
@@ -96,7 +96,7 @@ export default async function handler(request: any, response: any) {
         links,
         notes: links.length
           ? "Confirmed provider availability for this region."
-          : "No confirmed streaming availability found for this region yet.",
+          : "Streaming availability coming soon.",
       });
     }
 

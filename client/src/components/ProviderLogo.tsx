@@ -2,10 +2,14 @@ import { providerAssets } from "../data/providerAssets";
 import type { WatchProvider } from "../types";
 
 interface ProviderLogoProps {
-  provider: Pick<WatchProvider, "id" | "name">;
+  provider: Pick<WatchProvider, "id" | "name" | "logoUrl">;
 }
 
 export function ProviderLogo({ provider }: ProviderLogoProps) {
+  if (provider.logoUrl) {
+    return <img className="provider-logo provider-logo-img" src={provider.logoUrl} alt={`${provider.name} logo`} loading="lazy" />;
+  }
+
   const asset = providerAssets[provider.id];
   const label = asset?.label || provider.name;
   const className = asset?.className || "provider-logo-generic";

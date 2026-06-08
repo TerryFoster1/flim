@@ -66,12 +66,15 @@ If confirmed availability exists:
 - Render provider logo buttons.
 - Open exact provider title links when present.
 - Fall back to provider search URLs only for confirmed provider rows without exact links.
+- Show provider logos from normalized provider data when available, with local branded badges as a fallback.
 
 If availability is unknown or no provider source is configured:
 
 - Show `Streaming availability coming soon.`
 - Do not show provider logos as if the title is available.
 - Do not show developer language.
+
+V1 intentionally does not show Plex, Netflix, Prime Video, Disney+, Crave, Apple TV, YouTube, Tubi, or Paramount+ unless a confirmed availability row exists for that title and region.
 
 ## Plex
 

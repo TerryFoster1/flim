@@ -21,6 +21,15 @@ export function WhereToWatch({ compact = false, movie }: WhereToWatchProps) {
   const confirmedLinks = useMemo(() => (availability?.links || []).filter((link) => link.availabilityKnown && link.url), [availability]);
   const hasConfirmedLinks = confirmedLinks.length > 0;
 
+  function accessLabel(value?: string) {
+    if (value === "subscription") return "Subscription";
+    if (value === "rent") return "Rent";
+    if (value === "buy") return "Buy";
+    if (value === "free") return "Free";
+    if (value === "library") return "In Your Library";
+    return "Watch";
+  }
+
   useEffect(() => {
     let isActive = true;
     getCurrentProfile()
@@ -69,11 +78,11 @@ export function WhereToWatch({ compact = false, movie }: WhereToWatchProps) {
         <div>
           {!compact ? <h2>Where To Watch</h2> : null}
         </div>
-        <span className="provider-status">Region: {streamingRegion}</span>
+        <span className="provider-status">{streamingRegion}</span>
       </div>
 
       <p className="helper-text">
-        {status === "loading" ? "Checking streaming availability..." : availability?.notes || "Streaming availability coming soon."}
+        {status === "loading" ? "Checking streaming availability..." : hasConfirmedLinks ? "Available on confirmed providers in your region." : "Streaming availability coming soon."}
       </p>
 
       {hasConfirmedLinks ? (
@@ -87,7 +96,8 @@ export function WhereToWatch({ compact = false, movie }: WhereToWatchProps) {
             target="_blank"
           >
             <ProviderLogo provider={link.provider} />
-            <small>{link.linkType === "exact" ? "Open provider" : "Search provider"}</small>
+            <strong>{link.provider.name}</strong>
+            <small>{link.linkType === "exact" ? accessLabel(link.accessType) : `Search ${accessLabel(link.accessType)}`}</small>
           </a>
           ))}
         </div>

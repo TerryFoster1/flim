@@ -129,10 +129,13 @@ function regionOrDefault(region?: string) {
 
 function providerFromApi(link: ProviderAvailabilityApiLink): WatchProvider {
   const knownProvider = watchProviders.find((provider) => provider.id === link.providerId);
-  return knownProvider || {
+  if (knownProvider) return { ...knownProvider, logoUrl: link.logoUrl || knownProvider.logoUrl };
+
+  return {
     id: link.providerId,
-    name: link.providerName as WatchProvider["name"],
+    name: link.providerName,
     icon: link.providerName,
+    logoUrl: link.logoUrl,
     notes: "Confirmed provider availability.",
   };
 }

@@ -148,7 +148,8 @@ export type WatchProviderName =
   | "Crave"
   | "YouTube"
   | "Tubi"
-  | "Paramount+";
+  | "Paramount+"
+  | string;
 
 export type WatchProviderLinkType = "exact" | "search_fallback" | "connect_placeholder";
 
@@ -165,6 +166,7 @@ export interface WatchProvider {
   id: string;
   name: WatchProviderName;
   icon: string;
+  logoUrl?: string;
   searchUrlTemplate?: string;
   regions?: ProviderRegion[];
   capabilities?: ProviderCapabilities;
