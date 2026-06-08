@@ -22,6 +22,7 @@ import { Profile } from "./pages/Profile";
 import { ProfilePlaylists } from "./pages/ProfilePlaylists";
 import { ProfileSaved } from "./pages/ProfileSaved";
 import { ProfileWatched } from "./pages/ProfileWatched";
+import { FollowedTitles } from "./pages/FollowedTitles";
 import { PublicPlaylist } from "./pages/PublicPlaylist";
 import { SharedPlaylist } from "./pages/SharedPlaylist";
 import { PublicProfile } from "./pages/PublicProfile";
@@ -53,6 +54,7 @@ function routeFromPath(pathname = window.location.pathname): RouteState {
   if (pathname === "/profile/playlists") return { route: "/profile/playlists" };
   if (pathname === "/profile/saved") return { route: "/profile/saved" };
   if (pathname === "/profile/watched") return { route: "/profile/watched" };
+  if (pathname === "/followed-titles") return { route: "/followed-titles" };
   if (pathname === "/providers") return { route: "/providers" };
   if (pathname === "/settings") return { route: "/settings" };
   if (pathname === "/signin") return { route: "/signin" };
@@ -262,6 +264,7 @@ export default function App() {
     "/profile/playlists": <ProfilePlaylists onNavigate={navigate} playlists={displayPlaylists} />,
     "/profile/saved": <ProfileSaved playlists={playlists} />,
     "/profile/watched": <ProfileWatched playlists={playlists} onNavigate={navigate} updateWatchStatus={updateWatchStatus} />,
+    "/followed-titles": <FollowedTitles onNavigate={navigate} />,
     "/providers": playlistsPage("my"),
     "/settings": <Settings currentUser={currentUser} onNavigate={navigate} />,
     "/signin": <AuthPage mode="signin" onAuth={handleAuthenticated} onNavigate={navigate} />,

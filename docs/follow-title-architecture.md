@@ -2,15 +2,24 @@
 
 ## Status
 
-Documented only.
+V1 implemented.
 
-Do not implement Follow Title until the earlier phases in `master-product-execution-plan.md` are production-ready:
+Current V1 scope:
 
-1. Core stability.
-2. UX polish.
-3. Discovery.
-4. Watch providers.
-5. Plex foundation.
+- Users can follow movies and TV shows from title detail pages.
+- Follow state persists and can be viewed on `My Followed Titles`.
+- Notification preferences are stored for followed titles.
+- Release tracking foundation is stored from the internal `media_items` catalog.
+- In-app notification types are prepared for release/provider/trailer events.
+
+Still deferred:
+
+- Push notifications.
+- Email notifications.
+- SMS.
+- Plex auth and Plex library matching.
+- TV episode progress tracking.
+- Automated external polling jobs.
 
 ## Product Goal
 
@@ -163,44 +172,39 @@ Do not begin with SMS.
 
 ## Database Model
 
-Prepare support for these tables after the retention phase opens:
+V1 uses these tables:
 
 ### followed_titles
 
 Purpose: one row per user-followed movie or TV show.
 
-Suggested fields:
+Fields:
 
 - `id`
 - `user_id`
+- `media_item_id`
 - `media_type`
-- `tmdb_id`
-- `title`
-- `poster_url`
-- `release_year`
-- `followed_at`
-- `unfollowed_at`
+- `notification_settings`
 - `created_at`
 - `updated_at`
 
 Unique key:
 
 ```text
-user_id + media_type + tmdb_id
+user_id + media_item_id
 ```
 
 ### notification_preferences
 
 Purpose: per-user and per-title alert preferences.
 
-Suggested fields:
+Fields:
 
 - `id`
 - `user_id`
 - `followed_title_id`
-- `alert_type`
-- `enabled`
-- `delivery_channels`
+- `media_item_id`
+- `preferences`
 - `created_at`
 - `updated_at`
 
@@ -238,18 +242,17 @@ Suggested fields:
 
 Purpose: cached release timeline data for followed titles.
 
-Suggested fields:
+Fields:
 
 - `id`
+- `media_item_id`
 - `media_type`
-- `tmdb_id`
-- `region`
-- `release_type`
 - `release_date`
-- `source`
-- `source_updated_at`
+- `status`
+- `upcoming`
+- `season_data`
 - `cached_at`
-- `expires_at`
+- `updated_at`
 
 ### streaming_availability_tracking
 

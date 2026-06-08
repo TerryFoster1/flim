@@ -13,6 +13,7 @@ export type AppRoute =
   | "/profile/playlists"
   | "/profile/saved"
   | "/profile/watched"
+  | "/followed-titles"
   | "/providers"
   | "/settings"
   | "/signin"
@@ -52,6 +53,7 @@ export interface MovieSearchResult {
   tmdbId: number;
   mediaType: MediaType;
   title: string;
+  releaseDate?: string;
   releaseYear?: string;
   overview: string;
   posterPath?: string;
@@ -60,6 +62,8 @@ export interface MovieSearchResult {
 }
 
 export interface MovieDetails extends MovieSearchResult {
+  releaseDate?: string;
+  backdropUrl?: string;
   runtimeMinutes?: number;
   genres: string[];
   seasonCount?: number;
@@ -68,6 +72,9 @@ export interface MovieDetails extends MovieSearchResult {
   contentRating?: string;
   contentRatings?: ContentRating[];
   contentRatingVersion?: number;
+  status?: string;
+  popularity?: number;
+  language?: string;
 }
 
 export interface ContentRating {
@@ -240,7 +247,14 @@ export interface CurrentUser {
   profile: UserProfile | null;
 }
 
-export type NotificationType = "playlist_followed";
+export type NotificationType =
+  | "playlist_followed"
+  | "title_released"
+  | "season_announced"
+  | "season_released"
+  | "episode_available"
+  | "streaming_available"
+  | "trailer_released";
 
 export interface AppNotification {
   id: string;
@@ -248,7 +262,7 @@ export interface AppNotification {
   actorUserId?: string;
   actorDisplayName: string;
   type: NotificationType;
-  entityType: "playlist";
+  entityType: "playlist" | "title";
   entityId?: string;
   entityPath?: string;
   title: string;
@@ -260,6 +274,28 @@ export interface AppNotification {
 export interface NotificationFeed {
   unreadCount: number;
   notifications: AppNotification[];
+}
+
+export type MovieNotificationSetting = "theaterRelease" | "streamingAvailability" | "trailerReleased";
+export type TvNotificationSetting = "newSeasonAnnounced" | "seasonReleaseDate" | "newEpisodeAvailable" | "streamingAvailability";
+export type TitleNotificationSettings = Partial<Record<MovieNotificationSetting | TvNotificationSetting, boolean>>;
+
+export interface FollowedTitle {
+  id: string;
+  mediaItemId: string;
+  mediaType: MediaType;
+  tmdbId: number;
+  title: string;
+  overview?: string;
+  posterUrl?: string;
+  releaseDate?: string;
+  releaseYear?: string;
+  status?: string;
+  upcoming: boolean;
+  seasonData?: Record<string, unknown>;
+  notificationSettings: TitleNotificationSettings;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface PublicUserProfile {

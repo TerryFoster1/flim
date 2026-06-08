@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { AddToPlaylistControl } from "../components/AddToPlaylistControl";
+import { FollowTitleControl } from "../components/FollowTitleControl";
 import { MediaExtensions } from "../components/MediaExtensions";
 import { PageShell } from "../components/PageShell";
 import { WhereToWatch } from "../components/WhereToWatch";
@@ -113,6 +114,7 @@ export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addTo
           </div>
           <div className="button-row">
             <AddToPlaylistControl addToPlaylist={(playlistId) => addToPlaylist(playlistId, movie)} movie={movie} playlists={playlists} />
+            <FollowTitleControl movie={movie} />
             {savedInstances.map(({ playlist, item }) => (
               <label className="watched-toggle" key={playlist.id}>
                 <input

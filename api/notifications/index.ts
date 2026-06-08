@@ -11,7 +11,12 @@ function mapNotification(row: any) {
     type: row.type,
     entityType: row.entity_type,
     entityId: row.entity_id || undefined,
-    entityPath: row.entity_type === "playlist" && row.entity_id ? `/playlists/${row.entity_id}` : undefined,
+    entityPath:
+      row.entity_type === "playlist" && row.entity_id
+        ? `/playlists/${row.entity_id}`
+        : row.entity_type === "title" && row.title_tmdb_id
+          ? `/${row.title_media_type === "tv" ? "tv" : "movies"}/${row.title_tmdb_id}`
+          : undefined,
     title: row.title,
     message: row.message,
     readAt: row.read_at || undefined,
@@ -32,12 +37,15 @@ export default async function handler(request: any, response: any) {
       const notifications = await sql`
         select
           n.*,
+          media_item.media_type as title_media_type,
+          media_item.tmdb_id as title_tmdb_id,
           nullif(actor_profile.display_name, '') as actor_display_name,
           nullif(actor_profile.handle, '') as actor_handle,
           nullif(initcap(trim(regexp_replace(split_part(actor.email, '@', 1), '[^a-zA-Z0-9]+', ' ', 'g'))), '') as actor_email_name
         from notifications n
         left join user_profiles actor_profile on actor_profile.user_id = n.actor_user_id::text
         left join users actor on actor.id = n.actor_user_id
+        left join media_items media_item on media_item.id = n.entity_id and n.entity_type = 'title'
         where n.recipient_user_id = ${user.id}
         order by n.created_at desc
         limit 30

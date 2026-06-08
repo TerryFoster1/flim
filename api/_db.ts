@@ -385,6 +385,59 @@ export async function ensureNotificationsTable(sql: any) {
     on notifications (recipient_user_id, actor_user_id, type, entity_type, entity_id)
     where actor_user_id is not null
   `;
+  await sql`create index if not exists notifications_type_idx on notifications (type)`;
+  await sql`create index if not exists notifications_entity_idx on notifications (entity_type, entity_id)`;
+}
+
+export async function ensureFollowTitleTables(sql: any) {
+  await ensureAuthTables(sql);
+  await sql`create extension if not exists pgcrypto`;
+  await sql`
+    create table if not exists followed_titles (
+      id uuid primary key default gen_random_uuid(),
+      user_id uuid not null references users(id) on delete cascade,
+      media_item_id uuid not null references media_items(id) on delete cascade,
+      media_type text not null check (media_type in ('movie', 'tv')),
+      notification_settings jsonb not null default '{}'::jsonb,
+      created_at timestamptz not null default now(),
+      updated_at timestamptz not null default now()
+    )
+  `;
+  await sql`alter table followed_titles add column if not exists notification_settings jsonb not null default '{}'::jsonb`;
+  await sql`create unique index if not exists followed_titles_user_media_unique on followed_titles (user_id, media_item_id)`;
+  await sql`create index if not exists followed_titles_user_created_idx on followed_titles (user_id, created_at desc)`;
+  await sql`create index if not exists followed_titles_media_item_idx on followed_titles (media_item_id)`;
+
+  await sql`
+    create table if not exists notification_preferences (
+      id uuid primary key default gen_random_uuid(),
+      user_id uuid not null references users(id) on delete cascade,
+      followed_title_id uuid not null references followed_titles(id) on delete cascade,
+      media_item_id uuid not null references media_items(id) on delete cascade,
+      preferences jsonb not null default '{}'::jsonb,
+      created_at timestamptz not null default now(),
+      updated_at timestamptz not null default now()
+    )
+  `;
+  await sql`create unique index if not exists notification_preferences_followed_title_unique on notification_preferences (followed_title_id)`;
+  await sql`create index if not exists notification_preferences_user_idx on notification_preferences (user_id)`;
+
+  await sql`
+    create table if not exists release_tracking (
+      id uuid primary key default gen_random_uuid(),
+      media_item_id uuid not null references media_items(id) on delete cascade,
+      media_type text not null check (media_type in ('movie', 'tv')),
+      release_date date,
+      status text,
+      upcoming boolean not null default false,
+      season_data jsonb not null default '{}'::jsonb,
+      cached_at timestamptz not null default now(),
+      updated_at timestamptz not null default now()
+    )
+  `;
+  await sql`alter table release_tracking add column if not exists season_data jsonb not null default '{}'::jsonb`;
+  await sql`create unique index if not exists release_tracking_media_item_unique on release_tracking (media_item_id)`;
+  await sql`create index if not exists release_tracking_upcoming_idx on release_tracking (upcoming, release_date)`;
 }
 
 export function normalizeHandle(handle: string) {

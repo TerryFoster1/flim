@@ -162,6 +162,7 @@ export function NavigationBar({ currentUser, onNavigate, onLogout }: NavigationB
             {currentUser ? (
               <>
                 <button onClick={() => navigate(currentUser.profile?.handle ? `/@${currentUser.profile.handle}` : "/profile")} type="button">Profile</button>
+                <button onClick={() => navigate("/followed-titles")} type="button">My Followed Titles</button>
                 <button onClick={() => navigate("/settings")} type="button">Settings</button>
                 <button onClick={() => navigate("/settings")} type="button">Connect Plex</button>
               </>
