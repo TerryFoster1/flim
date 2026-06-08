@@ -1,6 +1,6 @@
 # Playlist Sharing System
 
-Phase 3A makes public playlist sharing the first Flim wow moment.
+Playlist sharing makes public playlists easy to send, scan, and revisit.
 
 ## Current Behavior
 
@@ -8,14 +8,16 @@ Phase 3A makes public playlist sharing the first Flim wow moment.
 - New slugs try the clean playlist name first, such as `movies-dad-wants-anthony-to-watch`.
 - If the clean slug already exists, Flim appends a short suffix.
 - Share URLs use `/p/:slug`.
-- The share panel displays the public URL.
+- Public playlists expose the public URL.
+- Private playlists prompt the owner to make the playlist public before showing a URL or QR code.
 - Users can copy the link.
 - Browsers with `navigator.share` can open the native share sheet.
 - A QR code is generated for the same public URL.
 - The QR code can be downloaded as a PNG.
-- Friends can open the link or QR code without logging in.
+- Friends can open public links or QR codes without logging in.
 - Public playlist pages are view-only.
 - Public playlist URLs receive playlist-specific Open Graph metadata.
+- Signed-in users can follow public playlists.
 
 Example public URL format:
 
@@ -40,19 +42,19 @@ The `/p/:slug` route is served through a Vercel function that injects playlist-s
 
 This improves previews in Messages, Discord, Messenger, email, and other social surfaces.
 
-## Demo-Stage Access Model
+## Access Model
 
-For this phase, any playlist with a `public_slug` can be opened by direct link.
+The canonical rules live in `playlist-visibility-rules.md`.
 
-`private`, `shared`, and `public` visibility values are stored for future behavior, but auth and access control are not enforced yet.
+- Private playlists are owner-only and do not expose public URLs.
+- Public playlists can be viewed, followed, and shared by everyone.
+- Public playlist mutation remains owner-only.
+- Shared collaboration is planned and documented, but it is not exposed as a working visitor-edit flow yet.
 
 ## Future Sharing Capabilities
 
-- Real private/shared/public permissions.
 - Authenticated playlist ownership.
 - Playlist collaborators.
-- Saved playlists.
-- Follower counts.
 - Share analytics.
 - Expiring or revocable share links.
 

@@ -18,7 +18,13 @@ export function sendJson(response: any, status: number, body: unknown) {
 
 export function readBody(request: any): Promise<any> {
   if (request.body) {
-    return Promise.resolve(typeof request.body === "string" ? JSON.parse(request.body || "{}") : request.body);
+    if (typeof request.body !== "string") return Promise.resolve(request.body);
+
+    try {
+      return Promise.resolve(JSON.parse(request.body || "{}"));
+    } catch {
+      return Promise.resolve({});
+    }
   }
 
   return new Promise((resolve, reject) => {
@@ -30,7 +36,7 @@ export function readBody(request: any): Promise<any> {
       try {
         resolve(raw ? JSON.parse(raw) : {});
       } catch (error) {
-        reject(error);
+        resolve({});
       }
     });
     request.on("error", reject);

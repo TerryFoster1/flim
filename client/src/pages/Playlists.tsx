@@ -37,11 +37,14 @@ function rankPublicPlaylist(playlist: Playlist) {
 function scorePlaylistSearch(playlist: Playlist, normalizedQuery: string) {
   const name = playlist.name.toLowerCase();
   const description = playlist.description.toLowerCase();
+  const creatorDisplayName = (playlist.creatorDisplayName || "").toLowerCase();
+  const creatorHandle = (playlist.creatorHandle || "").toLowerCase();
   if (name === normalizedQuery) return 0;
   if (name.startsWith(normalizedQuery)) return 1;
   if (name.includes(normalizedQuery)) return 2;
   if (description.includes(normalizedQuery)) return 3;
-  return 4;
+  if (creatorDisplayName.includes(normalizedQuery) || creatorHandle.includes(normalizedQuery)) return 4;
+  return 5;
 }
 
 export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlaylist, currentUser, notice, initialView = "my" }: PlaylistsProps) {
@@ -91,7 +94,14 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
     if (!normalizedQuery) return sourcePlaylists;
     return sourcePlaylists
       .filter((playlist) =>
-        [playlist.name, playlist.description, playlist.visibility, ...playlist.movies.map((movie) => movie.title)].some((value) =>
+        [
+          playlist.name,
+          playlist.description,
+          playlist.visibility,
+          playlist.creatorDisplayName || "",
+          playlist.creatorHandle || "",
+          ...playlist.movies.map((movie) => movie.title),
+        ].some((value) =>
           value.toLowerCase().includes(normalizedQuery),
         ),
       )

@@ -21,5 +21,6 @@ Documents:
 - `movie-cache-strategy.md` - Cache-first TMDb import strategy and future Flim media database rules.
 - `plex-integration.md` - Plex library, matching, and remote playback planning.
 - `playlist-sharing-system.md` - Sharing, saving, cloning, and collaboration planning.
+- `playlist-visibility-rules.md` - Source-of-truth private, shared, and public playlist access rules.
 - `social-features.md` - Social feature boundaries and future signals.
 - `deployment-notes.md` - Canonical domain and future deployment placeholders for `https://flim.ca`.

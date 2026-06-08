@@ -45,7 +45,7 @@ Identity columns include `playlists.owner_user_id`, `users.updated_at`, and `use
 https://www.flim.ca/p/example-playlist-slug
 ```
 
-This is demo-stage shared data. Any playlist with a `public_slug` can be opened by direct link. Auth, user ownership, visibility enforcement, and authorization checks should be added later.
+Playlist visibility rules live in `playlist-visibility-rules.md`. In the current implementation, public playlist pages require `visibility = 'public'`, private playlist reads and mutations require ownership, and shared collaboration is documented but not exposed as a working visitor-edit flow yet.
 
 ## API Surface
 

@@ -19,6 +19,16 @@ JustWatch Partner API remains a strong long-term option because JustWatch has br
 
 Streaming Availability API can also be evaluated later if pricing, coverage, and terms fit better, but Flim should keep the same normalized cache contract either way.
 
+## Provider Source Comparison
+
+| Source | Strengths | Tradeoffs | Fit |
+| --- | --- | --- | --- |
+| Watchmode | Movies and TV, region filtering, provider source names, access type, links/deep links, straightforward API-key integration. Public site describes more than 200 services across more than 50 countries. | Requires `WATCHMODE_API_KEY`; coverage and limits depend on plan. | Recommended V1 source because it is practical to wire behind Flim's existing cache endpoint. |
+| JustWatch Partner API | Broad provider coverage, strong consumer brand recognition, widgets/API/data export, JustWatch describes coverage across more than 120 countries. | Partner/commercial access path; branded-link requirements; may need approval before production use. | Best long-term data partner if Flim needs deep commercial-quality coverage and partnership support. |
+| Streaming Availability API | Movies and series, country/service coverage, current docs describe availability across 66 countries and free-plan onboarding. | Separate provider taxonomy and pricing/limits need review; would require a mapper into Flim's normalized provider tables. | Good fallback candidate if Watchmode pricing, quota, or coverage becomes limiting. |
+
+Decision: keep Watchmode as the V1 integration target, but keep the normalized cache schema provider-agnostic so Flim can swap to JustWatch or Streaming Availability API without rewriting the UI.
+
 ## Provider Support
 
 Planned examples:
