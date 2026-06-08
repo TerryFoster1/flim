@@ -2687,6 +2687,17 @@ textarea { min-height: 42px; resize: vertical; }
   color: var(--text);
   font-size: 1rem;
 }
+.share-link-loading {
+  min-height: 56px;
+  display: grid;
+  place-items: center;
+  border: 1px dashed rgba(255, 184, 77, 0.36);
+  border-radius: var(--radius);
+  color: #ffe8bd;
+  font-weight: 850;
+  text-align: center;
+  background: rgba(255, 184, 77, 0.08);
+}
 .qr-card {
   display: grid;
   place-items: center;
@@ -2718,6 +2729,31 @@ textarea { min-height: 42px; resize: vertical; }
 .qr-placeholder { color: #08090d; min-height: 260px; display: grid; place-items: center; text-align: center; }
 .share-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .share-actions .primary-button, .share-actions .secondary-button { width: 100%; }
+.share-panel .primary-button,
+.share-panel .share-primary-action,
+.share-panel .qr-download {
+  border-color: rgba(255, 184, 77, 0.76);
+  background: linear-gradient(135deg, #ff4f6d, #ffb84d);
+  color: #14060a;
+  font-weight: 900;
+  box-shadow: 0 16px 34px rgba(255, 108, 78, 0.24);
+}
+.share-panel .primary-button:hover,
+.share-panel .primary-button:focus-visible,
+.share-panel .share-primary-action:hover,
+.share-panel .share-primary-action:focus-visible,
+.share-panel .qr-download:hover,
+.share-panel .qr-download:focus-visible {
+  border-color: rgba(255, 242, 213, 0.92);
+  background: linear-gradient(135deg, #ff667d, #ffc66f);
+  color: #0f0508;
+  outline: none;
+}
+.share-panel .primary-button:disabled,
+.share-panel .share-primary-action:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
 .primary-share-actions {
   grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
   margin-bottom: 14px;

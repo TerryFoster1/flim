@@ -41,7 +41,17 @@ export function SharePlaylistButton({ playlist, label = "Share", iconOnly = fals
   }, [playlist.sharedSlug]);
 
   useEffect(() => {
-    if (!isOpen || !activeUrl) return;
+    if (!isOpen || isPublicShareable || sharedSlug || !onCreateSharedLink || isCreatingSharedLink) return;
+    createSharedLink();
+  }, [isOpen, isPublicShareable, sharedSlug, onCreateSharedLink, isCreatingSharedLink]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    if (!activeUrl) {
+      setQrCodeUrl("");
+      setCanNativeShare(false);
+      return;
+    }
 
     setCopied(false);
     setStatus("");
@@ -71,11 +81,12 @@ export function SharePlaylistButton({ playlist, label = "Share", iconOnly = fals
       setStatus("Link Copied");
     } catch {
       setCopied(false);
-      setStatus("Copy failed. The public URL is shown above.");
+      setStatus("Copy failed. The share link is shown above.");
     }
   }
 
   async function nativeShare() {
+    if (!activeUrl) return;
     if (!navigator.share) {
       await copyLink();
       return;
@@ -164,9 +175,9 @@ export function SharePlaylistButton({ playlist, label = "Share", iconOnly = fals
                   <h3>Share with people</h3>
                   <p className="helper-text">People with this private shared link can view, add, and remove titles. This does not make the playlist public.</p>
                   {!sharedUrl ? (
-                    <button className="primary-button" disabled={isCreatingSharedLink || !onCreateSharedLink} onClick={createSharedLink} type="button">
-                      {isCreatingSharedLink ? "Creating Link..." : "Create Shared Link"}
-                    </button>
+                    <div className="share-link-loading" aria-live="polite">
+                      {isCreatingSharedLink ? "Preparing shared link and QR code..." : "Shared link will appear here."}
+                    </div>
                   ) : (
                     <>
                       <div className="share-link-card">
@@ -178,7 +189,7 @@ export function SharePlaylistButton({ playlist, label = "Share", iconOnly = fals
                           {copied ? "Link Copied" : "Copy Link"}
                         </button>
                         {canNativeShare ? (
-                          <button className="secondary-button" onClick={nativeShare} type="button">
+                          <button className="secondary-button share-primary-action" onClick={nativeShare} type="button">
                             Share
                           </button>
                         ) : null}
@@ -196,7 +207,7 @@ export function SharePlaylistButton({ playlist, label = "Share", iconOnly = fals
                   <section className="share-mode-section">
                     <h3>Make Public</h3>
                     <p className="helper-text">Public playlists can be discovered and followed by anyone on Flim. Public visitors cannot edit titles.</p>
-                    <button className="secondary-button" disabled={isMakingPublic} onClick={makePublic} type="button">
+                    <button className="secondary-button share-primary-action" disabled={isMakingPublic} onClick={makePublic} type="button">
                       {isMakingPublic ? "Making Public..." : "Make Public"}
                     </button>
                   </section>
@@ -233,7 +244,7 @@ export function SharePlaylistButton({ playlist, label = "Share", iconOnly = fals
                 {copied ? "Link Copied" : "Copy Link"}
               </button>
               {canNativeShare ? (
-                <button className="secondary-button" onClick={nativeShare} type="button">
+                <button className="secondary-button share-primary-action" onClick={nativeShare} type="button">
                   Share
                 </button>
               ) : null}
@@ -246,7 +257,7 @@ export function SharePlaylistButton({ playlist, label = "Share", iconOnly = fals
             </div>
             <div className="share-actions secondary-share-actions">
               {qrCodeUrl ? (
-                <a className="secondary-button qr-download" download={`${playlist.publicSlug}-qr.png`} href={qrCodeUrl}>
+                <a className="secondary-button qr-download share-primary-action" download={`${playlist.publicSlug}-qr.png`} href={qrCodeUrl}>
                   Download QR
                 </a>
               ) : null}
