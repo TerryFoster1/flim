@@ -11,6 +11,7 @@ Current V1 scope:
 - Notification preferences are stored for followed titles.
 - Release tracking foundation is stored from the internal `media_items` catalog.
 - In-app notification types are prepared for release/provider/trailer events.
+- Release Intelligence V1 records change events in `notification_events`; see `release-intelligence-foundation.md`.
 
 Still deferred:
 
@@ -237,6 +238,19 @@ Suggested fields:
 - `source`
 - `source_payload`
 - `created_at`
+
+Implemented event types currently include:
+
+- `release_date_changed`
+- `title_status_changed`
+- `movie_released`
+- `trailer_released`
+- `streaming_available`
+- `season_announced`
+- `season_release_changed`
+- `season_released`
+- `episode_released`
+- `season_data_changed`
 
 ### release_tracking
 

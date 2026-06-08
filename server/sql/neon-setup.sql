@@ -394,19 +394,62 @@ create table if not exists release_tracking (
   release_date date,
   status text,
   upcoming boolean not null default false,
+  trailer_count integer not null default 0,
+  provider_hash text,
+  season_count integer,
+  episode_count integer,
+  last_checked_at timestamptz,
+  change_hash text,
   season_data jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
   cached_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
 alter table release_tracking
-  add column if not exists season_data jsonb not null default '{}'::jsonb;
+  add column if not exists season_data jsonb not null default '{}'::jsonb,
+  add column if not exists trailer_count integer not null default 0,
+  add column if not exists provider_hash text,
+  add column if not exists season_count integer,
+  add column if not exists episode_count integer,
+  add column if not exists last_checked_at timestamptz,
+  add column if not exists change_hash text,
+  add column if not exists created_at timestamptz not null default now();
 
 create unique index if not exists release_tracking_media_item_unique
   on release_tracking (media_item_id);
 
 create index if not exists release_tracking_upcoming_idx
   on release_tracking (upcoming, release_date);
+
+create index if not exists release_tracking_last_checked_idx
+  on release_tracking (last_checked_at);
+
+create table if not exists notification_events (
+  id uuid primary key default gen_random_uuid(),
+  media_item_id uuid not null references media_items(id) on delete cascade,
+  media_type text not null
+    check (media_type in ('movie', 'tv')),
+  tmdb_id integer not null,
+  event_type text not null,
+  title text not null,
+  body text not null,
+  change_hash text not null,
+  old_state jsonb not null default '{}'::jsonb,
+  new_state jsonb not null default '{}'::jsonb,
+  event_date timestamptz not null default now(),
+  source text not null default 'release_intelligence',
+  created_at timestamptz not null default now()
+);
+
+create unique index if not exists notification_events_media_event_change_unique
+  on notification_events (media_item_id, event_type, change_hash);
+
+create index if not exists notification_events_media_created_idx
+  on notification_events (media_item_id, created_at desc);
+
+create index if not exists notification_events_type_created_idx
+  on notification_events (event_type, created_at desc);
 
 create table if not exists director_profile (
   id text primary key default 'the-director',
