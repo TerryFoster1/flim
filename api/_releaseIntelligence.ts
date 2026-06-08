@@ -23,8 +23,12 @@ interface ReleaseEventDraft {
 
 function dateOnly(value: unknown) {
   if (!value) return null;
+  if (value instanceof Date && Number.isFinite(value.getTime())) return value.toISOString().slice(0, 10);
   const text = String(value);
-  return text.includes("T") ? text.slice(0, 10) : text.slice(0, 10);
+  if (/^\d{4}-\d{2}-\d{2}/.test(text)) return text.slice(0, 10);
+  const parsed = new Date(text);
+  if (Number.isFinite(parsed.getTime())) return parsed.toISOString().slice(0, 10);
+  return text.slice(0, 10);
 }
 
 function numberOrZero(value: unknown) {
