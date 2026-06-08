@@ -33,6 +33,16 @@ export function getPublicPlaylistBySlug(publicSlug: string) {
   return apiRequest<Playlist>(`/api/public/playlists/${publicSlug}`);
 }
 
+export function getSharedPlaylistByToken(token: string) {
+  return apiRequest<Playlist>(`/api/shared/playlists/${token}`);
+}
+
+export function createSharedPlaylistLink(playlistId: string) {
+  return apiRequest<{ ok: boolean; sharedSlug: string; visibility: "shared" }>(`/api/playlists/${playlistId}/share`, {
+    method: "POST",
+  });
+}
+
 export function followPlaylist(playlistId: string) {
   return apiRequest<{ ok: boolean; followerCount: number; isFollowing: boolean; isOwner?: boolean }>(`/api/playlists/${playlistId}/follow`, {
     method: "POST",
@@ -72,8 +82,21 @@ export function addMovieToPlaylist(playlistId: string, movie: MovieSearchResult 
   });
 }
 
+export function addMovieToSharedPlaylist(token: string, movie: MovieSearchResult | MovieDetails) {
+  return apiRequest<PlaylistMovie>(`/api/shared/playlists/${token}/movies`, {
+    method: "POST",
+    body: JSON.stringify(movie),
+  });
+}
+
 export function removeMovieFromPlaylist(playlistId: string, tmdbId: number, mediaType = "movie") {
   return apiRequest<{ ok: boolean }>(`/api/playlists/${playlistId}/movies/${tmdbId}?type=${mediaType}`, {
+    method: "DELETE",
+  });
+}
+
+export function removeMovieFromSharedPlaylist(token: string, tmdbId: number, mediaType = "movie") {
+  return apiRequest<{ ok: boolean }>(`/api/shared/playlists/${token}/movies/${tmdbId}?type=${mediaType}`, {
     method: "DELETE",
   });
 }

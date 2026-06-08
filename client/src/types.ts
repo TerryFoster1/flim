@@ -4,6 +4,7 @@ export type AppRoute =
   | "/playlists"
   | "/playlists/:id"
   | "/p/:slug"
+  | "/s/:token"
   | "/movies/:tmdbId"
   | "/tv/:tmdbId"
   | "/public"
@@ -36,6 +37,7 @@ export interface RouteState {
   route: AppRoute;
   playlistId?: string;
   publicSlug?: string;
+  sharedToken?: string;
   tmdbId?: string;
   handle?: string;
   adminPlaylistId?: string;
@@ -423,6 +425,7 @@ export interface RemotePlaybackTarget extends PlaybackTarget {
 export interface Playlist {
   id: string;
   publicSlug: string;
+  sharedSlug?: string;
   name: string;
   description: string;
   visibility: "private" | "shared" | "public";
@@ -431,6 +434,11 @@ export interface Playlist {
   creatorDisplayName?: string;
   ownerUserId?: string;
   isOwner?: boolean;
+  canAddTitles?: boolean;
+  canRemoveTitles?: boolean;
+  canReorderTitles?: boolean;
+  canEditPlaylist?: boolean;
+  accessMode?: "owner" | "private" | "shared" | "public";
   isFollowing?: boolean;
   followerCount?: number;
   createdAt: string;

@@ -11,13 +11,18 @@ interface PlaylistDetailsProps {
   addToPlaylist: (playlistId: string, movie: MovieSearchResult) => void | Promise<void>;
   deletePlaylist: (playlistId: string) => void | Promise<void>;
   updatePlaylist: (playlistId: string, input: Pick<Playlist, "name" | "description" | "visibility">) => Playlist | void | Promise<Playlist | void>;
+  createSharedLink?: (playlistId: string) => Promise<{ sharedSlug: string; visibility: "shared" }>;
   removeMovie: (playlistId: string, tmdbId: number, mediaType?: string) => void | Promise<void>;
   reorderMovies: (playlistId: string, movieIds: string[]) => void | Promise<void>;
   updateWatchStatus: (playlistId: string, tmdbId: number, watchStatus: WatchStatus, mediaType?: string) => void | Promise<void>;
 }
 
-export function PlaylistDetails({ playlist, onNavigate, addToPlaylist, deletePlaylist, updatePlaylist, removeMovie, reorderMovies, updateWatchStatus }: PlaylistDetailsProps) {
-  const [showAddMovie, setShowAddMovie] = useState(!playlist.isSystem && Boolean(playlist.isOwner) && playlist.movies.length === 0);
+export function PlaylistDetails({ playlist, onNavigate, addToPlaylist, deletePlaylist, updatePlaylist, createSharedLink, removeMovie, reorderMovies, updateWatchStatus }: PlaylistDetailsProps) {
+  const canAddTitles = !playlist.isSystem && Boolean(playlist.isOwner || playlist.canAddTitles);
+  const canRemoveTitles = !playlist.isSystem && Boolean(playlist.isOwner || playlist.canRemoveTitles);
+  const canReorderTitles = !playlist.isSystem && Boolean(playlist.isOwner || playlist.canReorderTitles);
+  const canEditPlaylist = !playlist.isSystem && Boolean(playlist.isOwner || playlist.canEditPlaylist);
+  const [showAddMovie, setShowAddMovie] = useState(canAddTitles && playlist.movies.length === 0);
   const [showPlaylistMenu, setShowPlaylistMenu] = useState(false);
   const [showEditPlaylist, setShowEditPlaylist] = useState(false);
   const [editForm, setEditForm] = useState({
@@ -28,8 +33,9 @@ export function PlaylistDetails({ playlist, onNavigate, addToPlaylist, deletePla
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [notice, setNotice] = useState("");
   const [noticeType, setNoticeType] = useState<"success" | "error">("success");
-  const editable = !playlist.isSystem && Boolean(playlist.isOwner);
+  const editable = canEditPlaylist;
   const shareable = playlist.visibility === "public";
+  const sharedAccess = playlist.visibility === "shared" || playlist.accessMode === "shared";
   const followerCount = playlist.followerCount || 0;
 
   async function makePublicForShare() {
@@ -114,18 +120,19 @@ export function PlaylistDetails({ playlist, onNavigate, addToPlaylist, deletePla
     <section className="route-page">
       <PlaylistHero
         playlist={playlist}
-        secondaryMeta={shareable || editable ? (
+        secondaryMeta={shareable || sharedAccess || editable ? (
           <>
             {shareable ? <span>{followerCount} {followerCount === 1 ? "follower" : "followers"}</span> : null}
-            <SharePlaylistButton label="Share Playlist" onMakePublic={editable ? makePublicForShare : undefined} playlist={playlist} />
+            {sharedAccess && !shareable ? <span>Shared Playlist</span> : null}
+            <SharePlaylistButton label="Share Playlist" onCreateSharedLink={editable ? createSharedLink : undefined} onMakePublic={editable ? makePublicForShare : undefined} playlist={playlist} />
           </>
         ) : undefined}
       />
       <div className="playlist-management-bar">
-        {editable ? (
+        {canAddTitles ? (
           <div className="button-row">
             <button className="primary-button" onClick={() => setShowAddMovie((current) => !current)} type="button">
-              Add Movie or TV Show
+              Add Title
             </button>
           </div>
         ) : shareable ? (
@@ -133,7 +140,7 @@ export function PlaylistDetails({ playlist, onNavigate, addToPlaylist, deletePla
         ) : (
           <span className="system-playlist-badge">{playlist.isSystem ? "System Playlist" : "View Only"}</span>
         )}
-        <div className="playlist-overflow">
+        {editable ? <div className="playlist-overflow">
           <button className="playlist-menu-button" aria-expanded={showPlaylistMenu} aria-label="Playlist options" onClick={() => setShowPlaylistMenu((current) => !current)} type="button">
             ...
           </button>
@@ -143,7 +150,7 @@ export function PlaylistDetails({ playlist, onNavigate, addToPlaylist, deletePla
               {editable ? <button className="danger-menu-item" onClick={confirmDelete} type="button">Delete Playlist</button> : null}
             </div>
           ) : null}
-        </div>
+        </div> : null}
       </div>
       {notice ? <p className={noticeType === "success" ? "success-message" : "error-message"}>{notice}</p> : null}
       {showEditPlaylist ? (
@@ -179,6 +186,7 @@ export function PlaylistDetails({ playlist, onNavigate, addToPlaylist, deletePla
                 value={editForm.visibility}
               >
                 <option value="private">private</option>
+                <option value="shared">shared</option>
                 <option value="public">public</option>
               </select>
             </label>
@@ -190,11 +198,11 @@ export function PlaylistDetails({ playlist, onNavigate, addToPlaylist, deletePla
         </div>
       ) : null}
       {showAddMovie ? (
-        <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Add movie to playlist">
+        <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Add title to playlist">
           <div className="search-modal">
             <div className="modal-header">
               <div>
-                <h2>Search for a movie or TV show</h2>
+                <h2>Search for a title</h2>
               </div>
               <button className="ghost-button" onClick={() => setShowAddMovie(false)} type="button">Done</button>
             </div>
@@ -215,8 +223,8 @@ export function PlaylistDetails({ playlist, onNavigate, addToPlaylist, deletePla
         movies={playlist.movies}
         emptyMessage={playlist.isSystem ? "This system playlist will fill automatically as Flim learns more from your activity." : "No titles in this playlist yet."}
         onNavigate={onNavigate}
-        onRemove={editable ? removeMovie : undefined}
-        onReorder={editable ? moveMovie : undefined}
+        onRemove={canRemoveTitles ? removeMovie : undefined}
+        onReorder={canReorderTitles ? moveMovie : undefined}
         onWatchStatusChange={editable ? updateWatchStatus : undefined}
         playlistId={playlist.id}
       />

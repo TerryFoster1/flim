@@ -6,6 +6,7 @@ import { NowPlayingTicketIcon } from "./components/RouletteAssets";
 import { getSession, logout as logoutSession } from "./services/authService";
 import {
   addMovieToPlaylist,
+  createSharedPlaylistLink,
   createPlaylist,
   deletePlaylist,
   getPlaylists,
@@ -22,6 +23,7 @@ import { ProfilePlaylists } from "./pages/ProfilePlaylists";
 import { ProfileSaved } from "./pages/ProfileSaved";
 import { ProfileWatched } from "./pages/ProfileWatched";
 import { PublicPlaylist } from "./pages/PublicPlaylist";
+import { SharedPlaylist } from "./pages/SharedPlaylist";
 import { PublicProfile } from "./pages/PublicProfile";
 import { Roulette } from "./pages/Roulette";
 import { Settings } from "./pages/Settings";
@@ -42,6 +44,7 @@ function routeFromPath(pathname = window.location.pathname): RouteState {
   if (pathname === "/playlists") return { route: "/playlists" };
   if (pathname.startsWith("/playlists/")) return { route: "/playlists/:id", playlistId: pathname.split("/")[2] };
   if (pathname.startsWith("/p/")) return { route: "/p/:slug", publicSlug: pathname.split("/")[2] };
+  if (pathname.startsWith("/s/")) return { route: "/s/:token", sharedToken: pathname.split("/")[2] };
   if (pathname.startsWith("/movies/")) return { route: "/movies/:tmdbId", tmdbId: pathname.split("/")[2] };
   if (pathname.startsWith("/tv/")) return { route: "/tv/:tmdbId", tmdbId: pathname.split("/")[2] };
   if (pathname === "/public" || pathname === "/public-playlists") return { route: "/public" };
@@ -165,6 +168,12 @@ export default function App() {
     return updated;
   }
 
+  async function createRemoteSharedLink(playlistId: string) {
+    const result = await createSharedPlaylistLink(playlistId);
+    await refreshPlaylists();
+    return result;
+  }
+
   async function handleAuthenticated(user: CurrentUser) {
     setCurrentUser(user);
     await refreshPlaylists();
@@ -219,6 +228,7 @@ export default function App() {
         addToPlaylist={addToPlaylist}
         deletePlaylist={deleteRemotePlaylist}
         updatePlaylist={updateRemotePlaylist}
+        createSharedLink={createRemoteSharedLink}
         removeMovie={removeFromPlaylist}
         reorderMovies={reorderMovies}
         updateWatchStatus={updateWatchStatus}
@@ -227,6 +237,7 @@ export default function App() {
       <Playlists currentUser={currentUser} rewindPlaylists={rewindPlaylists} initialView="my" notice={playlistNotice || "Playlist not found."} onCreatePlaylist={createRemotePlaylist} onNavigate={navigate} playlists={playlists} />
     ),
     "/p/:slug": <PublicPlaylist currentUser={currentUser} onFollowChanged={refreshPlaylists} publicSlug={routeState.publicSlug || ""} onNavigate={navigate} />,
+    "/s/:token": <SharedPlaylist token={routeState.sharedToken || ""} onNavigate={navigate} />,
     "/movies/:tmdbId": (
       <MovieDetailsPage
         mediaType="movie"

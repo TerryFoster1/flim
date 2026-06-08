@@ -13,6 +13,7 @@ flowchart LR
   Client["Client routes"] --> API["/api"]
   API --> Playlists["/api/playlists"]
   API --> PublicSharing["/api/public/playlists/:slug"]
+  API --> SharedPlaylists["/api/shared/playlists/:token"]
   API --> Movies["future /api/movies"]
   API --> TV["future /api/tv"]
   API --> Providers["future /api/providers"]
@@ -32,6 +33,7 @@ flowchart LR
 - `/playlists`
 - `/playlists/:id`
 - `/p/:slug`
+- `/s/:token`
 - `/movies/:tmdbId`
 - `/public`
 - `/roulette`
@@ -51,12 +53,13 @@ Implemented route contracts:
 - `POST /api/playlists`
 - `GET /api/playlists/:playlistId`
 - `DELETE /api/playlists/:playlistId`
+- `POST /api/playlists/:playlistId/share`
 - `GET /api/playlists/:playlistId/movies`
 - `POST /api/playlists/:playlistId/movies`
 - `DELETE /api/playlists/:playlistId/movies/:tmdbId`
 - `PATCH /api/playlists/:playlistId/movies/:tmdbId/watched`
 
-Notes: `private`, `shared`, and `public` visibility values are stored now, but demo-stage access control is intentionally not enforced until auth/user ownership lands.
+Notes: authenticated playlist routes enforce owner-only reads and mutations for private playlists. Public playlists are readable by everyone but owner-only for title mutations. Shared collaboration uses the separate shared-token routes below.
 
 ## Public Playlist Sharing
 
@@ -71,9 +74,25 @@ Client route:
 
 - `/p/:slug`
 
-Notes: public share URLs use `playlists.public_slug`. QR codes encode the same public URL. Any playlist with a slug can be opened by direct link during the demo phase.
+Notes: public share URLs use `playlists.public_slug` and require `visibility = 'public'`. QR codes for public playlists encode the same read-only public URL.
 
-The `/p/:slug` page is served by a dynamic Vercel HTML wrapper so shared links can include playlist-specific Open Graph metadata before the React app hydrates.
+The `/p/:slug` page is served by a dynamic Vercel HTML wrapper so public links can include playlist-specific Open Graph metadata before the React app hydrates.
+
+## Shared Playlist Links
+
+Namespace: `/api/shared/playlists`
+
+Implemented route contracts:
+
+- `GET /api/shared/playlists/:token`
+- `POST /api/shared/playlists/:token/movies`
+- `DELETE /api/shared/playlists/:token/movies/:tmdbId`
+
+Client route:
+
+- `/s/:token`
+
+Notes: shared playlist URLs use `playlists.shared_slug` and require `visibility = 'shared'`. Shared-link visitors can view, add, and remove titles, but cannot rename, delete, reorder, change visibility, or follow the playlist through public discovery.
 
 ## Movies
 

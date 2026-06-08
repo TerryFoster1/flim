@@ -65,6 +65,7 @@ export function mapPlaylist(row: any, movies: any[] = []) {
   return {
     id: row.id,
     publicSlug: row.public_slug,
+    sharedSlug: row.expose_shared_slug ? row.shared_slug : undefined,
     name: row.name,
     description: row.description || "",
     visibility: row.visibility,
@@ -72,6 +73,11 @@ export function mapPlaylist(row: any, movies: any[] = []) {
     creatorDisplayName: row.creator_display_name || undefined,
     ownerUserId: row.owner_user_id || undefined,
     isOwner: Boolean(row.is_owner),
+    canAddTitles: Boolean(row.can_add_titles || row.is_owner),
+    canRemoveTitles: Boolean(row.can_remove_titles || row.is_owner),
+    canReorderTitles: Boolean(row.can_reorder_titles || row.is_owner),
+    canEditPlaylist: Boolean(row.can_edit_playlist || row.is_owner),
+    accessMode: row.access_mode || (row.is_owner ? "owner" : row.visibility === "public" ? "public" : "private"),
     isFollowing: Boolean(row.is_following),
     followerCount: Number.isFinite(followerCount) ? followerCount : 0,
     createdAt: row.created_at,
@@ -166,6 +172,10 @@ export function verifyPassword(password: string, storedHash: string) {
 
 export function createSessionToken() {
   return randomBytes(32).toString("hex");
+}
+
+export function createSharedPlaylistToken() {
+  return randomBytes(18).toString("base64url");
 }
 
 export function hashSessionToken(token: string) {
@@ -283,6 +293,45 @@ export async function ensurePlaylistMediaColumns(sql: any) {
   await sql`create index if not exists playlist_movies_media_type_idx on playlist_movies (media_type)`;
   await sql`create index if not exists playlist_movies_watched_idx on playlist_movies (watched)`;
   await sql`create index if not exists playlist_movies_sort_order_idx on playlist_movies (playlist_id, sort_order)`;
+}
+
+export async function ensurePlaylistSharingColumns(sql: any) {
+  await sql`alter table playlists add column if not exists shared_slug text`;
+  await sql`
+    create unique index if not exists playlists_shared_slug_unique
+    on playlists (shared_slug)
+    where shared_slug is not null
+  `;
+}
+
+export async function ensureSharedPlaylistSlug(sql: any, playlistId: string) {
+  await ensurePlaylistSharingColumns(sql);
+  const existing = await sql`select shared_slug from playlists where id = ${playlistId} limit 1`;
+  if (existing[0]?.shared_slug) {
+    await sql`update playlists set visibility = 'shared', updated_at = now() where id = ${playlistId}`;
+    return existing[0].shared_slug;
+  }
+
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const token = createSharedPlaylistToken();
+    const updated = await sql`
+      update playlists
+      set shared_slug = ${token}, visibility = 'shared', updated_at = now()
+      where id = ${playlistId}
+        and shared_slug is null
+      returning shared_slug
+    `.catch((error: any) => {
+      if (String(error?.message || "").includes("duplicate key")) return [];
+      throw error;
+    });
+
+    if (updated[0]?.shared_slug) return updated[0].shared_slug;
+
+    const latest = await sql`select shared_slug from playlists where id = ${playlistId} limit 1`;
+    if (latest[0]?.shared_slug) return latest[0].shared_slug;
+  }
+
+  throw new Error("Unable to create shared playlist link.");
 }
 
 export async function ensurePlaylistFollowsTable(sql: any) {

@@ -10,7 +10,7 @@ These rules are the source of truth for Flim playlist access.
 - No public link is exposed.
 - No QR sharing is exposed.
 
-Current behavior: private playlists are owner-only through the authenticated playlist routes. The share modal prompts the owner to make the playlist public before showing a link or QR code.
+Current behavior: private playlists are owner-only through the authenticated playlist routes. The share modal lets the owner create a private shared link without making the playlist public, or make the playlist public as a separate action.
 
 ## Shared
 
@@ -21,7 +21,7 @@ Current behavior: private playlists are owner-only through the authenticated pla
 - Shared visitors cannot rename the playlist.
 - Shared visitors cannot change visibility.
 
-Current behavior: shared collaboration is not enabled yet. The database accepts the `shared` visibility value, but Flim does not currently expose shared edit links, QR links, or visitor mutation routes for shared playlists. Until shared collaboration is implemented safely, shared playlists must not expose public-style links.
+Current behavior: shared collaboration uses an unguessable `/s/:token` link backed by `playlists.shared_slug`. Shared-link visitors can view the playlist and add or remove titles through shared-token API routes. They cannot rename, delete, reorder, change visibility, or follow the playlist through public discovery.
 
 ## Public
 
@@ -38,6 +38,6 @@ Current behavior: public playlist pages are available at `/p/:slug`, public play
 ## Implementation Notes
 
 - Public URLs must not be shown for private playlists before the owner makes the playlist public.
-- Shared collaboration requires explicit shared-link access control before it is presented as a working user feature.
+- Shared playlist links must use `/s/:token`, not `/p/:slug`.
 - Owner-only mutation checks belong in API routes, not just hidden UI controls.
 - Public discovery should never include private or non-public shared playlists.

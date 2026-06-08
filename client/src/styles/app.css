@@ -2673,6 +2673,20 @@ textarea { min-height: 42px; resize: vertical; }
   line-height: 1.45;
   overflow-wrap: anywhere;
 }
+.share-mode-section {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  margin: 12px 0;
+  border: 1px solid rgba(255, 184, 77, 0.18);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.045);
+}
+.share-mode-section h3 {
+  margin: 0;
+  color: var(--text);
+  font-size: 1rem;
+}
 .qr-card {
   display: grid;
   place-items: center;

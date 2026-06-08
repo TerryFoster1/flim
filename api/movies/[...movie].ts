@@ -11,6 +11,8 @@ import { ensureTmdbCacheTables, fetchTmdbMovieDetails, fetchTmdbSearch, normaliz
 
 const SEARCH_CACHE_DAYS = 7;
 const MOVIE_CACHE_DAYS = 30;
+const USEFUL_SEARCH_RESULT_COUNT = 8;
+const MAX_SEARCH_RESULTS = 24;
 
 function moviePath(request: any) {
   const pathname = new URL(request.url || "", "https://www.flim.ca").pathname;
@@ -18,6 +20,21 @@ function moviePath(request: any) {
   if (fromPath && fromPath !== pathname) return fromPath;
   const value = request.query.movie;
   return Array.isArray(value) ? value.map(String).join("/") : String(value || "");
+}
+
+function mergeSearchResults(primary: any[], secondary: any[]) {
+  const seen = new Set<string>();
+  const merged: any[] = [];
+
+  for (const item of [...primary, ...secondary]) {
+    const key = `${item.mediaType || "movie"}-${item.tmdbId}`;
+    if (!item.tmdbId || seen.has(key)) continue;
+    seen.add(key);
+    merged.push(item);
+    if (merged.length >= MAX_SEARCH_RESULTS) break;
+  }
+
+  return merged;
 }
 
 async function handleSearch(request: any, response: any) {
@@ -32,10 +49,11 @@ async function handleSearch(request: any, response: any) {
   const sql = db();
   await ensureTmdbCacheTables(sql);
   const catalogRows = await findCatalogSearchResults(sql, cleanQuery, mediaType);
-  if (catalogRows.length > 0) {
+  const catalogResults = catalogRows.map(mapCatalogSearchResult);
+  if (catalogResults.length >= USEFUL_SEARCH_RESULT_COUNT) {
     response.setHeader("X-Flim-Catalog", "HIT");
     response.setHeader("X-Flim-Cache", "SKIP");
-    return sendJson(response, 200, catalogRows.map(mapCatalogSearchResult));
+    return sendJson(response, 200, catalogResults.slice(0, MAX_SEARCH_RESULTS));
   }
 
   const cached = await sql`
@@ -50,9 +68,9 @@ async function handleSearch(request: any, response: any) {
 
   if (cached[0]) {
     await upsertMediaItems(sql, cached[0].response_json || []);
-    response.setHeader("X-Flim-Catalog", "MISS");
+    response.setHeader("X-Flim-Catalog", catalogResults.length ? "PARTIAL" : "MISS");
     response.setHeader("X-Flim-Cache", "HIT");
-    return sendJson(response, 200, cached[0].response_json);
+    return sendJson(response, 200, mergeSearchResults(catalogResults, cached[0].response_json || []));
   }
 
   const movies = await fetchTmdbSearch(cleanQuery, mediaType);
@@ -68,9 +86,9 @@ async function handleSearch(request: any, response: any) {
       expires_at = excluded.expires_at
   `;
 
-  response.setHeader("X-Flim-Catalog", "MISS");
+  response.setHeader("X-Flim-Catalog", catalogResults.length ? "PARTIAL" : "MISS");
   response.setHeader("X-Flim-Cache", "MISS");
-  return sendJson(response, 200, movies);
+  return sendJson(response, 200, mergeSearchResults(catalogResults, movies));
 }
 
 async function handleMovieDetails(tmdbId: number, response: any) {

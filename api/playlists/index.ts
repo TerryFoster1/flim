@@ -1,4 +1,4 @@
-import { createPublicSlug, createPublicSlugBase, db, ensurePlaylistFollowsTable, ensureUserProfilesTable, getCurrentUser, mapPlaylist, sendJson, readBody } from "../_db.js";
+import { createPublicSlug, createPublicSlugBase, db, ensurePlaylistFollowsTable, ensurePlaylistSharingColumns, ensureUserProfilesTable, getCurrentUser, mapPlaylist, sendJson, readBody } from "../_db.js";
 import { ensureDirectorSeed } from "../_director.js";
 
 async function createUniquePublicSlug(sql: any, name: string) {
@@ -18,6 +18,7 @@ export default async function handler(request: any, response: any) {
     const sql = db();
     await ensureUserProfilesTable(sql);
     await ensurePlaylistFollowsTable(sql);
+    await ensurePlaylistSharingColumns(sql);
     await sql`alter table playlists add column if not exists owner_user_id uuid references users(id) on delete set null`;
     const user = await getCurrentUser(sql, request);
 
@@ -35,6 +36,7 @@ export default async function handler(request: any, response: any) {
             nullif(initcap(trim(regexp_replace(split_part(u.email, '@', 1), '[^a-zA-Z0-9]+', ' ', 'g'))), '')
           ) as creator_display_name,
           case when ${user?.id || null}::uuid is not null and p.owner_user_id = ${user?.id || null}::uuid then true else false end as is_owner,
+          case when ${user?.id || null}::uuid is not null and p.owner_user_id = ${user?.id || null}::uuid then true else false end as expose_shared_slug,
           (
             select count(*)::int
             from playlist_follows pf
@@ -76,9 +78,10 @@ export default async function handler(request: any, response: any) {
       const body = await readBody(request);
       const name = (body.name || "Untitled playlist").trim();
       const publicSlug = await createUniquePublicSlug(sql, name);
+      const visibility = ["private", "shared", "public"].includes(body.visibility) ? body.visibility : "private";
       const [created] = await sql`
         insert into playlists (public_slug, name, description, visibility, owner_user_id)
-        values (${publicSlug}, ${name}, ${body.description || ""}, ${body.visibility || "private"}, ${user.id})
+        values (${publicSlug}, ${name}, ${body.description || ""}, ${visibility}, ${user.id})
         returning *
       `;
 

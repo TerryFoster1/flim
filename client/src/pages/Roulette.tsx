@@ -169,7 +169,7 @@ export function Roulette({ playlists, onNavigate }: RouletteProps) {
   const loadedLabel =
     filteredPool.length > 0
       ? `${filteredPool.length} title${filteredPool.length === 1 ? "" : "s"} loaded from ${selectedPlaylistCount} playlist${selectedPlaylistCount === 1 ? "" : "s"}.`
-      : "Add movies to a playlist to start Now Playing.";
+      : "Add titles to a playlist to start Now Playing.";
   const suspenseCopy = phase === "spinning" || phase === "countdown"
     ? "The reel is spinning..."
     : loadedLabel;
@@ -243,7 +243,7 @@ export function Roulette({ playlists, onNavigate }: RouletteProps) {
           <div className="roulette-empty-cinema">
             <TapToSpinPoster empty />
             <div>
-              <h2>Add movies to a playlist to start Now Playing.</h2>
+              <h2>Add titles to a playlist to start Now Playing.</h2>
               <button className="primary-button" onClick={() => onNavigate("/playlists")} type="button">
                 Create Playlist
               </button>

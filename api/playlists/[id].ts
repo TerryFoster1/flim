@@ -1,4 +1,4 @@
-import { db, ensurePlaylistFollowsTable, ensureUserProfilesTable, getCurrentUser, mapPlaylist, readBody, sendJson } from "../_db.js";
+import { db, ensurePlaylistFollowsTable, ensurePlaylistSharingColumns, ensureUserProfilesTable, getCurrentUser, mapPlaylist, readBody, sendJson } from "../_db.js";
 
 export default async function handler(request: any, response: any) {
   const playlistId = request.query.id as string;
@@ -7,6 +7,7 @@ export default async function handler(request: any, response: any) {
     const sql = db();
     await ensureUserProfilesTable(sql);
     await ensurePlaylistFollowsTable(sql);
+    await ensurePlaylistSharingColumns(sql);
     await sql`alter table playlists add column if not exists owner_user_id uuid references users(id) on delete set null`;
     const user = await getCurrentUser(sql, request);
 
@@ -20,6 +21,7 @@ export default async function handler(request: any, response: any) {
             nullif(initcap(trim(regexp_replace(split_part(u.email, '@', 1), '[^a-zA-Z0-9]+', ' ', 'g'))), '')
           ) as creator_display_name,
           case when ${user?.id || null}::uuid is not null and p.owner_user_id = ${user?.id || null}::uuid then true else false end as is_owner,
+          case when ${user?.id || null}::uuid is not null and p.owner_user_id = ${user?.id || null}::uuid then true else false end as expose_shared_slug,
           (
             select count(*)::int
             from playlist_follows pf

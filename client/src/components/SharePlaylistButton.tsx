@@ -7,6 +7,7 @@ interface SharePlaylistButtonProps {
   label?: string;
   iconOnly?: boolean;
   onMakePublic?: () => void | Promise<void>;
+  onCreateSharedLink?: (playlistId: string) => Promise<{ sharedSlug: string; visibility: "shared" }>;
   openToken?: number;
 }
 
@@ -19,7 +20,7 @@ function titleCountLabel(count: number) {
   return `${count} ${count === 1 ? "Title" : "Titles"}`;
 }
 
-export function SharePlaylistButton({ playlist, label = "Share", iconOnly = false, onMakePublic, openToken = 0 }: SharePlaylistButtonProps) {
+export function SharePlaylistButton({ playlist, label = "Share", iconOnly = false, onMakePublic, onCreateSharedLink, openToken = 0 }: SharePlaylistButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [status, setStatus] = useState("");
   const [qrCodeUrl, setQrCodeUrl] = useState("");
@@ -27,17 +28,26 @@ export function SharePlaylistButton({ playlist, label = "Share", iconOnly = fals
   const [copied, setCopied] = useState(false);
   const [madePublic, setMadePublic] = useState(false);
   const [isMakingPublic, setIsMakingPublic] = useState(false);
+  const [sharedSlug, setSharedSlug] = useState(playlist.sharedSlug || "");
+  const [isCreatingSharedLink, setIsCreatingSharedLink] = useState(false);
   const isPublicShareable = playlist.visibility === "public" || madePublic;
-  const url = useMemo(() => `${getPublicOrigin()}/p/${playlist.publicSlug}`, [playlist.publicSlug]);
+  const publicUrl = useMemo(() => `${getPublicOrigin()}/p/${playlist.publicSlug}`, [playlist.publicSlug]);
+  const sharedUrl = useMemo(() => (sharedSlug ? `${getPublicOrigin()}/s/${sharedSlug}` : ""), [sharedSlug]);
+  const activeUrl = isPublicShareable ? publicUrl : sharedUrl;
+  const activeLinkLabel = isPublicShareable ? "Public Link" : "Shared Link";
 
   useEffect(() => {
-    if (!isOpen || !isPublicShareable) return;
+    setSharedSlug(playlist.sharedSlug || "");
+  }, [playlist.sharedSlug]);
+
+  useEffect(() => {
+    if (!isOpen || !activeUrl) return;
 
     setCopied(false);
     setStatus("");
     setCanNativeShare(typeof navigator !== "undefined" && typeof navigator.share === "function");
 
-    QRCode.toDataURL(url, {
+    QRCode.toDataURL(activeUrl, {
       margin: 2,
       width: 280,
       color: {
@@ -47,15 +57,16 @@ export function SharePlaylistButton({ playlist, label = "Share", iconOnly = fals
     })
       .then(setQrCodeUrl)
       .catch(() => setStatus("QR code could not be generated."));
-  }, [isOpen, isPublicShareable, url]);
+  }, [isOpen, activeUrl]);
 
   useEffect(() => {
     if (openToken > 0) setIsOpen(true);
   }, [openToken]);
 
   async function copyLink() {
+    if (!activeUrl) return;
     try {
-      await navigator.clipboard.writeText(url);
+      await navigator.clipboard.writeText(activeUrl);
       setCopied(true);
       setStatus("Link Copied");
     } catch {
@@ -74,7 +85,7 @@ export function SharePlaylistButton({ playlist, label = "Share", iconOnly = fals
       await navigator.share({
         title: playlist.name,
         text: playlist.description || "Open this Flim playlist.",
-        url,
+        url: activeUrl,
       });
       setStatus("Share sheet opened");
     } catch {
@@ -101,6 +112,26 @@ export function SharePlaylistButton({ playlist, label = "Share", iconOnly = fals
     }
   }
 
+  async function createSharedLink() {
+    if (sharedSlug) return;
+    if (!onCreateSharedLink) {
+      setStatus("Unable to create a shared link. Please try again.");
+      return;
+    }
+
+    setIsCreatingSharedLink(true);
+    setStatus("");
+    try {
+      const result = await onCreateSharedLink(playlist.id);
+      setSharedSlug(result.sharedSlug);
+      setStatus("Shared link ready.");
+    } catch {
+      setStatus("Unable to create a shared link. Please try again.");
+    } finally {
+      setIsCreatingSharedLink(false);
+    }
+  }
+
   return (
     <>
       <button className={iconOnly ? "share-icon-button" : "secondary-button"} aria-label={label} onClick={openShare} type="button">
@@ -121,7 +152,7 @@ export function SharePlaylistButton({ playlist, label = "Share", iconOnly = fals
           <div className="share-panel">
             <div className="modal-header">
               <div>
-                <h2>{isPublicShareable ? "Share this playlist" : "This playlist is private."}</h2>
+                <h2>Share Playlist</h2>
               </div>
               <button className="ghost-button" onClick={() => setIsOpen(false)} type="button">
                 Close
@@ -129,15 +160,47 @@ export function SharePlaylistButton({ playlist, label = "Share", iconOnly = fals
             </div>
             {!isPublicShareable ? (
               <>
-                <p className="helper-text">Make this playlist public to share a link or QR code.</p>
-                <div className="share-actions primary-share-actions">
-                  <button className="primary-button" disabled={isMakingPublic || !onMakePublic} onClick={makePublic} type="button">
-                    {isMakingPublic ? "Making Public..." : "Make Public"}
-                  </button>
-                  <button className="secondary-button" disabled={isMakingPublic} onClick={() => setIsOpen(false)} type="button">
-                    Cancel
-                  </button>
-                </div>
+                <section className="share-mode-section">
+                  <h3>Share with people</h3>
+                  <p className="helper-text">People with this private shared link can view, add, and remove titles. This does not make the playlist public.</p>
+                  {!sharedUrl ? (
+                    <button className="primary-button" disabled={isCreatingSharedLink || !onCreateSharedLink} onClick={createSharedLink} type="button">
+                      {isCreatingSharedLink ? "Creating Link..." : "Create Shared Link"}
+                    </button>
+                  ) : (
+                    <>
+                      <div className="share-link-card">
+                        <span>{activeLinkLabel}</span>
+                        <p>{sharedUrl}</p>
+                      </div>
+                      <div className="share-actions primary-share-actions">
+                        <button className="primary-button copy-link-button" onClick={copyLink} type="button">
+                          {copied ? "Link Copied" : "Copy Link"}
+                        </button>
+                        {canNativeShare ? (
+                          <button className="secondary-button" onClick={nativeShare} type="button">
+                            Share
+                          </button>
+                        ) : null}
+                      </div>
+                      <div className="qr-card">
+                        <div className="qr-card-heading">
+                          <strong>{playlist.name}</strong>
+                        </div>
+                        {qrCodeUrl ? <img alt={`QR code for ${playlist.name}`} src={qrCodeUrl} /> : <div className="qr-placeholder">Generating QR code...</div>}
+                      </div>
+                    </>
+                  )}
+                </section>
+                {onMakePublic ? (
+                  <section className="share-mode-section">
+                    <h3>Make Public</h3>
+                    <p className="helper-text">Public playlists can be discovered and followed by anyone on Flim. Public visitors cannot edit titles.</p>
+                    <button className="secondary-button" disabled={isMakingPublic} onClick={makePublic} type="button">
+                      {isMakingPublic ? "Making Public..." : "Make Public"}
+                    </button>
+                  </section>
+                ) : null}
                 {status ? <p className={status.startsWith("Unable") ? "error-message" : "success-message"}>{status}</p> : null}
               </>
             ) : (
@@ -162,8 +225,8 @@ export function SharePlaylistButton({ playlist, label = "Share", iconOnly = fals
               </div>
             </div>
             <div className="share-link-card">
-              <span>Playlist URL</span>
-              <p>{url}</p>
+              <span>{activeLinkLabel}</span>
+              <p>{activeUrl}</p>
             </div>
             <div className="share-actions primary-share-actions">
               <button className="primary-button copy-link-button" onClick={copyLink} type="button">
