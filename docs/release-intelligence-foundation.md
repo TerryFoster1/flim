@@ -11,7 +11,7 @@ This phase detects changes and records durable events. It does not deliver push,
 Release Intelligence compares an old normalized title state with a new normalized title state:
 
 ```text
-old state -> new state -> notification_events
+old state -> new state -> release_events
 ```
 
 The result is an event ledger that future in-app, push, email, or SMS delivery can consume without rediscovering changes.
@@ -24,7 +24,7 @@ release_tracking
 provider availability cache
 manual/scheduled normalized snapshot
 compare state
-notification_events
+release_events
 future delivery fanout
 ```
 
@@ -51,7 +51,7 @@ Stores the latest known normalized state for a title:
 - `cached_at`
 - `updated_at`
 
-### notification_events
+### release_events
 
 Stores immutable change events:
 
@@ -59,12 +59,13 @@ Stores immutable change events:
 - `media_type`
 - `tmdb_id`
 - `event_type`
+- `old_value`
+- `new_value`
 - `title`
 - `body`
 - `change_hash`
 - `old_state`
 - `new_state`
-- `event_date`
 - `source`
 
 Events are unique by:
@@ -84,6 +85,7 @@ Current detection supports:
 - `movie_released`
 - `trailer_released`
 - `streaming_available`
+- `provider_changed`
 - `season_announced`
 - `season_release_changed`
 - `season_released`

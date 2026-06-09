@@ -11,7 +11,7 @@ Current V1 scope:
 - Notification preferences are stored for followed titles.
 - Release tracking foundation is stored from the internal `media_items` catalog.
 - In-app notification types are prepared for release/provider/trailer events.
-- Release Intelligence V1 records change events in `notification_events`; see `release-intelligence-foundation.md`.
+- Release Intelligence V1 records change events in `release_events`; see `release-intelligence-foundation.md`.
 
 Still deferred:
 
@@ -220,7 +220,7 @@ Example alert types:
 - `season_release_date`
 - `new_episode_available`
 
-### notification_events
+### release_events
 
 Purpose: immutable records of alert-worthy events Flim detected.
 
@@ -246,6 +246,7 @@ Implemented event types currently include:
 - `movie_released`
 - `trailer_released`
 - `streaming_available`
+- `provider_changed`
 - `season_announced`
 - `season_release_changed`
 - `season_released`

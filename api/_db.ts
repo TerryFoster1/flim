@@ -474,6 +474,28 @@ export async function ensureFollowTitleTables(sql: any) {
   await sql`create unique index if not exists notification_events_media_event_change_unique on notification_events (media_item_id, event_type, change_hash)`;
   await sql`create index if not exists notification_events_media_created_idx on notification_events (media_item_id, created_at desc)`;
   await sql`create index if not exists notification_events_type_created_idx on notification_events (event_type, created_at desc)`;
+
+  await sql`
+    create table if not exists release_events (
+      id uuid primary key default gen_random_uuid(),
+      media_item_id uuid not null references media_items(id) on delete cascade,
+      media_type text not null check (media_type in ('movie', 'tv')),
+      tmdb_id integer not null,
+      event_type text not null,
+      old_value jsonb,
+      new_value jsonb,
+      old_state jsonb not null default '{}'::jsonb,
+      new_state jsonb not null default '{}'::jsonb,
+      title text not null,
+      body text not null,
+      change_hash text not null,
+      source text not null default 'release_intelligence',
+      created_at timestamptz not null default now()
+    )
+  `;
+  await sql`create unique index if not exists release_events_media_event_change_unique on release_events (media_item_id, event_type, change_hash)`;
+  await sql`create index if not exists release_events_media_created_idx on release_events (media_item_id, created_at desc)`;
+  await sql`create index if not exists release_events_type_created_idx on release_events (event_type, created_at desc)`;
 }
 
 export function normalizeHandle(handle: string) {

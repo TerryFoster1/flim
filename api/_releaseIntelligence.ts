@@ -17,6 +17,8 @@ interface ReleaseEventDraft {
   title: string;
   body: string;
   changeHash: string;
+  oldValue: unknown;
+  newValue: unknown;
   oldState: Record<string, unknown>;
   newState: Record<string, unknown>;
 }
@@ -90,6 +92,8 @@ function makeEvent(
     title,
     body,
     changeHash: eventHash(mediaItemId, eventType, oldValue, newValue),
+    oldValue,
+    newValue,
     oldState,
     newState,
   };
@@ -158,12 +162,25 @@ export function detectReleaseEvents(input: {
     ));
   }
 
-  if (oldState.providerHash && newState.providerHash && oldState.providerHash !== newState.providerHash) {
+  if (!oldState.providerHash && newState.providerHash) {
     events.push(makeEvent(
       input.mediaItemId,
       "streaming_available",
-      "Streaming availability changed",
-      `${input.title} has updated streaming availability.`,
+      "Streaming availability found",
+      `${input.title} now has confirmed streaming availability.`,
+      oldState,
+      newState,
+      oldState.providerHash,
+      newState.providerHash,
+    ));
+  }
+
+  if (oldState.providerHash && newState.providerHash && oldState.providerHash !== newState.providerHash) {
+    events.push(makeEvent(
+      input.mediaItemId,
+      "provider_changed",
+      "Provider availability changed",
+      `${input.title} has changed streaming provider availability.`,
       oldState,
       newState,
       oldState.providerHash,

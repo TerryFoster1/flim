@@ -121,16 +121,18 @@ async function insertEvents(sql: any, mediaItem: any, events: any[]) {
   const inserted = [];
   for (const event of events) {
     const rows = await sql`
-      insert into notification_events (
+      insert into release_events (
         media_item_id,
         media_type,
         tmdb_id,
         event_type,
+        old_value,
+        new_value,
+        old_state,
+        new_state,
         title,
         body,
         change_hash,
-        old_state,
-        new_state,
         source
       )
       values (
@@ -138,11 +140,13 @@ async function insertEvents(sql: any, mediaItem: any, events: any[]) {
         ${normalizeMediaType(mediaItem.media_type)},
         ${Number(mediaItem.tmdb_id)},
         ${event.eventType},
+        ${JSON.stringify(event.oldValue)}::jsonb,
+        ${JSON.stringify(event.newValue)}::jsonb,
+        ${JSON.stringify(event.oldState)}::jsonb,
+        ${JSON.stringify(event.newState)}::jsonb,
         ${event.title},
         ${event.body},
         ${event.changeHash},
-        ${JSON.stringify(event.oldState)}::jsonb,
-        ${JSON.stringify(event.newState)}::jsonb,
         'release_intelligence'
       )
       on conflict (media_item_id, event_type, change_hash) do nothing
@@ -163,7 +167,6 @@ function mapEvent(row: any) {
     title: row.title,
     body: row.body,
     changeHash: row.change_hash,
-    eventDate: row.event_date,
     createdAt: row.created_at,
   };
 }
@@ -179,11 +182,11 @@ export default async function handler(request: any, response: any) {
 
     if (request.method === "GET") {
       const rows = await sql`
-        select ne.*
-        from notification_events ne
-        inner join followed_titles ft on ft.media_item_id = ne.media_item_id
+        select re.*
+        from release_events re
+        inner join followed_titles ft on ft.media_item_id = re.media_item_id
         where ft.user_id = ${user.id}
-        order by ne.created_at desc
+        order by re.created_at desc
         limit 50
       `;
       return sendJson(response, 200, { events: rows.map(mapEvent) });
