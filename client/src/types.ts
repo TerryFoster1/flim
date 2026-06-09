@@ -9,6 +9,7 @@ export type AppRoute =
   | "/tv/:tmdbId"
   | "/public"
   | "/roulette"
+  | "/upcoming"
   | "/profile"
   | "/profile/playlists"
   | "/profile/saved"
@@ -302,6 +303,56 @@ export interface FollowedTitle {
   notificationSettings: TitleNotificationSettings;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface UpcomingRelease {
+  mediaItemId: string;
+  mediaType: MediaType;
+  tmdbId: number;
+  title: string;
+  overview: string;
+  posterUrl?: string;
+  backdropUrl?: string;
+  releaseDate?: string;
+  releaseYear?: string;
+  status?: string;
+  seasonCount?: number;
+  episodeCount?: number;
+  genres: string[];
+  genreIds: number[];
+  isFollowing: boolean;
+  latestEventType?: string;
+  latestEventAt?: string;
+  latestEventTitle?: string;
+  latestEventBody?: string;
+  availabilityKnown: boolean;
+}
+
+export interface UpcomingReleaseEvent {
+  eventType: string;
+  createdAt: string;
+  mediaType: MediaType;
+  tmdbId: number;
+  eventTitle?: string;
+  body?: string;
+  title: string;
+  posterUrl?: string;
+}
+
+export interface UpcomingReleaseFeed {
+  items: UpcomingRelease[];
+  sections: {
+    upcomingMovies: UpcomingRelease[];
+    upcomingTv: UpcomingRelease[];
+    releasingThisMonth: UpcomingRelease[];
+    recentlyAnnounced: UpcomingReleaseEvent[];
+    recentlyDelayed: UpcomingReleaseEvent[];
+  };
+  filters: {
+    mediaType: MediaType | "both";
+    window: "month" | "quarter" | "year" | "all";
+  };
+  generatedAt: string;
 }
 
 export interface PublicUserProfile {

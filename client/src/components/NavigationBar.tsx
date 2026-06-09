@@ -163,6 +163,7 @@ export function NavigationBar({ currentUser, onNavigate, onLogout }: NavigationB
               <>
                 <button onClick={() => navigate(currentUser.profile?.handle ? `/@${currentUser.profile.handle}` : "/profile")} type="button">Profile</button>
                 <button onClick={() => navigate("/followed-titles")} type="button">My Followed Titles</button>
+                <button onClick={() => navigate("/upcoming")} type="button">Upcoming Releases</button>
                 <button onClick={() => navigate("/settings")} type="button">Settings</button>
                 <button onClick={() => navigate("/settings")} type="button">Connect Plex</button>
               </>
@@ -170,6 +171,7 @@ export function NavigationBar({ currentUser, onNavigate, onLogout }: NavigationB
               <>
                 <button onClick={() => navigate("/signin")} type="button">Sign In</button>
                 <button onClick={() => navigate("/signup")} type="button">Create Account</button>
+                <button onClick={() => navigate("/upcoming")} type="button">Upcoming Releases</button>
               </>
             )}
             {currentUser && !isInstalled ? <button onClick={() => navigate("/settings")} type="button">Install Flim</button> : null}
