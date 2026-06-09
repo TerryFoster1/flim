@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AddToPlaylistControl } from "../components/AddToPlaylistControl";
 import { FollowTitleControl } from "../components/FollowTitleControl";
 import { MediaExtensions } from "../components/MediaExtensions";
+import { OptionalSectionBoundary } from "../components/OptionalSectionBoundary";
 import { PageShell } from "../components/PageShell";
 import { TvProgressTracker } from "../components/TvProgressTracker";
 import { WhereToWatch } from "../components/WhereToWatch";
@@ -45,6 +46,7 @@ export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addTo
   const savedInstances = useMemo(() => playlists.flatMap((playlist) => playlist.movies.map((item) => ({ playlist, item }))).filter(({ item }) => item.tmdbId === tmdbId && (item.mediaType || "movie") === mediaType), [playlists, tmdbId, mediaType]);
   const watched = savedInstances.some(({ item }) => item.watchStatus === "watched");
   const contentRating = chooseContentRating(movie?.contentRatings, streamingCountry) || movie?.contentRating;
+  const detailsKey = `${mediaType}-${tmdbId}`;
 
   useEffect(() => {
     let mounted = true;
@@ -60,7 +62,8 @@ export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addTo
           setMovie(details);
           setStatus("idle");
         }
-      } catch {
+      } catch (error) {
+        console.error("title_details_load_failed", mediaType, tmdbId, error instanceof Error ? error.message : "Unknown title details error.");
         if (mounted) setStatus("error");
       }
     }
@@ -129,9 +132,17 @@ export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addTo
               </button>
             ))}
           </div>
-          <WhereToWatch movie={movie} />
-          {mediaType === "tv" ? <TvProgressTracker show={movie} /> : null}
-          <MediaExtensions media={movie} />
+          <OptionalSectionBoundary key={`where-${detailsKey}`} label="Where To Watch">
+            <WhereToWatch movie={movie} />
+          </OptionalSectionBoundary>
+          {mediaType === "tv" ? (
+            <OptionalSectionBoundary key={`progress-${detailsKey}`} label="TV progress">
+              <TvProgressTracker show={movie} />
+            </OptionalSectionBoundary>
+          ) : null}
+          <OptionalSectionBoundary key={`extensions-${detailsKey}`} label="Trailers and extras">
+            <MediaExtensions media={movie} />
+          </OptionalSectionBoundary>
         </div>
       </div>
     </section>

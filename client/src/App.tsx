@@ -207,6 +207,7 @@ export default function App() {
 
   const activeRoute: AppRoute = routeState.route;
   const isDirectorAdminRoute = activeRoute.startsWith("/director-admin");
+  const isHomeRoute = activeRoute === "/";
   const openNowPlaying = () => {
     setRoulettePlaylists(null);
     setIsRouletteOpen(true);
@@ -291,12 +292,12 @@ export default function App() {
     <div className="app-shell">
       <div className="main-shell">
         <NavigationBar activeRoute={activeRoute} currentUser={currentUser} onNavigate={navigate} onLogout={logout} />
-        <main className="page-container">
+        <main className={isHomeRoute ? "page-container home-page-container" : "page-container"}>
           {dataStatus === "loading" ? <p className="empty-state">Loading playlists...</p> : null}
           {dataStatus === "error" ? <p className="error-message">{dataMessage}</p> : null}
           {dataStatus !== "loading" ? page : null}
         </main>
-        <Footer />
+        {!isHomeRoute ? <Footer /> : null}
       </div>
       <InstallFlimPrompt />
       {!isDirectorAdminRoute ? <div className="playlist-bottom-control" role="navigation" aria-label="Playlist controls">

@@ -20,16 +20,21 @@ function byCreated(playlists: Playlist[]) {
 }
 
 function topSavedMovies(playlists: Playlist[]) {
-  const movies = new Map<number, PlaylistMovie & { saves: number }>();
+  const movies = new Map<string, PlaylistMovie & { saves: number }>();
   playlists.flatMap((playlist) => playlist.movies).forEach((movie) => {
-    const existing = movies.get(movie.tmdbId);
+    const key = `${movie.mediaType || "movie"}-${movie.tmdbId}`;
+    const existing = movies.get(key);
     if (existing) {
       existing.saves += 1;
       return;
     }
-    movies.set(movie.tmdbId, { ...movie, saves: 1 });
+    movies.set(key, { ...movie, saves: 1 });
   });
   return [...movies.values()].sort((a, b) => b.saves - a.saves || a.title.localeCompare(b.title)).slice(0, 100);
+}
+
+function titlePath(movie: PlaylistMovie) {
+  return `${(movie.mediaType || "movie") === "tv" ? "/tv" : "/movies"}/${movie.tmdbId}`;
 }
 
 function DiscoveryShelf({ title, playlists, onNavigate }: { title: string; playlists: Playlist[]; onNavigate: (path: string) => void }) {
@@ -70,7 +75,7 @@ export function PublicPlaylists({ onNavigate, playlists }: PublicPlaylistsProps)
         {topMovies.length > 0 ? (
           <div className="top-movie-strip">
             {topMovies.slice(0, 12).map((movie, index) => (
-              <button className="top-movie-card reset-button" key={movie.tmdbId} onClick={() => onNavigate(`/movies/${movie.tmdbId}`)} type="button">
+              <button className="top-movie-card reset-button" key={`${movie.mediaType || "movie"}-${movie.tmdbId}`} onClick={() => onNavigate(titlePath(movie))} type="button">
                 <span>{index + 1}</span>
                 {movie.posterUrl ? <img alt={`${movie.title} poster`} src={movie.posterUrl} /> : <i />}
                 <strong>{movie.title}</strong>

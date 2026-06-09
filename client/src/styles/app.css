@@ -389,6 +389,13 @@ button { color: inherit; font: inherit; }
   border-radius: 999px;
 }
 .page-container { width: min(1480px, 100%); margin: 0 auto; padding: clamp(16px, 3vw, 44px); padding-bottom: 136px; }
+.home-page-container {
+  width: 100%;
+  min-height: calc(100svh - 82px);
+  padding: 0;
+  padding-bottom: 0;
+  overflow: hidden;
+}
 .route-page { animation: pageIn 0.28s ease; }
 @keyframes pageIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 .cinema-hero {
@@ -4102,6 +4109,29 @@ textarea { min-height: 42px; resize: vertical; }
   min-height: min(78vh, 820px);
 }
 
+.home-page-container .landing-page,
+.home-page-container .landing-hero {
+  min-height: calc(100svh - 82px);
+}
+
+.home-page-container .landing-hero {
+  border-left: 0;
+  border-right: 0;
+  border-radius: 0;
+}
+
+.optional-section-fallback {
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 18px;
+  padding: 14px;
+  background: rgba(255,255,255,.045);
+}
+
+.optional-section-fallback p {
+  margin: 0;
+  color: var(--muted);
+}
+
 .director-admin-tabs button {
   border: 0;
   border-radius: 16px;
@@ -4484,6 +4514,15 @@ textarea { min-height: 42px; resize: vertical; }
   }
   .landing-page {
     gap: 0;
+  }
+  .home-page-container {
+    min-height: calc(100svh - 82px);
+    padding: 0;
+    padding-bottom: 0;
+  }
+  .home-page-container .collections-cinematic-hero {
+    margin-left: 0;
+    margin-right: 0;
   }
   .landing-hero {
     min-height: min(700px, calc(100svh - 82px));
