@@ -408,6 +408,7 @@ create table if not exists release_tracking (
   episode_count integer,
   last_checked_at timestamptz,
   change_hash text,
+  last_release_check_status text,
   season_data jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now(),
   cached_at timestamptz not null default now(),
@@ -422,6 +423,7 @@ alter table release_tracking
   add column if not exists episode_count integer,
   add column if not exists last_checked_at timestamptz,
   add column if not exists change_hash text,
+  add column if not exists last_release_check_status text,
   add column if not exists created_at timestamptz not null default now();
 
 create unique index if not exists release_tracking_media_item_unique

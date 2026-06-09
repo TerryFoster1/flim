@@ -457,6 +457,7 @@ export async function ensureFollowTitleTables(sql: any) {
   await sql`alter table release_tracking add column if not exists episode_count integer`;
   await sql`alter table release_tracking add column if not exists last_checked_at timestamptz`;
   await sql`alter table release_tracking add column if not exists change_hash text`;
+  await sql`alter table release_tracking add column if not exists last_release_check_status text`;
   await sql`alter table release_tracking add column if not exists created_at timestamptz not null default now()`;
   await sql`create unique index if not exists release_tracking_media_item_unique on release_tracking (media_item_id)`;
   await sql`create index if not exists release_tracking_upcoming_idx on release_tracking (upcoming, release_date)`;

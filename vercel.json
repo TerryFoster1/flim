@@ -1,6 +1,12 @@
 {
   "buildCommand": "npm run build",
   "outputDirectory": "client/dist",
+  "crons": [
+    {
+      "path": "/api/cron/release-check",
+      "schedule": "0 11 * * *"
+    }
+  ],
   "rewrites": [
     {
       "source": "/api/admin/export",
