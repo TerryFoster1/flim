@@ -505,6 +505,117 @@ create index if not exists release_event_notifications_recipient_idx
 create index if not exists release_event_notifications_notification_idx
   on release_event_notifications (notification_id);
 
+create table if not exists tv_season_catalog (
+  id uuid primary key default gen_random_uuid(),
+  media_item_id uuid not null references media_items(id) on delete cascade,
+  tmdb_show_id integer not null,
+  season_number integer not null,
+  tmdb_season_id integer,
+  title text not null,
+  overview text,
+  poster_url text,
+  air_date date,
+  episode_count integer not null default 0,
+  fetched_at timestamptz not null default now(),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create unique index if not exists tv_season_catalog_show_season_unique
+  on tv_season_catalog (tmdb_show_id, season_number);
+
+create index if not exists tv_season_catalog_media_item_idx
+  on tv_season_catalog (media_item_id);
+
+create table if not exists tv_episode_catalog (
+  id uuid primary key default gen_random_uuid(),
+  media_item_id uuid not null references media_items(id) on delete cascade,
+  tmdb_show_id integer not null,
+  season_number integer not null,
+  episode_number integer not null,
+  tmdb_episode_id integer,
+  title text not null,
+  overview text,
+  runtime_minutes integer,
+  air_date date,
+  still_url text,
+  released boolean not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create unique index if not exists tv_episode_catalog_show_episode_unique
+  on tv_episode_catalog (tmdb_show_id, season_number, episode_number);
+
+create index if not exists tv_episode_catalog_show_released_idx
+  on tv_episode_catalog (tmdb_show_id, released, air_date);
+
+create table if not exists user_episode_progress (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  media_item_id uuid not null references media_items(id) on delete cascade,
+  tmdb_show_id integer not null,
+  tmdb_season_number integer not null,
+  tmdb_episode_number integer not null,
+  status text not null default 'not_started'
+    check (status in ('not_started', 'watching', 'watched')),
+  progress_percent integer not null default 0,
+  last_watched_at timestamptz,
+  completed_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create unique index if not exists user_episode_progress_identity_unique
+  on user_episode_progress (user_id, tmdb_show_id, tmdb_season_number, tmdb_episode_number);
+
+create index if not exists user_episode_progress_user_recent_idx
+  on user_episode_progress (user_id, last_watched_at desc);
+
+create table if not exists user_season_progress (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  media_item_id uuid not null references media_items(id) on delete cascade,
+  tmdb_show_id integer not null,
+  tmdb_season_number integer not null,
+  status text not null default 'not_started'
+    check (status in ('not_started', 'watching', 'completed')),
+  progress_percent integer not null default 0,
+  watched_episode_count integer not null default 0,
+  released_episode_count integer not null default 0,
+  last_watched_at timestamptz,
+  completed_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create unique index if not exists user_season_progress_identity_unique
+  on user_season_progress (user_id, tmdb_show_id, tmdb_season_number);
+
+create table if not exists user_show_progress (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  media_item_id uuid not null references media_items(id) on delete cascade,
+  tmdb_show_id integer not null,
+  status text not null default 'not_started'
+    check (status in ('not_started', 'watching', 'completed')),
+  progress_percent integer not null default 0,
+  current_season_number integer,
+  current_episode_number integer,
+  watched_episode_count integer not null default 0,
+  released_episode_count integer not null default 0,
+  last_watched_at timestamptz,
+  completed_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create unique index if not exists user_show_progress_identity_unique
+  on user_show_progress (user_id, tmdb_show_id);
+
+create index if not exists user_show_progress_user_recent_idx
+  on user_show_progress (user_id, last_watched_at desc);
+
 create table if not exists push_subscriptions (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references users(id) on delete cascade,

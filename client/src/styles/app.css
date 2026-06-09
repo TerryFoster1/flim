@@ -3181,6 +3181,144 @@ textarea { min-height: 42px; resize: vertical; }
   padding: 12px;
   border-radius: 14px;
 }
+.tv-progress-panel {
+  display: grid;
+  gap: 16px;
+  margin-top: 18px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 18px;
+  padding: 16px;
+  background:
+    radial-gradient(circle at 14% 0%, rgba(255,184,77,.13), transparent 15rem),
+    rgba(255,255,255,.045);
+}
+.tv-progress-header {
+  display: grid;
+  gap: 10px;
+}
+.tv-progress-header h2,
+.continue-watching-section h2 {
+  margin: 0;
+}
+.tv-progress-header p,
+.next-episode-card p,
+.continue-watching-copy small {
+  margin: 0;
+  color: var(--muted);
+}
+.tv-progress-meter {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255,255,255,.12);
+}
+.tv-progress-meter span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(135deg, var(--hot), var(--amber));
+}
+.next-episode-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  border: 1px solid rgba(255,184,77,.2);
+  border-radius: 16px;
+  padding: 14px;
+  background: rgba(255,184,77,.08);
+}
+.season-progress-list,
+.episode-progress-list {
+  display: grid;
+  gap: 10px;
+}
+.season-progress-card,
+.episode-progress-row {
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 14px;
+  background: rgba(0,0,0,.18);
+}
+.season-progress-toggle {
+  width: 100%;
+  border: 0;
+  padding: 14px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  text-align: left;
+}
+.season-progress-toggle small,
+.episode-progress-row small {
+  display: block;
+  color: var(--muted);
+  margin-top: 4px;
+}
+.episode-progress-list {
+  padding: 0 12px 12px;
+}
+.episode-progress-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+}
+.episode-progress-row.is-watched {
+  border-color: rgba(62,226,160,.28);
+  background: rgba(62,226,160,.08);
+}
+.continue-watching-section {
+  display: grid;
+  gap: 12px;
+  margin: 10px 0 18px;
+}
+.continue-watching-row {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(260px, 360px);
+  gap: 14px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  scroll-snap-type: x proximity;
+}
+.continue-watching-card {
+  min-width: 0;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 18px;
+  overflow: hidden;
+  background: rgba(255,255,255,.055);
+  scroll-snap-align: start;
+}
+.continue-watching-art {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  display: block;
+  background: rgba(255,255,255,.08);
+}
+.continue-watching-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.continue-watching-copy {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+}
+.continue-watching-copy span {
+  color: var(--amber);
+  font-size: .78rem;
+  font-weight: 900;
+}
+.continue-watching-copy h3 {
+  margin: 0;
+}
 .watch-provider-heading {
   display: flex;
   justify-content: space-between;
@@ -4459,6 +4597,18 @@ textarea { min-height: 42px; resize: vertical; }
   }
   .upcoming-release-card .watch-providers {
     grid-column: 1 / -1;
+  }
+  .next-episode-card,
+  .episode-progress-row {
+    grid-template-columns: 1fr;
+  }
+  .episode-progress-row .primary-button,
+  .episode-progress-row .secondary-button,
+  .next-episode-card .primary-button {
+    width: 100%;
+  }
+  .continue-watching-row {
+    grid-auto-columns: minmax(240px, 82vw);
   }
   .media-extension-heading {
     display: grid;

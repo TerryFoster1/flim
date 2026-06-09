@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { ContinueWatchingRow } from "../components/ContinueWatchingRow";
 import { PlaylistGrid } from "../components/PlaylistGrid";
 import { landingPosterSeeds } from "../data/landingPosterSeeds";
 import type { CurrentUser, Playlist } from "../types";
@@ -167,6 +168,8 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
           </button>
         </div>
       ) : null}
+
+      {view === "my" && currentUser ? <ContinueWatchingRow onNavigate={onNavigate} /> : null}
 
       {showCreate ? (
         <form className="collection-create-panel" onSubmit={submit}>

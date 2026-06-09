@@ -69,6 +69,7 @@ export interface MovieDetails extends MovieSearchResult {
   genres: string[];
   seasonCount?: number;
   episodeCount?: number;
+  seasons?: TvSeason[];
   firstAirYear?: string;
   contentRating?: string;
   contentRatings?: ContentRating[];
@@ -102,6 +103,7 @@ export interface TvSeason {
   title?: string;
   episodeCount?: number;
   posterUrl?: string;
+  airDate?: string;
 }
 
 export interface TvEpisode {
@@ -124,6 +126,60 @@ export interface SeriesProgress {
   currentEpisodeNumber?: number;
   lastWatchedAt?: string;
   watchStatus: WatchStatus;
+}
+
+export type EpisodeProgressStatus = "not_started" | "watching" | "watched";
+export type ShowProgressStatus = "not_started" | "watching" | "completed";
+
+export interface TvEpisodeProgress extends TvEpisode {
+  status: EpisodeProgressStatus;
+  progressPercent: number;
+  lastWatchedAt?: string;
+  completedAt?: string;
+  released: boolean;
+}
+
+export interface TvSeasonProgress {
+  seasonNumber: number;
+  title: string;
+  episodeCount: number;
+  releasedEpisodeCount: number;
+  watchedEpisodeCount: number;
+  status: ShowProgressStatus;
+  progressPercent: number;
+  episodes: TvEpisodeProgress[];
+}
+
+export interface TvShowProgressSummary {
+  tmdbShowId: number;
+  title: string;
+  posterUrl?: string;
+  status: ShowProgressStatus;
+  progressPercent: number;
+  watchedEpisodeCount: number;
+  releasedEpisodeCount: number;
+  nextEpisode?: TvEpisodeProgress;
+  lastWatchedAt?: string;
+  completedAt?: string;
+}
+
+export interface TvShowProgress {
+  show: TvShowProgressSummary;
+  seasons: TvSeasonProgress[];
+}
+
+export interface ContinueWatchingItem {
+  mediaType: MediaType;
+  tmdbId: number;
+  title: string;
+  posterUrl?: string;
+  backdropUrl?: string;
+  seasonNumber?: number;
+  episodeNumber?: number;
+  episodeTitle?: string;
+  progressPercent: number;
+  lastWatchedAt?: string;
+  actionPath: string;
 }
 
 export interface PlaylistMovie {

@@ -36,6 +36,33 @@ interface TmdbMovieDetails extends TmdbSearchMovie {
       rating?: string;
     }>;
   };
+  seasons?: Array<{
+    id?: number;
+    season_number?: number;
+    name?: string;
+    episode_count?: number;
+    poster_path?: string | null;
+    air_date?: string;
+  }>;
+}
+
+interface TmdbSeasonDetails {
+  id?: number;
+  season_number?: number;
+  name?: string;
+  overview?: string;
+  poster_path?: string | null;
+  air_date?: string;
+  episodes?: Array<{
+    id?: number;
+    episode_number?: number;
+    season_number?: number;
+    name?: string;
+    overview?: string;
+    runtime?: number;
+    air_date?: string;
+    still_path?: string | null;
+  }>;
 }
 
 function tmdbAccessToken() {
@@ -189,6 +216,18 @@ export async function ensureTmdbCacheTables(sql: any) {
   await runSchemaStatement(sql`create unique index if not exists tmdb_movie_cache_media_tmdb_unique on tmdb_movie_cache (media_type, tmdb_id)`);
   await runSchemaStatement(sql`create index if not exists tmdb_movie_cache_tmdb_id_idx on tmdb_movie_cache (tmdb_id)`);
   await runSchemaStatement(sql`create index if not exists tmdb_movie_cache_expires_at_idx on tmdb_movie_cache (expires_at)`);
+  await runSchemaStatement(sql`
+    create table if not exists tmdb_tv_season_cache (
+      id uuid primary key default gen_random_uuid(),
+      tmdb_show_id integer not null,
+      season_number integer not null,
+      response_json jsonb not null,
+      created_at timestamptz not null default now(),
+      expires_at timestamptz not null
+    )
+  `);
+  await runSchemaStatement(sql`create unique index if not exists tmdb_tv_season_cache_show_season_unique on tmdb_tv_season_cache (tmdb_show_id, season_number)`);
+  await runSchemaStatement(sql`create index if not exists tmdb_tv_season_cache_expires_at_idx on tmdb_tv_season_cache (expires_at)`);
 }
 
 async function fetchTmdbSearchByType(query: string, mediaType: "movie" | "tv") {
@@ -243,10 +282,58 @@ export async function fetchTmdbMovieDetails(tmdbId: number, mediaType: "movie" |
     genres: payload.genres?.map((genre) => genre.name) || [],
     seasonCount: payload.number_of_seasons,
     episodeCount: payload.number_of_episodes,
+    seasons: mediaType === "tv"
+      ? (payload.seasons || [])
+        .filter((season) => Number(season.season_number) > 0)
+        .map((season) => ({
+          tmdbId: season.id,
+          seasonNumber: Number(season.season_number),
+          title: season.name || `Season ${season.season_number}`,
+          episodeCount: season.episode_count || 0,
+          posterUrl: posterUrl(season.poster_path),
+          airDate: season.air_date || undefined,
+        }))
+      : undefined,
     firstAirYear: releaseYear(payload.first_air_date),
     contentRating: chooseContentRating(contentRatings),
     contentRatings,
     contentRatingVersion: 1,
     status: payload.status,
+  };
+}
+
+export async function fetchTmdbTvSeasonDetails(tmdbShowId: number, seasonNumber: number) {
+  if (!hasServerTmdbCredential()) {
+    throw new Error("TMDb server credentials are missing.");
+  }
+
+  const url = new URL(`${TMDB_API_BASE_URL}/tv/${tmdbShowId}/season/${seasonNumber}`);
+  url.searchParams.set("language", "en-US");
+
+  const response = await fetch(url, applyTmdbAuth(url));
+  if (!response.ok) {
+    throw new Error("TV season details failed.");
+  }
+
+  const payload = (await response.json()) as TmdbSeasonDetails;
+  return {
+    tmdbId: payload.id,
+    seasonNumber: Number(payload.season_number || seasonNumber),
+    title: payload.name || `Season ${seasonNumber}`,
+    overview: payload.overview || "",
+    posterUrl: posterUrl(payload.poster_path),
+    airDate: payload.air_date || undefined,
+    episodes: (payload.episodes || [])
+      .filter((episode) => Number(episode.episode_number) > 0)
+      .map((episode) => ({
+        tmdbId: episode.id,
+        seasonNumber: Number(episode.season_number || seasonNumber),
+        episodeNumber: Number(episode.episode_number),
+        title: episode.name || `Episode ${episode.episode_number}`,
+        overview: episode.overview || "",
+        runtimeMinutes: episode.runtime || undefined,
+        airDate: episode.air_date || undefined,
+        stillUrl: posterUrl(episode.still_path),
+      })),
   };
 }

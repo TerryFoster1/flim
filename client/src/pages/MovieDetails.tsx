@@ -3,6 +3,7 @@ import { AddToPlaylistControl } from "../components/AddToPlaylistControl";
 import { FollowTitleControl } from "../components/FollowTitleControl";
 import { MediaExtensions } from "../components/MediaExtensions";
 import { PageShell } from "../components/PageShell";
+import { TvProgressTracker } from "../components/TvProgressTracker";
 import { WhereToWatch } from "../components/WhereToWatch";
 import { WatchStatusBadge } from "../components/WatchStatusBadge";
 import { getCurrentProfile } from "../services/profileService";
@@ -127,6 +128,7 @@ export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addTo
             ))}
           </div>
           <WhereToWatch movie={movie} />
+          {mediaType === "tv" ? <TvProgressTracker show={movie} /> : null}
           <MediaExtensions media={movie} />
         </div>
       </div>
