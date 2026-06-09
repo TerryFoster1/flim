@@ -37,6 +37,7 @@ import { About } from "./pages/About";
 import { AuthPage } from "./pages/AuthPage";
 import { DirectorAdmin } from "./pages/DirectorAdmin";
 import { LandingPage } from "./pages/LandingPage";
+import { Discover } from "./pages/Discover";
 import { createSystemPlaylists } from "./services/systemPlaylists";
 import type { AppRoute, CurrentUser, MovieDetails, MovieSearchResult, Playlist, RouteState, WatchStatus } from "./types";
 
@@ -223,7 +224,7 @@ export default function App() {
   );
   const pages: Partial<Record<AppRoute, ReactNode>> = {
     "/": <LandingPage />,
-    "/discover": playlistsPage("my"),
+    "/discover": <Discover onNavigate={navigate} />,
     "/playlists": playlistsPage("my"),
     "/playlists/:id": detailPlaylist ? (
       <PlaylistDetails

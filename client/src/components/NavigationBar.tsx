@@ -161,6 +161,7 @@ export function NavigationBar({ currentUser, onNavigate, onLogout }: NavigationB
           <div className="hamburger-panel">
             {currentUser ? (
               <>
+                <button onClick={() => navigate("/discover")} type="button">Discover</button>
                 <button onClick={() => navigate(currentUser.profile?.handle ? `/@${currentUser.profile.handle}` : "/profile")} type="button">Profile</button>
                 <button onClick={() => navigate("/followed-titles")} type="button">My Followed Titles</button>
                 <button onClick={() => navigate("/upcoming")} type="button">Upcoming Releases</button>
@@ -171,6 +172,7 @@ export function NavigationBar({ currentUser, onNavigate, onLogout }: NavigationB
               <>
                 <button onClick={() => navigate("/signin")} type="button">Sign In</button>
                 <button onClick={() => navigate("/signup")} type="button">Create Account</button>
+                <button onClick={() => navigate("/discover")} type="button">Discover</button>
                 <button onClick={() => navigate("/upcoming")} type="button">Upcoming Releases</button>
               </>
             )}

@@ -440,6 +440,22 @@ export interface PublicUserProfile {
   publicPlaylists?: Playlist[];
 }
 
+export interface DiscoveryProfileResult {
+  displayName: string;
+  handle: string;
+  bio?: string;
+  playlistCount: number;
+  titleCount: number;
+}
+
+export interface DiscoverySearchResults {
+  query: string;
+  titles: MovieSearchResult[];
+  playlists: Playlist[];
+  profiles: DiscoveryProfileResult[];
+  titleSource: "empty" | "catalog" | "catalog_cache" | "cache" | "catalog_tmdb" | "tmdb";
+}
+
 export interface Artist {
   id?: string;
   name: string;

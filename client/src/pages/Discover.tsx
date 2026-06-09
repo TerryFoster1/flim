@@ -1,0 +1,150 @@
+import { useMemo, useState, type FormEvent } from "react";
+import { PlaylistGrid } from "../components/PlaylistGrid";
+import { searchDiscovery } from "../services/discoveryService";
+import type { DiscoverySearchResults, MovieSearchResult } from "../types";
+
+interface DiscoverProps {
+  onNavigate: (path: string) => void;
+}
+
+const starterSearches = ["War Movies", "Back to the Future", "Sci-Fi", "The Director", "Family Movie Night"];
+
+function titlePath(title: MovieSearchResult) {
+  return title.mediaType === "tv" ? `/tv/${title.tmdbId}` : `/movies/${title.tmdbId}`;
+}
+
+function titleTypeLabel(title: MovieSearchResult) {
+  return title.mediaType === "tv" ? "TV Show" : "Movie";
+}
+
+export function Discover({ onNavigate }: DiscoverProps) {
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<DiscoverySearchResults | null>(null);
+  const [status, setStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const [message, setMessage] = useState("");
+
+  const hasResults = useMemo(
+    () => Boolean(results && (results.titles.length > 0 || results.playlists.length > 0 || results.profiles.length > 0)),
+    [results],
+  );
+
+  async function submit(event?: FormEvent<HTMLFormElement>, nextQuery = query) {
+    event?.preventDefault();
+    const cleanQuery = nextQuery.trim();
+    if (!cleanQuery) return;
+
+    setQuery(cleanQuery);
+    setStatus("loading");
+    setMessage("");
+    try {
+      setResults(await searchDiscovery(cleanQuery));
+      setStatus("ready");
+    } catch {
+      setStatus("error");
+      setMessage("Discovery search is unavailable right now.");
+    }
+  }
+
+  return (
+    <section className="route-page discover-page">
+      <section className="discover-hero">
+        <div>
+          <h1>Discover</h1>
+          <p>Search movies, TV shows, public playlists, Director picks, and curators.</p>
+        </div>
+        <form className="discover-search-form" onSubmit={submit}>
+          <label>
+            <span>Search Flim</span>
+            <input
+              autoComplete="off"
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Try War Movies, Robin Williams, Sci-Fi..."
+              type="search"
+              value={query}
+            />
+          </label>
+          <button className="primary-button" disabled={!query.trim() || status === "loading"} type="submit">
+            {status === "loading" ? "Searching..." : "Search"}
+          </button>
+        </form>
+        <div className="discovery-chip-row" aria-label="Suggested searches">
+          {starterSearches.map((item) => (
+            <button key={item} onClick={() => submit(undefined, item)} type="button">
+              {item}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {message ? <p className="error-message">{message}</p> : null}
+
+      {results ? (
+        <div className="discovery-results-stack">
+          <section className="discovery-results-section">
+            <div className="discovery-results-heading">
+              <h2>Titles</h2>
+              <span>{results.titles.length} found</span>
+            </div>
+            {results.titles.length > 0 ? (
+              <div className="discovery-title-row">
+                {results.titles.map((title) => (
+                  <article className="discovery-title-card" key={`${title.mediaType}-${title.tmdbId}`}>
+                    <button className="reset-button" onClick={() => onNavigate(titlePath(title))} type="button">
+                      {title.posterUrl ? <img alt={`${title.title} poster`} src={title.posterUrl} /> : <span className="discovery-poster-placeholder" />}
+                      <strong>{title.title}</strong>
+                      <small>{title.releaseYear || "Year"} / {titleTypeLabel(title)}</small>
+                    </button>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <p className="empty-state">No matching movies or shows yet.</p>
+            )}
+          </section>
+
+          <section className="discovery-results-section">
+            <div className="discovery-results-heading">
+              <h2>Public Playlists</h2>
+              <span>{results.playlists.length} found</span>
+            </div>
+            <PlaylistGrid onNavigate={onNavigate} playlists={results.playlists} emptyMessage="No matching public playlists yet." />
+          </section>
+
+          <section className="discovery-results-section">
+            <div className="discovery-results-heading">
+              <h2>Curators</h2>
+              <span>{results.profiles.length} found</span>
+            </div>
+            {results.profiles.length > 0 ? (
+              <div className="curator-result-grid">
+                {results.profiles.map((profile) => (
+                  <button className="curator-result-card" key={profile.handle} onClick={() => onNavigate(`/@${profile.handle}`)} type="button">
+                    <span className="curator-avatar">{profile.displayName.slice(0, 1).toUpperCase()}</span>
+                    <strong>{profile.displayName}</strong>
+                    <small>@{profile.handle}</small>
+                    {profile.bio ? <p>{profile.bio}</p> : null}
+                    <span>{profile.playlistCount} public playlist{profile.playlistCount === 1 ? "" : "s"}</span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="empty-state">No matching curators yet.</p>
+            )}
+          </section>
+        </div>
+      ) : (
+        <section className="discovery-empty-panel">
+          <h2>Find what is worth watching.</h2>
+          <p>Start with a title, mood, genre, playlist name, or curator.</p>
+        </section>
+      )}
+
+      {results && !hasResults ? (
+        <section className="discovery-empty-panel">
+          <h2>No matches yet.</h2>
+          <p>Try a broader search like comedy, sci-fi, family, war, or a favorite actor.</p>
+        </section>
+      ) : null}
+    </section>
+  );
+}
