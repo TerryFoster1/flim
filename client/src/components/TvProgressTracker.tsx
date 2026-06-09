@@ -39,7 +39,7 @@ export function TvProgressTracker({ show }: TvProgressTrackerProps) {
         if (!mounted) return;
         setProgress(result);
         setStatus("ready");
-        setOpenSeason((current) => current || result.show.nextEpisode?.seasonNumber || result.seasons[0]?.seasonNumber || null);
+        setOpenSeason((current) => current || null);
       })
       .catch((error) => {
         if (!mounted) return;

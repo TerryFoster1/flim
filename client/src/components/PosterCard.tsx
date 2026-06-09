@@ -15,10 +15,11 @@ interface PosterCardProps {
 export function PosterCard({ movie, index, itemCount, playlistId, onNavigate, onRemove, onReorder, onWatchStatusChange }: PosterCardProps) {
   const watched = movie.watchStatus === "watched";
   const canReorder = typeof index === "number" && typeof itemCount === "number" && Boolean(onReorder);
+  const detailPath = `${movie.mediaType === "tv" ? "/tv" : "/movies"}/${movie.tmdbId}${playlistId ? `?playlist=${encodeURIComponent(playlistId)}` : ""}`;
 
   return (
     <article className="poster-card" tabIndex={0} aria-label={`${movie.title} poster card`}>
-      <button className="poster-card-button reset-button" onClick={() => onNavigate?.(movie.mediaType === "tv" ? `/tv/${movie.tmdbId}` : `/movies/${movie.tmdbId}`)} type="button">
+      <button className="poster-card-button reset-button" onClick={() => onNavigate?.(detailPath)} type="button">
         {movie.posterUrl ? <img className="poster-image" src={movie.posterUrl} alt={`${movie.title} poster`} /> : <div className="poster tone-blue" />}
       </button>
       <div className="card-title">{movie.title}</div>

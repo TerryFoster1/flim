@@ -92,10 +92,14 @@ export function WhereToWatch({ compact = false, movie }: WhereToWatchProps) {
             className="provider-watch-button"
             href={link.url}
             key={link.provider.id}
+            aria-label={`${link.provider.name}: ${link.linkType === "exact" ? accessLabel(link.accessType) : `Search ${accessLabel(link.accessType)}`}`}
             rel="noreferrer"
             target="_blank"
+            title={link.provider.name}
           >
-            <ProviderLogo provider={link.provider} />
+            <span className="provider-round-icon" aria-hidden="true">
+              <ProviderLogo provider={link.provider} />
+            </span>
             <strong>{link.provider.name}</strong>
             <small>{link.linkType === "exact" ? accessLabel(link.accessType) : `Search ${accessLabel(link.accessType)}`}</small>
           </a>

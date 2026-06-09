@@ -2206,6 +2206,50 @@ textarea { min-height: 42px; resize: vertical; }
   gap: 10px;
   flex-wrap: wrap;
 }
+.compact-add-panel {
+  width: min(100%, 360px);
+  margin-top: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.compact-add-toggle {
+  width: 100%;
+  justify-content: center;
+}
+.compact-playlist-menu {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 14px;
+  padding: 8px;
+  background: rgba(9,10,12,.92);
+}
+.compact-playlist-option {
+  border: 0;
+  border-radius: 10px;
+  padding: 10px;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--text);
+  background: rgba(255,255,255,.055);
+  cursor: pointer;
+  text-align: left;
+}
+.compact-playlist-option:hover:not(:disabled) {
+  background: rgba(255,184,77,.13);
+}
+.compact-playlist-option small {
+  color: var(--muted);
+  font-weight: 800;
+}
+.compact-playlist-option.already-added {
+  opacity: .66;
+  cursor: not-allowed;
+}
 .helper-text, .empty-state { color: var(--muted); }
 .empty-playlists-panel {
   display: grid;
@@ -3337,39 +3381,51 @@ textarea { min-height: 42px; resize: vertical; }
   white-space: nowrap;
 }
 .provider-button-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: 12px;
 }
 .provider-watch-button {
+  width: 86px;
   display: grid;
-  gap: 7px;
-  min-height: 112px;
-  align-content: center;
+  gap: 6px;
   justify-items: center;
-  border: 1px solid rgba(255,255,255,.12);
-  border-radius: 16px;
-  padding: 14px;
+  border: 0;
+  border-radius: 999px;
+  padding: 0;
   color: var(--text);
   text-decoration: none;
-  background:
-    radial-gradient(circle at top, rgba(255,184,77,.08), transparent 8rem),
-    rgba(255,255,255,.055);
-  transition: transform .18s ease, border-color .18s ease, background .18s ease;
+  background: transparent;
+  transition: transform .18s ease;
 }
 .provider-watch-button:hover {
   transform: translateY(-2px);
-  border-color: rgba(255,184,77,.42);
-  background:
-    radial-gradient(circle at top, rgba(255,184,77,.14), transparent 8rem),
-    rgba(255,255,255,.075);
 }
-.provider-logo { width: min(100%, 148px); height: auto; display: block; }
+.provider-round-icon {
+  width: 64px;
+  height: 64px;
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 30% 15%, rgba(255,184,77,.15), transparent 4rem),
+    rgba(255,255,255,.07);
+  box-shadow: 0 10px 28px rgba(0,0,0,.22);
+}
+.provider-watch-button:hover .provider-round-icon {
+  border-color: rgba(255,184,77,.5);
+  background:
+    radial-gradient(circle at 30% 15%, rgba(255,184,77,.23), transparent 4rem),
+    rgba(255,255,255,.09);
+}
+.provider-logo { width: 52px; height: 52px; display: block; }
 .provider-logo-img {
-  max-width: 138px;
-  max-height: 48px;
+  width: 52px;
+  height: 52px;
   object-fit: contain;
-  border-radius: 8px;
+  border-radius: 999px;
 }
 .provider-logo-bg { fill: rgba(255,255,255,.08); stroke: rgba(255,255,255,.16); stroke-width: 2; }
 .provider-logo-text { font-family: Inter, system-ui, sans-serif; font-size: 21px; font-weight: 950; letter-spacing: .02em; fill: #fff; dominant-baseline: middle; }
@@ -3392,21 +3448,27 @@ textarea { min-height: 42px; resize: vertical; }
 .provider-logo-plex .provider-logo-text { fill: #e5a00d; letter-spacing: .14em; }
 .provider-watch-button strong {
   color: #fff3d8;
-  font-size: .95rem;
+  font-size: .78rem;
   line-height: 1.1;
   text-align: center;
+  max-width: 86px;
+  overflow-wrap: anywhere;
 }
-.provider-watch-button small { color: var(--muted); font-weight: 800; }
+.provider-watch-button small {
+  color: var(--muted);
+  font-size: .7rem;
+  font-weight: 800;
+  text-align: center;
+}
 .watch-providers.compact .helper-text,
 .watch-providers.compact .provider-status {
   display: none;
 }
 .watch-providers.compact .provider-button-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
 }
 .watch-providers.compact .provider-watch-button {
-  min-height: 68px;
-  padding: 9px;
+  width: 74px;
 }
 .media-extensions {
   display: grid;
@@ -3429,11 +3491,11 @@ textarea { min-height: 42px; resize: vertical; }
 .media-extension-heading h2 { margin: 0; font-size: clamp(1.35rem, 2vw, 2.1rem); }
 .media-extension-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
 }
 .media-extension-card {
-  min-height: 248px;
+  min-height: 220px;
   display: grid;
   grid-template-rows: 128px minmax(0, 1fr);
   gap: 12px;
@@ -3452,6 +3514,48 @@ textarea { min-height: 42px; resize: vertical; }
 .media-extension-card .secondary-button {
   width: 100%;
   margin-top: 4px;
+}
+.compact-extension-card {
+  min-height: 0;
+  grid-template-rows: 1fr;
+  place-items: center;
+  text-align: center;
+}
+.compact-extension-copy {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+}
+.compact-extension-copy h3,
+.compact-extension-copy p {
+  margin: 0;
+}
+.round-media-link {
+  width: 68px;
+  height: 68px;
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  text-decoration: none;
+  font-size: .68rem;
+  font-weight: 950;
+  background: rgba(255,255,255,.08);
+  box-shadow: 0 10px 28px rgba(0,0,0,.22);
+  cursor: pointer;
+}
+.round-media-link:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+.spotify-link {
+  background: #1db954;
+  color: #04180b;
+}
+.round-media-link.is-disabled,
+.round-media-link:disabled {
+  opacity: .55;
+  cursor: not-allowed;
 }
 .extension-art {
   position: relative;
@@ -4606,6 +4710,9 @@ textarea { min-height: 42px; resize: vertical; }
   .episode-progress-row .secondary-button,
   .next-episode-card .primary-button {
     width: 100%;
+  }
+  .media-extension-grid {
+    grid-template-columns: 1fr;
   }
   .continue-watching-row {
     grid-auto-columns: minmax(240px, 82vw);

@@ -5,18 +5,22 @@ interface AddToPlaylistControlProps {
   movie: MovieSearchResult | MovieDetails;
   playlists: Playlist[];
   addToPlaylist: (playlistId: string, movie: MovieSearchResult | MovieDetails) => void | Promise<void>;
+  currentPlaylistId?: string;
+  collapsedLabel?: string;
 }
 
-export function AddToPlaylistControl({ movie, playlists, addToPlaylist }: AddToPlaylistControlProps) {
-  const existingPlaylistIds = playlists
+export function AddToPlaylistControl({ movie, playlists, addToPlaylist, currentPlaylistId, collapsedLabel = "Add to other playlists" }: AddToPlaylistControlProps) {
+  const addTargetPlaylists = currentPlaylistId ? playlists.filter((playlist) => playlist.id !== currentPlaylistId) : playlists;
+  const existingPlaylistIds = addTargetPlaylists
     .filter((playlist) => playlist.movies.some((item) => item.tmdbId === movie.tmdbId && (item.mediaType || "movie") === (movie.mediaType || "movie")))
     .map((playlist) => playlist.id);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [message, setMessage] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
-  if (playlists.length === 0) {
-    return <span className="helper-text">Create a playlist first.</span>;
+  if (addTargetPlaylists.length === 0) {
+    return <span className="helper-text">{currentPlaylistId ? "This title is already in the current playlist." : "Create a playlist first."}</span>;
   }
 
   function togglePlaylist(playlistId: string) {
@@ -48,6 +52,55 @@ export function AddToPlaylistControl({ movie, playlists, addToPlaylist }: AddToP
     }
   }
 
+  async function addSinglePlaylist(playlistId: string) {
+    if (existingPlaylistIds.includes(playlistId)) {
+      setMessage("Already added to that playlist.");
+      return;
+    }
+
+    const playlist = addTargetPlaylists.find((item) => item.id === playlistId);
+    setIsSaving(true);
+    setMessage("");
+    try {
+      await addToPlaylist(playlistId, movie);
+      setMessage(`Added to ${playlist?.name || "playlist"}.`);
+    } catch {
+      setMessage("Unable to add movie. Please try again.");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  if (currentPlaylistId) {
+    return (
+      <div className="add-playlists-panel compact-add-panel">
+        <button className="secondary-button compact-add-toggle" onClick={() => setIsExpanded((current) => !current)} type="button">
+          {collapsedLabel}
+        </button>
+        {isExpanded ? (
+          <div className="compact-playlist-menu" aria-label="Other playlists">
+            {addTargetPlaylists.map((playlist) => {
+              const alreadyAdded = existingPlaylistIds.includes(playlist.id);
+              return (
+                <button
+                  className={alreadyAdded ? "compact-playlist-option already-added" : "compact-playlist-option"}
+                  disabled={alreadyAdded || isSaving}
+                  key={playlist.id}
+                  onClick={() => addSinglePlaylist(playlist.id)}
+                  type="button"
+                >
+                  <span>{playlist.name}</span>
+                  <small>{alreadyAdded ? "Already added" : `${playlist.movies.length} titles`}</small>
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
+        {message ? <small className={message.startsWith("Added") ? "success-text" : "error-text"}>{message}</small> : null}
+      </div>
+    );
+  }
+
   return (
     <div className="add-playlists-panel">
       <div className="add-playlists-heading">
@@ -55,7 +108,7 @@ export function AddToPlaylistControl({ movie, playlists, addToPlaylist }: AddToP
         <small>{selectedIds.length} selected</small>
       </div>
       <div className="add-playlist-options">
-        {playlists.map((playlist) => {
+        {addTargetPlaylists.map((playlist) => {
           const alreadyAdded = existingPlaylistIds.includes(playlist.id);
           const checked = alreadyAdded || selectedIds.includes(playlist.id);
           return (

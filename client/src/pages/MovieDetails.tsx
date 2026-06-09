@@ -41,6 +41,7 @@ export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addTo
   const [movie, setMovie] = useState<MovieDetails | null>(null);
   const [streamingCountry, setStreamingCountry] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
+  const sourcePlaylistId = useMemo(() => new URLSearchParams(window.location.search).get("playlist") || undefined, [mediaType, tmdbId]);
   const savedInstances = useMemo(() => playlists.flatMap((playlist) => playlist.movies.map((item) => ({ playlist, item }))).filter(({ item }) => item.tmdbId === tmdbId && (item.mediaType || "movie") === mediaType), [playlists, tmdbId, mediaType]);
   const watched = savedInstances.some(({ item }) => item.watchStatus === "watched");
   const contentRating = chooseContentRating(movie?.contentRatings, streamingCountry) || movie?.contentRating;
@@ -114,7 +115,7 @@ export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addTo
             ))}
           </div>
           <div className="button-row">
-            <AddToPlaylistControl addToPlaylist={(playlistId) => addToPlaylist(playlistId, movie)} movie={movie} playlists={playlists} />
+            <AddToPlaylistControl addToPlaylist={(playlistId) => addToPlaylist(playlistId, movie)} currentPlaylistId={sourcePlaylistId} movie={movie} playlists={playlists} />
             <FollowTitleControl movie={movie} />
             {savedInstances.map(({ playlist, item }) => (
               <label className="watched-toggle" key={playlist.id}>
