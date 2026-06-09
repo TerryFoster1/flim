@@ -10,10 +10,12 @@ export interface ProviderAvailabilityLink {
   deepLink?: string;
   searchFallbackUrl?: string;
   logoUrl?: string;
-  source: "watchmode" | "justwatch" | "streaming_availability" | "plex" | "manual";
+  source: "watchmode" | "justwatch" | "streaming_availability" | "tmdb" | "plex" | "manual";
 }
 
 const CACHE_DAYS = 3;
+const TMDB_API_BASE_URL = "https://api.themoviedb.org/3";
+const TMDB_IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w92";
 
 const providerAliases: Record<string, string> = {
   "apple tv": "apple",
@@ -70,6 +72,43 @@ function mapWatchmodeAccessType(type?: string): ProviderAvailabilityLink["availa
 
 function watchmodeApiKey() {
   return process.env.WATCHMODE_API_KEY?.trim() || "";
+}
+
+function tmdbAccessToken() {
+  return (
+    process.env.TMDB_ACCESS_TOKEN?.trim() ||
+    process.env.MOVIE_API_ACCESS_TOKEN?.trim() ||
+    process.env.VITE_TMDB_ACCESS_TOKEN?.trim()
+  );
+}
+
+function tmdbApiKey() {
+  return (
+    process.env.TMDB_API_KEY?.trim() ||
+    process.env.MOVIE_API_KEY?.trim()
+  );
+}
+
+function hasTmdbProviderSource() {
+  return Boolean(tmdbAccessToken() || tmdbApiKey());
+}
+
+function applyTmdbAuth(url: URL): RequestInit {
+  const token = tmdbAccessToken();
+  if (token) {
+    return {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    };
+  }
+
+  const key = tmdbApiKey();
+  if (key) {
+    url.searchParams.set("api_key", key);
+  }
+
+  return {};
 }
 
 async function runSchemaStatement(statement: Promise<unknown>) {
@@ -238,6 +277,64 @@ async function fetchWatchmodeAvailability(mediaType: ProviderMediaType, tmdbId: 
   return [...links.values()];
 }
 
+function mapTmdbAccessType(type: string): ProviderAvailabilityLink["availabilityType"] {
+  if (type === "flatrate") return "subscription";
+  if (type === "rent") return "rent";
+  if (type === "buy") return "buy";
+  if (type === "free" || type === "ads") return "free";
+  return "unknown";
+}
+
+async function fetchTmdbProviderAvailability(mediaType: ProviderMediaType, tmdbId: number, region: string, title: string) {
+  if (!hasTmdbProviderSource()) return null;
+
+  const url = new URL(`${TMDB_API_BASE_URL}/${mediaType}/${tmdbId}/watch/providers`);
+  const response = await fetch(url, applyTmdbAuth(url));
+  if (!response.ok) {
+    throw new Error("Provider availability lookup failed.");
+  }
+
+  const payload = (await response.json()) as {
+    results?: Record<string, {
+      link?: string;
+      flatrate?: Array<{ provider_name?: string; logo_path?: string | null }>;
+      rent?: Array<{ provider_name?: string; logo_path?: string | null }>;
+      buy?: Array<{ provider_name?: string; logo_path?: string | null }>;
+      free?: Array<{ provider_name?: string; logo_path?: string | null }>;
+      ads?: Array<{ provider_name?: string; logo_path?: string | null }>;
+    }>;
+  };
+
+  const regionPayload = payload.results?.[region];
+  if (!regionPayload) return [];
+
+  const links = new Map<string, ProviderAvailabilityLink>();
+  for (const availabilityType of ["flatrate", "free", "ads", "rent", "buy"]) {
+    const providers = regionPayload[availabilityType as keyof typeof regionPayload];
+    if (!Array.isArray(providers)) continue;
+
+    for (const provider of providers) {
+      if (!provider.provider_name) continue;
+      const providerId = normalizeProviderId(provider.provider_name);
+      const accessType = mapTmdbAccessType(availabilityType);
+      const key = `${providerId}:${accessType}`;
+      if (links.has(key)) continue;
+
+      links.set(key, {
+        providerId,
+        providerName: provider.provider_name,
+        region,
+        availabilityType: accessType,
+        searchFallbackUrl: searchFallbackUrl(providerId, title) || regionPayload.link,
+        logoUrl: provider.logo_path ? `${TMDB_IMAGE_BASE_URL}${provider.logo_path}` : undefined,
+        source: "tmdb",
+      });
+    }
+  }
+
+  return [...links.values()];
+}
+
 export async function getCachedProviderAvailability(mediaType: ProviderMediaType, tmdbId: number, region = "CA") {
   const sql = db();
   await ensureProviderAvailabilityTables(sql);
@@ -301,12 +398,13 @@ async function markProviderAvailabilityChecked(sql: any, mediaType: ProviderMedi
 
 export async function fetchAndCacheProviderAvailability(mediaType: ProviderMediaType, tmdbId: number, region = "CA", title: string) {
   const cleanRegion = normalizedRegion(region);
-  const links = await fetchWatchmodeAvailability(mediaType, tmdbId, cleanRegion, title);
+  const links = await fetchWatchmodeAvailability(mediaType, tmdbId, cleanRegion, title) ??
+    await fetchTmdbProviderAvailability(mediaType, tmdbId, cleanRegion, title);
   if (!links) return null;
 
   const sql = db();
   await ensureProviderAvailabilityTables(sql);
-  await markProviderAvailabilityChecked(sql, mediaType, tmdbId, cleanRegion, "watchmode");
+  await markProviderAvailabilityChecked(sql, mediaType, tmdbId, cleanRegion, links[0]?.source || (hasTmdbProviderSource() ? "tmdb" : "watchmode"));
   for (const link of links) {
     await sql`
       insert into watch_providers (id, name, logo_url, icon_key, source, updated_at)
@@ -394,5 +492,5 @@ export async function fetchAndCacheProviderAvailability(mediaType: ProviderMedia
 }
 
 export function hasProviderAvailabilitySource() {
-  return Boolean(watchmodeApiKey());
+  return Boolean(watchmodeApiKey() || hasTmdbProviderSource());
 }
