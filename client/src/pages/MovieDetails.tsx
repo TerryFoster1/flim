@@ -118,14 +118,15 @@ export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addTo
             <AddToPlaylistControl addToPlaylist={(playlistId) => addToPlaylist(playlistId, movie)} currentPlaylistId={sourcePlaylistId} movie={movie} playlists={playlists} />
             <FollowTitleControl movie={movie} />
             {savedInstances.map(({ playlist, item }) => (
-              <label className="watched-toggle" key={playlist.id}>
-                <input
-                  checked={item.watchStatus === "watched"}
-                  onChange={(event) => updateWatchStatus(playlist.id, tmdbId, event.target.checked ? "watched" : "not_watched", mediaType)}
-                  type="checkbox"
-                />
-                Watched in {playlist.name}
-              </label>
+              <button
+                className={item.watchStatus === "watched" ? "watched-toggle is-watched" : "watched-toggle"}
+                key={playlist.id}
+                onClick={() => updateWatchStatus(playlist.id, tmdbId, item.watchStatus === "watched" ? "not_watched" : "watched", mediaType)}
+                type="button"
+              >
+                {item.watchStatus === "watched" ? "✓ Watched" : "Mark Watched"}
+                <span>{playlist.name}</span>
+              </button>
             ))}
           </div>
           <WhereToWatch movie={movie} />

@@ -46,14 +46,13 @@ export function PosterCard({ movie, index, itemCount, playlistId, onNavigate, on
               </button>
             </div>
           ) : null}
-          <label className="watched-toggle">
-            <input
-              checked={watched}
-              onChange={(event) => onWatchStatusChange?.(playlistId, movie.tmdbId, event.target.checked ? "watched" : "not_watched", movie.mediaType || "movie")}
-              type="checkbox"
-            />
-            Watched
-          </label>
+          <button
+            className={watched ? "watched-toggle is-watched" : "watched-toggle"}
+            onClick={() => onWatchStatusChange?.(playlistId, movie.tmdbId, watched ? "not_watched" : "watched", movie.mediaType || "movie")}
+            type="button"
+          >
+            {watched ? "✓ Watched" : "Mark Watched"}
+          </button>
           <button className="text-button" onClick={() => onRemove?.(playlistId, movie.tmdbId, movie.mediaType || "movie")} type="button">
             Remove
           </button>
