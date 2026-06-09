@@ -1,6 +1,7 @@
 import { db, ensureFollowTitleTables, getCurrentUser, readBody, sendJson } from "../_db.js";
 import { ensureMediaCatalogTables, getCatalogMediaItem } from "../_mediaCatalog.js";
 import { buildProviderHash, detectReleaseEvents, normalizeReleaseSnapshot, type ReleaseMediaType } from "../_releaseIntelligence.js";
+import { fanoutReleaseEvents } from "../_releaseEventFanout.js";
 
 function normalizeMediaType(value: unknown): ReleaseMediaType {
   return value === "tv" ? "tv" : "movie";
@@ -224,11 +225,13 @@ export default async function handler(request: any, response: any) {
       newSnapshot,
     });
     const insertedEvents = await insertEvents(sql, mediaItem, result.events);
+    const fanout = await fanoutReleaseEvents(sql, insertedEvents);
     await writeTracking(sql, mediaItem, result.newState, result.changeHash);
 
     return sendJson(response, 200, {
       ok: true,
       generatedCount: insertedEvents.length,
+      notificationCount: fanout.notificationCount,
       detectedCount: result.events.length,
       duplicateCount: Math.max(0, result.events.length - insertedEvents.length),
       events: insertedEvents.map(mapEvent),

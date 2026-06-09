@@ -250,10 +250,16 @@ export interface CurrentUser {
 export type NotificationType =
   | "playlist_followed"
   | "title_released"
+  | "release_date_changed"
+  | "movie_released"
+  | "title_status_changed"
   | "season_announced"
+  | "season_release_changed"
   | "season_released"
   | "episode_available"
+  | "episode_released"
   | "streaming_available"
+  | "provider_changed"
   | "trailer_released";
 
 export interface AppNotification {

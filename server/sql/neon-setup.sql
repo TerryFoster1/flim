@@ -325,11 +325,15 @@ create table if not exists notifications (
   type text not null,
   entity_type text not null,
   entity_id uuid,
+  source_release_event_id uuid,
   title text not null,
   message text not null,
   read_at timestamptz,
   created_at timestamptz not null default now()
 );
+
+alter table notifications
+  add column if not exists source_release_event_id uuid;
 
 create index if not exists notifications_recipient_created_idx
   on notifications (recipient_user_id, created_at desc);
@@ -346,6 +350,10 @@ create index if not exists notifications_type_idx
 
 create index if not exists notifications_entity_idx
   on notifications (entity_type, entity_id);
+
+create unique index if not exists notifications_release_event_recipient_unique
+  on notifications (recipient_user_id, source_release_event_id)
+  where source_release_event_id is not null;
 
 create table if not exists followed_titles (
   id uuid primary key default gen_random_uuid(),
@@ -477,6 +485,23 @@ create index if not exists release_events_media_created_idx
 
 create index if not exists release_events_type_created_idx
   on release_events (event_type, created_at desc);
+
+create table if not exists release_event_notifications (
+  id uuid primary key default gen_random_uuid(),
+  release_event_id uuid not null references release_events(id) on delete cascade,
+  notification_id uuid not null references notifications(id) on delete cascade,
+  recipient_user_id uuid not null references users(id) on delete cascade,
+  created_at timestamptz not null default now()
+);
+
+create unique index if not exists release_event_notifications_event_recipient_unique
+  on release_event_notifications (release_event_id, recipient_user_id);
+
+create index if not exists release_event_notifications_recipient_idx
+  on release_event_notifications (recipient_user_id, created_at desc);
+
+create index if not exists release_event_notifications_notification_idx
+  on release_event_notifications (notification_id);
 
 create table if not exists director_profile (
   id text primary key default 'the-director',

@@ -372,12 +372,14 @@ export async function ensureNotificationsTable(sql: any) {
       type text not null,
       entity_type text not null,
       entity_id uuid,
+      source_release_event_id uuid,
       title text not null,
       message text not null,
       read_at timestamptz,
       created_at timestamptz not null default now()
     )
   `;
+  await sql`alter table notifications add column if not exists source_release_event_id uuid`;
   await sql`create index if not exists notifications_recipient_created_idx on notifications (recipient_user_id, created_at desc)`;
   await sql`create index if not exists notifications_recipient_unread_idx on notifications (recipient_user_id, read_at)`;
   await sql`
@@ -387,10 +389,16 @@ export async function ensureNotificationsTable(sql: any) {
   `;
   await sql`create index if not exists notifications_type_idx on notifications (type)`;
   await sql`create index if not exists notifications_entity_idx on notifications (entity_type, entity_id)`;
+  await sql`
+    create unique index if not exists notifications_release_event_recipient_unique
+    on notifications (recipient_user_id, source_release_event_id)
+    where source_release_event_id is not null
+  `;
 }
 
 export async function ensureFollowTitleTables(sql: any) {
   await ensureAuthTables(sql);
+  await ensureNotificationsTable(sql);
   await sql`create extension if not exists pgcrypto`;
   await sql`
     create table if not exists followed_titles (
@@ -496,6 +504,19 @@ export async function ensureFollowTitleTables(sql: any) {
   await sql`create unique index if not exists release_events_media_event_change_unique on release_events (media_item_id, event_type, change_hash)`;
   await sql`create index if not exists release_events_media_created_idx on release_events (media_item_id, created_at desc)`;
   await sql`create index if not exists release_events_type_created_idx on release_events (event_type, created_at desc)`;
+
+  await sql`
+    create table if not exists release_event_notifications (
+      id uuid primary key default gen_random_uuid(),
+      release_event_id uuid not null references release_events(id) on delete cascade,
+      notification_id uuid not null references notifications(id) on delete cascade,
+      recipient_user_id uuid not null references users(id) on delete cascade,
+      created_at timestamptz not null default now()
+    )
+  `;
+  await sql`create unique index if not exists release_event_notifications_event_recipient_unique on release_event_notifications (release_event_id, recipient_user_id)`;
+  await sql`create index if not exists release_event_notifications_recipient_idx on release_event_notifications (recipient_user_id, created_at desc)`;
+  await sql`create index if not exists release_event_notifications_notification_idx on release_event_notifications (notification_id)`;
 }
 
 export function normalizeHandle(handle: string) {
