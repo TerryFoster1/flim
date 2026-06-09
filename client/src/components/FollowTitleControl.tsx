@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { followTitle, getFollowedTitleStatus, unfollowTitle } from "../services/followedTitleService";
+import { browserSupportsPush, enablePushNotifications, getPushSubscriptionStatus } from "../services/pushNotificationService";
 import type { FollowedTitle, MovieDetails, TitleNotificationSettings } from "../types";
 
 type TitleNotificationKey = keyof TitleNotificationSettings;
@@ -43,6 +44,9 @@ export function FollowTitleControl({ movie }: FollowTitleControlProps) {
   const [settings, setSettings] = useState<TitleNotificationSettings>(() => defaultSettings(movie.mediaType));
   const [isSaving, setIsSaving] = useState(false);
   const [isPreferencesOpen, setIsPreferencesOpen] = useState(false);
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const [pushConfigured, setPushConfigured] = useState(false);
+  const [pushStatus, setPushStatus] = useState("");
   const [message, setMessage] = useState("");
   const options = useMemo(() => (movie.mediaType === "tv" ? tvOptions : movieOptions), [movie.mediaType]);
 
@@ -66,6 +70,21 @@ export function FollowTitleControl({ movie }: FollowTitleControlProps) {
       mounted = false;
     };
   }, [movie.mediaType, movie.tmdbId]);
+
+  useEffect(() => {
+    if (!isPreferencesOpen || !browserSupportsPush()) return;
+    let mounted = true;
+    getPushSubscriptionStatus()
+      .then((result) => {
+        if (!mounted) return;
+        setPushEnabled(result.enabled);
+        setPushConfigured(result.configured);
+      })
+      .catch(() => undefined);
+    return () => {
+      mounted = false;
+    };
+  }, [isPreferencesOpen]);
 
   async function saveFollow(openPreferences = true) {
     setIsSaving(true);
@@ -108,6 +127,17 @@ export function FollowTitleControl({ movie }: FollowTitleControlProps) {
     setSettings((current) => ({ ...current, [key]: !current[key] }));
   }
 
+  async function enablePush() {
+    setPushStatus("");
+    try {
+      await enablePushNotifications();
+      setPushEnabled(true);
+      setPushStatus("Push notifications enabled.");
+    } catch (error) {
+      setPushStatus(error instanceof Error ? error.message : "Unable to enable push notifications.");
+    }
+  }
+
   return (
     <div className="follow-title-control">
       <button
@@ -137,6 +167,15 @@ export function FollowTitleControl({ movie }: FollowTitleControlProps) {
                 </label>
               ))}
             </div>
+            {browserSupportsPush() && pushConfigured && !pushEnabled ? (
+              <div className="push-follow-prompt">
+                <p>Want release alerts for the titles you follow?</p>
+                <button className="primary-button" onClick={enablePush} type="button">
+                  Enable Notifications
+                </button>
+              </div>
+            ) : null}
+            {pushStatus ? <small className={pushStatus.includes("enabled") ? "success-text" : "error-text"}>{pushStatus}</small> : null}
             <div className="follow-title-actions">
               {followedTitle ? (
                 <button className="secondary-button" disabled={isSaving} onClick={removeFollow} type="button">

@@ -2894,6 +2894,17 @@ textarea { min-height: 42px; resize: vertical; }
   height: 20px;
   accent-color: var(--amber);
 }
+.push-follow-prompt {
+  display: grid;
+  gap: 10px;
+  border: 1px solid rgba(255, 184, 77, .22);
+  border-radius: 16px;
+  padding: 12px;
+  background: rgba(255, 184, 77, .08);
+}
+.push-follow-prompt .primary-button {
+  justify-self: start;
+}
 .follow-title-actions {
   display: flex;
   justify-content: end;
@@ -3434,6 +3445,22 @@ textarea { min-height: 42px; resize: vertical; }
 .settings-panel {
   display: grid;
   gap: 14px;
+}
+.push-settings-panel {
+  align-content: start;
+}
+.push-settings-copy {
+  display: grid;
+  gap: 6px;
+}
+.push-settings-copy h3 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+.push-category-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
 }
 
 .settings-profile-form label {

@@ -12,5 +12,9 @@
     "dev": "npm --workspace client run dev",
     "build": "npm --workspace client run build",
     "lint": "npm --workspace client run build"
+  },
+  "dependencies": {
+    "@types/web-push": "^3.6.4",
+    "web-push": "^3.6.7"
   }
 }

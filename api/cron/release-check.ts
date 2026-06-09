@@ -59,6 +59,9 @@ export default async function handler(request: any, response: any) {
 
     let eventsGenerated = 0;
     let notificationsCreated = 0;
+    let pushAttempted = 0;
+    let pushSent = 0;
+    let pushFailed = 0;
     let duplicateEvents = 0;
     let failed = 0;
     const checkedTitles = [];
@@ -68,6 +71,9 @@ export default async function handler(request: any, response: any) {
         const result = await checkReleaseIntelligenceForMediaItem(sql, title, { refreshFromSource: true });
         eventsGenerated += result.generatedCount;
         notificationsCreated += result.notificationCount;
+        pushAttempted += result.pushAttempted;
+        pushSent += result.pushSent;
+        pushFailed += result.pushFailed;
         duplicateEvents += result.duplicateCount;
         checkedTitles.push({
           mediaType: result.mediaItem.media_type,
@@ -75,6 +81,9 @@ export default async function handler(request: any, response: any) {
           title: result.mediaItem.title,
           eventsGenerated: result.generatedCount,
           notificationsCreated: result.notificationCount,
+          pushAttempted: result.pushAttempted,
+          pushSent: result.pushSent,
+          pushFailed: result.pushFailed,
           refreshStatus: result.refreshStatus,
         });
       } catch (error) {
@@ -97,6 +106,9 @@ export default async function handler(request: any, response: any) {
       eventsGenerated,
       duplicateEvents,
       notificationsCreated,
+      pushAttempted,
+      pushSent,
+      pushFailed,
       failed,
       lastRunAt: latest[0]?.last_run_at || null,
       checkedTitles,

@@ -1,3 +1,5 @@
+import { sendPushForNotification } from "./_push.js";
+
 const supportedReleaseNotificationTypes = new Set([
   "release_date_changed",
   "movie_released",
@@ -40,6 +42,9 @@ export function isSupportedReleaseNotificationType(eventType: string) {
 
 export async function fanoutReleaseEvents(sql: any, releaseEvents: any[]) {
   let notificationCount = 0;
+  let pushAttempted = 0;
+  let pushSent = 0;
+  let pushFailed = 0;
 
   for (const event of releaseEvents) {
     const eventType = String(event.event_type || "");
@@ -104,13 +109,23 @@ export async function fanoutReleaseEvents(sql: any, releaseEvents: any[]) {
           on conflict (release_event_id, recipient_user_id) do nothing
           returning id
         )
-        select count(*)::int as count
+        select notification_id
         from inserted_fanout
       `;
 
-      notificationCount += Number(rows[0]?.count || 0);
+      notificationCount += rows.length;
+
+      for (const row of rows) {
+        const pushResult = await sendPushForNotification(sql, row.notification_id).catch((error) => {
+          console.error("push_delivery_failed", error instanceof Error ? error.message : "Push delivery failed.");
+          return { configured: false, attempted: 0, sent: 0, failed: 0 };
+        });
+        pushAttempted += pushResult.attempted;
+        pushSent += pushResult.sent;
+        pushFailed += pushResult.failed;
+      }
     }
   }
 
-  return { notificationCount };
+  return { notificationCount, pushAttempted, pushSent, pushFailed };
 }

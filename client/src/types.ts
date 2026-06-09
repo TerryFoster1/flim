@@ -283,6 +283,22 @@ export interface NotificationFeed {
   notifications: AppNotification[];
 }
 
+export interface PushNotificationPreferences {
+  movies: boolean;
+  tvShows: boolean;
+  streamingAvailability: boolean;
+  trailers: boolean;
+  releaseDates: boolean;
+}
+
+export interface PushSubscriptionStatus {
+  configured: boolean;
+  publicKey: string;
+  enabled: boolean;
+  subscriptionCount: number;
+  preferences: PushNotificationPreferences;
+}
+
 export type MovieNotificationSetting = "theaterRelease" | "streamingAvailability" | "trailerReleased";
 export type TvNotificationSetting = "newSeasonAnnounced" | "seasonReleaseDate" | "newEpisodeAvailable" | "streamingAvailability";
 export type TitleNotificationSettings = Partial<Record<MovieNotificationSetting | TvNotificationSetting, boolean>>;

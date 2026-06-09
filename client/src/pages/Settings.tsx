@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { InstallFlimPrompt } from "../components/InstallFlimPrompt";
 import { ProviderLogo } from "../components/ProviderLogo";
+import { PushNotificationSettings } from "../components/PushNotificationSettings";
 import { getCurrentProfile, saveCurrentProfile } from "../services/profileService";
 import { watchProviders } from "../services/watchProviderService";
 import type { CurrentUser, UserProfile } from "../types";
@@ -268,6 +269,8 @@ export function Settings({ currentUser, onNavigate }: SettingsProps) {
             </button>
           </div>
         </section>
+
+        <PushNotificationSettings />
 
         <InstallFlimPrompt mode="settings" />
 

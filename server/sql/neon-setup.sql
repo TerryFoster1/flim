@@ -505,6 +505,69 @@ create index if not exists release_event_notifications_recipient_idx
 create index if not exists release_event_notifications_notification_idx
   on release_event_notifications (notification_id);
 
+create table if not exists push_subscriptions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  endpoint text not null,
+  p256dh text not null,
+  auth text not null,
+  user_agent text,
+  enabled boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  last_success_at timestamptz,
+  last_failure_at timestamptz
+);
+
+alter table push_subscriptions
+  add column if not exists enabled boolean not null default true,
+  add column if not exists last_success_at timestamptz,
+  add column if not exists last_failure_at timestamptz;
+
+create unique index if not exists push_subscriptions_endpoint_unique
+  on push_subscriptions (endpoint);
+
+create index if not exists push_subscriptions_user_enabled_idx
+  on push_subscriptions (user_id, enabled);
+
+create table if not exists push_notification_preferences (
+  user_id uuid primary key references users(id) on delete cascade,
+  preferences jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists notification_delivery_log (
+  id uuid primary key default gen_random_uuid(),
+  notification_id uuid not null references notifications(id) on delete cascade,
+  release_event_id uuid,
+  recipient_user_id uuid not null references users(id) on delete cascade,
+  push_subscription_id uuid references push_subscriptions(id) on delete set null,
+  delivery_channel text not null default 'web_push',
+  delivery_status text not null default 'pending',
+  error_message text,
+  sent_at timestamptz,
+  opened_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table notification_delivery_log
+  add column if not exists release_event_id uuid,
+  add column if not exists delivery_channel text not null default 'web_push',
+  add column if not exists delivery_status text not null default 'pending',
+  add column if not exists opened_at timestamptz;
+
+create unique index if not exists notification_delivery_push_unique
+  on notification_delivery_log (notification_id, push_subscription_id, delivery_channel)
+  where push_subscription_id is not null;
+
+create index if not exists notification_delivery_recipient_idx
+  on notification_delivery_log (recipient_user_id, created_at desc);
+
+create index if not exists notification_delivery_status_idx
+  on notification_delivery_log (delivery_status, created_at desc);
+
 create table if not exists director_profile (
   id text primary key default 'the-director',
   display_name text not null default 'The Director',
