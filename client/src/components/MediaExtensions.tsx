@@ -7,6 +7,7 @@ interface MediaExtensionsProps {
     title: string;
     mediaType?: MediaType;
     posterUrl?: string;
+    backdropUrl?: string;
   };
 }
 
@@ -14,6 +15,7 @@ export function MediaExtensions({ media }: MediaExtensionsProps) {
   const extensions = getMediaExtensions(media);
   const soundtrackLink = extensions.soundtrack.soundtrack?.links[0];
   const trailerLink = extensions.videos[0];
+  const trailerArtwork = trailerLink?.thumbnailUrl || media.backdropUrl || media.posterUrl;
 
   return (
     <section className="media-extensions" aria-label={`Media extensions for ${media.title}`}>
@@ -22,6 +24,23 @@ export function MediaExtensions({ media }: MediaExtensionsProps) {
       </div>
 
       <div className="media-extension-grid">
+        <a
+          className="media-extension-card media-extension-card-action trailer-card"
+          href={trailerLink?.url}
+          rel="noreferrer"
+          target="_blank"
+          aria-label={`Watch ${media.title} trailer on YouTube`}
+        >
+          <div className="extension-art trailer-art" aria-hidden="true">
+            {trailerArtwork ? <img alt="" src={trailerArtwork} /> : <span />}
+            <strong>Play</strong>
+          </div>
+          <div>
+            <h3>Official Trailer</h3>
+            <p>Open trailer results on YouTube.</p>
+          </div>
+        </a>
+
         <a
           className="media-extension-card media-extension-card-action soundtrack-card compact-extension-card"
           href={soundtrackLink?.url}
@@ -35,24 +54,6 @@ export function MediaExtensions({ media }: MediaExtensionsProps) {
               <img alt="" src="/provider-icons/spotify.png" />
             </span>
             <p>{soundtrackLink ? extensions.soundtrack.notes : "Soundtrack not available yet."}</p>
-          </div>
-        </a>
-
-        <a
-          className="media-extension-card media-extension-card-action trailer-card"
-          href={trailerLink?.url}
-          rel="noreferrer"
-          target="_blank"
-          aria-label={`Watch ${media.title} trailer on YouTube`}
-        >
-          <div className="extension-art trailer-art media-extension-logo-art" aria-hidden="true">
-            <span className="round-media-link youtube-link">
-              <img alt="" src="/provider-icons/youtube.png" />
-            </span>
-          </div>
-          <div>
-            <h3>Watch Trailer</h3>
-            <p>Open trailer results on YouTube.</p>
           </div>
         </a>
 

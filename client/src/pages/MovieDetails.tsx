@@ -54,6 +54,7 @@ export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addTo
   const sourcePlaylistId = useMemo(() => new URLSearchParams(window.location.search).get("playlist") || undefined, [mediaType, tmdbId]);
   const savedInstances = useMemo(() => playlists.flatMap((playlist) => playlist.movies.map((item) => ({ playlist, item }))).filter(({ item }) => item.tmdbId === tmdbId && (item.mediaType || "movie") === mediaType), [playlists, tmdbId, mediaType]);
   const watched = savedInstances.some(({ item }) => item.watchStatus === "watched");
+  const allSavedInstancesWatched = savedInstances.length > 0 && savedInstances.every(({ item }) => item.watchStatus === "watched");
   const normalizedMovie = useMemo(() => {
     if (!movie) return null;
     return {
@@ -190,20 +191,26 @@ export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addTo
               ))}
             </div>
           ) : null}
-          <div className="button-row">
+          <div className="title-primary-actions">
             <AddToPlaylistControl addToPlaylist={(playlistId) => addToPlaylist(playlistId, normalizedMovie)} currentPlaylistId={sourcePlaylistId} movie={normalizedMovie} playlists={playlists} />
             <FollowTitleControl movie={normalizedMovie} />
-            {savedInstances.map(({ playlist, item }) => (
+          </div>
+          {savedInstances.length > 0 ? (
+            <div className="title-secondary-actions">
               <button
-                className={item.watchStatus === "watched" ? "watched-toggle is-watched" : "watched-toggle"}
-                key={playlist.id}
-                onClick={() => updateWatchStatus(playlist.id, tmdbId, item.watchStatus === "watched" ? "not_watched" : "watched", mediaType)}
+                className={allSavedInstancesWatched ? "watched-toggle is-watched" : "watched-toggle"}
+                onClick={() => {
+                  const nextStatus = allSavedInstancesWatched ? "not_watched" : "watched";
+                  savedInstances.forEach(({ playlist }) => {
+                    void updateWatchStatus(playlist.id, tmdbId, nextStatus, mediaType);
+                  });
+                }}
                 type="button"
               >
-                {item.watchStatus === "watched" ? "Watched ✓" : "Mark as Watched"}
+                {allSavedInstancesWatched ? "Watched ✓" : "Mark as Watched"}
               </button>
-            ))}
-          </div>
+            </div>
+          ) : null}
           <TitleRatingControl mediaType={normalizedMovie.mediaType || mediaType} tmdbId={normalizedMovie.tmdbId} />
           <OptionalSectionBoundary key={`where-${detailsKey}`} label="Where To Watch">
             <WhereToWatch movie={normalizedMovie} />

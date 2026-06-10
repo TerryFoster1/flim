@@ -14,45 +14,22 @@ export function AddToPlaylistControl({ movie, playlists, addToPlaylist, currentP
   const existingPlaylistIds = addTargetPlaylists
     .filter((playlist) => playlist.movies.some((item) => item.tmdbId === movie.tmdbId && (item.mediaType || "movie") === (movie.mediaType || "movie")))
     .map((playlist) => playlist.id);
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [query, setQuery] = useState("");
   const [message, setMessage] = useState("");
   const [isSaving, setIsSaving] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
   const [locallyAddedIds, setLocallyAddedIds] = useState<string[]>([]);
   const alreadyAddedIds = [...new Set([...existingPlaylistIds, ...locallyAddedIds])];
+  const cleanQuery = query.trim().toLowerCase();
+  const visiblePlaylists = addTargetPlaylists.filter((playlist) => playlist.name.toLowerCase().includes(cleanQuery));
+  const recentPlaylists = [...visiblePlaylists]
+    .sort((a, b) => new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime())
+    .slice(0, 3);
+  const recentIds = new Set(recentPlaylists.map((playlist) => playlist.id));
+  const remainingPlaylists = cleanQuery ? visiblePlaylists : visiblePlaylists.filter((playlist) => !recentIds.has(playlist.id));
 
   if (addTargetPlaylists.length === 0) {
     return <span className="helper-text">{currentPlaylistId ? "This title is already in the current playlist." : "Create a playlist first."}</span>;
-  }
-
-  function togglePlaylist(playlistId: string) {
-    setMessage("");
-    setSelectedIds((current) =>
-      current.includes(playlistId)
-        ? current.filter((id) => id !== playlistId)
-        : [...current, playlistId],
-    );
-  }
-
-  async function addSelectedPlaylists() {
-    const playlistIds = selectedIds.filter((id) => !alreadyAddedIds.includes(id));
-    if (playlistIds.length === 0) {
-      setMessage("Choose at least one playlist.");
-      return;
-    }
-
-    setIsSaving(true);
-    setMessage("");
-    try {
-      await Promise.all(playlistIds.map((playlistId) => addToPlaylist(playlistId, movie)));
-      setMessage(`Added to ${playlistIds.length} playlist${playlistIds.length === 1 ? "" : "s"}.`);
-      setLocallyAddedIds((current) => [...new Set([...current, ...playlistIds])]);
-      setSelectedIds([]);
-    } catch {
-      setMessage("Unable to add movie. Please try again.");
-    } finally {
-      setIsSaving(false);
-    }
   }
 
   async function addSinglePlaylist(playlistId: string) {
@@ -69,75 +46,93 @@ export function AddToPlaylistControl({ movie, playlists, addToPlaylist, currentP
       setMessage(`Added to ${playlist?.name || "playlist"}.`);
       setLocallyAddedIds((current) => [...new Set([...current, playlistId])]);
     } catch {
-      setMessage("Unable to add movie. Please try again.");
+      setMessage("Unable to add this title. Please try again.");
     } finally {
       setIsSaving(false);
     }
   }
 
-  if (currentPlaylistId) {
+  function PlaylistOption({ playlist }: { playlist: Playlist }) {
+    const alreadyAdded = alreadyAddedIds.includes(playlist.id);
+
     return (
-      <div className="add-playlists-panel compact-add-panel">
-        <button className="secondary-button compact-add-toggle" onClick={() => setIsExpanded((current) => !current)} type="button">
-          {collapsedLabel}
-        </button>
-        {isExpanded ? (
-          <div className="compact-playlist-menu" aria-label="Other playlists">
-            {addTargetPlaylists.map((playlist) => {
-              const alreadyAdded = alreadyAddedIds.includes(playlist.id);
-              return (
-                <button
-                  className={alreadyAdded ? "compact-playlist-option already-added" : "compact-playlist-option"}
-                  disabled={alreadyAdded || isSaving}
-                  key={playlist.id}
-                  onClick={() => addSinglePlaylist(playlist.id)}
-                  type="button"
-                >
-                  <span>{playlist.name}</span>
-                  <small>{alreadyAdded ? "Already added" : `${playlist.movies.length} titles`}</small>
-                </button>
-              );
-            })}
-          </div>
-        ) : null}
-        {message ? <small className={message.startsWith("Added") ? "success-text" : "error-text"}>{message}</small> : null}
-      </div>
+      <button
+        className={alreadyAdded ? "playlist-sheet-option already-added" : "playlist-sheet-option"}
+        disabled={alreadyAdded || isSaving}
+        onClick={() => addSinglePlaylist(playlist.id)}
+        type="button"
+      >
+        <span>
+          <strong>{playlist.name}</strong>
+          <small>{alreadyAdded ? "Already added" : `${playlist.movies.length} title${playlist.movies.length === 1 ? "" : "s"}`}</small>
+        </span>
+        <em>{alreadyAdded ? "Added" : "Add"}</em>
+      </button>
     );
   }
 
   return (
-    <div className="add-playlists-panel">
-      <div className="add-playlists-heading">
-        <span>Add to Playlists</span>
-        <small>{selectedIds.length} selected</small>
-      </div>
-      <div className="add-playlist-options">
-        {addTargetPlaylists.map((playlist) => {
-          const alreadyAdded = alreadyAddedIds.includes(playlist.id);
-          const checked = alreadyAdded || selectedIds.includes(playlist.id);
-          return (
-            <label className={alreadyAdded ? "add-playlist-option already-added" : "add-playlist-option"} key={playlist.id}>
+    <div className={currentPlaylistId ? "add-playlists-panel compact-add-panel" : "add-playlists-panel"}>
+      <button className="primary-button add-playlist-open" onClick={() => setIsOpen(true)} type="button">
+        {currentPlaylistId ? collapsedLabel : "Add To Playlist"}
+      </button>
+
+      {isOpen ? (
+        <div className="playlist-add-sheet-backdrop" role="presentation">
+          <div className="playlist-add-sheet" aria-label={`Add ${movie.title} to playlist`} aria-modal="true" role="dialog">
+            <div className="playlist-add-sheet-header">
+              <div>
+                <h2>Add To Playlist</h2>
+                <p>Tap a playlist to add this title.</p>
+              </div>
+              <button className="secondary-button sheet-close-button" onClick={() => setIsOpen(false)} type="button">
+                Done
+              </button>
+            </div>
+
+            <label className="playlist-sheet-search">
+              <span>Search Playlists</span>
               <input
-                checked={checked}
-                disabled={alreadyAdded || isSaving}
-                onChange={() => togglePlaylist(playlist.id)}
-                type="checkbox"
+                autoFocus
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search playlists..."
+                type="search"
+                value={query}
               />
-              <span>{playlist.name}</span>
-              <small>{alreadyAdded ? "Already added" : `${playlist.movies.length} titles`}</small>
             </label>
-          );
-        })}
-      </div>
-      <div className="add-playlists-actions">
-        <button className="secondary-button" disabled={isSaving || selectedIds.length === 0} onClick={() => setSelectedIds([])} type="button">
-          Cancel
-        </button>
-        <button className="primary-button" disabled={isSaving || selectedIds.length === 0} onClick={addSelectedPlaylists} type="button">
-          {isSaving ? "Adding..." : "Add to Selected Playlists"}
-        </button>
-      </div>
-      {message ? <small className={message.startsWith("Added") ? "success-text" : "error-text"}>{message}</small> : null}
+
+            {message ? <small className={message.startsWith("Added") ? "success-text" : "error-text"}>{message}</small> : null}
+
+            {recentPlaylists.length > 0 ? (
+              <section className="playlist-sheet-section">
+                <h3>Recent Playlists</h3>
+                <div className="playlist-sheet-options">
+                  {recentPlaylists.map((playlist) => (
+                    <PlaylistOption key={playlist.id} playlist={playlist} />
+                  ))}
+                </div>
+              </section>
+            ) : null}
+
+            <section className="playlist-sheet-section">
+              <h3>All Playlists</h3>
+              {visiblePlaylists.length === 0 ? (
+                <p className="helper-text">No playlists match that search.</p>
+              ) : remainingPlaylists.length === 0 ? (
+                <p className="helper-text">Recent playlists are shown above.</p>
+              ) : (
+                <div className="playlist-sheet-options">
+                  {remainingPlaylists.map((playlist) => (
+                    <PlaylistOption key={playlist.id} playlist={playlist} />
+                  ))}
+                </div>
+              )}
+            </section>
+          </div>
+        </div>
+      ) : null}
+
+      {!isOpen && message ? <small className={message.startsWith("Added") ? "success-text" : "error-text"}>{message}</small> : null}
     </div>
   );
 }

@@ -20,9 +20,28 @@ export function WhereToWatch({ compact = false, movie }: WhereToWatchProps) {
   const streamingRegion = profile?.streamingRegion || profile?.countryCode || "CA";
   const confirmedLinks = useMemo(() => (availability?.links || []).filter((link) => link.availabilityKnown && link.url), [availability]);
   const hasConfirmedLinks = confirmedLinks.length > 0;
+  const groupedLinks = useMemo(() => {
+    const order = ["subscription", "free", "rent", "buy", "library", "unknown"];
+    return order
+      .map((accessType) => ({
+        accessType,
+        label: accessGroupLabel(accessType),
+        links: confirmedLinks.filter((link) => (link.accessType || "unknown") === accessType),
+      }))
+      .filter((group) => group.links.length > 0);
+  }, [confirmedLinks]);
 
   function accessLabel(value?: string) {
     if (value === "subscription") return "Subscription";
+    if (value === "rent") return "Rent";
+    if (value === "buy") return "Buy";
+    if (value === "free") return "Free";
+    if (value === "library") return "In Your Library";
+    return "Watch";
+  }
+
+  function accessGroupLabel(value?: string) {
+    if (value === "subscription") return "Available With Subscription";
     if (value === "rent") return "Rent";
     if (value === "buy") return "Buy";
     if (value === "free") return "Free";
@@ -86,23 +105,30 @@ export function WhereToWatch({ compact = false, movie }: WhereToWatchProps) {
       </p>
 
       {hasConfirmedLinks ? (
-        <div className="provider-button-grid">
-          {confirmedLinks.map((link) => (
-          <a
-            className="provider-watch-button"
-            href={link.url}
-            key={link.provider.id}
-            aria-label={`${link.provider.name}: ${link.linkType === "exact" ? accessLabel(link.accessType) : `Search ${accessLabel(link.accessType)}`}`}
-            rel="noreferrer"
-            target="_blank"
-            title={link.provider.name}
-          >
-            <span className="provider-round-icon" aria-hidden="true">
-              <ProviderLogo provider={link.provider} />
-            </span>
-            <strong>{link.provider.name}</strong>
-            <small>{link.linkType === "exact" ? accessLabel(link.accessType) : `Search ${accessLabel(link.accessType)}`}</small>
-          </a>
+        <div className="provider-groups">
+          {groupedLinks.map((group) => (
+            <div className="provider-group" key={group.accessType}>
+              <h3>{group.label}</h3>
+              <div className="provider-button-grid">
+                {group.links.map((link) => (
+                  <a
+                    className="provider-watch-button"
+                    href={link.url}
+                    key={`${group.accessType}-${link.provider.id}`}
+                    aria-label={`${link.provider.name}: ${link.linkType === "exact" ? accessLabel(link.accessType) : `Search ${accessLabel(link.accessType)}`}`}
+                    rel="noreferrer"
+                    target="_blank"
+                    title={link.provider.name}
+                  >
+                    <span className="provider-round-icon" aria-hidden="true">
+                      <ProviderLogo provider={link.provider} />
+                    </span>
+                    <strong>{link.provider.name}</strong>
+                    <small>{link.linkType === "exact" ? accessLabel(link.accessType) : `Search ${accessLabel(link.accessType)}`}</small>
+                  </a>
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       ) : null}
