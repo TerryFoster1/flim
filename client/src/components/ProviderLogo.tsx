@@ -1,4 +1,4 @@
-import { providerAssets } from "../data/providerAssets";
+import { providerAssets, providerIconKey } from "../data/providerAssets";
 import type { WatchProvider } from "../types";
 
 interface ProviderLogoProps {
@@ -6,18 +6,15 @@ interface ProviderLogoProps {
 }
 
 export function ProviderLogo({ provider }: ProviderLogoProps) {
-  if (provider.logoUrl) {
-    return <img className="provider-logo provider-logo-img" src={provider.logoUrl} alt={`${provider.name} logo`} loading="lazy" />;
-  }
-
-  const asset = providerAssets[provider.id];
-  const label = asset?.label || provider.name;
+  const assetKey = providerIconKey(provider);
+  const asset = assetKey ? providerAssets[assetKey] : undefined;
+  const label = asset?.label || provider.name.split(/\s+/).map((word) => word[0]).join("").slice(0, 3).toUpperCase();
   const className = asset?.className || "provider-logo-generic";
 
   return (
-    <svg className={`provider-logo ${className}`} aria-label={provider.name} role="img" viewBox="0 0 180 54">
-      <rect className="provider-logo-bg" x="1" y="1" width="178" height="52" rx="14" />
-      <text className="provider-logo-text" x="90" y="34" textAnchor="middle">
+    <svg className={`provider-logo ${className}`} aria-label={provider.name} role="img" viewBox="0 0 64 64">
+      <circle className="provider-logo-bg" cx="32" cy="32" r="31" />
+      <text className="provider-logo-text" x="32" y="33" textAnchor="middle">
         {label}
       </text>
     </svg>
