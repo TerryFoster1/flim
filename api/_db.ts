@@ -382,6 +382,51 @@ export async function ensureTitleRatingsTable(sql: any) {
   await sql`create index if not exists title_ratings_title_idx on title_ratings (media_type, tmdb_id)`;
 }
 
+export async function ensureTriviaTables(sql: any) {
+  await ensureAuthTables(sql);
+  await sql`create extension if not exists pgcrypto`;
+  await sql`
+    create table if not exists title_trivia (
+      id uuid primary key default gen_random_uuid(),
+      tmdb_id integer not null,
+      media_type text not null check (media_type in ('movie', 'tv')),
+      source_hash text not null,
+      question text not null,
+      answer text not null,
+      options jsonb not null default '[]'::jsonb,
+      explanation text,
+      difficulty text not null default 'easy',
+      spoiler_level text not null default 'none',
+      source_urls jsonb not null default '[]'::jsonb,
+      source_labels jsonb not null default '[]'::jsonb,
+      confidence numeric not null default 0.8,
+      status text not null default 'auto_generated',
+      report_count integer not null default 0,
+      created_at timestamptz not null default now(),
+      updated_at timestamptz not null default now()
+    )
+  `;
+  await sql`alter table title_trivia add column if not exists source_urls jsonb not null default '[]'::jsonb`;
+  await sql`alter table title_trivia add column if not exists source_labels jsonb not null default '[]'::jsonb`;
+  await sql`alter table title_trivia add column if not exists confidence numeric not null default 0.8`;
+  await sql`alter table title_trivia add column if not exists report_count integer not null default 0`;
+  await sql`alter table title_trivia add column if not exists status text not null default 'auto_generated'`;
+  await sql`create index if not exists title_trivia_media_status_idx on title_trivia (media_type, tmdb_id, status)`;
+  await sql`create unique index if not exists title_trivia_media_source_question_unique on title_trivia (media_type, tmdb_id, source_hash, question)`;
+
+  await sql`
+    create table if not exists title_trivia_reports (
+      id uuid primary key default gen_random_uuid(),
+      trivia_id uuid not null references title_trivia(id) on delete cascade,
+      user_id uuid references users(id) on delete set null,
+      reason text not null,
+      created_at timestamptz not null default now()
+    )
+  `;
+  await sql`create index if not exists title_trivia_reports_trivia_idx on title_trivia_reports (trivia_id, created_at desc)`;
+  await sql`create index if not exists title_trivia_reports_reason_idx on title_trivia_reports (reason)`;
+}
+
 export async function ensureNotificationsTable(sql: any) {
   await ensureAuthTables(sql);
   await sql`create extension if not exists pgcrypto`;

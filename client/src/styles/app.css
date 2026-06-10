@@ -4080,6 +4080,100 @@ textarea { min-height: 42px; resize: vertical; }
 .soundtrack-card { border-color: rgba(62,226,160,.18); }
 .trailer-card { border-color: rgba(255,184,77,.2); }
 .trivia-card { border-color: rgba(169,128,255,.22); }
+.trivia-panel {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+}
+.trivia-question-card {
+  display: grid;
+  gap: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 8px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.045);
+}
+.trivia-question-heading {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.trivia-question-heading h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+.trivia-question-heading span {
+  flex: 0 0 auto;
+  border: 1px solid rgba(169, 128, 255, 0.32);
+  border-radius: 999px;
+  padding: 4px 9px;
+  color: #eadfff;
+  font-size: .78rem;
+  font-weight: 850;
+}
+.trivia-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.trivia-option {
+  min-height: 42px;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 999px;
+  padding: 8px 12px;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.06);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+.trivia-option:hover,
+.trivia-option:focus-visible {
+  border-color: rgba(255, 184, 77, 0.5);
+}
+.trivia-option.is-correct {
+  border-color: rgba(98, 240, 171, 0.55);
+  background: rgba(98, 240, 171, 0.12);
+}
+.trivia-option.is-incorrect {
+  border-color: rgba(255, 79, 109, 0.6);
+  background: rgba(255, 79, 109, 0.13);
+}
+.trivia-feedback {
+  margin: 0;
+  color: var(--muted);
+}
+.trivia-feedback.is-correct {
+  color: #c9ffd9;
+}
+.trivia-feedback.is-incorrect {
+  color: #ffd6dd;
+}
+.trivia-source-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.trivia-source-row span {
+  color: var(--muted);
+  font-size: .86rem;
+}
+.trivia-source-row select {
+  min-height: 36px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  background: rgba(0, 0, 0, 0.4);
+  color: var(--text);
+  padding: 0 10px;
+}
+.trivia-report-status {
+  margin: 0;
+  color: #ffe7b8;
+  font-size: .88rem;
+}
 .roulette-card { border-color: rgba(255,79,109,.2); }
 .title-rating-panel {
   display: grid;
@@ -5296,6 +5390,9 @@ textarea { min-height: 42px; resize: vertical; }
     display: grid;
   }
   .media-extension-grid {
+    grid-template-columns: 1fr;
+  }
+  .trivia-options {
     grid-template-columns: 1fr;
   }
   .media-extension-card {

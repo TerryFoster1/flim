@@ -515,6 +515,36 @@ export interface TriviaEntry {
   sourceUrl?: string;
 }
 
+export type TriviaReportReason = "wrong_answer" | "confusing" | "spoiler" | "low_quality" | "inappropriate";
+
+export interface TriviaQuestion {
+  id: string;
+  tmdbId: number;
+  mediaType: MediaType;
+  question: string;
+  answer: string;
+  options: string[];
+  explanation: string;
+  difficulty: "easy" | "medium" | "hard";
+  spoilerLevel: "none" | "minor" | "major";
+  sourceUrls: string[];
+  sourceLabels: string[];
+  confidence: number;
+  status: string;
+  reportCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TriviaFeed {
+  tmdbId: number;
+  mediaType: MediaType;
+  availabilityKnown: boolean;
+  source: "cache" | "tmdb_metadata" | "none";
+  questions: TriviaQuestion[];
+  notes: string;
+}
+
 export interface MediaExtensions {
   mediaType: MediaType;
   tmdbId: number;

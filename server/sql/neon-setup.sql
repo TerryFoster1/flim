@@ -803,6 +803,62 @@ create index if not exists title_availability_media_tmdb_region_idx
 create index if not exists title_availability_expires_at_idx
   on title_availability (expires_at);
 
+create table if not exists title_trivia (
+  id uuid primary key default gen_random_uuid(),
+  tmdb_id integer not null,
+  media_type text not null
+    check (media_type in ('movie', 'tv')),
+  source_hash text not null,
+  question text not null,
+  answer text not null,
+  options jsonb not null default '[]'::jsonb,
+  explanation text,
+  difficulty text not null default 'easy',
+  spoiler_level text not null default 'none',
+  source_urls jsonb not null default '[]'::jsonb,
+  source_labels jsonb not null default '[]'::jsonb,
+  confidence numeric not null default 0.8,
+  status text not null default 'auto_generated',
+  report_count integer not null default 0,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table title_trivia
+  add column if not exists source_urls jsonb not null default '[]'::jsonb;
+
+alter table title_trivia
+  add column if not exists source_labels jsonb not null default '[]'::jsonb;
+
+alter table title_trivia
+  add column if not exists confidence numeric not null default 0.8;
+
+alter table title_trivia
+  add column if not exists report_count integer not null default 0;
+
+alter table title_trivia
+  add column if not exists status text not null default 'auto_generated';
+
+create index if not exists title_trivia_media_status_idx
+  on title_trivia (media_type, tmdb_id, status);
+
+create unique index if not exists title_trivia_media_source_question_unique
+  on title_trivia (media_type, tmdb_id, source_hash, question);
+
+create table if not exists title_trivia_reports (
+  id uuid primary key default gen_random_uuid(),
+  trivia_id uuid not null references title_trivia(id) on delete cascade,
+  user_id uuid references users(id) on delete set null,
+  reason text not null,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists title_trivia_reports_trivia_idx
+  on title_trivia_reports (trivia_id, created_at desc);
+
+create index if not exists title_trivia_reports_reason_idx
+  on title_trivia_reports (reason);
+
 create table if not exists provider_links (
   id uuid primary key default gen_random_uuid(),
   media_type text not null
