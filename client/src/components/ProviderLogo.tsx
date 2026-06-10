@@ -1,4 +1,4 @@
-import { providerAssets, providerIconKey } from "../data/providerAssets";
+import { providerLogoResolution } from "../data/providerAssets";
 import type { WatchProvider } from "../types";
 
 interface ProviderLogoProps {
@@ -6,16 +6,15 @@ interface ProviderLogoProps {
 }
 
 export function ProviderLogo({ provider }: ProviderLogoProps) {
-  const assetKey = providerIconKey(provider);
-  const asset = assetKey ? providerAssets[assetKey] : undefined;
+  const resolution = providerLogoResolution(provider);
 
-  if (asset) {
-    return <img className="provider-logo provider-logo-image" src={asset.src} alt={provider.name} loading="lazy" />;
+  if (resolution.asset) {
+    return <img className="provider-logo provider-logo-image" src={resolution.asset.src} alt={provider.name} loading="lazy" />;
   }
 
-  if (provider.logoUrl) {
+  if (resolution.usesExternalLogo && provider.logoUrl) {
     return <img className="provider-logo provider-logo-image provider-logo-external" src={provider.logoUrl} alt={provider.name} loading="lazy" />;
   }
 
-  return <span className="provider-logo provider-logo-wordmark" aria-label={provider.name}>{provider.name}</span>;
+  return <span className={resolution.isKnown ? "provider-logo provider-logo-badge provider-logo-known-missing" : "provider-logo provider-logo-badge"} aria-label={provider.name}>{resolution.initials}</span>;
 }

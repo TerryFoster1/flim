@@ -3831,7 +3831,8 @@ textarea { min-height: 42px; resize: vertical; }
   padding: 7px;
   background: rgba(255,255,255,.08);
 }
-.provider-logo-wordmark {
+.provider-logo-wordmark,
+.provider-logo-badge {
   display: grid;
   place-items: center;
   padding: 7px;
@@ -3842,6 +3843,15 @@ textarea { min-height: 42px; resize: vertical; }
   font-weight: 950;
   line-height: 1.05;
   text-align: center;
+}
+.provider-logo-badge {
+  padding: 0;
+  font-size: .8rem;
+}
+.provider-logo-known-missing {
+  color: #17070b;
+  background: linear-gradient(135deg, rgba(255,79,109,.95), rgba(255,184,77,.95));
+  border: 0;
 }
 .provider-logo-bg {
   fill: #171a22;
