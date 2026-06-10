@@ -45,9 +45,11 @@ function shuffle<T>(items: T[]) {
 }
 
 function uniqueOptions(answer: string, distractors: string[]) {
-  return shuffle([answer, ...distractors.filter((item) => item && item !== answer)])
+  const cleanDistractors = distractors
+    .filter((item) => item && item !== answer)
     .filter((item, index, array) => array.indexOf(item) === index)
-    .slice(0, 4);
+    .slice(0, 3);
+  return shuffle([answer, ...cleanDistractors]);
 }
 
 function nearbyYears(year: string) {
@@ -177,6 +179,7 @@ async function readCachedTrivia(sql: any, tmdbId: number, mediaType: MediaType) 
       and media_type = ${mediaType}
       and status in ('approved', 'auto_generated')
       and report_count < ${REPORT_THRESHOLD}
+      and options ? answer
     order by confidence desc, created_at asc
     limit 8
   `;
