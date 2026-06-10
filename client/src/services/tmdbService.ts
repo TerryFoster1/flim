@@ -1,10 +1,12 @@
 import type { MediaType, MovieDetails, MovieSearchResult } from "../types";
 
-async function apiRequest<T>(path: string): Promise<T> {
+async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
   const response = await fetch(path, {
     headers: {
       Accept: "application/json",
+      ...options.headers,
     },
+    ...options,
   });
 
   if (!response.ok) {
@@ -30,18 +32,28 @@ export async function searchMovies(query: string, mediaType: MediaSearchMode = "
   return apiRequest<MovieSearchResult[]>(`/api/movies/search?q=${encodeURIComponent(cleanQuery)}&type=${mediaType}`);
 }
 
-export async function getMovieDetails(tmdbId: number): Promise<MovieDetails> {
+interface DetailRequestOptions {
+  bypassCache?: boolean;
+}
+
+function detailPath(tmdbId: number, mediaType: MediaType, options: DetailRequestOptions = {}) {
+  const params = new URLSearchParams({ type: mediaType });
+  if (options.bypassCache) params.set("_retry", String(Date.now()));
+  return `/api/movies/${tmdbId}?${params.toString()}`;
+}
+
+export async function getMovieDetails(tmdbId: number, options: DetailRequestOptions = {}): Promise<MovieDetails> {
   if (!Number.isFinite(tmdbId)) {
     throw new Error("A valid movie ID is required.");
   }
 
-  return apiRequest<MovieDetails>(`/api/movies/${tmdbId}?type=movie`);
+  return apiRequest<MovieDetails>(detailPath(tmdbId, "movie", options), options.bypassCache ? { cache: "no-store" } : undefined);
 }
 
-export async function getTvDetails(tmdbId: number): Promise<MovieDetails> {
+export async function getTvDetails(tmdbId: number, options: DetailRequestOptions = {}): Promise<MovieDetails> {
   if (!Number.isFinite(tmdbId)) {
     throw new Error("A valid TV show ID is required.");
   }
 
-  return apiRequest<MovieDetails>(`/api/movies/${tmdbId}?type=tv`);
+  return apiRequest<MovieDetails>(detailPath(tmdbId, "tv", options), options.bypassCache ? { cache: "no-store" } : undefined);
 }

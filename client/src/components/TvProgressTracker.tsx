@@ -127,10 +127,10 @@ export function TvProgressTracker({ show }: TvProgressTrackerProps) {
 
       <div className="button-row">
         <button className="secondary-button" disabled={status === "saving"} onClick={() => mutate(() => markShowProgress(show.tmdbId, true))} type="button">
-          Mark Show Watched
+          Mark Show as Watched
         </button>
         <button className="ghost-button" disabled={status === "saving"} onClick={() => mutate(() => markShowProgress(show.tmdbId, false))} type="button">
-          Mark Show Unwatched
+          Mark Show as Unwatched
         </button>
       </div>
 
@@ -150,10 +150,10 @@ export function TvProgressTracker({ show }: TvProgressTrackerProps) {
               <div className="episode-progress-list">
                 <div className="button-row">
                   <button className="secondary-button" disabled={status === "saving"} onClick={() => mutate(() => markSeasonProgress(show.tmdbId, season.seasonNumber, true))} type="button">
-                    Mark Season Watched
+                    Mark Season as Watched
                   </button>
                   <button className="ghost-button" disabled={status === "saving"} onClick={() => mutate(() => markSeasonProgress(show.tmdbId, season.seasonNumber, false))} type="button">
-                    Mark Season Unwatched
+                    Mark Season as Unwatched
                   </button>
                 </div>
                 {season.episodes.map((episode) => {
@@ -170,7 +170,7 @@ export function TvProgressTracker({ show }: TvProgressTrackerProps) {
                         onClick={() => setEpisode(episode.seasonNumber, episode.episodeNumber, watched ? "not_started" : "watched")}
                         type="button"
                       >
-                        {watched ? "Unwatch" : "Watched"}
+                        {watched ? "Mark Episode as Unwatched" : "Mark Episode as Watched"}
                       </button>
                     </div>
                   );
