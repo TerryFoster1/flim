@@ -70,7 +70,7 @@ export function PublicPlaylists({ onNavigate, playlists }: PublicPlaylistsProps)
 
       <section className="discovery-section">
         <div className="discovery-section-heading">
-          <h2>Top 100 Most Saved Movies</h2>
+          <h2>Most Saved Movies</h2>
         </div>
         {topMovies.length > 0 ? (
           <div className="top-movie-strip">

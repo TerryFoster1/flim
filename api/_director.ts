@@ -21,7 +21,7 @@ interface DirectorPlaylistSeed {
 const directorPlaylists: DirectorPlaylistSeed[] = [
   {
     slug: "directors-top-100-comedies",
-    name: "Director's Top 100 Comedies",
+    name: "Director's Comedy Essentials",
     description: "A starter shelf of comedies selected by Flim's official editorial curator.",
     movies: [
       { tmdbId: 13, title: "Forrest Gump" },
@@ -36,7 +36,7 @@ const directorPlaylists: DirectorPlaylistSeed[] = [
   },
   {
     slug: "directors-top-100-80s-movies",
-    name: "Director's Top 100 80s Movies",
+    name: "Director's Essential 80s Movies",
     description: "Neon, practical effects, big adventures, and endlessly rewatchable 1980s favorites.",
     movies: [
       { tmdbId: 105, title: "Back to the Future" },
@@ -203,6 +203,25 @@ const directorPlaylists: DirectorPlaylistSeed[] = [
 
 let directorSeedPromise: Promise<void> | null = null;
 
+function promisedTitleCount(name: string) {
+  const match = name.match(/\b(?:top|best)\s+(\d+)\b/i);
+  return match ? Number(match[1]) : null;
+}
+
+function warnOnOverpromisingDirectorSeeds() {
+  for (const playlist of directorPlaylists) {
+    const promisedCount = promisedTitleCount(playlist.name);
+    if (promisedCount !== null && playlist.movies.length !== promisedCount) {
+      console.warn("director_playlist_count_mismatch", {
+        slug: playlist.slug,
+        name: playlist.name,
+        promisedCount,
+        actualCount: playlist.movies.length,
+      });
+    }
+  }
+}
+
 export function isDirectorPlaylist(row: any) {
   return row?.creator_handle === directorHandle || row?.owner_user_id === directorUserId;
 }
@@ -219,6 +238,7 @@ export async function ensureDirectorSeed(sql: any) {
 }
 
 async function seedDirector(sql: any) {
+  warnOnOverpromisingDirectorSeeds();
   await ensureUserProfilesTable(sql);
   await ensurePlaylistMediaColumns(sql);
   await sql`
@@ -260,6 +280,18 @@ async function seedDirector(sql: any) {
       values (${playlistSeed.slug}, ${playlistSeed.name}, ${playlistSeed.description}, 'public', ${directorUserId})
       on conflict (public_slug) do update set
         owner_user_id = case when playlists.owner_user_id is null or playlists.owner_user_id = ${directorUserId} then ${directorUserId} else playlists.owner_user_id end,
+        name = case
+          when playlists.owner_user_id = ${directorUserId}
+            and playlists.name in ('Director''s Top 100 Comedies', 'Director''s Top 100 80s Movies')
+          then excluded.name
+          else playlists.name
+        end,
+        description = case
+          when playlists.owner_user_id = ${directorUserId}
+            and playlists.name in ('Director''s Top 100 Comedies', 'Director''s Top 100 80s Movies')
+          then excluded.description
+          else playlists.description
+        end,
         updated_at = playlists.updated_at
       returning id, owner_user_id
     `;

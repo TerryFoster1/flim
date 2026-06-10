@@ -281,7 +281,7 @@ The Director manages:
 
 Examples:
 
-- Director's Top 100 Comedies.
+- Director's Comedy Essentials.
 - Director's Hidden Gems.
 - Director's Family Movie Night.
 - Director's Best Time Travel Movies.
