@@ -1,21 +1,16 @@
 export interface ProviderAsset {
-  label: string;
-  className: string;
+  src: string;
 }
 
 export const providerAssets: Record<string, ProviderAsset> = {
-  netflix: { label: "N", className: "provider-logo-netflix" },
-  prime: { label: "prime", className: "provider-logo-prime" },
-  disney: { label: "D+", className: "provider-logo-disney" },
-  apple: { label: "tv", className: "provider-logo-apple" },
-  hulu: { label: "hulu", className: "provider-logo-hulu" },
-  max: { label: "max", className: "provider-logo-max" },
-  crave: { label: "C", className: "provider-logo-crave" },
-  youtube: { label: "YT", className: "provider-logo-youtube" },
-  tubi: { label: "tubi", className: "provider-logo-tubi" },
-  paramount: { label: "P+", className: "provider-logo-paramount" },
-  plex: { label: ">", className: "provider-logo-plex" },
-  google_tv: { label: "GTV", className: "provider-logo-google-tv" },
+  apple: { src: "/provider-icons/apple-tv.png" },
+  hulu: { src: "/provider-icons/hulu.png" },
+  max: { src: "/provider-icons/max.png" },
+  netflix: { src: "/provider-icons/netflix.png" },
+  plex: { src: "/provider-icons/plex.png" },
+  prime: { src: "/provider-icons/prime-video.png" },
+  spotify: { src: "/provider-icons/spotify.png" },
+  youtube: { src: "/provider-icons/youtube.png" },
 };
 
 const providerAliases: Record<string, string> = {
@@ -32,10 +27,9 @@ const providerAliases: Record<string, string> = {
   "hulu": "hulu",
   "max": "max",
   "netflix": "netflix",
-  "paramount plus": "paramount",
-  "paramount+": "paramount",
   "plex": "plex",
   "prime video": "prime",
+  "spotify": "spotify",
   "tubi": "tubi",
   "youtube": "youtube",
   "youtube movies": "youtube",
@@ -49,7 +43,8 @@ export function providerIconKey(provider: { id?: string; name?: string }) {
   for (const candidate of candidates) {
     const compact = candidate.replace(/\s+/g, "_");
     if (providerAssets[compact]) return compact;
-    if (providerAliases[candidate]) return providerAliases[candidate];
+    const alias = providerAliases[candidate];
+    if (alias && providerAssets[alias]) return alias;
   }
 
   return undefined;

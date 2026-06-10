@@ -3629,6 +3629,11 @@ textarea { min-height: 42px; resize: vertical; }
   height: 54px;
   display: block;
   border-radius: 999px;
+  overflow: hidden;
+}
+.provider-logo-image {
+  object-fit: contain;
+  object-position: center;
 }
 .provider-logo-bg {
   fill: #171a22;
@@ -3642,30 +3647,6 @@ textarea { min-height: 42px; resize: vertical; }
   fill: #fff;
   dominant-baseline: middle;
 }
-.provider-logo-netflix .provider-logo-bg { fill: #0b0b0c; stroke: rgba(229,9,20,.5); }
-.provider-logo-netflix .provider-logo-text { fill: #e50914; font-size: 34px; font-weight: 1000; }
-.provider-logo-prime .provider-logo-bg { fill: #061928; stroke: rgba(74,189,255,.48); }
-.provider-logo-prime .provider-logo-text { fill: #75d9ff; font-size: 14px; }
-.provider-logo-disney .provider-logo-bg { fill: #071742; stroke: rgba(139,176,255,.48); }
-.provider-logo-disney .provider-logo-text { fill: #e7efff; font-size: 20px; }
-.provider-logo-apple .provider-logo-bg { fill: #f8f8f8; stroke: rgba(255,255,255,.44); }
-.provider-logo-apple .provider-logo-text { fill: #050505; font-size: 19px; }
-.provider-logo-hulu .provider-logo-bg { fill: #062117; stroke: rgba(28,231,131,.48); }
-.provider-logo-hulu .provider-logo-text { fill: #1ce783; font-size: 15px; }
-.provider-logo-max .provider-logo-bg { fill: #0a0621; stroke: rgba(114,85,255,.5); }
-.provider-logo-max .provider-logo-text { fill: #cfc4ff; font-size: 16px; }
-.provider-logo-crave .provider-logo-bg { fill: #101010; stroke: rgba(255,255,255,.26); }
-.provider-logo-crave .provider-logo-text { fill: #fff; font-size: 28px; }
-.provider-logo-youtube .provider-logo-bg { fill: #270304; stroke: rgba(255,0,0,.56); }
-.provider-logo-youtube .provider-logo-text { fill: #ff3333; font-size: 19px; }
-.provider-logo-tubi .provider-logo-bg { fill: #111; stroke: rgba(255,221,0,.52); }
-.provider-logo-tubi .provider-logo-text { fill: #ffde00; font-size: 17px; }
-.provider-logo-paramount .provider-logo-bg { fill: #071b62; stroke: rgba(92,152,255,.52); }
-.provider-logo-paramount .provider-logo-text { fill: #f4f8ff; font-size: 20px; }
-.provider-logo-plex .provider-logo-bg { fill: #15110a; stroke: rgba(229,160,13,.62); }
-.provider-logo-plex .provider-logo-text { fill: #e5a00d; font-size: 34px; }
-.provider-logo-google-tv .provider-logo-bg { fill: #f8fbff; stroke: rgba(66,133,244,.38); }
-.provider-logo-google-tv .provider-logo-text { fill: #1a73e8; font-size: 15px; }
 .provider-logo-generic .provider-logo-bg { fill: #1b1f2a; stroke: rgba(255,184,77,.28); }
 .provider-logo-generic .provider-logo-text { fill: #ffe7b8; font-size: 16px; }
 .provider-watch-button strong {
@@ -3766,13 +3747,20 @@ textarea { min-height: 42px; resize: vertical; }
   background: rgba(255,255,255,.08);
   box-shadow: 0 10px 28px rgba(0,0,0,.22);
   cursor: pointer;
+  overflow: hidden;
 }
 .round-media-link:hover:not(:disabled) {
   transform: translateY(-2px);
 }
 .spotify-link {
-  background: #1db954;
-  color: #04180b;
+  background: rgba(255,255,255,.08);
+  color: #fff;
+}
+.spotify-link img {
+  width: 58px;
+  height: 58px;
+  border-radius: 999px;
+  object-fit: contain;
 }
 .round-media-link.is-disabled,
 .round-media-link:disabled {
@@ -3856,7 +3844,8 @@ textarea { min-height: 42px; resize: vertical; }
   justify-items: end;
 }
 .settings-integration-actions .provider-logo {
-  width: 146px;
+  width: 72px;
+  height: 72px;
 }
 
 .settings-page {
@@ -4003,8 +3992,9 @@ textarea { min-height: 42px; resize: vertical; }
 }
 
 .provider-preference .provider-logo {
-  width: 100%;
-  max-width: 150px;
+  width: 58px;
+  height: 58px;
+  max-width: none;
 }
 
 .provider-preference.selected {

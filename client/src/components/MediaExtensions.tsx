@@ -27,11 +27,11 @@ export function MediaExtensions({ media }: MediaExtensionsProps) {
             <h3>Listen to the soundtrack</h3>
             {soundtrackLink ? (
               <a className="round-media-link spotify-link" href={soundtrackLink.url} rel="noreferrer" target="_blank" aria-label={`Listen to ${media.title} soundtrack on Spotify`}>
-                <span>Spotify</span>
+                <img alt="" src="/provider-icons/spotify.png" />
               </a>
             ) : (
               <button className="round-media-link spotify-link is-disabled" disabled type="button">
-                <span>Spotify</span>
+                <img alt="" src="/provider-icons/spotify.png" />
               </button>
             )}
             <p>{soundtrackLink ? extensions.soundtrack.notes : "Soundtrack not available yet."}</p>
