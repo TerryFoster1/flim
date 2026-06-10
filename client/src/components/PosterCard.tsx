@@ -15,7 +15,9 @@ interface PosterCardProps {
 export function PosterCard({ movie, index, itemCount, playlistId, onNavigate, onRemove, onReorder, onWatchStatusChange }: PosterCardProps) {
   const watched = movie.watchStatus === "watched";
   const canReorder = typeof index === "number" && typeof itemCount === "number" && Boolean(onReorder);
-  const detailPath = `${movie.mediaType === "tv" ? "/tv" : "/movies"}/${movie.tmdbId}${playlistId ? `?playlist=${encodeURIComponent(playlistId)}` : ""}`;
+  const mediaType = movie.mediaType === "tv" ? "tv" : "movie";
+  const genres = Array.isArray(movie.genres) ? movie.genres : [];
+  const detailPath = `${mediaType === "tv" ? "/tv" : "/movies"}/${movie.tmdbId}${playlistId ? `?playlist=${encodeURIComponent(playlistId)}` : ""}`;
 
   return (
     <article className="poster-card" tabIndex={0} aria-label={`${movie.title} poster card`}>
@@ -25,10 +27,10 @@ export function PosterCard({ movie, index, itemCount, playlistId, onNavigate, on
       <div className="card-title">{movie.title}</div>
       <div className="card-meta">
         <span>{movie.releaseYear || "Year"}</span>
-        <span className="media-type-badge">{movie.mediaType === "tv" ? "TV Show" : "Movie"}</span>
+        <span className="media-type-badge">{mediaType === "tv" ? "TV Show" : "Movie"}</span>
         {movie.runtimeMinutes ? <span>{movie.runtimeMinutes} min</span> : null}
         {movie.seasonCount ? <span>{movie.seasonCount} season{movie.seasonCount === 1 ? "" : "s"}</span> : null}
-        {movie.genres.slice(0, 2).map((genre) => (
+        {genres.slice(0, 2).map((genre) => (
           <span key={genre}>{genre}</span>
         ))}
       </div>
@@ -48,12 +50,12 @@ export function PosterCard({ movie, index, itemCount, playlistId, onNavigate, on
           ) : null}
           <button
             className={watched ? "watched-toggle is-watched" : "watched-toggle"}
-            onClick={() => onWatchStatusChange?.(playlistId, movie.tmdbId, watched ? "not_watched" : "watched", movie.mediaType || "movie")}
+            onClick={() => onWatchStatusChange?.(playlistId, movie.tmdbId, watched ? "not_watched" : "watched", mediaType)}
             type="button"
           >
             {watched ? "✓ Watched" : "Mark Watched"}
           </button>
-          <button className="text-button" onClick={() => onRemove?.(playlistId, movie.tmdbId, movie.mediaType || "movie")} type="button">
+          <button className="text-button" onClick={() => onRemove?.(playlistId, movie.tmdbId, mediaType)} type="button">
             Remove
           </button>
         </div>

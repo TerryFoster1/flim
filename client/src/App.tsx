@@ -208,6 +208,7 @@ export default function App() {
   const activeRoute: AppRoute = routeState.route;
   const isDirectorAdminRoute = activeRoute.startsWith("/director-admin");
   const isHomeRoute = activeRoute === "/";
+  const isTitleDetailRoute = activeRoute === "/movies/:tmdbId" || activeRoute === "/tv/:tmdbId";
   const openNowPlaying = () => {
     setRoulettePlaylists(null);
     setIsRouletteOpen(true);
@@ -293,9 +294,9 @@ export default function App() {
       <div className="main-shell">
         <NavigationBar activeRoute={activeRoute} currentUser={currentUser} onNavigate={navigate} onLogout={logout} />
         <main className={isHomeRoute ? "page-container home-page-container" : "page-container"}>
-          {dataStatus === "loading" ? <p className="empty-state">Loading playlists...</p> : null}
+          {dataStatus === "loading" && !isTitleDetailRoute ? <p className="empty-state">Loading playlists...</p> : null}
           {dataStatus === "error" ? <p className="error-message">{dataMessage}</p> : null}
-          {dataStatus !== "loading" ? page : null}
+          {dataStatus !== "loading" || isTitleDetailRoute ? page : null}
         </main>
         {!isHomeRoute ? <Footer /> : null}
       </div>

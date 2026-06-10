@@ -45,7 +45,17 @@ export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addTo
   const sourcePlaylistId = useMemo(() => new URLSearchParams(window.location.search).get("playlist") || undefined, [mediaType, tmdbId]);
   const savedInstances = useMemo(() => playlists.flatMap((playlist) => playlist.movies.map((item) => ({ playlist, item }))).filter(({ item }) => item.tmdbId === tmdbId && (item.mediaType || "movie") === mediaType), [playlists, tmdbId, mediaType]);
   const watched = savedInstances.some(({ item }) => item.watchStatus === "watched");
-  const contentRating = chooseContentRating(movie?.contentRatings, streamingCountry) || movie?.contentRating;
+  const normalizedMovie = useMemo(() => {
+    if (!movie) return null;
+    return {
+      ...movie,
+      mediaType: movie.mediaType || mediaType,
+      overview: movie.overview || "No overview is available yet.",
+      genres: Array.isArray(movie.genres) ? movie.genres.filter(Boolean) : [],
+      contentRatings: Array.isArray(movie.contentRatings) ? movie.contentRatings : [],
+    };
+  }, [movie, mediaType]);
+  const contentRating = chooseContentRating(normalizedMovie?.contentRatings, streamingCountry) || normalizedMovie?.contentRating;
   const detailsKey = `${mediaType}-${tmdbId}`;
 
   useEffect(() => {
@@ -91,7 +101,7 @@ export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addTo
     return <PageShell eyebrow={mediaType === "tv" ? "TV Show" : "Movie"} title={`Loading ${mediaType === "tv" ? "show" : "movie"}...`} description="Loading title details." />;
   }
 
-  if (!movie) {
+  if (!normalizedMovie) {
     return (
       <PageShell eyebrow={mediaType === "tv" ? "TV Show" : "Movie"} title="Details unavailable" description="Details could not be loaded right now. Please try again shortly." />
     );
@@ -100,26 +110,28 @@ export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addTo
   return (
     <section className="route-page">
       <div className="movie-detail-hero">
-        {movie.posterUrl ? <img className="movie-detail-poster" src={movie.posterUrl} alt={`${movie.title} poster`} /> : <div className="poster tone-blue" />}
+        {normalizedMovie.posterUrl ? <img className="movie-detail-poster" src={normalizedMovie.posterUrl} alt={`${normalizedMovie.title} poster`} /> : <div className="poster tone-blue" />}
         <div className="movie-detail-copy">
-          <h1>{movie.title}</h1>
+          <h1>{normalizedMovie.title}</h1>
           <div className="meta-row">
-            {movie.releaseYear ? <span>{movie.releaseYear}</span> : null}
-            {movie.runtimeMinutes ? <span>{movie.runtimeMinutes} min</span> : null}
-            {movie.seasonCount ? <span>{movie.seasonCount} seasons</span> : null}
-            {movie.episodeCount ? <span>{movie.episodeCount} episodes</span> : null}
+            {normalizedMovie.releaseYear ? <span>{normalizedMovie.releaseYear}</span> : null}
+            {normalizedMovie.runtimeMinutes ? <span>{normalizedMovie.runtimeMinutes} min</span> : null}
+            {normalizedMovie.seasonCount ? <span>{normalizedMovie.seasonCount} seasons</span> : null}
+            {normalizedMovie.episodeCount ? <span>{normalizedMovie.episodeCount} episodes</span> : null}
             {contentRating ? <span>{contentRating}</span> : null}
             <WatchStatusBadge label={watched ? "Watched" : "Not watched"} />
           </div>
-          <p>{movie.overview}</p>
-          <div className="genre-strip">
-            {movie.genres.map((genre) => (
-              <span className="genre-chip" key={genre}>{genre}</span>
-            ))}
-          </div>
+          <p>{normalizedMovie.overview}</p>
+          {normalizedMovie.genres.length > 0 ? (
+            <div className="genre-strip">
+              {normalizedMovie.genres.map((genre) => (
+                <span className="genre-chip" key={genre}>{genre}</span>
+              ))}
+            </div>
+          ) : null}
           <div className="button-row">
-            <AddToPlaylistControl addToPlaylist={(playlistId) => addToPlaylist(playlistId, movie)} currentPlaylistId={sourcePlaylistId} movie={movie} playlists={playlists} />
-            <FollowTitleControl movie={movie} />
+            <AddToPlaylistControl addToPlaylist={(playlistId) => addToPlaylist(playlistId, normalizedMovie)} currentPlaylistId={sourcePlaylistId} movie={normalizedMovie} playlists={playlists} />
+            <FollowTitleControl movie={normalizedMovie} />
             {savedInstances.map(({ playlist, item }) => (
               <button
                 className={item.watchStatus === "watched" ? "watched-toggle is-watched" : "watched-toggle"}
@@ -133,15 +145,15 @@ export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addTo
             ))}
           </div>
           <OptionalSectionBoundary key={`where-${detailsKey}`} label="Where To Watch">
-            <WhereToWatch movie={movie} />
+            <WhereToWatch movie={normalizedMovie} />
           </OptionalSectionBoundary>
           {mediaType === "tv" ? (
             <OptionalSectionBoundary key={`progress-${detailsKey}`} label="TV progress">
-              <TvProgressTracker show={movie} />
+              <TvProgressTracker show={normalizedMovie} />
             </OptionalSectionBoundary>
           ) : null}
           <OptionalSectionBoundary key={`extensions-${detailsKey}`} label="Trailers and extras">
-            <MediaExtensions media={movie} />
+            <MediaExtensions media={normalizedMovie} />
           </OptionalSectionBoundary>
         </div>
       </div>
