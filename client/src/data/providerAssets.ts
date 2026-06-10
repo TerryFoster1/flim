@@ -35,6 +35,30 @@ const providerAliases: Record<string, string> = {
   "youtube movies": "youtube",
 };
 
+const knownProviderNames = new Set([
+  "amazon prime video",
+  "apple tv",
+  "apple tv plus",
+  "apple tv+",
+  "crave",
+  "disney plus",
+  "disney+",
+  "google play movies",
+  "google tv",
+  "hbo max",
+  "hulu",
+  "max",
+  "netflix",
+  "paramount plus",
+  "paramount+",
+  "plex",
+  "prime video",
+  "spotify",
+  "tubi",
+  "youtube",
+  "youtube movies",
+]);
+
 export function providerIconKey(provider: { id?: string; name?: string }) {
   const candidates = [provider.id, provider.name]
     .filter(Boolean)
@@ -48,4 +72,12 @@ export function providerIconKey(provider: { id?: string; name?: string }) {
   }
 
   return undefined;
+}
+
+export function isKnownProvider(provider: { id?: string; name?: string }) {
+  const candidates = [provider.id, provider.name]
+    .filter(Boolean)
+    .map((value) => String(value).toLowerCase().replace(/\+/g, " plus").replace(/[^a-z0-9]+/g, " ").trim());
+
+  return candidates.some((candidate) => knownProviderNames.has(candidate) || Boolean(providerAliases[candidate]));
 }

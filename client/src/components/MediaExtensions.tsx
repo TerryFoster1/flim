@@ -22,39 +22,41 @@ export function MediaExtensions({ media }: MediaExtensionsProps) {
       </div>
 
       <div className="media-extension-grid">
-        <article className="media-extension-card soundtrack-card compact-extension-card">
+        <a
+          className="media-extension-card media-extension-card-action soundtrack-card compact-extension-card"
+          href={soundtrackLink?.url}
+          rel="noreferrer"
+          target="_blank"
+          aria-label={`Listen to ${media.title} soundtrack on Spotify`}
+        >
           <div className="compact-extension-copy">
             <h3>Listen to the soundtrack</h3>
-            {soundtrackLink ? (
-              <a className="round-media-link spotify-link" href={soundtrackLink.url} rel="noreferrer" target="_blank" aria-label={`Listen to ${media.title} soundtrack on Spotify`}>
-                <img alt="" src="/provider-icons/spotify.png" />
-              </a>
-            ) : (
-              <button className="round-media-link spotify-link is-disabled" disabled type="button">
-                <img alt="" src="/provider-icons/spotify.png" />
-              </button>
-            )}
+            <span className="round-media-link spotify-link" aria-hidden="true">
+              <img alt="" src="/provider-icons/spotify.png" />
+            </span>
             <p>{soundtrackLink ? extensions.soundtrack.notes : "Soundtrack not available yet."}</p>
           </div>
-        </article>
+        </a>
 
-        <article className="media-extension-card trailer-card">
-          <div className="extension-art trailer-art" aria-hidden="true">
-            {media.posterUrl ? <img alt="" src={media.posterUrl} /> : <span />}
-            <strong>Play</strong>
+        <a
+          className="media-extension-card media-extension-card-action trailer-card"
+          href={trailerLink?.url}
+          rel="noreferrer"
+          target="_blank"
+          aria-label={`Watch ${media.title} trailer on YouTube`}
+        >
+          <div className="extension-art trailer-art media-extension-logo-art" aria-hidden="true">
+            <span className="round-media-link youtube-link">
+              <img alt="" src="/provider-icons/youtube.png" />
+            </span>
           </div>
           <div>
             <h3>Watch Trailer</h3>
             <p>Open trailer results on YouTube.</p>
-            {trailerLink ? (
-              <a className="secondary-button" href={trailerLink.url} rel="noreferrer" target="_blank">
-                Open In YouTube
-              </a>
-            ) : null}
           </div>
-        </article>
+        </a>
 
-        <article className="media-extension-card trivia-card">
+        <button className="media-extension-card media-extension-card-action trivia-card reset-button" type="button" aria-label="Trivia and facts coming soon">
           <div className="extension-art trivia-art" aria-hidden="true">
             <span />
             <strong>?</strong>
@@ -62,9 +64,8 @@ export function MediaExtensions({ media }: MediaExtensionsProps) {
           <div>
             <h3>Trivia & Facts</h3>
             <p>Trivia, awards, production notes, and behind-the-scenes stories.</p>
-            <button className="secondary-button" disabled type="button">Coming Soon</button>
           </div>
-        </article>
+        </button>
       </div>
     </section>
   );

@@ -5,6 +5,7 @@ import { MediaExtensions } from "../components/MediaExtensions";
 import { OptionalSectionBoundary } from "../components/OptionalSectionBoundary";
 import { PageShell } from "../components/PageShell";
 import { TvProgressTracker } from "../components/TvProgressTracker";
+import { TitleRatingControl } from "../components/TitleRatingControl";
 import { WhereToWatch } from "../components/WhereToWatch";
 import { WatchStatusBadge } from "../components/WatchStatusBadge";
 import { getCurrentProfile } from "../services/profileService";
@@ -144,6 +145,7 @@ export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addTo
               </button>
             ))}
           </div>
+          <TitleRatingControl mediaType={normalizedMovie.mediaType || mediaType} tmdbId={normalizedMovie.tmdbId} />
           <OptionalSectionBoundary key={`where-${detailsKey}`} label="Where To Watch">
             <WhereToWatch movie={normalizedMovie} />
           </OptionalSectionBoundary>

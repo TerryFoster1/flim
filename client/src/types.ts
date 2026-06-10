@@ -525,6 +525,16 @@ export interface MediaExtensions {
   notes: string;
 }
 
+export interface TitleRatingSummary {
+  mediaType: MediaType;
+  tmdbId: number;
+  userRating: number;
+  ratingCount: number;
+  averageRating: number;
+  likedCount: number;
+  lovedCount: number;
+}
+
 export interface MovieProviderFilter {
   providerIds: string[];
   countryCode?: string;

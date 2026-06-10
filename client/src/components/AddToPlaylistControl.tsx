@@ -18,6 +18,8 @@ export function AddToPlaylistControl({ movie, playlists, addToPlaylist, currentP
   const [message, setMessage] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [locallyAddedIds, setLocallyAddedIds] = useState<string[]>([]);
+  const alreadyAddedIds = [...new Set([...existingPlaylistIds, ...locallyAddedIds])];
 
   if (addTargetPlaylists.length === 0) {
     return <span className="helper-text">{currentPlaylistId ? "This title is already in the current playlist." : "Create a playlist first."}</span>;
@@ -33,7 +35,7 @@ export function AddToPlaylistControl({ movie, playlists, addToPlaylist, currentP
   }
 
   async function addSelectedPlaylists() {
-    const playlistIds = selectedIds.filter((id) => !existingPlaylistIds.includes(id));
+    const playlistIds = selectedIds.filter((id) => !alreadyAddedIds.includes(id));
     if (playlistIds.length === 0) {
       setMessage("Choose at least one playlist.");
       return;
@@ -44,6 +46,7 @@ export function AddToPlaylistControl({ movie, playlists, addToPlaylist, currentP
     try {
       await Promise.all(playlistIds.map((playlistId) => addToPlaylist(playlistId, movie)));
       setMessage(`Added to ${playlistIds.length} playlist${playlistIds.length === 1 ? "" : "s"}.`);
+      setLocallyAddedIds((current) => [...new Set([...current, ...playlistIds])]);
       setSelectedIds([]);
     } catch {
       setMessage("Unable to add movie. Please try again.");
@@ -53,7 +56,7 @@ export function AddToPlaylistControl({ movie, playlists, addToPlaylist, currentP
   }
 
   async function addSinglePlaylist(playlistId: string) {
-    if (existingPlaylistIds.includes(playlistId)) {
+    if (alreadyAddedIds.includes(playlistId)) {
       setMessage("Already added to that playlist.");
       return;
     }
@@ -64,6 +67,7 @@ export function AddToPlaylistControl({ movie, playlists, addToPlaylist, currentP
     try {
       await addToPlaylist(playlistId, movie);
       setMessage(`Added to ${playlist?.name || "playlist"}.`);
+      setLocallyAddedIds((current) => [...new Set([...current, playlistId])]);
     } catch {
       setMessage("Unable to add movie. Please try again.");
     } finally {
@@ -80,7 +84,7 @@ export function AddToPlaylistControl({ movie, playlists, addToPlaylist, currentP
         {isExpanded ? (
           <div className="compact-playlist-menu" aria-label="Other playlists">
             {addTargetPlaylists.map((playlist) => {
-              const alreadyAdded = existingPlaylistIds.includes(playlist.id);
+              const alreadyAdded = alreadyAddedIds.includes(playlist.id);
               return (
                 <button
                   className={alreadyAdded ? "compact-playlist-option already-added" : "compact-playlist-option"}
@@ -109,7 +113,7 @@ export function AddToPlaylistControl({ movie, playlists, addToPlaylist, currentP
       </div>
       <div className="add-playlist-options">
         {addTargetPlaylists.map((playlist) => {
-          const alreadyAdded = existingPlaylistIds.includes(playlist.id);
+          const alreadyAdded = alreadyAddedIds.includes(playlist.id);
           const checked = alreadyAdded || selectedIds.includes(playlist.id);
           return (
             <label className={alreadyAdded ? "add-playlist-option already-added" : "add-playlist-option"} key={playlist.id}>

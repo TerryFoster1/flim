@@ -318,6 +318,22 @@ create index if not exists playlist_follows_playlist_id_idx
 create index if not exists playlist_follows_user_id_idx
   on playlist_follows (follower_user_id);
 
+create table if not exists title_ratings (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  media_type text not null check (media_type in ('movie', 'tv')),
+  tmdb_id integer not null,
+  rating integer not null check (rating between 1 and 3),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create unique index if not exists title_ratings_user_title_unique
+  on title_ratings (user_id, media_type, tmdb_id);
+
+create index if not exists title_ratings_title_idx
+  on title_ratings (media_type, tmdb_id);
+
 create table if not exists notifications (
   id uuid primary key default gen_random_uuid(),
   recipient_user_id uuid not null references users(id) on delete cascade,
