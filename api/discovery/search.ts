@@ -1,4 +1,4 @@
-import { db, ensurePlaylistFollowsTable, ensureUserProfilesTable, getCurrentUser, mapPlaylist, sendJson } from "../_db.js";
+import { db, ensurePlaylistFollowsTable, ensureUserFollowsTable, ensureUserProfilesTable, getCurrentUser, mapPlaylist, sendJson } from "../_db.js";
 import { ensureDirectorSeed } from "../_director.js";
 import {
   findCatalogSearchResults,
@@ -158,9 +158,15 @@ async function searchProfiles(sql: any, query: string) {
       up.display_name,
       up.handle,
       up.bio,
+      up.profile_image_url,
       up.created_at,
       count(distinct p.id)::int as playlist_count,
-      count(pm.id)::int as title_count
+      count(pm.id)::int as title_count,
+      (
+        select count(*)::int
+        from user_follows uf
+        where uf.followed_user_id::text = up.user_id
+      ) as follower_count
     from user_profiles up
     left join playlists p on p.owner_user_id::text = up.user_id and p.visibility = 'public'
     left join playlist_movies pm on pm.playlist_id = p.id
@@ -171,7 +177,6 @@ async function searchProfiles(sql: any, query: string) {
         or coalesce(up.bio, '') ilike ${`%${query}%`}
       )
     group by up.id
-    having count(distinct p.id) > 0
     order by
       case
         when lower(up.handle) = lower(${query}) then 0
@@ -181,6 +186,11 @@ async function searchProfiles(sql: any, query: string) {
         else 4
       end,
       count(distinct p.id) desc,
+      (
+        select count(*)::int
+        from user_follows uf
+        where uf.followed_user_id::text = up.user_id
+      ) desc,
       up.updated_at desc
     limit ${MAX_PROFILE_RESULTS}
   `;
@@ -189,8 +199,10 @@ async function searchProfiles(sql: any, query: string) {
     displayName: row.display_name || row.handle,
     handle: row.handle,
     bio: row.bio || "",
+    profileImageUrl: row.profile_image_url || "",
     playlistCount: Number(row.playlist_count || 0),
     titleCount: Number(row.title_count || 0),
+    followerCount: Number(row.follower_count || 0),
   }));
 }
 
@@ -212,6 +224,7 @@ export default async function handler(request: any, response: any) {
     const sql = db();
     await ensureUserProfilesTable(sql);
     await ensurePlaylistFollowsTable(sql);
+    await ensureUserFollowsTable(sql);
     await ensureTmdbCacheTables(sql);
     await ensureDirectorSeed(sql).catch((error) => {
       console.error("director_seed_failed", error instanceof Error ? error.message : "Director seed failed");

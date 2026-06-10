@@ -1,5 +1,5 @@
 import webpush from "web-push";
-import { ensureNotificationsTable } from "./_db.js";
+import { ensureNotificationsTable, ensurePgCrypto } from "./_db.js";
 
 type PushSubscriptionRow = {
   id: string;
@@ -39,7 +39,7 @@ function configureWebPush() {
 
 export async function ensurePushTables(sql: any) {
   await ensureNotificationsTable(sql);
-  await sql`create extension if not exists pgcrypto`;
+  await ensurePgCrypto(sql);
   await sql`
     create table if not exists push_subscriptions (
       id uuid primary key default gen_random_uuid(),

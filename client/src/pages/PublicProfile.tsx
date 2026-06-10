@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { PlaylistGrid } from "../components/PlaylistGrid";
-import { getPublicProfile } from "../services/profileService";
+import { followProfile, getPublicProfile, unfollowProfile } from "../services/profileService";
 import type { Playlist, PublicUserProfile } from "../types";
 
 interface PublicProfileProps {
@@ -12,6 +12,8 @@ export function PublicProfile({ handle, onNavigate }: PublicProfileProps) {
   const [profile, setProfile] = useState<PublicUserProfile | null>(null);
   const [publicPlaylists, setPublicPlaylists] = useState<Playlist[]>([]);
   const [status, setStatus] = useState<"loading" | "ready" | "not_found">("loading");
+  const [followStatus, setFollowStatus] = useState<"idle" | "saving">("idle");
+  const [followMessage, setFollowMessage] = useState("");
 
   useEffect(() => {
     let isActive = true;
@@ -34,6 +36,32 @@ export function PublicProfile({ handle, onNavigate }: PublicProfileProps) {
       isActive = false;
     };
   }, [handle]);
+
+  async function toggleFollow() {
+    if (!profile || profile.isOwnProfile || followStatus === "saving") return;
+    setFollowStatus("saving");
+    setFollowMessage("");
+
+    try {
+      const result = profile.isFollowing ? await unfollowProfile(profile.handle) : await followProfile(profile.handle);
+      setProfile((current) => current
+        ? {
+          ...current,
+          isFollowing: result.isFollowing,
+          stats: {
+            playlistCount: current.stats?.playlistCount || publicPlaylists.length,
+            movieCount: current.stats?.movieCount || publicPlaylists.reduce((total, playlist) => total + playlist.movies.length, 0),
+            followerCount: result.followerCount,
+            followingCount: result.followingCount,
+          },
+        }
+        : current);
+    } catch (error) {
+      setFollowMessage(error instanceof Error ? error.message : "Could not update follow right now.");
+    } finally {
+      setFollowStatus("idle");
+    }
+  }
 
   if (status === "loading") {
     return (
@@ -62,26 +90,92 @@ export function PublicProfile({ handle, onNavigate }: PublicProfileProps) {
     );
   }
 
+  const playlistCount = profile.stats?.playlistCount || publicPlaylists.length;
+  const titleCount = profile.stats?.movieCount || publicPlaylists.reduce((total, playlist) => total + playlist.movies.length, 0);
+  const followerCount = profile.stats?.followerCount || 0;
+  const followingCount = profile.stats?.followingCount || 0;
+  const recentlyUpdated = [...publicPlaylists].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+  const mostFollowed = [...publicPlaylists].sort((a, b) => (b.followerCount || 0) - (a.followerCount || 0));
+  const featuredPlaylists = mostFollowed.slice(0, 3);
+  const joinedAt = profile.joinedAt
+    ? new Intl.DateTimeFormat(undefined, { month: "short", year: "numeric" }).format(new Date(profile.joinedAt))
+    : "";
+  const avatarInitial = (profile.displayName || profile.handle).charAt(0).toUpperCase();
+
   return (
     <section className="route-page public-profile-page">
-      <div className="public-profile-hero">
-        <div className="profile-avatar-placeholder" aria-hidden="true">
-          {profile.displayName.charAt(0) || profile.handle.charAt(0)}
-        </div>
-        <div>
-          <h1>{profile.displayName}</h1>
-          <p>@{profile.handle}</p>
-          {profile.bio ? <p>{profile.bio}</p> : null}
-          {profile.countryCode ? <small>{profile.countryCode}</small> : null}
-          <div className="public-profile-stats" aria-label="Creator stats">
-            <span><strong>{profile.stats?.playlistCount || publicPlaylists.length}</strong> Playlists</span>
-            <span><strong>{profile.stats?.movieCount || publicPlaylists.reduce((total, playlist) => total + playlist.movies.length, 0)}</strong> Titles</span>
-            <span><strong>{profile.stats?.futureFollowerCount || 0}</strong> Followers soon</span>
+      <div className="public-profile-hero enhanced-profile-hero">
+        {profile.heroImageUrl ? <img className="profile-hero-image" alt="" src={profile.heroImageUrl} /> : <div className="profile-hero-gradient" aria-hidden="true" />}
+        <div className="public-profile-header">
+          {profile.profileImageUrl ? (
+            <img className="profile-avatar-image" alt={`${profile.displayName} profile`} src={profile.profileImageUrl} />
+          ) : (
+            <div className="profile-avatar-placeholder" aria-hidden="true">{avatarInitial}</div>
+          )}
+          <div className="public-profile-copy">
+            <h1>{profile.displayName || `@${profile.handle}`}</h1>
+            <p>@{profile.handle}</p>
+            {profile.bio ? <p>{profile.bio}</p> : null}
+            <div className="public-profile-meta">
+              {joinedAt ? <span>Joined {joinedAt}</span> : null}
+              {profile.countryCode ? <span>{profile.countryCode}</span> : null}
+              {profile.favoriteGenre ? <span>{profile.favoriteGenre}</span> : null}
+            </div>
+            <div className="public-profile-stats" aria-label="Creator stats">
+              <span><strong>{followerCount}</strong> {followerCount === 1 ? "Follower" : "Followers"}</span>
+              <span><strong>{followingCount}</strong> Following</span>
+              <span><strong>{playlistCount}</strong> Public {playlistCount === 1 ? "Playlist" : "Playlists"}</span>
+              <span><strong>{titleCount}</strong> {titleCount === 1 ? "Title" : "Titles"}</span>
+            </div>
+            <div className="public-profile-actions">
+              {profile.isOwnProfile ? (
+                <button className="primary-button" onClick={() => onNavigate("/settings")} type="button">Edit Profile</button>
+              ) : (
+                <button className={profile.isFollowing ? "secondary-button follow-creator-button following" : "primary-button follow-creator-button"} onClick={toggleFollow} disabled={followStatus === "saving"} type="button">
+                  {followStatus === "saving" ? "Saving..." : profile.isFollowing ? "Following ✓" : "Follow"}
+                </button>
+              )}
+              <button className="secondary-button" onClick={() => navigator.clipboard?.writeText(`https://www.flim.ca/@${profile.handle}`)} type="button">
+                Share Profile
+              </button>
+            </div>
+            {followMessage ? <p className="error-message">{followMessage}</p> : null}
           </div>
         </div>
       </div>
+
+      {profile.favoriteMovie || profile.favoriteDirector ? (
+        <section className="profile-favorites-row" aria-label="Creator favorites">
+          {profile.favoriteMovie ? <span><strong>Favorite Movie</strong>{profile.favoriteMovie}</span> : null}
+          {profile.favoriteDirector ? <span><strong>Favorite Director</strong>{profile.favoriteDirector}</span> : null}
+        </section>
+      ) : null}
+
+      {featuredPlaylists.length > 0 ? (
+        <section className="settings-panel">
+          <h2>Featured Playlists</h2>
+          <PlaylistGrid onNavigate={onNavigate} playlists={featuredPlaylists} />
+        </section>
+      ) : null}
+
       <section className="settings-panel">
-        <h2>{profile.displayName}'s playlists</h2>
+        <h2>Recently Updated</h2>
+        {recentlyUpdated.length > 0 ? (
+          <PlaylistGrid onNavigate={onNavigate} playlists={recentlyUpdated} />
+        ) : (
+          <p>Public playlists from this creator will appear here.</p>
+        )}
+      </section>
+
+      {mostFollowed.length > 0 ? (
+        <section className="settings-panel">
+          <h2>Most Followed</h2>
+          <PlaylistGrid onNavigate={onNavigate} playlists={mostFollowed} />
+        </section>
+      ) : null}
+
+      <section className="settings-panel">
+        <h2>All Public Playlists</h2>
         {publicPlaylists.length > 0 ? (
           <PlaylistGrid onNavigate={onNavigate} playlists={publicPlaylists} />
         ) : (

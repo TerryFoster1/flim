@@ -22,10 +22,10 @@ export function getSession() {
   return authRequest<{ user: CurrentUser | null }>("/api/profiles/auth?action=session");
 }
 
-export function signUp(email: string, password: string) {
+export function signUp(email: string, password: string, handle: string, displayName?: string) {
   return authRequest<{ user: CurrentUser }>("/api/profiles/auth?action=signup", {
     method: "POST",
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email, password, handle, displayName }),
   });
 }
 

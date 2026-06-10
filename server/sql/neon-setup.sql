@@ -958,6 +958,11 @@ create table if not exists user_profiles (
   streaming_region text not null default '',
   preferred_providers jsonb not null default '[]'::jsonb,
   show_country_publicly boolean not null default false,
+  profile_image_url text,
+  hero_image_url text,
+  favorite_movie text,
+  favorite_genre text,
+  favorite_director text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -965,11 +970,43 @@ create table if not exists user_profiles (
 alter table user_profiles
   add column if not exists province_state text;
 
+alter table user_profiles
+  add column if not exists profile_image_url text;
+
+alter table user_profiles
+  add column if not exists hero_image_url text;
+
+alter table user_profiles
+  add column if not exists favorite_movie text;
+
+alter table user_profiles
+  add column if not exists favorite_genre text;
+
+alter table user_profiles
+  add column if not exists favorite_director text;
+
 create unique index if not exists user_profiles_handle_unique
   on user_profiles (handle);
 
 create unique index if not exists user_profiles_user_id_unique
   on user_profiles (user_id);
+
+create table if not exists user_follows (
+  id uuid primary key default gen_random_uuid(),
+  follower_user_id uuid not null references users(id) on delete cascade,
+  followed_user_id uuid not null references users(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  check (follower_user_id <> followed_user_id)
+);
+
+create unique index if not exists user_follows_pair_unique
+  on user_follows (follower_user_id, followed_user_id);
+
+create index if not exists user_follows_follower_idx
+  on user_follows (follower_user_id);
+
+create index if not exists user_follows_followed_idx
+  on user_follows (followed_user_id);
 
 create or replace function set_updated_at()
 returns trigger

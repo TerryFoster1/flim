@@ -35,3 +35,21 @@ export function saveCurrentProfile(profile: UserProfile) {
 export function getPublicProfile(handle: string) {
   return profileRequest<PublicUserProfile>(`/api/profiles/${encodeURIComponent(handle)}`);
 }
+
+export function checkUsernameAvailability(handle: string) {
+  return profileRequest<{ handle: string; available: boolean; message: string }>(`/api/profiles/username?handle=${encodeURIComponent(handle)}`);
+}
+
+export function followProfile(handle: string) {
+  return profileRequest<{ ok: boolean; isFollowing: boolean; followerCount: number; followingCount: number }>("/api/profiles/follow", {
+    method: "POST",
+    body: JSON.stringify({ handle }),
+  });
+}
+
+export function unfollowProfile(handle: string) {
+  return profileRequest<{ ok: boolean; isFollowing: boolean; followerCount: number; followingCount: number }>("/api/profiles/follow", {
+    method: "DELETE",
+    body: JSON.stringify({ handle }),
+  });
+}

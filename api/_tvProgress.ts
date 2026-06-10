@@ -1,3 +1,4 @@
+import { ensurePgCrypto } from "./_db.js";
 import { ensureMediaCatalogTables, getCatalogMediaItem, upsertMediaItem } from "./_mediaCatalog.js";
 import { ensureTmdbCacheTables, fetchTmdbMovieDetails, fetchTmdbTvSeasonDetails } from "./_tmdb.js";
 
@@ -24,7 +25,7 @@ function seasonStatus(watchedCount: number, releasedCount: number, activeCount =
 
 export async function ensureTvProgressTables(sql: any) {
   await ensureMediaCatalogTables(sql);
-  await sql`create extension if not exists pgcrypto`;
+  await ensurePgCrypto(sql);
   await sql`
     create table if not exists tv_season_catalog (
       id uuid primary key default gen_random_uuid(),

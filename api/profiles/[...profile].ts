@@ -5,6 +5,7 @@ import {
   ensureAuthTables,
   ensureNotificationsTable,
   ensurePlaylistFollowsTable,
+  ensureUserFollowsTable,
   ensureUserProfilesTable,
   getCurrentUser,
   hashPassword,
@@ -49,7 +50,7 @@ async function safeRows(query: Promise<any[]>) {
 function cleanProfileInput(body: any) {
   return {
     displayName: String(body.displayName || "").trim().slice(0, 80),
-    handle: normalizeHandle(String(body.handle || "")),
+    handle: normalizeHandle(String(body.handle || "")).replace(/[^a-z0-9_]/g, ""),
     bio: String(body.bio || "").trim().slice(0, 240),
     countryCode: String(body.countryCode || "").trim().toUpperCase().slice(0, 2),
     provinceState: String(body.provinceState || body.region || "").trim().slice(0, 80),
@@ -59,7 +60,16 @@ function cleanProfileInput(body: any) {
       ? body.preferredProviders.map((provider: unknown) => String(provider)).filter(Boolean).slice(0, 20)
       : [],
     showCountryPublicly: Boolean(body.showCountryPublicly),
+    profileImageUrl: String(body.profileImageUrl || "").trim().slice(0, 500),
+    heroImageUrl: String(body.heroImageUrl || "").trim().slice(0, 500),
+    favoriteMovie: String(body.favoriteMovie || "").trim().slice(0, 120),
+    favoriteGenre: String(body.favoriteGenre || "").trim().slice(0, 80),
+    favoriteDirector: String(body.favoriteDirector || "").trim().slice(0, 120),
   };
+}
+
+function cleanSignupHandle(value: string) {
+  return normalizeHandle(value).replace(/[^a-z0-9_]/g, "");
 }
 
 function getProfileSegment(request: any) {
@@ -113,7 +123,12 @@ async function handleCurrentProfile(request: any, response: any, sql: any) {
         postal_code,
         streaming_region,
         preferred_providers,
-        show_country_publicly
+        show_country_publicly,
+        profile_image_url,
+        hero_image_url,
+        favorite_movie,
+        favorite_genre,
+        favorite_director
       )
       values (
           ${user.id},
@@ -126,7 +141,12 @@ async function handleCurrentProfile(request: any, response: any, sql: any) {
         ${input.postalCode},
         ${input.streamingRegion},
         ${JSON.stringify(input.preferredProviders)}::jsonb,
-        ${input.showCountryPublicly}
+        ${input.showCountryPublicly},
+        ${input.profileImageUrl || null},
+        ${input.heroImageUrl || null},
+        ${input.favoriteMovie || null},
+        ${input.favoriteGenre || null},
+        ${input.favoriteDirector || null}
       )
       on conflict (user_id) do update set
         display_name = excluded.display_name,
@@ -139,6 +159,11 @@ async function handleCurrentProfile(request: any, response: any, sql: any) {
         streaming_region = excluded.streaming_region,
         preferred_providers = excluded.preferred_providers,
         show_country_publicly = excluded.show_country_publicly,
+        profile_image_url = excluded.profile_image_url,
+        hero_image_url = excluded.hero_image_url,
+        favorite_movie = excluded.favorite_movie,
+        favorite_genre = excluded.favorite_genre,
+        favorite_director = excluded.favorite_director,
         updated_at = now()
       returning *
     `;
@@ -165,6 +190,7 @@ async function getUserPayload(sql: any, user: any) {
 
 async function handleAuth(request: any, response: any, sql: any, action: string) {
   await ensureAuthTables(sql);
+  await ensureUserProfilesTable(sql);
 
   if (action === "session" && request.method === "GET") {
     const user = await getCurrentUser(sql, request);
@@ -188,6 +214,14 @@ async function handleAuth(request: any, response: any, sql: any, action: string)
     if (password.length < 8) return sendJson(response, 400, { error: "Password must be at least 8 characters." });
 
     if (action === "signup") {
+      const handle = cleanSignupHandle(String(body.handle || body.username || ""));
+      const displayName = String(body.displayName || "").trim().slice(0, 80) || handle;
+      const validationMessage = validateProfileHandle(handle);
+      if (validationMessage) return sendJson(response, 400, { error: validationMessage });
+
+      const duplicateHandle = await sql`select id from user_profiles where handle = ${handle} limit 1`;
+      if (duplicateHandle[0]) return sendJson(response, 409, { error: "That username is already taken." });
+
       const [user] = await sql`
         insert into users (email, password_hash)
         values (${email}, ${hashPassword(password)})
@@ -197,6 +231,11 @@ async function handleAuth(request: any, response: any, sql: any, action: string)
         throw error;
       });
       if (!user) return sendJson(response, 409, { error: "An account already exists for that email." });
+
+      await sql`
+        insert into user_profiles (user_id, display_name, handle)
+        values (${user.id}, ${displayName}, ${handle})
+      `;
 
       await createSession(sql, response, user.id);
       return sendJson(response, 201, { user: await getUserPayload(sql, user) });
@@ -213,6 +252,75 @@ async function handleAuth(request: any, response: any, sql: any, action: string)
   }
 
   return sendJson(response, 405, { error: "Method not allowed." });
+}
+
+async function handleUsernameAvailability(request: any, response: any, sql: any) {
+  if (request.method !== "GET") return sendJson(response, 405, { error: "Method not allowed." });
+  const handle = cleanSignupHandle(Array.isArray(request.query.handle) ? String(request.query.handle[0] || "") : String(request.query.handle || ""));
+  const validationMessage = validateProfileHandle(handle);
+  if (validationMessage) return sendJson(response, 200, { handle, available: false, message: validationMessage });
+
+  const rows = await sql`select id from user_profiles where handle = ${handle} limit 1`;
+  return sendJson(response, 200, {
+    handle,
+    available: !rows[0],
+    message: rows[0] ? "That username is already taken." : "Username available.",
+  });
+}
+
+async function handleFollowProfile(request: any, response: any, sql: any) {
+  const user = await getCurrentUser(sql, request);
+  if (!user) return sendJson(response, 401, { error: "Sign in to follow creators." });
+
+  const body = await readBody(request);
+  const handle = normalizeHandle(String(body.handle || ""));
+  const targetRows = await sql`
+    select user_id
+    from user_profiles
+    where handle = ${handle}
+    limit 1
+  `;
+  const target = targetRows[0];
+  if (!target) return sendJson(response, 404, { error: "Profile not found." });
+  if (String(target.user_id) === String(user.id)) return sendJson(response, 400, { error: "You cannot follow your own profile." });
+  if (!/^[0-9a-f-]{36}$/i.test(String(target.user_id))) {
+    return sendJson(response, 400, { error: "This profile cannot be followed yet." });
+  }
+
+  if (request.method === "POST") {
+    await sql`
+      insert into user_follows (follower_user_id, followed_user_id)
+      values (${user.id}, ${target.user_id}::uuid)
+      on conflict (follower_user_id, followed_user_id) do nothing
+    `;
+  } else if (request.method === "DELETE") {
+    await sql`
+      delete from user_follows
+      where follower_user_id = ${user.id}
+        and followed_user_id = ${target.user_id}::uuid
+    `;
+  } else {
+    return sendJson(response, 405, { error: "Method not allowed." });
+  }
+
+  const counts = await sql`
+    select
+      (select count(*)::int from user_follows where followed_user_id = ${target.user_id}::uuid) as follower_count,
+      (select count(*)::int from user_follows where follower_user_id = ${target.user_id}::uuid) as following_count,
+      exists (
+        select 1
+        from user_follows
+        where follower_user_id = ${user.id}
+          and followed_user_id = ${target.user_id}::uuid
+      ) as is_following
+  `;
+
+  return sendJson(response, 200, {
+    ok: true,
+    isFollowing: Boolean(counts[0]?.is_following),
+    followerCount: Number(counts[0]?.follower_count || 0),
+    followingCount: Number(counts[0]?.following_count || 0),
+  });
 }
 
 async function handleAdminExport(request: any, response: any, sql: any) {
@@ -276,11 +384,20 @@ export default async function handler(request: any, response: any) {
     const sql = db();
     await ensureUserProfilesTable(sql);
     await ensurePlaylistFollowsTable(sql);
+    await ensureUserFollowsTable(sql);
     await ensureNotificationsTable(sql);
 
     if (segment === "auth") {
       const action = Array.isArray(request.query.action) ? request.query.action[0] : request.query.action;
       return handleAuth(request, response, sql, String(action || ""));
+    }
+
+    if (segment === "username") {
+      return handleUsernameAvailability(request, response, sql);
+    }
+
+    if (segment === "follow") {
+      return handleFollowProfile(request, response, sql);
     }
 
     if (segment === "admin-export" || segment === "admin/export") {
@@ -295,6 +412,7 @@ export default async function handler(request: any, response: any) {
       return sendJson(response, 405, { error: "Method not allowed." });
     }
 
+    const viewer = await getCurrentUser(sql, request);
     const handle = normalizeHandle(segment);
     const validationMessage = validateProfileHandle(handle);
     if (validationMessage) return sendJson(response, 404, { error: "Profile not found." });
@@ -308,10 +426,18 @@ export default async function handler(request: any, response: any) {
     const rows = await sql`
       select
         up.*,
+        ${viewer?.id || ""} = up.user_id as is_own_profile,
+        exists (
+          select 1
+          from user_follows uf
+          where uf.follower_user_id = ${viewer?.id || null}::uuid
+            and uf.followed_user_id::text = up.user_id
+        ) as is_following,
         json_build_object(
           'playlistCount', count(distinct p.id)::int,
           'movieCount', count(pm.id)::int,
-          'futureFollowerCount', 0
+          'followerCount', (select count(*)::int from user_follows uf where uf.followed_user_id::text = up.user_id),
+          'followingCount', (select count(*)::int from user_follows uf where uf.follower_user_id::text = up.user_id)
         ) as stats,
         coalesce(
           json_agg(

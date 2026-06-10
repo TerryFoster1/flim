@@ -10,6 +10,16 @@ export function db() {
   return neon(databaseUrl);
 }
 
+export async function ensurePgCrypto(sql: any) {
+  try {
+    await sql`create extension if not exists pgcrypto`;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String((error as any)?.message || "");
+    if (message.includes("pg_type_typname_nsp_index") || message.includes("already exists")) return;
+    throw error;
+  }
+}
+
 export function sendJson(response: any, status: number, body: unknown) {
   response.statusCode = status;
   response.setHeader("Content-Type", "application/json");
@@ -128,7 +138,7 @@ export const demoUserId = "demo-user";
 const sessionCookieName = "flim_session";
 
 export async function ensureAuthTables(sql: any) {
-  await sql`create extension if not exists pgcrypto`;
+  await ensurePgCrypto(sql);
   await sql`
     create table if not exists users (
       id uuid primary key default gen_random_uuid(),
@@ -225,7 +235,7 @@ export function mapCurrentUser(user: any, profile?: any) {
 
 export async function ensureUserProfilesTable(sql: any) {
   await ensureAuthTables(sql);
-  await sql`create extension if not exists pgcrypto`;
+  await ensurePgCrypto(sql);
   await sql`
     create table if not exists user_profiles (
       id uuid primary key default gen_random_uuid(),
@@ -240,13 +250,40 @@ export async function ensureUserProfilesTable(sql: any) {
       streaming_region text not null default '',
       preferred_providers jsonb not null default '[]'::jsonb,
       show_country_publicly boolean not null default false,
+      profile_image_url text,
+      hero_image_url text,
+      favorite_movie text,
+      favorite_genre text,
+      favorite_director text,
       created_at timestamptz not null default now(),
       updated_at timestamptz not null default now()
     )
   `;
   await sql`alter table user_profiles add column if not exists province_state text`;
+  await sql`alter table user_profiles add column if not exists profile_image_url text`;
+  await sql`alter table user_profiles add column if not exists hero_image_url text`;
+  await sql`alter table user_profiles add column if not exists favorite_movie text`;
+  await sql`alter table user_profiles add column if not exists favorite_genre text`;
+  await sql`alter table user_profiles add column if not exists favorite_director text`;
   await sql`create unique index if not exists user_profiles_handle_unique on user_profiles (handle)`;
   await sql`create unique index if not exists user_profiles_user_id_unique on user_profiles (user_id)`;
+}
+
+export async function ensureUserFollowsTable(sql: any) {
+  await ensureUserProfilesTable(sql);
+  await ensurePgCrypto(sql);
+  await sql`
+    create table if not exists user_follows (
+      id uuid primary key default gen_random_uuid(),
+      follower_user_id uuid not null references users(id) on delete cascade,
+      followed_user_id uuid not null references users(id) on delete cascade,
+      created_at timestamptz not null default now(),
+      check (follower_user_id <> followed_user_id)
+    )
+  `;
+  await sql`create unique index if not exists user_follows_pair_unique on user_follows (follower_user_id, followed_user_id)`;
+  await sql`create index if not exists user_follows_follower_idx on user_follows (follower_user_id)`;
+  await sql`create index if not exists user_follows_followed_idx on user_follows (followed_user_id)`;
 }
 
 export async function ensurePlaylistMediaColumns(sql: any) {
@@ -336,7 +373,7 @@ export async function ensureSharedPlaylistSlug(sql: any, playlistId: string) {
 
 export async function ensurePlaylistFollowsTable(sql: any) {
   await ensureAuthTables(sql);
-  await sql`create extension if not exists pgcrypto`;
+  await ensurePgCrypto(sql);
   await sql`
     create table if not exists playlist_follows (
       id uuid primary key default gen_random_uuid(),
@@ -363,7 +400,7 @@ export async function ensurePlaylistFollowsTable(sql: any) {
 
 export async function ensureTitleRatingsTable(sql: any) {
   await ensureAuthTables(sql);
-  await sql`create extension if not exists pgcrypto`;
+  await ensurePgCrypto(sql);
   await sql`
     create table if not exists title_ratings (
       id uuid primary key default gen_random_uuid(),
@@ -384,7 +421,7 @@ export async function ensureTitleRatingsTable(sql: any) {
 
 export async function ensureTriviaTables(sql: any) {
   await ensureAuthTables(sql);
-  await sql`create extension if not exists pgcrypto`;
+  await ensurePgCrypto(sql);
   await sql`
     create table if not exists title_trivia (
       id uuid primary key default gen_random_uuid(),
@@ -429,7 +466,7 @@ export async function ensureTriviaTables(sql: any) {
 
 export async function ensureNotificationsTable(sql: any) {
   await ensureAuthTables(sql);
-  await sql`create extension if not exists pgcrypto`;
+  await ensurePgCrypto(sql);
   await sql`
     create table if not exists notifications (
       id uuid primary key default gen_random_uuid(),
@@ -465,7 +502,7 @@ export async function ensureNotificationsTable(sql: any) {
 export async function ensureFollowTitleTables(sql: any) {
   await ensureAuthTables(sql);
   await ensureNotificationsTable(sql);
-  await sql`create extension if not exists pgcrypto`;
+  await ensurePgCrypto(sql);
   await sql`
     create table if not exists followed_titles (
       id uuid primary key default gen_random_uuid(),
@@ -614,6 +651,11 @@ export function mapUserProfile(row: any) {
     streamingRegion: row.streaming_region || "",
     preferredProviders: Array.isArray(row.preferred_providers) ? row.preferred_providers : [],
     showCountryPublicly: Boolean(row.show_country_publicly),
+    profileImageUrl: row.profile_image_url || "",
+    heroImageUrl: row.hero_image_url || "",
+    favoriteMovie: row.favorite_movie || "",
+    favoriteGenre: row.favorite_genre || "",
+    favoriteDirector: row.favorite_director || "",
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -628,6 +670,14 @@ export function mapPublicUserProfile(row: any) {
     displayName: row.display_name || row.handle,
     handle: row.handle,
     bio: row.bio || "",
+    profileImageUrl: row.profile_image_url || "",
+    heroImageUrl: row.hero_image_url || "",
+    favoriteMovie: row.favorite_movie || "",
+    favoriteGenre: row.favorite_genre || "",
+    favoriteDirector: row.favorite_director || "",
+    joinedAt: row.created_at,
+    isOwnProfile: Boolean(row.is_own_profile),
+    isFollowing: Boolean(row.is_following),
     countryCode: row.show_country_publicly ? row.country_code || undefined : undefined,
     stats: row.stats || undefined,
     publicPlaylists,

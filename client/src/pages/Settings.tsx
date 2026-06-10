@@ -10,6 +10,11 @@ const emptyProfile: UserProfile = {
   displayName: "",
   handle: "",
   bio: "",
+  profileImageUrl: "",
+  heroImageUrl: "",
+  favoriteMovie: "",
+  favoriteGenre: "",
+  favoriteDirector: "",
   countryCode: "",
   region: "",
   provinceState: "",
@@ -28,7 +33,7 @@ const countries = [
 ];
 
 function cleanHandle(value: string) {
-  return value.toLowerCase().replace(/[^a-z0-9_-]/g, "");
+  return value.toLowerCase().replace(/[^a-z0-9_]/g, "");
 }
 
 interface SettingsProps {
@@ -180,6 +185,52 @@ export function Settings({ currentUser, onNavigate }: SettingsProps) {
               placeholder="Movie lists, family picks, and weekend watch ideas."
             />
           </label>
+          <label>
+            Profile Picture URL
+            <input
+              autoComplete="url"
+              value={profile.profileImageUrl || ""}
+              onChange={(event) => updateProfile("profileImageUrl", event.target.value)}
+              placeholder="https://..."
+              type="url"
+            />
+          </label>
+          <label>
+            Hero Image URL
+            <input
+              autoComplete="url"
+              value={profile.heroImageUrl || ""}
+              onChange={(event) => updateProfile("heroImageUrl", event.target.value)}
+              placeholder="https://..."
+              type="url"
+            />
+          </label>
+          <div className="profile-favorites-form">
+            <label>
+              Favorite Movie
+              <input
+                value={profile.favoriteMovie || ""}
+                onChange={(event) => updateProfile("favoriteMovie", event.target.value)}
+                placeholder="Back to the Future"
+              />
+            </label>
+            <label>
+              Favorite Genre
+              <input
+                value={profile.favoriteGenre || ""}
+                onChange={(event) => updateProfile("favoriteGenre", event.target.value)}
+                placeholder="Sci-Fi"
+              />
+            </label>
+            <label>
+              Favorite Director
+              <input
+                value={profile.favoriteDirector || ""}
+                onChange={(event) => updateProfile("favoriteDirector", event.target.value)}
+                placeholder="Steven Spielberg"
+              />
+            </label>
+          </div>
         </section>
 
         <section className="settings-panel">

@@ -119,11 +119,17 @@ export function Discover({ onNavigate }: DiscoverProps) {
               <div className="curator-result-grid">
                 {results.profiles.map((profile) => (
                   <button className="curator-result-card" key={profile.handle} onClick={() => onNavigate(`/@${profile.handle}`)} type="button">
-                    <span className="curator-avatar">{profile.displayName.slice(0, 1).toUpperCase()}</span>
+                    {profile.profileImageUrl ? (
+                      <img className="curator-avatar curator-avatar-image" alt={`${profile.displayName} profile`} src={profile.profileImageUrl} />
+                    ) : (
+                      <span className="curator-avatar">{profile.displayName.slice(0, 1).toUpperCase()}</span>
+                    )}
                     <strong>{profile.displayName}</strong>
                     <small>@{profile.handle}</small>
                     {profile.bio ? <p>{profile.bio}</p> : null}
-                    <span>{profile.playlistCount} public playlist{profile.playlistCount === 1 ? "" : "s"}</span>
+                    <span>
+                      {profile.playlistCount} public playlist{profile.playlistCount === 1 ? "" : "s"} · {profile.followerCount || 0} follower{profile.followerCount === 1 ? "" : "s"}
+                    </span>
                   </button>
                 ))}
               </div>

@@ -287,6 +287,11 @@ export interface UserProfile {
   displayName: string;
   handle: string;
   bio?: string;
+  profileImageUrl?: string;
+  heroImageUrl?: string;
+  favoriteMovie?: string;
+  favoriteGenre?: string;
+  favoriteDirector?: string;
   countryCode: string;
   region?: string;
   provinceState?: string;
@@ -431,11 +436,20 @@ export interface PublicUserProfile {
   displayName: string;
   handle: string;
   bio?: string;
+  profileImageUrl?: string;
+  heroImageUrl?: string;
+  favoriteMovie?: string;
+  favoriteGenre?: string;
+  favoriteDirector?: string;
+  joinedAt?: string;
+  isOwnProfile?: boolean;
+  isFollowing?: boolean;
   countryCode?: string;
   stats?: {
     playlistCount: number;
     movieCount: number;
-    futureFollowerCount: number;
+    followerCount: number;
+    followingCount: number;
   };
   publicPlaylists?: Playlist[];
 }
@@ -446,6 +460,8 @@ export interface DiscoveryProfileResult {
   bio?: string;
   playlistCount: number;
   titleCount: number;
+  followerCount?: number;
+  profileImageUrl?: string;
 }
 
 export interface DiscoverySearchResults {
