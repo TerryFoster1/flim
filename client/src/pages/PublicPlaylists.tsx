@@ -1,40 +1,70 @@
 import { PageShell } from "../components/PageShell";
 import { PlaylistGrid } from "../components/PlaylistGrid";
-import type { Playlist, PlaylistMovie } from "../types";
+import type { Playlist } from "../types";
 
 interface PublicPlaylistsProps {
   onNavigate: (path: string) => void;
   playlists: Playlist[];
 }
 
-function byMovieCount(playlists: Playlist[]) {
-  return [...playlists].sort((a, b) => b.movies.length - a.movies.length);
+function isDirectorPlaylist(playlist: Playlist) {
+  return playlist.creatorHandle === "the-director" || playlist.creatorDisplayName === "The Director";
 }
 
 function byUpdated(playlists: Playlist[]) {
-  return [...playlists].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  return [...playlists].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
 }
 
-function byCreated(playlists: Playlist[]) {
-  return [...playlists].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-}
-
-function topSavedMovies(playlists: Playlist[]) {
-  const movies = new Map<string, PlaylistMovie & { saves: number }>();
-  playlists.flatMap((playlist) => playlist.movies).forEach((movie) => {
-    const key = `${movie.mediaType || "movie"}-${movie.tmdbId}`;
-    const existing = movies.get(key);
-    if (existing) {
-      existing.saves += 1;
-      return;
-    }
-    movies.set(key, { ...movie, saves: 1 });
+function byFollowerCount(playlists: Playlist[]) {
+  return [...playlists].sort((a, b) => {
+    const followerDelta = (b.followerCount || 0) - (a.followerCount || 0);
+    if (followerDelta !== 0) return followerDelta;
+    const titleDelta = b.movies.length - a.movies.length;
+    if (titleDelta !== 0) return titleDelta;
+    return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
   });
-  return [...movies.values()].sort((a, b) => b.saves - a.saves || a.title.localeCompare(b.title)).slice(0, 100);
 }
 
-function titlePath(movie: PlaylistMovie) {
-  return `${(movie.mediaType || "movie") === "tv" ? "/tv" : "/movies"}/${movie.tmdbId}`;
+const discoveryGenres = [
+  { title: "Action", keywords: ["action"] },
+  { title: "Comedy", keywords: ["comedy"] },
+  { title: "Drama", keywords: ["drama"] },
+  { title: "Sci-Fi", keywords: ["sci-fi", "science fiction", "sci fi"] },
+  { title: "Horror", keywords: ["horror"] },
+  { title: "Disaster Movies", keywords: ["disaster", "apocalypse"] },
+  { title: "Family", keywords: ["family", "kids"] },
+];
+
+function matchesPlaylistKeywords(playlist: Playlist, keywords: string[]) {
+  const searchable = [
+    playlist.name,
+    playlist.description,
+    playlist.creatorDisplayName || "",
+    playlist.creatorHandle || "",
+    ...playlist.movies.flatMap((movie) => [movie.title, ...movie.genres]),
+  ].join(" ").toLowerCase();
+  return keywords.some((keyword) => searchable.includes(keyword));
+}
+
+function isTemporaryVerificationPlaylist(playlist: Playlist) {
+  const name = playlist.name.toLowerCase();
+  return (
+    name.includes("codex vercel curl add test") ||
+    name.includes("temporary production verification") ||
+    name.includes("production verification playlist")
+  );
+}
+
+function uniqueCuratorPlaylists(playlists: Playlist[]) {
+  const seen = new Set<string>();
+  return byFollowerCount(playlists).filter((playlist) => {
+    const key = playlist.creatorHandle || playlist.creatorDisplayName || playlist.ownerUserId || playlist.id;
+    if (seen.has(key)) {
+      return false;
+    }
+    seen.add(key);
+    return true;
+  });
 }
 
 function DiscoveryShelf({ title, playlists, onNavigate }: { title: string; playlists: Playlist[]; onNavigate: (path: string) => void }) {
@@ -49,14 +79,15 @@ function DiscoveryShelf({ title, playlists, onNavigate }: { title: string; playl
 }
 
 export function PublicPlaylists({ onNavigate, playlists }: PublicPlaylistsProps) {
-  const publicPlaylists = playlists.filter((playlist) => playlist.visibility === "public" && !playlist.isSystem);
-  const popular = byMovieCount(publicPlaylists);
-  const trending = byUpdated(publicPlaylists);
-  const newest = byCreated(publicPlaylists);
-  const topMovies = topSavedMovies(publicPlaylists);
+  const publicPlaylists = playlists.filter((playlist) => playlist.visibility === "public" && !playlist.isSystem && !isTemporaryVerificationPlaylist(playlist));
+  const flimPicks = publicPlaylists.filter(isDirectorPlaylist);
+  const communityPlaylists = publicPlaylists.filter((playlist) => !isDirectorPlaylist(playlist));
+  const featuredCurators = uniqueCuratorPlaylists(communityPlaylists.filter((playlist) => playlist.creatorDisplayName || playlist.creatorHandle));
+  const favorites = byFollowerCount(communityPlaylists);
+  const recentlyUpdated = byUpdated(communityPlaylists);
 
   return (
-    <PageShell eyebrow="Public Playlists" title="Discover movie playlists">
+    <PageShell title="Public Playlists">
       {publicPlaylists.length === 0 ? (
         <section className="empty-playlists-panel cinematic-empty">
           <div className="empty-poster-wall" aria-hidden="true">
@@ -68,33 +99,19 @@ export function PublicPlaylists({ onNavigate, playlists }: PublicPlaylistsProps)
         </section>
       ) : null}
 
-      <section className="discovery-section">
-        <div className="discovery-section-heading">
-          <h2>Most Saved Movies</h2>
-        </div>
-        {topMovies.length > 0 ? (
-          <div className="top-movie-strip">
-            {topMovies.slice(0, 12).map((movie, index) => (
-              <button className="top-movie-card reset-button" key={`${movie.mediaType || "movie"}-${movie.tmdbId}`} onClick={() => onNavigate(titlePath(movie))} type="button">
-                <span>{index + 1}</span>
-                {movie.posterUrl ? <img alt={`${movie.title} poster`} src={movie.posterUrl} /> : <i />}
-                <strong>{movie.title}</strong>
-                <small>{movie.saves} saves</small>
-              </button>
-            ))}
-          </div>
-        ) : (
-          <p className="empty-state">Top movies will appear as public playlists grow.</p>
-        )}
-      </section>
-
       <div className="discovery-grid">
-        <DiscoveryShelf title="Top Public Playlists" playlists={popular} onNavigate={onNavigate} />
-        <DiscoveryShelf title="Trending Public Playlists" playlists={trending} onNavigate={onNavigate} />
-        <DiscoveryShelf title="Most Shared Playlists" playlists={popular} onNavigate={onNavigate} />
-        <DiscoveryShelf title="Most Viewed Playlists" playlists={trending} onNavigate={onNavigate} />
-        <DiscoveryShelf title="Recently Created Public Playlists" playlists={newest} onNavigate={onNavigate} />
-        <DiscoveryShelf title="Recommended Playlists" playlists={popular} onNavigate={onNavigate} />
+        <DiscoveryShelf title="Flim Picks" playlists={flimPicks} onNavigate={onNavigate} />
+        <DiscoveryShelf title="Featured Curators" playlists={featuredCurators} onNavigate={onNavigate} />
+        <DiscoveryShelf title="Community Favorites" playlists={favorites} onNavigate={onNavigate} />
+        {discoveryGenres.map((genre) => (
+          <DiscoveryShelf
+            key={genre.title}
+            title={genre.title}
+            playlists={byFollowerCount(publicPlaylists.filter((playlist) => matchesPlaylistKeywords(playlist, genre.keywords)))}
+            onNavigate={onNavigate}
+          />
+        ))}
+        <DiscoveryShelf title="Recently Updated" playlists={recentlyUpdated} onNavigate={onNavigate} />
       </div>
 
     </PageShell>

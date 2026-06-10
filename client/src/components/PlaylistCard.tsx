@@ -11,6 +11,15 @@ export function PlaylistCard({ playlist, large, onNavigate }: PlaylistCardProps)
   const isDirectorPlaylist = playlist.creatorHandle === "the-director" || playlist.creatorDisplayName === "The Director";
   const detailPath = playlist.visibility === "public" && !playlist.isOwner ? `/p/${playlist.publicSlug}` : `/playlists/${playlist.id}`;
   const followerCount = playlist.followerCount || 0;
+  const titleCountLabel = `${playlist.movies.length} ${playlist.movies.length === 1 ? "title" : "titles"}`;
+  const creatorLabel = isDirectorPlaylist
+    ? "Curated by The Director"
+    : playlist.creatorDisplayName
+      ? `by ${playlist.creatorDisplayName}`
+      : playlist.creatorHandle
+        ? `by @${playlist.creatorHandle}`
+        : "";
+  const updatedLabel = formatUpdatedAt(playlist.updatedAt);
 
   return (
     <article className={`playlist-card ${large ? "large" : ""}`}>
@@ -32,13 +41,28 @@ export function PlaylistCard({ playlist, large, onNavigate }: PlaylistCardProps)
         <h3>{playlist.name}</h3>
         {playlist.description ? <p>{playlist.description}</p> : null}
         <div className="card-meta">
-          <span>{playlist.visibility}</span>
-          <span>{playlist.movies.length} titles</span>
+          {playlist.visibility !== "public" ? <span>{playlist.visibility}</span> : null}
+          <span>{titleCountLabel}</span>
           {playlist.visibility === "public" ? <span>{followerCount} {followerCount === 1 ? "follower" : "followers"}</span> : null}
           {playlist.isFollowing ? <span>Following</span> : null}
-          {isDirectorPlaylist ? <span>Curated by The Director</span> : playlist.creatorHandle ? <span>by @{playlist.creatorHandle}</span> : null}
+          {creatorLabel ? <span>{creatorLabel}</span> : null}
+          {updatedLabel ? <span>{updatedLabel}</span> : null}
         </div>
       </button>
     </article>
   );
+}
+
+function formatUpdatedAt(value?: string) {
+  if (!value) return "";
+  const updated = new Date(value).getTime();
+  if (!Number.isFinite(updated)) return "";
+  const days = Math.max(0, Math.floor((Date.now() - updated) / 86_400_000));
+  if (days === 0) return "Updated today";
+  if (days === 1) return "Updated yesterday";
+  if (days < 30) return `Updated ${days} days ago`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `Updated ${months} ${months === 1 ? "month" : "months"} ago`;
+  const years = Math.floor(months / 12);
+  return `Updated ${years} ${years === 1 ? "year" : "years"} ago`;
 }
