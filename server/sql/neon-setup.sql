@@ -657,6 +657,13 @@ create unique index if not exists push_subscriptions_endpoint_unique
 create index if not exists push_subscriptions_user_enabled_idx
   on push_subscriptions (user_id, enabled);
 
+create table if not exists roulette_playlist_preferences (
+  user_id uuid primary key references users(id) on delete cascade,
+  excluded_playlist_ids jsonb not null default '[]'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 create table if not exists push_notification_preferences (
   user_id uuid primary key references users(id) on delete cascade,
   preferences jsonb not null default '{}'::jsonb,

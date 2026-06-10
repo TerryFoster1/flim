@@ -1310,7 +1310,16 @@ h3 { margin-bottom: 8px; }
   color: var(--muted);
   max-width: 52ch;
 }
+.roulette-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
 .roulette-advanced-toggle {
+  white-space: nowrap;
+}
+.roulette-reset-selection {
   white-space: nowrap;
 }
 .roulette-chip-grid {

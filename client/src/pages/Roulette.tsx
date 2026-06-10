@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { TapToSpinPoster, VintageCountdown } from "../components/RouletteAssets";
+import { getRoulettePlaylistPreferences, saveRoulettePlaylistPreferences } from "../services/roulettePreferencesService";
 import type { Playlist, PlaylistMovie } from "../types";
 
 interface RouletteProps {
@@ -18,6 +19,7 @@ interface RouletteMovie {
 
 const spinTicks = [0, 120, 240, 360, 500, 650, 820, 1010, 1230, 1480, 1760, 2070];
 const genreFilters = ["Action", "Comedy", "Drama", "Horror", "Sci-Fi", "Family", "Romance", "Thriller", "Animation"];
+const rouletteStorageKey = "flim.roulette.excludedPlaylistIds.v1";
 
 function buildMoviePool(playlists: Playlist[], activePlaylistIds: string[]) {
   const seen = new Set<string>();
@@ -41,7 +43,7 @@ export function Roulette({ playlists, onNavigate }: RouletteProps) {
   const [mediaFilter, setMediaFilter] = useState<MediaFilter>("both");
   const [watchFilter, setWatchFilter] = useState<WatchFilter>("both");
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
-  const [selectedPlaylistIds, setSelectedPlaylistIds] = useState<string[]>([]);
+  const [excludedPlaylistIds, setExcludedPlaylistIds] = useState<string[]>([]);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [phase, setPhase] = useState<RoulettePhase>("idle");
   const [displayedEntry, setDisplayedEntry] = useState<RouletteMovie | null>(null);
@@ -51,8 +53,8 @@ export function Roulette({ playlists, onNavigate }: RouletteProps) {
   const selectedEntryRef = useRef<RouletteMovie | null>(null);
 
   const allPlaylistIds = useMemo(() => playlists.map((playlist) => playlist.id), [playlists]);
-  const activePlaylistIds = selectedPlaylistIds.length > 0 ? selectedPlaylistIds : allPlaylistIds;
-  const selectedPlaylistCount = selectedPlaylistIds.length > 0 ? selectedPlaylistIds.length : playlists.length;
+  const activePlaylistIds = useMemo(() => allPlaylistIds.filter((playlistId) => !excludedPlaylistIds.includes(playlistId)), [allPlaylistIds, excludedPlaylistIds]);
+  const selectedPlaylistCount = activePlaylistIds.length;
 
   const moviePool = useMemo(() => buildMoviePool(playlists, activePlaylistIds), [playlists, activePlaylistIds]);
   const filteredPool = moviePool.filter(({ movie }) => {
@@ -73,6 +75,28 @@ export function Roulette({ playlists, onNavigate }: RouletteProps) {
   useEffect(() => {
     return () => clearTimers();
   }, []);
+
+  useEffect(() => {
+    const savedLocal = readLocalExcludedPlaylistIds();
+    if (savedLocal.length > 0) setExcludedPlaylistIds(savedLocal);
+
+    getRoulettePlaylistPreferences()
+      .then((preferences) => {
+        setExcludedPlaylistIds(filterKnownPlaylistIds(preferences.excludedPlaylistIds, allPlaylistIds));
+      })
+      .catch(() => {
+        // Signed-out users keep a local preference fallback.
+      });
+  }, []);
+
+  useEffect(() => {
+    setExcludedPlaylistIds((current) => {
+      const clean = filterKnownPlaylistIds(current, allPlaylistIds);
+      if (clean.length === current.length && clean.every((id, index) => id === current[index])) return current;
+      persistExcludedPlaylistIds(clean);
+      return clean;
+    });
+  }, [allPlaylistIds]);
 
   function clearTimers() {
     timers.current.forEach(window.clearTimeout);
@@ -109,18 +133,49 @@ export function Roulette({ playlists, onNavigate }: RouletteProps) {
 
   function chooseAllPlaylists() {
     if (isBusy) return;
-    setSelectedPlaylistIds([]);
+    persistExcludedPlaylistIds([]);
+    setExcludedPlaylistIds([]);
     resetRoulette();
   }
 
   function togglePlaylist(playlistId: string) {
     if (isBusy) return;
-    setSelectedPlaylistIds((current) => {
-      const activeIds = current.length > 0 ? current : allPlaylistIds;
-      const nextIds = activeIds.includes(playlistId) ? activeIds.filter((id) => id !== playlistId) : [...activeIds, playlistId];
-      return nextIds.length === 0 || nextIds.length === allPlaylistIds.length ? [] : nextIds;
+    setExcludedPlaylistIds((current) => {
+      const nextIds = current.includes(playlistId)
+        ? current.filter((id) => id !== playlistId)
+        : [...current, playlistId];
+      const clean = filterKnownPlaylistIds(nextIds, allPlaylistIds);
+      persistExcludedPlaylistIds(clean);
+      return clean;
     });
     resetRoulette();
+  }
+
+  function readLocalExcludedPlaylistIds() {
+    try {
+      const raw = window.localStorage.getItem(rouletteStorageKey);
+      const parsed = raw ? JSON.parse(raw) : [];
+      return filterKnownPlaylistIds(Array.isArray(parsed) ? parsed.map(String) : [], allPlaylistIds);
+    } catch {
+      return [];
+    }
+  }
+
+  function filterKnownPlaylistIds(values: string[], knownPlaylistIds: string[]) {
+    const known = new Set(knownPlaylistIds);
+    return [...new Set(values)].filter((playlistId) => known.has(playlistId));
+  }
+
+  function persistExcludedPlaylistIds(nextIds: string[]) {
+    try {
+      window.localStorage.setItem(rouletteStorageKey, JSON.stringify(nextIds));
+    } catch {
+      // localStorage can fail in private browsing; the DB save below is still attempted.
+    }
+
+    saveRoulettePlaylistPreferences(nextIds).catch(() => {
+      // Signed-out users intentionally fall back to localStorage.
+    });
   }
 
   function startSpin() {
@@ -234,9 +289,16 @@ export function Roulette({ playlists, onNavigate }: RouletteProps) {
             <h2>Choose Playlists</h2>
             <p>{loadedLabel}</p>
           </div>
-          <button className="secondary-button roulette-advanced-toggle" disabled={isBusy} onClick={() => setShowAdvancedFilters((current) => !current)} type="button">
-            {showAdvancedFilters ? "Hide Filters" : "Refine Results"}
-          </button>
+          <div className="roulette-header-actions">
+            {excludedPlaylistIds.length > 0 ? (
+              <button className="secondary-button roulette-reset-selection" disabled={isBusy} onClick={chooseAllPlaylists} type="button">
+                Reset to all playlists
+              </button>
+            ) : null}
+            <button className="secondary-button roulette-advanced-toggle" disabled={isBusy} onClick={() => setShowAdvancedFilters((current) => !current)} type="button">
+              {showAdvancedFilters ? "Hide Filters" : "Refine Results"}
+            </button>
+          </div>
         </div>
 
         {playlists.length === 0 ? (
@@ -253,13 +315,13 @@ export function Roulette({ playlists, onNavigate }: RouletteProps) {
           <>
             <div className="roulette-chip-grid">
               <button
-                aria-pressed={selectedPlaylistIds.length === 0}
-                className={`roulette-playlist-chip all-playlists-chip ${selectedPlaylistIds.length === 0 ? "is-selected" : ""}`}
+                aria-pressed={excludedPlaylistIds.length === 0}
+                className={`roulette-playlist-chip all-playlists-chip ${excludedPlaylistIds.length === 0 ? "is-selected" : ""}`}
                 disabled={isBusy}
                 onClick={chooseAllPlaylists}
                 type="button"
               >
-                <span className="roulette-selection-mark" aria-hidden="true">{selectedPlaylistIds.length === 0 ? "In" : ""}</span>
+                <span className="roulette-selection-mark" aria-hidden="true">{excludedPlaylistIds.length === 0 ? "In" : ""}</span>
                 <span className="roulette-chip-cover">
                   {moviePool.slice(0, 4).map(({ movie }) =>
                     movie.posterUrl ? <img alt="" key={`${movie.mediaType || "movie"}-${movie.tmdbId}`} src={movie.posterUrl} /> : <i key={`${movie.mediaType || "movie"}-${movie.tmdbId}`} />,
@@ -271,7 +333,7 @@ export function Roulette({ playlists, onNavigate }: RouletteProps) {
               </button>
 
               {playlists.map((playlist) => {
-                const selected = selectedPlaylistIds.length === 0 || selectedPlaylistIds.includes(playlist.id);
+                const selected = !excludedPlaylistIds.includes(playlist.id);
                 return (
                   <button
                     aria-pressed={selected}

@@ -59,6 +59,23 @@ function cleanProfileInput(body: any) {
   };
 }
 
+function cleanExcludedPlaylistIds(value: unknown) {
+  if (!Array.isArray(value)) return [];
+  return [...new Set(value.map((item) => String(item || "").trim()).filter(Boolean))].slice(0, 500);
+}
+
+async function ensureRoulettePreferencesTable(sql: any) {
+  await sql`create extension if not exists pgcrypto`;
+  await sql`
+    create table if not exists roulette_playlist_preferences (
+      user_id uuid primary key references users(id) on delete cascade,
+      excluded_playlist_ids jsonb not null default '[]'::jsonb,
+      created_at timestamptz not null default now(),
+      updated_at timestamptz not null default now()
+    )
+  `;
+}
+
 function getProfileSegment(request: any) {
   const pathname = new URL(request.url || "", "https://www.flim.ca").pathname;
   if (pathname === "/api/admin/export") return "admin/export";
@@ -71,13 +88,86 @@ function getProfileSegment(request: any) {
   return querySegment;
 }
 
+async function handleRoulettePreferences(request: any, response: any, sql: any) {
+  const user = await getCurrentUser(sql, request);
+  if (!user) return sendJson(response, 401, { error: "Sign in to save Roulette preferences." });
+
+  await ensureRoulettePreferencesTable(sql);
+
+  if (request.method === "GET") {
+    const rows = await sql`
+      select excluded_playlist_ids, updated_at
+      from roulette_playlist_preferences
+      where user_id = ${user.id}
+      limit 1
+    `;
+    return sendJson(response, 200, {
+      excludedPlaylistIds: cleanExcludedPlaylistIds(rows[0]?.excluded_playlist_ids || []),
+      updatedAt: rows[0]?.updated_at || null,
+    });
+  }
+
+  if (request.method === "PATCH") {
+    const body = await readBody(request);
+    const excludedPlaylistIds = cleanExcludedPlaylistIds(body.excludedPlaylistIds);
+    const [saved] = await sql`
+      insert into roulette_playlist_preferences (user_id, excluded_playlist_ids)
+      values (${user.id}, ${JSON.stringify(excludedPlaylistIds)}::jsonb)
+      on conflict (user_id) do update set
+        excluded_playlist_ids = excluded.excluded_playlist_ids,
+        updated_at = now()
+      returning excluded_playlist_ids, updated_at
+    `;
+    return sendJson(response, 200, {
+      excludedPlaylistIds: cleanExcludedPlaylistIds(saved.excluded_playlist_ids),
+      updatedAt: saved.updated_at,
+    });
+  }
+
+  return sendJson(response, 405, { error: "Method not allowed." });
+}
+
+async function getRouletteExcludedPlaylistIds(sql: any, userId: string) {
+  await ensureRoulettePreferencesTable(sql);
+  const rows = await sql`
+    select excluded_playlist_ids
+    from roulette_playlist_preferences
+    where user_id = ${userId}
+    limit 1
+  `;
+  return cleanExcludedPlaylistIds(rows[0]?.excluded_playlist_ids || []);
+}
+
 async function handleCurrentProfile(request: any, response: any, sql: any) {
   const user = await getCurrentUser(sql, request);
   if (!user) return sendJson(response, 401, { error: "Sign in to manage your profile." });
 
   if (request.method === "GET") {
     const rows = await sql`select * from user_profiles where user_id = ${user.id}::text limit 1`;
-    return sendJson(response, 200, rows[0] ? mapUserProfile(rows[0]) : defaultProfile);
+    const profile = rows[0] ? mapUserProfile(rows[0]) : defaultProfile;
+    return sendJson(response, 200, {
+      ...profile,
+      rouletteExcludedPlaylistIds: await getRouletteExcludedPlaylistIds(sql, user.id),
+    });
+  }
+
+  if (request.method === "PATCH") {
+    const body = await readBody(request);
+    if (!Array.isArray(body.excludedPlaylistIds)) return sendJson(response, 400, { error: "Missing Roulette playlist preferences." });
+    const excludedPlaylistIds = cleanExcludedPlaylistIds(body.excludedPlaylistIds);
+    await ensureRoulettePreferencesTable(sql);
+    const [saved] = await sql`
+      insert into roulette_playlist_preferences (user_id, excluded_playlist_ids)
+      values (${user.id}, ${JSON.stringify(excludedPlaylistIds)}::jsonb)
+      on conflict (user_id) do update set
+        excluded_playlist_ids = excluded.excluded_playlist_ids,
+        updated_at = now()
+      returning excluded_playlist_ids, updated_at
+    `;
+    return sendJson(response, 200, {
+      excludedPlaylistIds: cleanExcludedPlaylistIds(saved.excluded_playlist_ids),
+      updatedAt: saved.updated_at,
+    });
   }
 
   if (request.method === "PUT") {
