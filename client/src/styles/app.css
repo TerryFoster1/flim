@@ -4701,11 +4701,20 @@ textarea { min-height: 42px; resize: vertical; }
   background: rgba(255,255,255,.055);
   scroll-snap-align: start;
 }
+.continue-watching-card-poster {
+  display: grid;
+  grid-template-columns: 116px minmax(0, 1fr);
+}
 .continue-watching-art {
   width: 100%;
   aspect-ratio: 16 / 9;
   display: block;
   background: rgba(255,255,255,.08);
+}
+.continue-watching-card-poster .continue-watching-art {
+  height: 100%;
+  min-height: 174px;
+  aspect-ratio: auto;
 }
 .continue-watching-art img {
   width: 100%;
@@ -7337,6 +7346,12 @@ textarea { min-height: 42px; resize: vertical; }
   }
   .continue-watching-row {
     grid-auto-columns: minmax(240px, 82vw);
+  }
+  .continue-watching-card-poster {
+    grid-template-columns: 104px minmax(0, 1fr);
+  }
+  .continue-watching-card-poster .continue-watching-art {
+    min-height: 160px;
   }
   .media-extension-heading {
     display: grid;

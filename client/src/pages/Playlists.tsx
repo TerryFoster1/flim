@@ -256,7 +256,7 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
         </div>
       ) : null}
 
-      {view === "my" && currentUser ? <ContinueWatchingRow onNavigate={onNavigate} /> : null}
+      {view === "my" && currentUser ? <ContinueWatchingRow includeFollowedFallback onNavigate={onNavigate} /> : null}
       {showCreate ? (
         <form className="collection-create-panel" onSubmit={submit}>
           {!currentUser ? <p className="helper-text">Sign in to create playlists that belong to you.</p> : null}

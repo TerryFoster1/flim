@@ -1,4 +1,4 @@
-import { db, getCurrentUser, sendJson } from "./_db.js";
+import { db, ensureFollowTitleTables, getCurrentUser, sendJson } from "./_db.js";
 import { ensureTvProgressTables } from "./_tvProgress.js";
 
 function mapContinueWatching(row: any) {
@@ -16,6 +16,21 @@ function mapContinueWatching(row: any) {
     progressPercent: Number(row.progress_percent || 0),
     lastWatchedAt: row.last_watched_at || row.updated_at,
     actionPath: `/tv/${row.tmdb_show_id}${seasonNumber && episodeNumber ? `?s=${seasonNumber}&e=${episodeNumber}` : ""}`,
+    source: "progress",
+  };
+}
+
+function mapFollowedShow(row: any) {
+  return {
+    mediaType: "tv",
+    tmdbId: Number(row.tmdb_id),
+    title: row.title,
+    posterUrl: row.poster_url || undefined,
+    backdropUrl: row.backdrop_url || undefined,
+    progressPercent: 0,
+    lastWatchedAt: row.updated_at || row.created_at,
+    actionPath: `/tv/${row.tmdb_id}`,
+    source: "followed",
   };
 }
 
@@ -27,6 +42,7 @@ export default async function handler(request: any, response: any) {
     await ensureTvProgressTables(sql);
     const user = await getCurrentUser(sql, request);
     if (!user) return sendJson(response, 401, { error: "Sign in to view Continue Watching." });
+    const includeFollowed = String(request.query?.includeFollowed || "") === "true";
 
     const rows = await sql`
       select
@@ -46,10 +62,32 @@ export default async function handler(request: any, response: any) {
       where sp.user_id = ${user.id}
         and sp.status = 'watching'
       order by sp.last_watched_at desc nulls last, sp.updated_at desc
-      limit 12
+      limit 6
     `;
 
-    return sendJson(response, 200, { items: rows.map(mapContinueWatching) });
+    if (rows.length > 0 || !includeFollowed) {
+      return sendJson(response, 200, { items: rows.map(mapContinueWatching) });
+    }
+
+    await ensureFollowTitleTables(sql);
+    const followedRows = await sql`
+      select
+        ft.created_at,
+        ft.updated_at,
+        mi.media_type,
+        mi.tmdb_id,
+        mi.title,
+        mi.poster_url,
+        mi.backdrop_url
+      from followed_titles ft
+      inner join media_items mi on mi.id = ft.media_item_id
+      where ft.user_id = ${user.id}
+        and ft.media_type = 'tv'
+      order by ft.updated_at desc, ft.created_at desc
+      limit 6
+    `;
+
+    return sendJson(response, 200, { items: followedRows.map(mapFollowedShow) });
   } catch (error) {
     console.error("continue_watching_failed", error instanceof Error ? error.message : "Continue Watching request failed.");
     return sendJson(response, 500, { error: "Unable to load Continue Watching. Please try again." });

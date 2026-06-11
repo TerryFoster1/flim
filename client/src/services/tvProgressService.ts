@@ -46,6 +46,9 @@ export function startShowProgress(tmdbShowId: number) {
   });
 }
 
-export function getContinueWatching() {
-  return tvProgressRequest<{ items: ContinueWatchingItem[] }>("/api/continue-watching");
+export function getContinueWatching(options: { includeFollowedFallback?: boolean } = {}) {
+  const params = new URLSearchParams();
+  if (options.includeFollowedFallback) params.set("includeFollowed", "true");
+  const query = params.toString();
+  return tvProgressRequest<{ items: ContinueWatchingItem[] }>(`/api/continue-watching${query ? `?${query}` : ""}`);
 }

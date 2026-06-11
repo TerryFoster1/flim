@@ -375,6 +375,7 @@ export interface ContinueWatchingItem {
   progressPercent: number;
   lastWatchedAt?: string;
   actionPath: string;
+  source?: "progress" | "followed";
 }
 
 export interface PlaylistMovie {
