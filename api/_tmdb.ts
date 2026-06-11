@@ -17,6 +17,15 @@ interface TmdbSearchMovie {
   popularity?: number;
 }
 
+interface TmdbCastMember {
+  id: number;
+  name?: string;
+  character?: string;
+  profile_path?: string | null;
+  order?: number;
+  known_for_department?: string;
+}
+
 interface TmdbMovieDetails extends TmdbSearchMovie {
   runtime?: number;
   status?: string;
@@ -36,6 +45,9 @@ interface TmdbMovieDetails extends TmdbSearchMovie {
       rating?: string;
     }>;
   };
+  credits?: {
+    cast?: TmdbCastMember[];
+  };
   seasons?: Array<{
     id?: number;
     season_number?: number;
@@ -44,6 +56,28 @@ interface TmdbMovieDetails extends TmdbSearchMovie {
     poster_path?: string | null;
     air_date?: string;
   }>;
+}
+
+interface TmdbPersonSearchResult {
+  id: number;
+  name?: string;
+  profile_path?: string | null;
+  known_for_department?: string;
+  popularity?: number;
+  known_for?: TmdbSearchMovie[];
+}
+
+interface TmdbPersonDetails extends TmdbPersonSearchResult {
+  biography?: string;
+  birthday?: string | null;
+  place_of_birth?: string | null;
+  combined_credits?: {
+    cast?: Array<TmdbSearchMovie & {
+      media_type?: "movie" | "tv";
+      character?: string;
+      popularity?: number;
+    }>;
+  };
 }
 
 interface TmdbSeasonDetails {
@@ -129,6 +163,49 @@ function mapSearchMovie(movie: TmdbSearchMovie, mediaType: "movie" | "tv" = "mov
     genreIds: movie.genre_ids || [],
     language: movie.original_language || undefined,
     popularity: movie.popularity,
+  };
+}
+
+function mapCastMember(member: TmdbCastMember) {
+  return {
+    tmdbId: member.id,
+    name: member.name || "Unknown actor",
+    character: member.character || undefined,
+    profileUrl: posterUrl(member.profile_path),
+    order: typeof member.order === "number" ? member.order : undefined,
+    knownForDepartment: member.known_for_department || undefined,
+  };
+}
+
+function mapKnownFor(items: TmdbSearchMovie[] = []) {
+  return items
+    .map((item: any) => item.title || item.name)
+    .filter(Boolean)
+    .slice(0, 3);
+}
+
+function mapPersonSearchResult(person: TmdbPersonSearchResult) {
+  return {
+    tmdbId: person.id,
+    name: person.name || "Unknown actor",
+    profileUrl: posterUrl(person.profile_path),
+    knownForDepartment: person.known_for_department || undefined,
+    knownFor: mapKnownFor(person.known_for || []),
+    popularity: person.popularity,
+  };
+}
+
+function mapPersonCredit(credit: TmdbSearchMovie & { media_type?: "movie" | "tv"; character?: string; popularity?: number }) {
+  const mediaType = credit.media_type === "tv" ? "tv" : "movie";
+  const base = mapSearchMovie(credit, mediaType);
+  return {
+    tmdbId: base.tmdbId,
+    mediaType,
+    title: base.title,
+    releaseYear: base.releaseYear,
+    posterUrl: base.posterUrl,
+    character: credit.character || undefined,
+    popularity: credit.popularity,
   };
 }
 
@@ -265,7 +342,7 @@ export async function fetchTmdbMovieDetails(tmdbId: number, mediaType: "movie" |
 
   const url = new URL(`${TMDB_API_BASE_URL}/${mediaType}/${tmdbId}`);
   url.searchParams.set("language", "en-US");
-  url.searchParams.set("append_to_response", mediaType === "tv" ? "content_ratings" : "release_dates");
+  url.searchParams.set("append_to_response", mediaType === "tv" ? "content_ratings,credits" : "release_dates,credits");
 
   const response = await fetch(url, applyTmdbAuth(url));
   if (!response.ok) {
@@ -299,7 +376,73 @@ export async function fetchTmdbMovieDetails(tmdbId: number, mediaType: "movie" |
     contentRatings,
     contentRatingVersion: 1,
     status: payload.status,
+    cast: (payload.credits?.cast || []).slice(0, 16).map(mapCastMember),
+    castVersion: 1,
   };
+}
+
+export async function fetchTmdbPersonDetails(tmdbId: number) {
+  if (!hasServerTmdbCredential()) {
+    throw new Error("TMDb server credentials are missing.");
+  }
+
+  const url = new URL(`${TMDB_API_BASE_URL}/person/${tmdbId}`);
+  url.searchParams.set("language", "en-US");
+  url.searchParams.set("append_to_response", "combined_credits");
+
+  const response = await fetch(url, applyTmdbAuth(url));
+  if (!response.ok) {
+    throw new Error("Actor details failed.");
+  }
+
+  const payload = (await response.json()) as TmdbPersonDetails;
+  const credits = (payload.combined_credits?.cast || [])
+    .filter((credit) => credit.media_type === "movie" || credit.media_type === "tv")
+    .map(mapPersonCredit)
+    .filter((credit) => credit.tmdbId && credit.title);
+  const seen = new Set<string>();
+  const uniqueCredits = credits
+    .sort((a, b) => Number(b.popularity || 0) - Number(a.popularity || 0))
+    .filter((credit) => {
+      const key = `${credit.mediaType}-${credit.tmdbId}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+
+  return {
+    tmdbId: payload.id,
+    name: payload.name || "Unknown actor",
+    biography: payload.biography || "",
+    birthDate: payload.birthday || undefined,
+    birthYear: payload.birthday ? payload.birthday.slice(0, 4) : undefined,
+    placeOfBirth: payload.place_of_birth || undefined,
+    profileUrl: posterUrl(payload.profile_path),
+    knownForDepartment: payload.known_for_department || undefined,
+    knownFor: mapKnownFor(payload.known_for || []),
+    popularity: payload.popularity,
+    movieCredits: uniqueCredits.filter((credit) => credit.mediaType === "movie").slice(0, 36),
+    tvCredits: uniqueCredits.filter((credit) => credit.mediaType === "tv").slice(0, 36),
+  };
+}
+
+export async function fetchTmdbPersonSearch(query: string) {
+  if (!hasServerTmdbCredential()) {
+    throw new Error("TMDb server credentials are missing.");
+  }
+
+  const url = new URL(`${TMDB_API_BASE_URL}/search/person`);
+  url.searchParams.set("query", query);
+  url.searchParams.set("include_adult", "false");
+  url.searchParams.set("language", "en-US");
+
+  const response = await fetch(url, applyTmdbAuth(url));
+  if (!response.ok) {
+    throw new Error("Actor search failed.");
+  }
+
+  const payload = (await response.json()) as { results?: TmdbPersonSearchResult[] };
+  return (payload.results || []).map(mapPersonSearchResult).slice(0, 8);
 }
 
 export async function fetchTmdbTvSeasonDetails(tmdbShowId: number, seasonNumber: number) {

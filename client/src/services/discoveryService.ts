@@ -8,6 +8,7 @@ export async function searchDiscovery(query: string) {
       titles: [],
       playlists: [],
       profiles: [],
+      actors: [],
       titleSource: "empty",
     } satisfies DiscoverySearchResults;
   }
@@ -23,5 +24,9 @@ export async function searchDiscovery(query: string) {
     throw new Error(payload.error || "Discovery search failed.");
   }
 
-  return response.json() as Promise<DiscoverySearchResults>;
+  const payload = await response.json() as DiscoverySearchResults;
+  return {
+    ...payload,
+    actors: Array.isArray(payload.actors) ? payload.actors : [],
+  };
 }

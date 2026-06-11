@@ -4,6 +4,7 @@ import {
   getCatalogMediaItem,
   mapCatalogDetails,
   mapCatalogSearchResult,
+  upsertMediaCast,
   upsertMediaItem,
   upsertMediaItems,
 } from "../_mediaCatalog.js";
@@ -13,6 +14,10 @@ const SEARCH_CACHE_DAYS = 7;
 const MOVIE_CACHE_DAYS = 30;
 const USEFUL_SEARCH_RESULT_COUNT = 8;
 const MAX_SEARCH_RESULTS = 24;
+
+function hasCastPayload(details: any) {
+  return Array.isArray(details?.cast) && details.cast.length > 0;
+}
 
 function moviePath(request: any) {
   const pathname = new URL(request.url || "", "https://www.flim.ca").pathname;
@@ -97,7 +102,7 @@ async function handleMovieDetails(tmdbId: number, response: any) {
   await ensureTmdbCacheTables(sql);
   const catalogItem = await getCatalogMediaItem(sql, tmdbId, "movie");
   const catalogDetails = catalogItem ? mapCatalogDetails(catalogItem) : null;
-  if (catalogDetails?.contentRatingVersion === 1 || (catalogDetails?.genres?.length || 0) > 0) {
+  if ((catalogDetails?.contentRatingVersion === 1 || (catalogDetails?.genres?.length || 0) > 0) && hasCastPayload(catalogDetails)) {
     response.setHeader("X-Flim-Catalog", "HIT");
     response.setHeader("X-Flim-Cache", "SKIP");
     return sendJson(response, 200, catalogDetails);
@@ -113,7 +118,7 @@ async function handleMovieDetails(tmdbId: number, response: any) {
     limit 1
   `;
 
-  if (cached[0]?.response_json?.contentRatingVersion === 1) {
+  if (cached[0]?.response_json?.contentRatingVersion === 1 && hasCastPayload(cached[0].response_json)) {
     await upsertMediaItem(sql, cached[0].response_json);
     response.setHeader("X-Flim-Catalog", catalogItem ? "STALE" : "MISS");
     response.setHeader("X-Flim-Cache", "HIT");
@@ -121,7 +126,8 @@ async function handleMovieDetails(tmdbId: number, response: any) {
   }
 
   const movie = await fetchTmdbMovieDetails(tmdbId, "movie");
-  await upsertMediaItem(sql, movie);
+  const mediaItem = await upsertMediaItem(sql, movie);
+  await upsertMediaCast(sql, mediaItem, movie.cast || []);
   await sql`
     insert into tmdb_movie_cache (tmdb_id, media_type, response_json, expires_at)
     values (${tmdbId}, 'movie', ${JSON.stringify(movie)}::jsonb, now() + (${MOVIE_CACHE_DAYS} * interval '1 day'))
@@ -143,7 +149,7 @@ async function handleTvDetails(tmdbId: number, response: any) {
   await ensureTmdbCacheTables(sql);
   const catalogItem = await getCatalogMediaItem(sql, tmdbId, "tv");
   const catalogDetails = catalogItem ? mapCatalogDetails(catalogItem) : null;
-  if (catalogDetails?.contentRatingVersion === 1 || (catalogDetails?.genres?.length || 0) > 0) {
+  if ((catalogDetails?.contentRatingVersion === 1 || (catalogDetails?.genres?.length || 0) > 0) && hasCastPayload(catalogDetails)) {
     response.setHeader("X-Flim-Catalog", "HIT");
     response.setHeader("X-Flim-Cache", "SKIP");
     return sendJson(response, 200, catalogDetails);
@@ -159,7 +165,7 @@ async function handleTvDetails(tmdbId: number, response: any) {
     limit 1
   `;
 
-  if (cached[0]?.response_json?.contentRatingVersion === 1) {
+  if (cached[0]?.response_json?.contentRatingVersion === 1 && hasCastPayload(cached[0].response_json)) {
     await upsertMediaItem(sql, cached[0].response_json);
     response.setHeader("X-Flim-Catalog", catalogItem ? "STALE" : "MISS");
     response.setHeader("X-Flim-Cache", "HIT");
@@ -167,7 +173,8 @@ async function handleTvDetails(tmdbId: number, response: any) {
   }
 
   const show = await fetchTmdbMovieDetails(tmdbId, "tv");
-  await upsertMediaItem(sql, show);
+  const mediaItem = await upsertMediaItem(sql, show);
+  await upsertMediaCast(sql, mediaItem, show.cast || []);
   await sql`
     insert into tmdb_movie_cache (tmdb_id, media_type, response_json, expires_at)
     values (${tmdbId}, 'tv', ${JSON.stringify(show)}::jsonb, now() + (${MOVIE_CACHE_DAYS} * interval '1 day'))

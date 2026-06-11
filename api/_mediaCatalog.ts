@@ -21,6 +21,8 @@ export interface CatalogMediaInput {
   seasonCount?: number;
   episodeCount?: number;
   seasons?: Array<Record<string, unknown>>;
+  cast?: Array<Record<string, unknown>>;
+  castVersion?: number;
   contentRatings?: Array<{ countryCode: string; rating: string }>;
   contentRatingVersion?: number;
 }
@@ -114,10 +116,20 @@ async function ensureMediaCatalogTablesUncached(sql: any) {
       name text not null,
       profile_url text,
       known_for_department text,
+      biography text,
+      birth_date date,
+      place_of_birth text,
+      popularity numeric,
+      source_payload jsonb not null default '{}'::jsonb,
       created_at timestamptz not null default now(),
       updated_at timestamptz not null default now()
     )
   `;
+  await sql`alter table people add column if not exists biography text`;
+  await sql`alter table people add column if not exists birth_date date`;
+  await sql`alter table people add column if not exists place_of_birth text`;
+  await sql`alter table people add column if not exists popularity numeric`;
+  await sql`alter table people add column if not exists source_payload jsonb not null default '{}'::jsonb`;
   await sql`create index if not exists people_name_idx on people using gin (to_tsvector('simple', name))`;
 
   await sql`
@@ -202,6 +214,8 @@ export async function upsertMediaItem(sql: any, input: CatalogMediaInput) {
     seasonCount: input.seasonCount,
     episodeCount: input.episodeCount,
     seasons: input.seasons,
+    cast: input.cast,
+    castVersion: input.castVersion,
     contentRatings: input.contentRatings,
     contentRatingVersion: input.contentRatingVersion,
     genreIds: input.genreIds,
@@ -278,6 +292,63 @@ export async function upsertMediaItems(sql: any, items: CatalogMediaInput[]) {
   return rows;
 }
 
+export async function upsertMediaCast(sql: any, mediaItem: any, cast: Array<Record<string, unknown>> = []) {
+  await ensureMediaCatalogTables(sql);
+  if (!mediaItem?.id || !Array.isArray(cast) || cast.length === 0) return;
+
+  for (const member of cast.slice(0, 24)) {
+    const tmdbId = numericOrNull(member.tmdbId);
+    const name = textOrNull(member.name);
+    if (!tmdbId || !name) continue;
+
+    const [person] = await sql`
+      insert into people (
+        tmdb_id,
+        name,
+        profile_url,
+        known_for_department,
+        updated_at
+      )
+      values (
+        ${tmdbId},
+        ${name},
+        ${textOrNull(member.profileUrl)},
+        ${textOrNull(member.knownForDepartment)},
+        now()
+      )
+      on conflict (tmdb_id)
+      do update set
+        name = excluded.name,
+        profile_url = coalesce(excluded.profile_url, people.profile_url),
+        known_for_department = coalesce(excluded.known_for_department, people.known_for_department),
+        updated_at = now()
+      returning *
+    `;
+
+    if (!person?.id) continue;
+
+    await sql`
+      insert into media_people (
+        media_item_id,
+        person_id,
+        role,
+        character_name,
+        sort_order
+      )
+      values (
+        ${mediaItem.id},
+        ${person.id},
+        'cast',
+        ${textOrNull(member.character)},
+        ${numericOrNull(member.order)}
+      )
+      on conflict (media_item_id, person_id, role, coalesce(job, ''), coalesce(character_name, ''))
+      do update set
+        sort_order = coalesce(excluded.sort_order, media_people.sort_order)
+    `;
+  }
+}
+
 export async function findCatalogSearchResults(sql: any, query: string, mediaType: CatalogMediaType | "both" = "both") {
   await ensureMediaCatalogTables(sql);
   const cleanQuery = query.trim();
@@ -343,6 +414,7 @@ export function mapCatalogDetails(row: any) {
     seasonCount: payload.seasonCount || undefined,
     episodeCount: payload.episodeCount || undefined,
     seasons: Array.isArray(payload.seasons) ? payload.seasons : undefined,
+    cast: Array.isArray(payload.cast) ? payload.cast : [],
     firstAirYear: row.media_type === "tv" ? row.year || undefined : undefined,
     contentRating: row.rating || undefined,
     contentRatings: Array.isArray(payload.contentRatings) ? payload.contentRatings : [],

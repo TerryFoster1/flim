@@ -95,9 +95,21 @@ create table if not exists people (
   name text not null,
   profile_url text,
   known_for_department text,
+  biography text,
+  birth_date date,
+  place_of_birth text,
+  popularity numeric,
+  source_payload jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table people
+  add column if not exists biography text,
+  add column if not exists birth_date date,
+  add column if not exists place_of_birth text,
+  add column if not exists popularity numeric,
+  add column if not exists source_payload jsonb not null default '{}'::jsonb;
 
 create index if not exists people_name_idx
   on people using gin (to_tsvector('simple', name));
@@ -122,6 +134,32 @@ create index if not exists media_people_person_idx
 
 create unique index if not exists media_people_identity_unique
   on media_people (media_item_id, person_id, role, coalesce(job, ''), coalesce(character_name, ''));
+
+create table if not exists tmdb_person_cache (
+  id uuid primary key default gen_random_uuid(),
+  tmdb_id integer not null unique,
+  response_json jsonb not null,
+  created_at timestamptz not null default now(),
+  expires_at timestamptz not null
+);
+
+create index if not exists tmdb_person_cache_expires_at_idx
+  on tmdb_person_cache (expires_at);
+
+create table if not exists tmdb_person_search_cache (
+  id uuid primary key default gen_random_uuid(),
+  query text not null,
+  normalized_query text not null unique,
+  response_json jsonb not null,
+  created_at timestamptz not null default now(),
+  expires_at timestamptz not null
+);
+
+create index if not exists tmdb_person_search_cache_normalized_query_idx
+  on tmdb_person_search_cache (normalized_query);
+
+create index if not exists tmdb_person_search_cache_expires_at_idx
+  on tmdb_person_search_cache (expires_at);
 
 create table if not exists user_sessions (
   id uuid primary key default gen_random_uuid(),

@@ -5,12 +5,13 @@ import {
   mapCatalogSearchResult,
   upsertMediaItems,
 } from "../_mediaCatalog.js";
-import { ensureTmdbCacheTables, fetchTmdbSearch, normalizeMovieQuery } from "../_tmdb.js";
+import { ensureTmdbCacheTables, fetchTmdbPersonSearch, fetchTmdbSearch, normalizeMovieQuery } from "../_tmdb.js";
 
 const SEARCH_CACHE_DAYS = 7;
 const MAX_TITLE_RESULTS = 12;
 const MAX_PLAYLIST_RESULTS = 12;
 const MAX_PROFILE_RESULTS = 8;
+const MAX_ACTOR_RESULTS = 8;
 
 function firstQueryValue(value: unknown) {
   return Array.isArray(value) ? String(value[0] || "") : String(value || "");
@@ -218,6 +219,48 @@ async function searchProfiles(sql: any, query: string) {
   }));
 }
 
+async function searchActors(sql: any, query: string) {
+  const rows = await sql`
+    select tmdb_id, name, profile_url, known_for_department, popularity, source_payload
+    from people
+    where tmdb_id is not null
+      and name ilike ${`%${query}%`}
+    order by
+      case
+        when lower(name) = lower(${query}) then 0
+        when lower(name) like lower(${`${query}%`}) then 1
+        else 2
+      end,
+      popularity desc nulls last,
+      updated_at desc
+    limit ${MAX_ACTOR_RESULTS}
+  `;
+  const catalogActors = rows.map((row: any) => ({
+    tmdbId: row.tmdb_id,
+    name: row.name,
+    profileUrl: row.profile_url || undefined,
+    knownForDepartment: row.known_for_department || undefined,
+    knownFor: Array.isArray(row.source_payload?.knownFor) ? row.source_payload.knownFor : [],
+    popularity: Number(row.popularity || 0),
+  }));
+
+  try {
+    const freshActors = await fetchTmdbPersonSearch(query);
+    const seen = new Set<string>();
+    return [...catalogActors, ...freshActors]
+      .filter((actor) => {
+        const key = String(actor.tmdbId);
+        if (!actor.tmdbId || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .slice(0, MAX_ACTOR_RESULTS);
+  } catch (error) {
+    console.error("discovery_actor_search_fallback", error instanceof Error ? error.message : "Actor search failed.");
+    return catalogActors.slice(0, MAX_ACTOR_RESULTS);
+  }
+}
+
 export default async function handler(request: any, response: any) {
   if (request.method !== "GET") return sendJson(response, 405, { error: "Method not allowed." });
 
@@ -229,6 +272,7 @@ export default async function handler(request: any, response: any) {
         titles: [],
         playlists: [],
         profiles: [],
+        actors: [],
         titleSource: "empty",
       });
     }
@@ -244,10 +288,11 @@ export default async function handler(request: any, response: any) {
     });
 
     const user = await getCurrentUser(sql, request);
-    const [titleResults, playlists, profiles] = await Promise.all([
+    const [titleResults, playlists, profiles, actors] = await Promise.all([
       searchTitles(sql, query),
       searchPublicPlaylists(sql, query, user?.id),
       searchProfiles(sql, query),
+      searchActors(sql, query),
     ]);
 
     response.setHeader("X-Flim-Discovery-Titles", titleResults.source);
@@ -256,6 +301,7 @@ export default async function handler(request: any, response: any) {
       titles: titleResults.items,
       playlists,
       profiles,
+      actors,
       titleSource: titleResults.source,
     });
   } catch (error) {

@@ -7,6 +7,7 @@ export type AppRoute =
   | "/s/:token"
   | "/movies/:tmdbId"
   | "/tv/:tmdbId"
+  | "/actor/:id"
   | "/public"
   | "/roulette"
   | "/upcoming"
@@ -41,6 +42,7 @@ export interface RouteState {
   publicSlug?: string;
   sharedToken?: string;
   tmdbId?: string;
+  actorId?: string;
   handle?: string;
   adminPlaylistId?: string;
 }
@@ -77,6 +79,46 @@ export interface MovieDetails extends MovieSearchResult {
   status?: string;
   popularity?: number;
   language?: string;
+  cast?: CastMember[];
+}
+
+export interface CastMember {
+  tmdbId: number;
+  name: string;
+  character?: string;
+  profileUrl?: string;
+  order?: number;
+  knownForDepartment?: string;
+}
+
+export interface ActorCredit {
+  tmdbId: number;
+  mediaType: MediaType;
+  title: string;
+  releaseYear?: string;
+  posterUrl?: string;
+  character?: string;
+  popularity?: number;
+}
+
+export interface ActorSummary {
+  tmdbId: number;
+  name: string;
+  profileUrl?: string;
+  knownForDepartment?: string;
+  knownFor?: string[];
+  popularity?: number;
+}
+
+export interface ActorDetails extends ActorSummary {
+  biography?: string;
+  birthDate?: string;
+  birthYear?: string;
+  placeOfBirth?: string;
+  movieCredits: ActorCredit[];
+  tvCredits: ActorCredit[];
+  featuredPlaylists: Playlist[];
+  relatedActors: ActorSummary[];
 }
 
 export interface ContentRating {
@@ -475,6 +517,7 @@ export interface DiscoverySearchResults {
   titles: MovieSearchResult[];
   playlists: Playlist[];
   profiles: DiscoveryProfileResult[];
+  actors: ActorSummary[];
   titleSource: "empty" | "catalog" | "catalog_cache" | "cache" | "catalog_tmdb" | "tmdb";
 }
 

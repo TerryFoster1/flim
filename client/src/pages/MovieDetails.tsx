@@ -19,6 +19,7 @@ interface MovieDetailsPageProps {
   playlists: Playlist[];
   addToPlaylist: (playlistId: string, movie: MovieDetails) => void | Promise<void>;
   updateWatchStatus: (playlistId: string, tmdbId: number, watchStatus: WatchStatus, mediaType?: string) => void | Promise<void>;
+  onNavigate?: (path: string) => void;
 }
 
 function countryFromRegion(value?: string) {
@@ -45,7 +46,7 @@ function errorReason(error: unknown) {
   return error instanceof Error ? error.message : "Unknown title details error.";
 }
 
-export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addToPlaylist, updateWatchStatus }: MovieDetailsPageProps) {
+export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addToPlaylist, updateWatchStatus, onNavigate }: MovieDetailsPageProps) {
   const [movie, setMovie] = useState<MovieDetails | null>(null);
   const [streamingCountry, setStreamingCountry] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "retrying" | "error">("idle");
@@ -212,6 +213,28 @@ export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addTo
             </div>
           ) : null}
           <TitleRatingControl mediaType={normalizedMovie.mediaType || mediaType} tmdbId={normalizedMovie.tmdbId} />
+          {normalizedMovie.cast && normalizedMovie.cast.length > 0 ? (
+            <section className="cast-section">
+              <div className="actor-section-heading">
+                <h2>Cast</h2>
+                <span>{normalizedMovie.cast.length}</span>
+              </div>
+              <div className="cast-member-row">
+                {normalizedMovie.cast.map((member) => (
+                  <button
+                    className="cast-member-card"
+                    key={member.tmdbId}
+                    onClick={() => onNavigate ? onNavigate(`/actor/${member.tmdbId}`) : window.location.assign(`/actor/${member.tmdbId}`)}
+                    type="button"
+                  >
+                    {member.profileUrl ? <img alt={`${member.name} profile`} src={member.profileUrl} /> : <span className="cast-avatar-fallback">{member.name.slice(0, 1)}</span>}
+                    <strong>{member.name}</strong>
+                    {member.character ? <small>{member.character}</small> : null}
+                  </button>
+                ))}
+              </div>
+            </section>
+          ) : null}
           <OptionalSectionBoundary key={`where-${detailsKey}`} label="Where To Watch">
             <WhereToWatch movie={normalizedMovie} />
           </OptionalSectionBoundary>

@@ -16,6 +16,7 @@ import {
   updatePlaylist,
 } from "./services/apiPlaylistStore";
 import { MovieDetailsPage } from "./pages/MovieDetails";
+import { ActorDetailsPage } from "./pages/ActorDetails";
 import { PlaylistDetails } from "./pages/PlaylistDetails";
 import { Playlists } from "./pages/Playlists";
 import { Profile } from "./pages/Profile";
@@ -50,6 +51,7 @@ function routeFromPath(pathname = window.location.pathname): RouteState {
   if (pathname.startsWith("/s/")) return { route: "/s/:token", sharedToken: pathname.split("/")[2] };
   if (pathname.startsWith("/movies/")) return { route: "/movies/:tmdbId", tmdbId: pathname.split("/")[2] };
   if (pathname.startsWith("/tv/")) return { route: "/tv/:tmdbId", tmdbId: pathname.split("/")[2] };
+  if (pathname.startsWith("/actor/")) return { route: "/actor/:id", actorId: pathname.split("/")[2] };
   if (pathname === "/public" || pathname === "/public-playlists") return { route: "/public" };
   if (pathname === "/roulette") return { route: "/" };
   if (pathname === "/profile") return { route: "/profile" };
@@ -252,6 +254,7 @@ export default function App() {
         playlists={ownedPlaylists}
         addToPlaylist={addToPlaylist}
         updateWatchStatus={updateWatchStatus}
+        onNavigate={navigate}
       />
     ),
     "/tv/:tmdbId": (
@@ -261,8 +264,10 @@ export default function App() {
         playlists={ownedPlaylists}
         addToPlaylist={addToPlaylist}
         updateWatchStatus={updateWatchStatus}
+        onNavigate={navigate}
       />
     ),
+    "/actor/:id": <ActorDetailsPage actorId={Number(routeState.actorId)} onNavigate={navigate} />,
     "/public": playlistsPage("public"),
     "/roulette": playlistsPage("my"),
     "/profile": <Profile onNavigate={navigate} playlists={displayPlaylists} />,

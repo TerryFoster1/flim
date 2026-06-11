@@ -24,7 +24,7 @@ export function Discover({ onNavigate }: DiscoverProps) {
   const [message, setMessage] = useState("");
 
   const hasResults = useMemo(
-    () => Boolean(results && (results.titles.length > 0 || results.playlists.length > 0 || results.profiles.length > 0)),
+    () => Boolean(results && (results.titles.length > 0 || results.playlists.length > 0 || results.profiles.length > 0 || results.actors.length > 0)),
     [results],
   );
 
@@ -99,6 +99,27 @@ export function Discover({ onNavigate }: DiscoverProps) {
               </div>
             ) : (
               <p className="empty-state">No matching movies or shows yet.</p>
+            )}
+          </section>
+
+          <section className="discovery-results-section">
+            <div className="discovery-results-heading">
+              <h2>Actors</h2>
+              <span>{results.actors.length} found</span>
+            </div>
+            {results.actors.length > 0 ? (
+              <div className="actor-result-grid">
+                {results.actors.map((actor) => (
+                  <button className="actor-result-card" key={actor.tmdbId} onClick={() => onNavigate(`/actor/${actor.tmdbId}`)} type="button">
+                    {actor.profileUrl ? <img alt={`${actor.name} profile`} src={actor.profileUrl} /> : <span className="cast-avatar-fallback">{actor.name.slice(0, 1)}</span>}
+                    <strong>{actor.name}</strong>
+                    {actor.knownForDepartment ? <small>{actor.knownForDepartment}</small> : null}
+                    {actor.knownFor?.length ? <span>{actor.knownFor.join(", ")}</span> : null}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="empty-state">No matching actors yet.</p>
             )}
           </section>
 
