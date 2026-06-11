@@ -1,4 +1,4 @@
-import type { MediaCollection, MediaCollectionFeed } from "../types";
+import type { CollectionChallenge, MediaCollection, MediaCollectionFeed } from "../types";
 
 async function apiRequest<T>(path: string): Promise<T> {
   const response = await fetch(path, {
@@ -21,4 +21,8 @@ export function getCollections() {
 
 export function getCollection(collectionId: string) {
   return apiRequest<MediaCollection>(`/api/collections/${encodeURIComponent(collectionId)}`);
+}
+
+export function getCollectionChallenges() {
+  return apiRequest<{ challenges: CollectionChallenge[]; sections: Record<string, CollectionChallenge[]> }>("/api/challenges");
 }

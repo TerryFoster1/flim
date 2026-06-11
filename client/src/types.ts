@@ -149,6 +149,45 @@ export interface MediaCollectionProgress {
   status: CollectionStatus;
 }
 
+export type CollectionChallengeStatus = "not_started" | "in_progress" | "completed";
+
+export interface CollectionChallengeRequirement {
+  type: "collection_completed" | "titles_watched" | "trivia_completed" | "easter_eggs_completed" | "achievement_unlocked";
+  label: string;
+  target: number;
+  progress: number;
+  completed: boolean;
+}
+
+export interface CollectionChallenge {
+  id: string;
+  collectionSlug: string;
+  name: string;
+  description: string;
+  badge: string;
+  points: number;
+  difficulty: "easy" | "medium" | "hard" | "expert";
+  category: string;
+  requirements: CollectionChallengeRequirement[];
+  completedRequirements: number;
+  totalRequirements: number;
+  completionPercent: number;
+  status: CollectionChallengeStatus;
+  earnedAt?: string;
+}
+
+export interface CollectionChallengeBadge {
+  id: string;
+  name: string;
+  description: string;
+  badge: string;
+  points: number;
+  difficulty?: string;
+  category?: string;
+  completionPercent?: number;
+  earnedAt?: string;
+}
+
 export interface MediaCollection {
   id: string;
   tmdbId: number;
@@ -160,15 +199,23 @@ export interface MediaCollection {
   category?: string;
   items: MediaCollectionItem[];
   progress: MediaCollectionProgress;
+  challenges?: CollectionChallenge[];
 }
 
 export interface MediaCollectionFeed {
   collections: MediaCollection[];
+  challenges?: CollectionChallenge[];
   sections: {
     popular: MediaCollection[];
     inProgress: MediaCollection[];
     completed: MediaCollection[];
     recentlyReleased: MediaCollection[];
+  };
+  challengeSections?: {
+    popular: CollectionChallenge[];
+    inProgress: CollectionChallenge[];
+    completed: CollectionChallenge[];
+    newChallenges: CollectionChallenge[];
   };
 }
 
@@ -549,6 +596,12 @@ export interface PublicUserProfile {
     totalPoints: number;
     featuredBadges: CompanionAchievement[];
     recentUnlocks: CompanionAchievement[];
+  };
+  challenges?: {
+    challengeCount: number;
+    challengePoints: number;
+    featuredBadges: CollectionChallengeBadge[];
+    recentUnlocks: CollectionChallengeBadge[];
   };
   publicPlaylists?: Playlist[];
 }

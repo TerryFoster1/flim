@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { getCollection } from "../services/collectionService";
-import type { MediaCollection, MediaCollectionItem } from "../types";
+import type { CollectionChallenge, MediaCollection, MediaCollectionItem } from "../types";
 
 interface CollectionDetailsProps {
   collectionId: string;
@@ -22,6 +22,12 @@ function ratingLabel(value: number) {
   if (value === 2) return "Really liked";
   if (value === 1) return "Liked";
   return "Not rated";
+}
+
+function challengeStatusLabel(challenge: CollectionChallenge) {
+  if (challenge.status === "completed") return "Badge unlocked";
+  if (challenge.status === "in_progress") return `${challenge.completedRequirements} of ${challenge.totalRequirements} requirements`;
+  return `${challenge.points} points`;
 }
 
 export function CollectionDetailsPage({ collectionId, onNavigate }: CollectionDetailsProps) {
@@ -62,6 +68,7 @@ export function CollectionDetailsPage({ collectionId, onNavigate }: CollectionDe
   }
 
   const progress = collection.progress;
+  const challenges = collection.challenges || [];
 
   return (
     <section className="route-page collection-detail-page">
@@ -91,6 +98,41 @@ export function CollectionDetailsPage({ collectionId, onNavigate }: CollectionDe
               <strong>{item.title}</strong>
             </button>
           ))}
+        </section>
+      ) : null}
+
+      {challenges.length > 0 ? (
+        <section className="collection-challenge-section" aria-label="Collection challenges">
+          <div className="actor-section-heading">
+            <h2>Available Challenges</h2>
+            <span>{challenges.length}</span>
+          </div>
+          <div className="collection-challenge-grid">
+            {challenges.map((challenge) => (
+              <article className={`collection-challenge-card is-${challenge.status}`} key={challenge.id}>
+                <div className="challenge-card-topline">
+                  <span className="challenge-badge-mark">{challenge.badge}</span>
+                  <span>{challenge.difficulty}</span>
+                </div>
+                <h3>{challenge.name}</h3>
+                <p>{challenge.description}</p>
+                <div className="challenge-progress-track" aria-label={`${challenge.completionPercent}% complete`}>
+                  <span style={{ width: `${challenge.completionPercent}%` }} />
+                </div>
+                <div className="challenge-card-meta">
+                  <strong>{challenge.completionPercent}%</strong>
+                  <span>{challengeStatusLabel(challenge)}</span>
+                </div>
+                <div className="challenge-requirement-row">
+                  {challenge.requirements.slice(0, 3).map((requirement) => (
+                    <span className={requirement.completed ? "is-complete" : ""} key={`${challenge.id}-${requirement.type}-${requirement.label}`}>
+                      {requirement.completed ? "Done" : `${Math.min(requirement.progress, requirement.target)}/${requirement.target}`} {requirement.label}
+                    </span>
+                  ))}
+                </div>
+              </article>
+            ))}
+          </div>
         </section>
       ) : null}
 

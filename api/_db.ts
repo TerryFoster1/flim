@@ -901,6 +901,7 @@ export function mapPublicUserProfile(row: any) {
     countryCode: row.show_country_publicly ? row.country_code || undefined : undefined,
     stats: row.stats || undefined,
     achievements: row.achievement_summary || undefined,
+    challenges: row.challenge_summary || undefined,
     publicPlaylists,
   };
 }

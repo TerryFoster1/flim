@@ -3,7 +3,7 @@ import { ContinueWatchingRow } from "../components/ContinueWatchingRow";
 import { PlaylistGrid } from "../components/PlaylistGrid";
 import { landingPosterSeeds } from "../data/landingPosterSeeds";
 import { getCollections } from "../services/collectionService";
-import type { CurrentUser, MediaCollection, Playlist } from "../types";
+import type { CollectionChallenge, CurrentUser, MediaCollection, Playlist } from "../types";
 
 interface PlaylistsProps {
   onNavigate: (path: string) => void;
@@ -184,6 +184,29 @@ function CollectionDiscoveryShelf({ collections, onNavigate }: { collections: Me
   );
 }
 
+function ChallengeDiscoveryShelf({ challenges, onNavigate }: { challenges: CollectionChallenge[]; onNavigate: (path: string) => void }) {
+  if (challenges.length === 0) return null;
+  return (
+    <section className="discovery-section">
+      <div className="discovery-section-heading">
+        <h2>Collection Challenges</h2>
+      </div>
+      <div className="challenge-discovery-row">
+        {challenges.slice(0, 8).map((challenge) => (
+          <button className={`challenge-discovery-card is-${challenge.status}`} key={challenge.id} onClick={() => onNavigate(`/collection/${challenge.collectionSlug}`)} type="button">
+            <span className="challenge-badge-mark">{challenge.badge}</span>
+            <strong>{challenge.name}</strong>
+            <small>{challenge.completedRequirements} of {challenge.totalRequirements} requirements / {challenge.points} points</small>
+            <span className="challenge-mini-track" aria-label={`${challenge.completionPercent}% complete`}>
+              <span style={{ width: `${challenge.completionPercent}%` }} />
+            </span>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function CuratorResults({ query, playlists, onNavigate }: { query: string; playlists: Playlist[]; onNavigate: (path: string) => void }) {
   const normalizedQuery = query.trim().toLowerCase();
   const groups = curatorGroups(playlists).filter((group) => {
@@ -224,6 +247,7 @@ function PublicDiscovery({
   visibleCount,
   onLoadMore,
   collections,
+  challenges,
 }: {
   onNavigate: (path: string) => void;
   playlists: Playlist[];
@@ -232,6 +256,7 @@ function PublicDiscovery({
   visibleCount: number;
   onLoadMore: () => void;
   collections: MediaCollection[];
+  challenges: CollectionChallenge[];
 }) {
   const normalizedQuery = query.trim().toLowerCase();
   const followedPlaylists = playlists.filter((playlist) => playlist.isFollowing);
@@ -259,6 +284,7 @@ function PublicDiscovery({
     return (
       <div className="discovery-grid">
         <CollectionDiscoveryShelf collections={collections.filter((collection) => collection.title.toLowerCase().includes(normalizedQuery) || collection.category?.toLowerCase().includes(normalizedQuery))} onNavigate={onNavigate} />
+        <ChallengeDiscoveryShelf challenges={challenges.filter((challenge) => challenge.name.toLowerCase().includes(normalizedQuery) || challenge.description.toLowerCase().includes(normalizedQuery))} onNavigate={onNavigate} />
         <DiscoveryShelf title="Playlists" playlists={visibleSearchResults} onNavigate={onNavigate} emptyMessage="No matching playlists yet." />
         <CuratorResults query={query} playlists={playlists} onNavigate={onNavigate} />
         <DiscoveryShelf title="Titles Found in Playlists" playlists={titleMatchPlaylists} onNavigate={onNavigate} />
@@ -279,6 +305,7 @@ function PublicDiscovery({
   return (
     <div className="discovery-grid">
       <CollectionDiscoveryShelf collections={collections} onNavigate={onNavigate} />
+      <ChallengeDiscoveryShelf challenges={challenges} onNavigate={onNavigate} />
       <DiscoveryShelf title="Followed Playlists" playlists={followedPlaylists} onNavigate={onNavigate} />
       <DiscoveryShelf title="Flim Picks" playlists={flimPicks} onNavigate={onNavigate} />
       <DiscoveryShelf title="Featured Curators" playlists={featuredCuratorPlaylists} onNavigate={onNavigate} />
@@ -311,6 +338,7 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
   const [showCreate, setShowCreate] = useState(false);
   const [visibleCount, setVisibleCount] = useState(7);
   const [collections, setCollections] = useState<MediaCollection[]>([]);
+  const [challenges, setChallenges] = useState<CollectionChallenge[]>([]);
   const directorPlaylists = useMemo(
     () => playlists.filter(isDirectorPlaylist),
     [playlists],
@@ -348,10 +376,16 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
     let mounted = true;
     getCollections()
       .then((feed) => {
-        if (mounted) setCollections(feed.collections || []);
+        if (mounted) {
+          setCollections(feed.collections || []);
+          setChallenges(feed.challenges || feed.challengeSections?.popular || []);
+        }
       })
       .catch(() => {
-        if (mounted) setCollections([]);
+        if (mounted) {
+          setCollections([]);
+          setChallenges([]);
+        }
       });
     return () => {
       mounted = false;
@@ -473,6 +507,7 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
           visibleCount={visibleCount}
           onLoadMore={() => setVisibleCount((count) => count + 7)}
           collections={collections}
+          challenges={challenges}
         />
       ) : visiblePagePlaylists.length > 0 ? (
         <>

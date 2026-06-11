@@ -97,6 +97,9 @@ export function PublicProfile({ handle, onNavigate }: PublicProfileProps) {
   const achievementCount = profile.achievements?.achievementCount || 0;
   const totalAchievementPoints = profile.achievements?.totalPoints || 0;
   const featuredBadges = profile.achievements?.featuredBadges || [];
+  const challengeCount = profile.challenges?.challengeCount || 0;
+  const challengePoints = profile.challenges?.challengePoints || 0;
+  const challengeBadges = profile.challenges?.featuredBadges || [];
   const recentlyUpdated = [...publicPlaylists].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
   const mostFollowed = [...publicPlaylists].sort((a, b) => (b.followerCount || 0) - (a.followerCount || 0));
   const featuredPlaylists = mostFollowed.slice(0, 3);
@@ -131,6 +134,8 @@ export function PublicProfile({ handle, onNavigate }: PublicProfileProps) {
               <span><strong>{titleCount}</strong> {titleCount === 1 ? "Title" : "Titles"}</span>
               <span><strong>{achievementCount}</strong> {achievementCount === 1 ? "Badge" : "Badges"}</span>
               <span><strong>{totalAchievementPoints}</strong> Points</span>
+              <span><strong>{challengeCount}</strong> {challengeCount === 1 ? "Challenge" : "Challenges"}</span>
+              <span><strong>{challengePoints}</strong> Challenge Points</span>
             </div>
             <div className="public-profile-actions">
               {profile.isOwnProfile ? (
@@ -151,6 +156,16 @@ export function PublicProfile({ handle, onNavigate }: PublicProfileProps) {
                   <span className={`profile-badge profile-badge-${badge.rarity || "common"}`} key={badge.id} title={badge.description}>
                     <strong>{badge.name}</strong>
                     <small>{badge.points || 0} pts</small>
+                  </span>
+                ))}
+              </div>
+            ) : null}
+            {challengeBadges.length > 0 ? (
+              <div className="profile-badge-row" aria-label="Featured challenge badges">
+                {challengeBadges.map((badge) => (
+                  <span className="profile-badge profile-badge-epic" key={badge.id} title={badge.description}>
+                    <strong>{badge.name}</strong>
+                    <small>{badge.points || 0} challenge pts</small>
                   </span>
                 ))}
               </div>

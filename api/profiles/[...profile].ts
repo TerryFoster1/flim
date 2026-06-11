@@ -23,6 +23,7 @@ import {
   verifyPassword,
 } from "../_db.js";
 import { getAchievementSummary } from "../_achievements.js";
+import { challengeSummaryForUser } from "../_challenges.js";
 import { directorHandle, ensureDirectorSeed } from "../_director.js";
 
 const defaultProfile = {
@@ -499,8 +500,11 @@ export default async function handler(request: any, response: any) {
     `;
     if (!rows[0]) return sendJson(response, 404, { error: "Profile not found." });
 
-    const achievementSummary = await getAchievementSummary(sql, String(rows[0].user_id));
-    return sendJson(response, 200, mapPublicUserProfile({ ...rows[0], achievement_summary: achievementSummary }));
+    const [achievementSummary, challengeSummary] = await Promise.all([
+      getAchievementSummary(sql, String(rows[0].user_id)),
+      challengeSummaryForUser(sql, String(rows[0].user_id)),
+    ]);
+    return sendJson(response, 200, mapPublicUserProfile({ ...rows[0], achievement_summary: achievementSummary, challenge_summary: challengeSummary }));
   } catch (error) {
     return sendJson(response, 500, { error: error instanceof Error ? error.message : "Profile request failed." });
   }

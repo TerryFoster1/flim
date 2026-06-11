@@ -1,6 +1,7 @@
 import { db, getCurrentUser, sendJson } from "../_db.js";
 import { upsertMediaItems } from "../_mediaCatalog.js";
 import { ensureTmdbCacheTables, fetchTmdbCollectionDetails } from "../_tmdb.js";
+import { challengeFeed, challengesForCollection, ensureCollectionChallengeTables } from "../_challenges.js";
 
 const COLLECTION_CACHE_DAYS = 30;
 
@@ -40,6 +41,7 @@ function collectionSeedFor(value: string) {
 
 async function ensureCollectionTables(sql: any) {
   await ensureTmdbCacheTables(sql);
+  await ensureCollectionChallengeTables(sql);
   const safe = async (statement: Promise<unknown>) => {
     try {
       await statement;
@@ -305,7 +307,7 @@ async function saveProgressSummary(sql: any, userId: string | undefined, collect
   `;
 }
 
-function mapCollection(row: any, items: any[], progress: any) {
+function mapCollection(row: any, items: any[], progress: any, challenges: any[] = []) {
   return {
     id: row.slug,
     tmdbId: row.tmdb_id,
@@ -317,6 +319,7 @@ function mapCollection(row: any, items: any[], progress: any) {
     category: row.category || undefined,
     items,
     progress,
+    challenges,
   };
 }
 
@@ -325,7 +328,8 @@ async function detailResponse(sql: any, seed: typeof curatedCollections[number],
   const items = await collectionItems(sql, collection.id, userId);
   const progress = progressFor(items);
   await saveProgressSummary(sql, userId, collection.id, progress);
-  return mapCollection(collection, items, progress);
+  const challenges = await challengesForCollection(sql, collection.slug, userId, progress, items);
+  return mapCollection(collection, items, progress, challenges);
 }
 
 export default async function handler(request: any, response: any) {
@@ -339,8 +343,10 @@ export default async function handler(request: any, response: any) {
 
     if (!path || path === "index") {
       const collections = await Promise.all(curatedCollections.map((seed) => detailResponse(sql, seed, user?.id)));
+      const challenges = await challengeFeed(sql, user?.id);
       return sendJson(response, 200, {
         collections,
+        challenges: challenges.challenges,
         sections: {
           popular: collections.slice(0, 8),
           inProgress: collections.filter((collection) => collection.progress.status === "in_progress"),
@@ -353,6 +359,7 @@ export default async function handler(request: any, response: any) {
             return latestB.localeCompare(latestA);
           }).slice(0, 8),
         },
+        challengeSections: challenges.sections,
       });
     }
 

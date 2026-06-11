@@ -219,6 +219,125 @@ create unique index if not exists user_collection_progress_user_collection_uniqu
 create index if not exists user_collection_progress_user_status_idx
   on user_collection_progress (user_id, status, updated_at desc);
 
+create table if not exists collection_challenges (
+  id text primary key,
+  collection_slug text not null,
+  name text not null,
+  description text not null,
+  badge text not null default 'star',
+  points integer not null default 0,
+  requirements jsonb not null default '[]'::jsonb,
+  difficulty text not null default 'medium',
+  category text not null default 'collections',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists collection_challenges_collection_slug_idx
+  on collection_challenges (collection_slug);
+
+create index if not exists collection_challenges_category_idx
+  on collection_challenges (category);
+
+create table if not exists user_collection_challenges (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  challenge_id text not null references collection_challenges(id) on delete cascade,
+  status text not null default 'started' check (status in ('started', 'in_progress', 'completed')),
+  completed_requirements integer not null default 0,
+  total_requirements integer not null default 0,
+  completion_percentage integer not null default 0,
+  points_awarded integer not null default 0,
+  started_at timestamptz not null default now(),
+  completed_at timestamptz,
+  updated_at timestamptz not null default now()
+);
+
+create unique index if not exists user_collection_challenges_user_challenge_unique
+  on user_collection_challenges (user_id, challenge_id);
+
+create index if not exists user_collection_challenges_user_status_idx
+  on user_collection_challenges (user_id, status, updated_at desc);
+
+insert into collection_challenges (id, collection_slug, name, description, badge, points, requirements, difficulty, category)
+values
+  (
+    'back_to_the_future_time_traveler',
+    'back-to-the-future',
+    'Time Traveler',
+    'Finish the Back to the Future collection and prove you caught the key companion moments.',
+    'clock',
+    75,
+    '[{"type":"collection_completed","label":"Watch all 3 movies","target":1},{"type":"trivia_completed","label":"Complete 3 trivia questions","target":3},{"type":"easter_eggs_completed","label":"Complete 2 Easter Egg Hunts","target":2}]'::jsonb,
+    'medium',
+    'collections'
+  ),
+  (
+    'jurassic_park_expert',
+    'jurassic-park',
+    'Jurassic Park Expert',
+    'Complete the Jurassic Park collection and companion discoveries.',
+    'dinosaur',
+    75,
+    '[{"type":"collection_completed","label":"Watch the full collection","target":1},{"type":"trivia_completed","label":"Complete 3 trivia questions","target":3},{"type":"easter_eggs_completed","label":"Complete 1 Easter Egg Hunt","target":1}]'::jsonb,
+    'medium',
+    'collections'
+  ),
+  (
+    'mission_impossible_agent',
+    'mission-impossible',
+    'Mission Impossible Agent',
+    'Accept the mission and finish the full Mission: Impossible collection.',
+    'agent',
+    60,
+    '[{"type":"collection_completed","label":"Watch every mission","target":1}]'::jsonb,
+    'hard',
+    'collections'
+  ),
+  (
+    'wizarding_world_completionist',
+    'harry-potter',
+    'Wizarding World Completionist',
+    'Complete the Harry Potter collection.',
+    'spark',
+    60,
+    '[{"type":"collection_completed","label":"Watch the full collection","target":1}]'::jsonb,
+    'hard',
+    'collections'
+  ),
+  (
+    'pixar_completionist',
+    'toy-story',
+    'Pixar Completionist',
+    'Finish the Toy Story collection.',
+    'star',
+    45,
+    '[{"type":"collection_completed","label":"Watch the full collection","target":1}]'::jsonb,
+    'easy',
+    'collections'
+  ),
+  (
+    'marvel_phase_one_starter',
+    'avengers',
+    'Marvel Phase Starter',
+    'Complete the Avengers collection available in Flim.',
+    'shield',
+    60,
+    '[{"type":"collection_completed","label":"Watch the full collection","target":1}]'::jsonb,
+    'medium',
+    'collections'
+  )
+on conflict (id) do update set
+  collection_slug = excluded.collection_slug,
+  name = excluded.name,
+  description = excluded.description,
+  badge = excluded.badge,
+  points = excluded.points,
+  requirements = excluded.requirements,
+  difficulty = excluded.difficulty,
+  category = excluded.category,
+  updated_at = now();
+
 create table if not exists user_sessions (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references users(id) on delete cascade,
