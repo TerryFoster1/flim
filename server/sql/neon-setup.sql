@@ -1458,6 +1458,54 @@ create unique index if not exists provider_availability_cache_media_region_uniqu
 create index if not exists provider_availability_cache_expires_at_idx
   on provider_availability_cache (expires_at);
 
+create table if not exists provider_clicks (
+  id uuid primary key default gen_random_uuid(),
+  provider_id text not null,
+  media_type text not null
+    check (media_type in ('movie', 'tv')),
+  tmdb_id integer not null,
+  region text not null default 'CA',
+  link_type text not null default 'search_fallback',
+  destination_url text not null,
+  referrer text,
+  user_agent text,
+  clicked_at timestamptz not null default now()
+);
+
+create index if not exists provider_clicks_provider_clicked_idx
+  on provider_clicks (provider_id, clicked_at desc);
+
+create index if not exists provider_clicks_media_clicked_idx
+  on provider_clicks (media_type, tmdb_id, clicked_at desc);
+
+create table if not exists provider_partner_links (
+  id uuid primary key default gen_random_uuid(),
+  provider_id text not null,
+  region text not null default 'CA',
+  destination_url text not null,
+  affiliate_url text,
+  active boolean not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists provider_partner_links_provider_region_idx
+  on provider_partner_links (provider_id, region, active);
+
+create table if not exists affiliate_mappings (
+  id uuid primary key default gen_random_uuid(),
+  provider_id text not null,
+  region text not null default 'CA',
+  affiliate_key text not null,
+  affiliate_value text not null,
+  active boolean not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists affiliate_mappings_provider_region_idx
+  on affiliate_mappings (provider_id, region, active);
+
 create or replace view provider_availability as
 select
   id,

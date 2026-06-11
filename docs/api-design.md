@@ -2,7 +2,11 @@
 
 Flim is API-first so the React web app and future native apps can share backend contracts.
 
-Base path: `/api`.
+Current app base path: `/api`.
+
+Future public API base path: `/api/v1`.
+
+The existing `/api` routes remain internal app routes. Future public resources should be introduced under `/api/v1` so versioning, rate limits, API keys, and public contracts can be added without breaking the web app.
 
 Phase 2C uses Vercel serverless API routes backed by Neon PostgreSQL for playlists and playlist movies. `DATABASE_URL` remains server-side only.
 
@@ -119,14 +123,62 @@ Planned route contracts:
 
 ## Watch Providers
 
-Future namespace: `/api/providers`
+Internal namespace: `/api/providers`
 
-Planned route contracts:
+Implemented/internal route contracts:
+
+- `GET /api/providers/availability`
+- `GET /api/provider-link/:providerId/:tmdbId`
+
+Provider links should not be hard-linked directly from the UI. The client links to `/api/provider-link/:providerId/:tmdbId`, and that route resolves the cached destination, records a provider click, and redirects to the provider. This keeps affiliate IDs, analytics, provider ranking tests, and partner rules server-side.
+
+Future public route contracts:
 
 - `GET /api/providers`
 - `GET /api/providers/:providerId`
 - `GET /api/providers/:providerId/search-fallback`
 - `GET /api/media/:mediaType/:id/availability`
+
+## Public ID Strategy
+
+Internal database IDs should remain implementation details whenever possible. Future API resources should expose stable public IDs:
+
+- Playlists: `playlist_<slug-or-token>`
+- Users/curators: `user_<public-handle-or-token>`
+- Titles: `title_<mediaType>_<tmdbId>`
+- Release events: `release_event_<uuid>`
+- Provider availability records: `provider_availability_<uuid>`
+
+Do not expose private playlist IDs, raw user IDs, or auth/session identifiers in future public API payloads.
+
+## Permission Model
+
+Future API resources should reuse the app permission model instead of inventing per-route rules:
+
+- `private`: owner-only read and write.
+- `shared`: owner manages; link viewers may view and collaborate only where explicitly allowed.
+- `public`: everyone may view; owner manages; signed-in users may follow/like where supported.
+- `owner`: can edit/delete/change visibility.
+- `viewer`: can read public/shared resources.
+- `collaborator`: can mutate shared playlist titles only where the shared rules allow it.
+- `follower`: can receive future updates for followed public resources.
+
+These rules should be enforced server-side for every future public API endpoint.
+
+## Future API Products
+
+Potential API products remain documentation-only:
+
+- Upcoming Releases API
+- Playlist API
+- Curator API
+- Provider Availability API
+- Release Intelligence API
+- Trending Playlist API
+- Followed Title API
+- Notification API
+
+Flim-owned data is the future API value: release intelligence, playlist activity, curator activity, followed titles, provider availability, public playlists, and curated collections. TMDb data should remain an import source, not the core product being resold.
 
 ## Plex
 

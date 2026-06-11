@@ -154,10 +154,24 @@ function providerFromApi(link: ProviderAvailabilityApiLink): WatchProvider {
   };
 }
 
+function buildProviderLinkUrl(link: ProviderAvailabilityApiLink, mediaType: MediaType, tmdbId: number, title: string) {
+  const params = new URLSearchParams({
+    mediaType,
+    region: regionOrDefault(link.region),
+    linkType: link.deepLink ? "exact" : "search_fallback",
+  });
+
+  if (link.availabilityType) params.set("availabilityType", link.availabilityType);
+  if (title.trim()) params.set("title", title.trim());
+
+  return `/api/provider-link/${encodeURIComponent(link.providerId)}/${tmdbId}?${params.toString()}`;
+}
+
 export async function getProviderAvailabilityForTitle(movie: { title: string; tmdbId: number; mediaType?: MediaType }, streamingRegion?: string): Promise<MovieAvailability> {
   const region = regionOrDefault(streamingRegion);
+  const mediaType = movie.mediaType || "movie";
   const params = new URLSearchParams({
-    mediaType: movie.mediaType || "movie",
+    mediaType,
     tmdbId: String(movie.tmdbId),
     title: movie.title,
     region,
@@ -177,7 +191,7 @@ export async function getProviderAvailabilityForTitle(movie: { title: string; tm
   const links: WatchProviderLink[] = payload.links.map((link) => ({
     provider: providerFromApi(link),
     linkType: link.deepLink ? "exact" : "search_fallback",
-    url: link.deepLink || link.searchFallbackUrl,
+    url: buildProviderLinkUrl(link, mediaType, payload.tmdbId, movie.title),
     deepLinkUrl: link.deepLink,
     accessType: link.availabilityType,
     label: link.deepLink ? `Open ${link.providerName}` : `Search ${link.providerName}`,
