@@ -16,5 +16,9 @@ export function ProviderLogo({ provider }: ProviderLogoProps) {
     return <img className="provider-logo provider-logo-image provider-logo-external" src={provider.logoUrl} alt={provider.name} loading="lazy" />;
   }
 
+  if (resolution.isKnown) {
+    return <span className="provider-logo provider-logo-wordmark" aria-label={provider.name}>{provider.name}</span>;
+  }
+
   return <span className={resolution.isKnown ? "provider-logo provider-logo-badge provider-logo-known-missing" : "provider-logo provider-logo-badge"} aria-label={provider.name}>{resolution.initials}</span>;
 }
