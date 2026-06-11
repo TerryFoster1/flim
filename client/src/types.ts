@@ -605,6 +605,8 @@ export interface UpcomingRelease {
   latestEventTitle?: string;
   latestEventBody?: string;
   availabilityKnown: boolean;
+  providerNames?: string[];
+  releaseContext?: string;
 }
 
 export interface UpcomingReleaseEvent {
@@ -616,6 +618,7 @@ export interface UpcomingReleaseEvent {
   body?: string;
   title: string;
   posterUrl?: string;
+  context?: string;
 }
 
 export interface UpcomingReleaseFeed {
@@ -624,12 +627,14 @@ export interface UpcomingReleaseFeed {
     upcomingMovies: UpcomingRelease[];
     upcomingTv: UpcomingRelease[];
     releasingThisMonth: UpcomingRelease[];
+    streamingSoon: UpcomingRelease[];
     recentlyAnnounced: UpcomingReleaseEvent[];
     recentlyDelayed: UpcomingReleaseEvent[];
   };
   filters: {
     mediaType: MediaType | "both";
     window: "month" | "quarter" | "year" | "all";
+    audience?: "all" | "following";
   };
   generatedAt: string;
 }

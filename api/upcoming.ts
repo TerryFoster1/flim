@@ -12,6 +12,11 @@ function normalizeWindow(value: string | null) {
   return "all";
 }
 
+function normalizeAudience(value: string | null) {
+  if (value === "following") return "following";
+  return "all";
+}
+
 function mapUpcoming(row: any) {
   const releaseDate = row.release_date ? new Date(row.release_date).toISOString() : undefined;
   const payload = row.source_payload || {};
@@ -36,6 +41,8 @@ function mapUpcoming(row: any) {
     latestEventTitle: row.latest_event_title || undefined,
     latestEventBody: row.latest_event_body || undefined,
     availabilityKnown: Boolean(row.availability_count && Number(row.availability_count) > 0),
+    providerNames: Array.isArray(row.provider_names) ? row.provider_names.filter(Boolean) : [],
+    releaseContext: row.release_context || undefined,
   };
 }
 
@@ -49,6 +56,7 @@ function mapReleaseEvent(row: any) {
     body: row.body || undefined,
     title: row.title,
     posterUrl: row.poster_url || undefined,
+    context: row.context || undefined,
   };
 }
 
@@ -59,6 +67,7 @@ export default async function handler(request: any, response: any) {
     const url = new URL(request.url || "/api/upcoming", "https://www.flim.ca");
     const mediaType = normalizeFilter(url.searchParams.get("type"));
     const windowFilter = normalizeWindow(url.searchParams.get("window"));
+    const audience = normalizeAudience(url.searchParams.get("audience"));
     const limit = Math.max(1, Math.min(48, Number(url.searchParams.get("limit")) || 24));
     const sql = db();
 
@@ -125,9 +134,41 @@ export default async function handler(request: any, response: any) {
               and ta.tmdb_id = mi.tmdb_id
               and ta.expires_at > now()
           ) as availability_count
+          ,
+          (
+            select coalesce(array_agg(distinct ta.provider_name order by ta.provider_name), array[]::text[])
+            from title_availability ta
+            where ta.media_type = mi.media_type
+              and ta.tmdb_id = mi.tmdb_id
+              and ta.expires_at > now()
+          ) as provider_names,
+          case
+            when rt.upcoming then 'Tracked as an upcoming release.'
+            when coalesce(rt.release_date, mi.release_date) >= current_date then 'Release date is saved in Flim.'
+            when exists (
+              select 1
+              from release_events re
+              where re.media_item_id = mi.id
+                and re.created_at >= now() - interval '60 days'
+            ) then 'Recent release intelligence update.'
+            else 'Saved release date from the media catalog.'
+          end as release_context
         from media_items mi
         left join release_tracking rt on rt.media_item_id = mi.id
         where (${mediaType} = 'both' or mi.media_type = ${mediaType})
+          and (
+            ${audience} = 'all'
+            or (
+              ${audience} = 'following'
+              and ${user?.id || null}::uuid is not null
+              and exists (
+                select 1
+                from followed_titles ft
+                where ft.media_item_id = mi.id
+                  and ft.user_id = ${user?.id || null}::uuid
+              )
+            )
+          )
           and coalesce(rt.release_date, mi.release_date) is not null
           and coalesce(rt.release_date, mi.release_date) >= current_date - interval '7 days'
           and (
@@ -152,7 +193,13 @@ export default async function handler(request: any, response: any) {
         re.title as event_title,
         re.body,
         mi.title,
-        mi.poster_url
+        mi.poster_url,
+        case
+          when re.event_type = 'trailer_released' then 'A trailer event was detected by Release Intelligence.'
+          when re.event_type = 'streaming_available' then 'Provider availability changed for this title.'
+          when re.event_type in ('season_announced', 'season_released', 'episode_released') then 'TV release intelligence detected a new update.'
+          else 'Recent release intelligence update.'
+        end as context
       from release_events re
       inner join media_items mi on mi.id = re.media_item_id
       where re.event_type in (
@@ -165,6 +212,19 @@ export default async function handler(request: any, response: any) {
       )
         and re.created_at >= now() - interval '60 days'
         and (${mediaType} = 'both' or re.media_type = ${mediaType})
+        and (
+          ${audience} = 'all'
+          or (
+            ${audience} = 'following'
+            and ${user?.id || null}::uuid is not null
+            and exists (
+              select 1
+              from followed_titles ft
+              where ft.media_item_id = mi.id
+                and ft.user_id = ${user?.id || null}::uuid
+            )
+          )
+        )
       order by re.created_at desc
       limit 12
     `;
@@ -177,12 +237,26 @@ export default async function handler(request: any, response: any) {
         re.title as event_title,
         re.body,
         mi.title,
-        mi.poster_url
+        mi.poster_url,
+        'Release Intelligence detected a later date than the previous saved date.' as context
       from release_events re
       inner join media_items mi on mi.id = re.media_item_id
       where re.event_type in ('release_date_changed', 'season_release_changed')
         and re.created_at >= now() - interval '90 days'
         and (${mediaType} = 'both' or re.media_type = ${mediaType})
+        and (
+          ${audience} = 'all'
+          or (
+            ${audience} = 'following'
+            and ${user?.id || null}::uuid is not null
+            and exists (
+              select 1
+              from followed_titles ft
+              where ft.media_item_id = mi.id
+                and ft.user_id = ${user?.id || null}::uuid
+            )
+          )
+        )
         and (re.old_value #>> '{}') ~ '^\\d{4}-\\d{2}-\\d{2}'
         and (re.new_value #>> '{}') ~ '^\\d{4}-\\d{2}-\\d{2}'
         and (re.new_value #>> '{}')::date > (re.old_value #>> '{}')::date
@@ -195,6 +269,7 @@ export default async function handler(request: any, response: any) {
     const recentDelays = delayedEvents.map(mapReleaseEvent);
     const upcomingMovies = items.filter((item: any) => item.mediaType === "movie");
     const upcomingTv = items.filter((item: any) => item.mediaType === "tv");
+    const streamingSoon = items.filter((item: any) => item.availabilityKnown);
     const now = new Date();
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
     const releasingThisMonth = items.filter((item: any) => {
@@ -208,10 +283,11 @@ export default async function handler(request: any, response: any) {
         upcomingMovies,
         upcomingTv,
         releasingThisMonth,
+        streamingSoon,
         recentlyAnnounced: recentAnnouncements,
         recentlyDelayed: recentDelays,
       },
-      filters: { mediaType, window: windowFilter },
+      filters: { mediaType, window: windowFilter, audience },
       generatedAt: new Date().toISOString(),
     });
   } catch (error) {

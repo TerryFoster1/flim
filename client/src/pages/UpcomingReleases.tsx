@@ -24,6 +24,11 @@ const windowFilters: Array<{ label: string; value: UpcomingReleaseFilters["windo
   { label: "This Year", value: "year" },
 ];
 
+const audienceFilters: Array<{ label: string; value: UpcomingReleaseFilters["audience"] }> = [
+  { label: "All Releases", value: "all" },
+  { label: "Following Only", value: "following" },
+];
+
 function formatDate(value?: string) {
   if (!value) return "Coming Soon";
   const date = new Date(value);
@@ -88,6 +93,17 @@ function eventLabel(type: string) {
   return labels[type] || "Release Update";
 }
 
+function releaseTypeLabel(item: UpcomingRelease) {
+  if (item.mediaType === "tv") return item.seasonCount ? `Season ${item.seasonCount}` : "TV Season";
+  return "Movie";
+}
+
+function eventReason(item: UpcomingRelease) {
+  if (item.latestEventType) return `${eventLabel(item.latestEventType)}: ${item.latestEventBody || item.latestEventTitle || "Release Intelligence detected an update."}`;
+  if (item.releaseContext) return item.releaseContext;
+  return item.mediaType === "tv" ? "Tracked TV release date." : "Tracked movie release date.";
+}
+
 function UpcomingReleaseCard({ item, playlists, addToPlaylist, onNavigate }: {
   item: UpcomingRelease;
   playlists: Playlist[];
@@ -102,8 +118,9 @@ function UpcomingReleaseCard({ item, playlists, addToPlaylist, onNavigate }: {
       </button>
       <div className="upcoming-release-copy">
         <div className="card-meta">
-          <span className="media-type-badge">{item.mediaType === "tv" ? "TV Show" : "Movie"}</span>
-          {item.availabilityKnown ? <span>Streaming info saved</span> : null}
+          <span className="media-type-badge">{releaseTypeLabel(item)}</span>
+          {item.isFollowing ? <span>Following</span> : null}
+          {item.availabilityKnown ? <span>{item.providerNames?.slice(0, 2).join(", ") || "Streaming info saved"}</span> : null}
         </div>
         <button className="reset-button upcoming-title-button" onClick={() => onNavigate(titlePath(item))} type="button">
           <h3>{item.title}</h3>
@@ -114,7 +131,7 @@ function UpcomingReleaseCard({ item, playlists, addToPlaylist, onNavigate }: {
           <span>{countdownCopy(item.releaseDate, item.mediaType)}</span>
         </div>
         {item.mediaType === "tv" && item.seasonCount ? <small className="helper-text">Season {item.seasonCount}</small> : null}
-        {item.latestEventBody ? <p className="upcoming-event-note">{item.latestEventBody}</p> : null}
+        <p className="upcoming-event-note">{eventReason(item)}</p>
         <div className="upcoming-card-actions">
           <FollowTitleControl movie={movie} />
           <AddToPlaylistControl movie={movie} playlists={playlists} addToPlaylist={addToPlaylist} />
@@ -143,7 +160,7 @@ function ReleaseEventSection({ title, events, onNavigate }: {
             {event.posterUrl ? <img src={event.posterUrl} alt={`${event.title} poster`} /> : null}
             <span>{eventLabel(event.eventType)}</span>
             <strong>{event.title}</strong>
-            <small>{event.body || event.eventTitle || formatDate(event.createdAt)}</small>
+            <small>{event.body || event.context || event.eventTitle || formatDate(event.createdAt)}</small>
           </button>
         ))}
       </div>
@@ -185,11 +202,16 @@ export function UpcomingReleases({ playlists, addToPlaylist, onNavigate }: Upcom
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [mediaType, setMediaType] = useState<MediaType | "both">("both");
   const [windowFilter, setWindowFilter] = useState<UpcomingReleaseFilters["window"]>("all");
+  const [audience, setAudience] = useState<UpcomingReleaseFilters["audience"]>("all");
+
+  useEffect(() => {
+    document.title = "Upcoming Releases | Flim";
+  }, []);
 
   useEffect(() => {
     let mounted = true;
     setStatus("loading");
-    getUpcomingReleases({ type: mediaType, window: windowFilter })
+    getUpcomingReleases({ type: mediaType, window: windowFilter, audience })
       .then((result) => {
         if (!mounted) return;
         setFeed(result);
@@ -201,7 +223,7 @@ export function UpcomingReleases({ playlists, addToPlaylist, onNavigate }: Upcom
     return () => {
       mounted = false;
     };
-  }, [mediaType, windowFilter]);
+  }, [mediaType, windowFilter, audience]);
 
   const items = feed?.items || [];
   const comingSoon = useMemo(() => items.slice(0, 12), [items]);
@@ -214,6 +236,13 @@ export function UpcomingReleases({ playlists, addToPlaylist, onNavigate }: Upcom
           <p>Movies and TV seasons Flim is tracking from saved release intelligence.</p>
         </div>
         <div className="upcoming-filter-panel" aria-label="Upcoming release filters">
+          <div className="segmented-control">
+            {audienceFilters.map((filter) => (
+              <button className={audience === filter.value ? "is-active" : ""} key={filter.value} onClick={() => setAudience(filter.value)} type="button">
+                {filter.label}
+              </button>
+            ))}
+          </div>
           <div className="segmented-control">
             {mediaFilters.map((filter) => (
               <button className={mediaType === filter.value ? "is-active" : ""} key={filter.value} onClick={() => setMediaType(filter.value)} type="button">
@@ -245,6 +274,7 @@ export function UpcomingReleases({ playlists, addToPlaylist, onNavigate }: Upcom
       <ReleaseSection title="Releasing This Month" items={feed?.sections.releasingThisMonth || []} playlists={playlists} addToPlaylist={addToPlaylist} onNavigate={onNavigate} />
       <ReleaseSection title="Upcoming Movies" items={feed?.sections.upcomingMovies || []} playlists={playlists} addToPlaylist={addToPlaylist} onNavigate={onNavigate} />
       <ReleaseSection title="Upcoming TV Seasons" items={feed?.sections.upcomingTv || []} playlists={playlists} addToPlaylist={addToPlaylist} onNavigate={onNavigate} />
+      <ReleaseSection title="Streaming Soon" items={feed?.sections.streamingSoon || []} playlists={playlists} addToPlaylist={addToPlaylist} onNavigate={onNavigate} />
       <ReleaseEventSection title="Recently Announced" events={feed?.sections.recentlyAnnounced || []} onNavigate={onNavigate} />
       <ReleaseEventSection title="Recently Delayed" events={feed?.sections.recentlyDelayed || []} onNavigate={onNavigate} />
       <ReleaseSection title="Coming Soon" items={comingSoon} playlists={playlists} addToPlaylist={addToPlaylist} onNavigate={onNavigate} />
