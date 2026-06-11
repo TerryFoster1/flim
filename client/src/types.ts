@@ -10,6 +10,7 @@ export type AppRoute =
   | "/tv/:tmdbId"
   | "/actor/:id"
   | "/collection/:id"
+  | "/games"
   | "/challenges"
   | "/progress"
   | "/hall-of-fame"

@@ -259,6 +259,130 @@ create unique index if not exists user_collection_challenges_user_challenge_uniq
 create index if not exists user_collection_challenges_user_status_idx
   on user_collection_challenges (user_id, status, updated_at desc);
 
+create table if not exists challenges (
+  id uuid primary key default gen_random_uuid(),
+  public_id text not null unique,
+  title text not null,
+  description text not null default '',
+  challenge_type text not null,
+  target_type text not null check (target_type in ('media_item', 'playlist', 'genre', 'director_collection', 'global')),
+  target_id text,
+  genre text,
+  status text not null default 'draft' check (status in ('draft', 'scheduled', 'active', 'paused', 'ended', 'archived')),
+  starts_at timestamptz,
+  ends_at timestamptz,
+  hero_image_url text,
+  cta_text text not null default 'Play Challenge',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists challenges_status_dates_idx
+  on challenges (status, starts_at, ends_at);
+
+create index if not exists challenges_target_idx
+  on challenges (target_type, target_id);
+
+create index if not exists challenges_type_idx
+  on challenges (challenge_type, status);
+
+create table if not exists challenge_targets (
+  id uuid primary key default gen_random_uuid(),
+  challenge_id uuid not null references challenges(id) on delete cascade,
+  target_type text not null check (target_type in ('media_item', 'playlist', 'genre', 'director_collection', 'global')),
+  target_id text,
+  media_item_id uuid references media_items(id) on delete cascade,
+  playlist_id uuid references playlists(id) on delete cascade,
+  genre text,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists challenge_targets_challenge_idx
+  on challenge_targets (challenge_id);
+
+create index if not exists challenge_targets_lookup_idx
+  on challenge_targets (target_type, target_id);
+
+create table if not exists challenge_questions (
+  id uuid primary key default gen_random_uuid(),
+  challenge_id uuid not null references challenges(id) on delete cascade,
+  question_type text not null default 'trivia',
+  prompt text not null,
+  options jsonb not null default '[]'::jsonb,
+  correct_answer text,
+  explanation text,
+  source_urls jsonb not null default '[]'::jsonb,
+  difficulty text not null default 'medium',
+  spoiler_level text not null default 'none',
+  status text not null default 'draft' check (status in ('draft', 'published', 'reported', 'hidden', 'archived')),
+  sort_order integer not null default 0,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists challenge_questions_challenge_order_idx
+  on challenge_questions (challenge_id, sort_order);
+
+create index if not exists challenge_questions_status_idx
+  on challenge_questions (status, updated_at desc);
+
+create table if not exists challenge_attempts (
+  id uuid primary key default gen_random_uuid(),
+  challenge_id uuid not null references challenges(id) on delete cascade,
+  user_id uuid references users(id) on delete cascade,
+  session_id text,
+  status text not null default 'started' check (status in ('started', 'in_progress', 'completed', 'abandoned')),
+  score integer not null default 0,
+  completed_question_count integer not null default 0,
+  total_question_count integer not null default 0,
+  started_at timestamptz not null default now(),
+  completed_at timestamptz,
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists challenge_attempts_user_status_idx
+  on challenge_attempts (user_id, status, updated_at desc);
+
+create index if not exists challenge_attempts_challenge_status_idx
+  on challenge_attempts (challenge_id, status, updated_at desc);
+
+create table if not exists challenge_leaderboards (
+  id uuid primary key default gen_random_uuid(),
+  challenge_id uuid not null references challenges(id) on delete cascade,
+  user_id uuid references users(id) on delete cascade,
+  display_name text,
+  score integer not null default 0,
+  rank integer,
+  window_key text not null default 'all_time',
+  updated_at timestamptz not null default now()
+);
+
+create unique index if not exists challenge_leaderboards_challenge_user_window_unique
+  on challenge_leaderboards (challenge_id, user_id, window_key)
+  where user_id is not null;
+
+create index if not exists challenge_leaderboards_rank_idx
+  on challenge_leaderboards (challenge_id, window_key, rank);
+
+create table if not exists challenge_promotions (
+  id uuid primary key default gen_random_uuid(),
+  challenge_id uuid not null references challenges(id) on delete cascade,
+  placement text not null check (placement in ('title_detail_card', 'games_hub_hero', 'playlist_detail_card', 'director_cut_card')),
+  target_type text check (target_type in ('media_item', 'playlist', 'genre', 'director_collection', 'global')),
+  target_id text,
+  starts_at timestamptz,
+  ends_at timestamptz,
+  status text not null default 'draft' check (status in ('draft', 'scheduled', 'active', 'paused', 'ended', 'archived')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists challenge_promotions_placement_status_idx
+  on challenge_promotions (placement, status, starts_at, ends_at);
+
+create index if not exists challenge_promotions_target_idx
+  on challenge_promotions (target_type, target_id);
+
 insert into collection_challenges (id, collection_slug, name, description, badge, points, requirements, difficulty, category)
 values
   (

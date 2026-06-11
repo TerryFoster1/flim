@@ -18,6 +18,7 @@ import {
 import { MovieDetailsPage } from "./pages/MovieDetails";
 import { ActorDetailsPage } from "./pages/ActorDetails";
 import { CollectionDetailsPage } from "./pages/CollectionDetails";
+import { TriviaGames } from "./pages/TriviaGames";
 import { HallOfFame } from "./pages/HallOfFame";
 import { Progress } from "./pages/Progress";
 import { SeasonalChallenges } from "./pages/SeasonalChallenges";
@@ -60,6 +61,7 @@ function routeFromPath(pathname = window.location.pathname): RouteState {
   if (pathname.startsWith("/tv/")) return { route: "/tv/:tmdbId", tmdbId: pathname.split("/")[2] };
   if (pathname.startsWith("/actor/")) return { route: "/actor/:id", actorId: pathname.split("/")[2] };
   if (pathname.startsWith("/collection/")) return { route: "/collection/:id", collectionId: pathname.split("/")[2] };
+  if (pathname === "/games" || pathname === "/trivia-games") return { route: "/games" };
   if (pathname === "/challenges") return { route: "/challenges" };
   if (pathname === "/progress") return { route: "/progress" };
   if (pathname === "/hall-of-fame") return { route: "/hall-of-fame" };
@@ -305,6 +307,7 @@ export default function App() {
     ),
     "/actor/:id": <ActorDetailsPage actorId={Number(routeState.actorId)} onNavigate={navigate} />,
     "/collection/:id": <CollectionDetailsPage collectionId={routeState.collectionId || ""} onNavigate={navigate} />,
+    "/games": <TriviaGames onNavigate={navigate} />,
     "/challenges": <SeasonalChallenges onNavigate={navigate} />,
     "/progress": <Progress onNavigate={navigate} />,
     "/hall-of-fame": <HallOfFame onNavigate={navigate} />,
