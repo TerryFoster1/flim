@@ -522,6 +522,26 @@ export async function ensureTriviaTables(sql: any) {
         or prompt like 'Look for a repeated object%'
       )
   `;
+  await sql`
+    update title_easter_eggs
+    set
+      title = 'Twin Pines / Lone Pine',
+      answer = 'Twin Pines Mall became Lone Pine Mall.',
+      explanation = 'Marty runs over one of Old Man Peabody''s twin pine trees in 1955, changing the mall name in 1985.',
+      updated_at = now()
+    where media_type = 'movie'
+      and tmdb_id = 105
+      and prompt = 'Watch for the mall sign near the beginning and again after Marty returns to 1985.'
+  `;
+  await sql`
+    update title_easter_eggs
+    set
+      explanation = 'The flyer is a small detail that becomes the key to Doc and Marty''s final plan.',
+      updated_at = now()
+    where media_type = 'movie'
+      and tmdb_id = 105
+      and prompt = 'Notice how the town clock becomes important before the climax explains why.'
+  `;
   await sql`create unique index if not exists title_easter_eggs_media_source_prompt_unique on title_easter_eggs (media_type, tmdb_id, source_hash, prompt)`;
   await sql`create index if not exists title_easter_eggs_media_status_idx on title_easter_eggs (media_type, tmdb_id, status)`;
 
