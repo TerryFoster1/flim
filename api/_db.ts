@@ -1,5 +1,23 @@
 import { neon } from "@neondatabase/serverless";
-import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
+import { createHash, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
+
+const maxRequestBodyBytes = 128 * 1024;
+
+export class RequestBodyTooLargeError extends Error {
+  statusCode = 413;
+
+  constructor() {
+    super("Request body too large.");
+  }
+}
+
+export class RateLimitError extends Error {
+  statusCode = 429;
+
+  constructor() {
+    super("Too many requests. Please slow down.");
+  }
+}
 
 export function db() {
   const databaseUrl = process.env.DATABASE_URL;
@@ -23,12 +41,21 @@ export async function ensurePgCrypto(sql: any) {
 export function sendJson(response: any, status: number, body: unknown) {
   response.statusCode = status;
   response.setHeader("Content-Type", "application/json");
+  response.setHeader("Cache-Control", "no-store");
   response.end(JSON.stringify(body));
+}
+
+export function errorStatus(error: unknown, fallback = 500) {
+  const status = Number((error as any)?.statusCode || (error as any)?.status);
+  return Number.isFinite(status) && status >= 400 && status < 600 ? status : fallback;
 }
 
 export function readBody(request: any): Promise<any> {
   if (request.body) {
     if (typeof request.body !== "string") return Promise.resolve(request.body);
+    if (Buffer.byteLength(request.body, "utf8") > maxRequestBodyBytes) {
+      return Promise.reject(new RequestBodyTooLargeError());
+    }
 
     try {
       return Promise.resolve(JSON.parse(request.body || "{}"));
@@ -39,10 +66,21 @@ export function readBody(request: any): Promise<any> {
 
   return new Promise((resolve, reject) => {
     let raw = "";
+    let bytes = 0;
+    let rejected = false;
     request.on("data", (chunk: Buffer) => {
+      if (rejected) return;
+      bytes += chunk.length;
+      if (bytes > maxRequestBodyBytes) {
+        rejected = true;
+        reject(new RequestBodyTooLargeError());
+        request.destroy();
+        return;
+      }
       raw += chunk.toString();
     });
     request.on("end", () => {
+      if (rejected) return;
       try {
         resolve(raw ? JSON.parse(raw) : {});
       } catch (error) {
@@ -128,13 +166,49 @@ export const reservedProfileHandles = new Set([
   "settings",
   "login",
   "logout",
+  "signin",
+  "signup",
+  "profile",
+  "profiles",
+  "username",
   "flix",
   "plex",
   "movies",
+  "movie",
+  "tv",
+  "actor",
+  "actors",
+  "collection",
+  "collections",
   "public",
   "playlists",
+  "playlist",
   "roulette",
+  "discover",
+  "discovery",
+  "curators",
+  "director",
+  "director-admin",
+  "followed-titles",
+  "upcoming",
+  "progress",
+  "hall-of-fame",
+  "challenges",
+  "settings",
+  "notifications",
+  "providers",
+  "provider-icons",
+  "brand",
+  "manifest",
+  "manifest.json",
+  "favicon",
+  "favicon.png",
+  "terms",
+  "privacy",
+  "about",
+  "contact",
   "flim",
+  "www",
 ]);
 
 export const demoUserId = "demo-user";
@@ -164,6 +238,61 @@ export async function ensureAuthTables(sql: any) {
   `;
   await sql`create index if not exists user_sessions_user_id_idx on user_sessions (user_id)`;
   await sql`create index if not exists user_sessions_expires_at_idx on user_sessions (expires_at)`;
+}
+
+export async function ensureRateLimitTable(sql: any) {
+  await ensurePgCrypto(sql);
+  await sql`
+    create table if not exists api_rate_limits (
+      bucket text not null,
+      identifier_hash text not null,
+      window_start timestamptz not null,
+      request_count integer not null default 0,
+      updated_at timestamptz not null default now(),
+      primary key (bucket, identifier_hash)
+    )
+  `;
+  await sql`create index if not exists api_rate_limits_updated_at_idx on api_rate_limits (updated_at)`;
+}
+
+function requestIp(request: any) {
+  const forwarded = String(request.headers?.["x-forwarded-for"] || "");
+  const firstForwarded = forwarded.split(",")[0]?.trim();
+  return firstForwarded || String(request.headers?.["x-real-ip"] || request.socket?.remoteAddress || "unknown");
+}
+
+export async function checkRateLimit(
+  sql: any,
+  request: any,
+  bucket: string,
+  identifier: string | undefined,
+  maxRequests: number,
+  windowSeconds: number,
+) {
+  await ensureRateLimitTable(sql);
+  const rawIdentifier = identifier || requestIp(request);
+  const identifierHash = createHash("sha256")
+    .update(`${bucket}:${rawIdentifier}`)
+    .digest("hex");
+  const rows = await sql`
+    insert into api_rate_limits (bucket, identifier_hash, window_start, request_count, updated_at)
+    values (${bucket}, ${identifierHash}, now(), 1, now())
+    on conflict (bucket, identifier_hash)
+    do update set
+      window_start = case
+        when api_rate_limits.window_start < now() - (${windowSeconds} * interval '1 second') then now()
+        else api_rate_limits.window_start
+      end,
+      request_count = case
+        when api_rate_limits.window_start < now() - (${windowSeconds} * interval '1 second') then 1
+        else api_rate_limits.request_count + 1
+      end,
+      updated_at = now()
+    returning request_count
+  `;
+  if (Number(rows[0]?.request_count || 0) > maxRequests) {
+    throw new RateLimitError();
+  }
 }
 
 export function normalizeEmail(email: string) {
@@ -270,6 +399,7 @@ export async function ensureUserProfilesTable(sql: any) {
   await sql`alter table user_profiles add column if not exists favorite_director text`;
   await sql`create unique index if not exists user_profiles_handle_unique on user_profiles (handle)`;
   await sql`create unique index if not exists user_profiles_user_id_unique on user_profiles (user_id)`;
+  await sql`create index if not exists user_profiles_updated_at_idx on user_profiles (updated_at desc)`;
 }
 
 export async function ensureUserFollowsTable(sql: any) {
@@ -489,6 +619,11 @@ export async function ensureTriviaTables(sql: any) {
   `;
   await sql`create index if not exists title_trivia_reports_trivia_idx on title_trivia_reports (trivia_id, created_at desc)`;
   await sql`create index if not exists title_trivia_reports_reason_idx on title_trivia_reports (reason)`;
+  await sql`
+    create unique index if not exists title_trivia_reports_user_unique
+    on title_trivia_reports (trivia_id, user_id)
+    where user_id is not null
+  `;
 
   await sql`
     create table if not exists title_easter_eggs (
@@ -555,6 +690,11 @@ export async function ensureTriviaTables(sql: any) {
     )
   `;
   await sql`create index if not exists title_easter_egg_reports_hunt_idx on title_easter_egg_reports (easter_egg_id, created_at desc)`;
+  await sql`
+    create unique index if not exists title_easter_egg_reports_user_unique
+    on title_easter_egg_reports (easter_egg_id, user_id)
+    where user_id is not null
+  `;
 
   await sql`
     create table if not exists user_trivia_progress (

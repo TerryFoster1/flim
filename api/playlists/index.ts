@@ -1,4 +1,4 @@
-import { createPublicSlug, createPublicSlugBase, db, ensurePlaylistFollowsTable, ensurePlaylistLikesTable, ensurePlaylistSharingColumns, ensureUserProfilesTable, getCurrentUser, mapPlaylist, sendJson, readBody } from "../_db.js";
+import { checkRateLimit, createPublicSlug, createPublicSlugBase, db, ensurePlaylistFollowsTable, ensurePlaylistLikesTable, ensurePlaylistSharingColumns, ensureUserProfilesTable, errorStatus, getCurrentUser, mapPlaylist, sendJson, readBody } from "../_db.js";
 import { ensureDirectorSeed } from "../_director.js";
 import { evaluateAchievements } from "../_achievements.js";
 
@@ -89,13 +89,15 @@ export default async function handler(request: any, response: any) {
 
     if (request.method === "POST") {
       if (!user) return sendJson(response, 401, { error: "Sign in to create playlists." });
+      await checkRateLimit(sql, request, "playlist:create", user.id, 20, 60 * 60);
       const body = await readBody(request);
-      const name = (body.name || "Untitled playlist").trim();
+      const name = String(body.name || "Untitled playlist").trim().slice(0, 120) || "Untitled playlist";
+      const description = String(body.description || "").trim().slice(0, 600);
       const publicSlug = await createUniquePublicSlug(sql, name);
       const visibility = ["private", "shared", "public"].includes(body.visibility) ? body.visibility : "private";
       const [created] = await sql`
         insert into playlists (public_slug, name, description, visibility, owner_user_id)
-        values (${publicSlug}, ${name}, ${body.description || ""}, ${visibility}, ${user.id})
+        values (${publicSlug}, ${name}, ${description}, ${visibility}, ${user.id})
         returning *
       `;
 
@@ -105,6 +107,6 @@ export default async function handler(request: any, response: any) {
 
     return sendJson(response, 405, { error: "Method not allowed." });
   } catch (error) {
-    return sendJson(response, 500, { error: error instanceof Error ? error.message : "Playlist request failed." });
+    return sendJson(response, errorStatus(error), { error: error instanceof Error ? error.message : "Playlist request failed." });
   }
 }

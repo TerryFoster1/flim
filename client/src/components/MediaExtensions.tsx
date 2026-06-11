@@ -71,11 +71,11 @@ export function MediaExtensions({ media }: MediaExtensionsProps) {
           questions: current.questions.map((question) => question.id === itemId ? { ...question, completed: true } : question),
           easterEggs: (current.easterEggs || []).map((hunt) => hunt.id === itemId ? { ...hunt, completed: true } : hunt),
           progress: result.progress,
-          achievements: result.achievements,
-          unlockedAchievements: result.unlockedAchievements,
+          achievements: current.achievements,
+          unlockedAchievements: [],
         };
       });
-      setCompletionStatus((current) => ({ ...current, [itemId]: result.unlockedAchievements.length > 0 ? `Unlocked: ${result.unlockedAchievements[0].name}` : "Completed." }));
+      setCompletionStatus((current) => ({ ...current, [itemId]: "Completed." }));
     } catch (error) {
       setCompletionStatus((current) => ({ ...current, [itemId]: error instanceof Error && error.message.includes("Sign in") ? "Sign in to save progress." : "Could not save progress." }));
     }
@@ -91,13 +91,13 @@ export function MediaExtensions({ media }: MediaExtensionsProps) {
         questions: result.questions,
         easterEggs: result.easterEggs,
         progress: result.progress,
-        achievements: result.achievements,
-        unlockedAchievements: result.unlockedAchievements,
+        achievements: current.achievements,
+        unlockedAchievements: [],
       } : current);
       if (action === "answer") {
         setCompletionStatus((current) => ({ ...current, [hunt.id]: result.isCorrect ? "Correct. Hunt completed." : "Not quite. Try again or mark found after watching." }));
       } else {
-        setCompletionStatus((current) => ({ ...current, [hunt.id]: result.unlockedAchievements.length > 0 ? `Unlocked: ${result.unlockedAchievements[0].name}` : action === "complete" ? "Completed." : "Saved." }));
+        setCompletionStatus((current) => ({ ...current, [hunt.id]: action === "complete" ? "Completed." : "Saved." }));
       }
     } catch (error) {
       setCompletionStatus((current) => ({ ...current, [hunt.id]: error instanceof Error && error.message.includes("Sign in") ? "Sign in to save hunt progress." : "Could not save progress." }));
@@ -166,20 +166,10 @@ export function MediaExtensions({ media }: MediaExtensionsProps) {
                 <strong>{triviaFeed.progress?.completionPercent || 0}% complete</strong>
                 <span>{triviaFeed.progress?.triviaCompleted || 0}/{triviaFeed.progress?.triviaTotal || 0} trivia / {triviaFeed.progress?.easterEggsCompleted || 0}/{triviaFeed.progress?.easterEggsTotal || 0} hunts</span>
               </div>
-              {triviaFeed.achievements?.filter((achievement) => achievement.unlockedAt).slice(0, 3).map((achievement) => (
-                <span className="achievement-pill is-unlocked" key={achievement.id}>{achievement.name}</span>
-              ))}
             </div>
           ) : null}
           {triviaFeed && triviaFeed.questions.length === 0 && (triviaFeed.easterEggs || []).length === 0 ? (
             <p className="empty-state">{triviaFeed.notes || "Trivia coming soon."}</p>
-          ) : null}
-          {triviaFeed?.unlockedAchievements && triviaFeed.unlockedAchievements.length > 0 ? (
-            <div className="achievement-unlock-card">
-              <strong>Achievement unlocked</strong>
-              <span>{triviaFeed.unlockedAchievements[0].name}</span>
-              <small>{triviaFeed.unlockedAchievements[0].points || 0} points</small>
-            </div>
           ) : null}
           {triviaFeed ? (
             <div className="companion-mode-tabs" role="tablist" aria-label="Trivia and Easter Egg Hunts">

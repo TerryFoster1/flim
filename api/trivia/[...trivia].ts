@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { evaluateAchievements, readAchievementState } from "../_achievements.js";
-import { db, ensureTriviaTables, getCurrentUser, readBody, sendJson } from "../_db.js";
+import { checkRateLimit, db, ensureTriviaTables, errorStatus, getCurrentUser, readBody, sendJson } from "../_db.js";
 import { getCatalogMediaItem, mapCatalogDetails, upsertMediaItem } from "../_mediaCatalog.js";
 import { ensureTmdbCacheTables, fetchTmdbMovieDetails } from "../_tmdb.js";
 
@@ -554,6 +554,7 @@ async function handleGet(request: any, response: any) {
   await ensureTmdbCacheTables(sql);
   await ensureTriviaTables(sql);
   const user = await getCurrentUser(sql, request);
+  await checkRateLimit(sql, request, "trivia:get", user?.id, user ? 120 : 40, 60);
 
   let questions = await readCachedTrivia(sql, tmdbId, mediaType, user?.id);
   let hunts = await readCachedEasterEggs(sql, tmdbId, mediaType, user?.id);
@@ -613,12 +614,20 @@ async function handleReport(request: any, response: any) {
   const sql = db();
   await ensureTriviaTables(sql);
   const user = await getCurrentUser(sql, request);
+  if (!user) return sendJson(response, 401, { error: "Sign in to report trivia quality issues." });
+  await checkRateLimit(sql, request, "trivia:report", user.id, 20, 60 * 60);
 
   if (easterEggId) {
-    await sql`
+    const inserted = await sql`
       insert into title_easter_egg_reports (easter_egg_id, user_id, reason)
-      values (${easterEggId}, ${user?.id || null}, ${reason})
+      values (${easterEggId}, ${user.id}, ${reason})
+      on conflict (easter_egg_id, user_id) do nothing
+      returning id
     `;
+    if (!inserted[0]) {
+      const current = await sql`select report_count, status from title_easter_eggs where id = ${easterEggId} limit 1`;
+      return sendJson(response, 200, { ok: true, duplicate: true, reportCount: Number(current[0]?.report_count || 0), status: current[0]?.status || "unknown" });
+    }
     const rows = await sql`
       update title_easter_eggs
       set
@@ -632,10 +641,16 @@ async function handleReport(request: any, response: any) {
     return sendJson(response, 200, { ok: true, reportCount: Number(rows[0]?.report_count || 0), status: rows[0]?.status || "unknown" });
   }
 
-  await sql`
+  const inserted = await sql`
     insert into title_trivia_reports (trivia_id, user_id, reason)
-    values (${triviaId}, ${user?.id || null}, ${reason})
+    values (${triviaId}, ${user.id}, ${reason})
+    on conflict (trivia_id, user_id) do nothing
+    returning id
   `;
+  if (!inserted[0]) {
+    const current = await sql`select report_count, status from title_trivia where id = ${triviaId} limit 1`;
+    return sendJson(response, 200, { ok: true, duplicate: true, reportCount: Number(current[0]?.report_count || 0), status: current[0]?.status || "unknown" });
+  }
   const rows = await sql`
     update title_trivia
     set
@@ -661,6 +676,7 @@ async function handleHuntAction(request: any, response: any) {
   await ensureTriviaTables(sql);
   const user = await getCurrentUser(sql, request);
   if (!user) return sendJson(response, 401, { error: "Sign in to save Easter Egg Hunt progress." });
+  await checkRateLimit(sql, request, "trivia:hunt", user.id, 120, 60);
 
   const rows = await sql`
     select id, tmdb_id, media_type, answer
@@ -740,6 +756,7 @@ async function handleComplete(request: any, response: any) {
   await ensureTriviaTables(sql);
   const user = await getCurrentUser(sql, request);
   if (!user) return sendJson(response, 401, { error: "Sign in to save trivia progress." });
+  await checkRateLimit(sql, request, "trivia:complete", user.id, 120, 60);
   if (!itemId || !["trivia", "easter_egg"].includes(itemType)) return sendJson(response, 400, { error: "A valid completion item is required." });
 
   let item: any;
@@ -809,6 +826,6 @@ export default async function handler(request: any, response: any) {
     if (request.method === "POST" && path === "report") return handleReport(request, response);
     return sendJson(response, 405, { error: "Method not allowed." });
   } catch (error) {
-    return sendJson(response, 500, { error: error instanceof Error ? error.message : "Trivia request failed." });
+    return sendJson(response, errorStatus(error), { error: error instanceof Error ? error.message : "Trivia request failed." });
   }
 }

@@ -1,4 +1,4 @@
-import { db, ensureNotificationsTable, ensurePlaylistFollowsTable, ensureUserProfilesTable, getCurrentUser, sendJson } from "../../_db.js";
+import { checkRateLimit, db, ensureNotificationsTable, ensurePlaylistFollowsTable, ensureUserProfilesTable, errorStatus, getCurrentUser, sendJson } from "../../_db.js";
 import { evaluateAchievements } from "../../_achievements.js";
 
 async function readFollowState(sql: any, playlistId: string, userId: string) {
@@ -35,6 +35,7 @@ export default async function handler(request: any, response: any) {
     const user = await getCurrentUser(sql, request);
 
     if (!user) return sendJson(response, 401, { error: "Sign in to follow playlists." });
+    await checkRateLimit(sql, request, "playlist:follow", user.id, 120, 60);
 
     const [playlist] = await sql`
       select
@@ -126,6 +127,6 @@ export default async function handler(request: any, response: any) {
     return sendJson(response, 405, { error: "Method not allowed." });
   } catch (error) {
     console.error("playlist_follow_failed", error instanceof Error ? error.message : "Playlist follow failed.");
-    return sendJson(response, 500, { error: "Unable to update playlist follow. Please try again." });
+    return sendJson(response, errorStatus(error), { error: error instanceof Error ? error.message : "Unable to update playlist follow. Please try again." });
   }
 }

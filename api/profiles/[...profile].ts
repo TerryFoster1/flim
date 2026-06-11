@@ -1,5 +1,6 @@
 import {
   db,
+  checkRateLimit,
   clearSessionCookie,
   createSessionToken,
   ensureAuthTables,
@@ -8,6 +9,7 @@ import {
   ensurePlaylistLikesTable,
   ensureUserFollowsTable,
   ensureUserProfilesTable,
+  errorStatus,
   getCurrentUser,
   hashPassword,
   hashSessionToken,
@@ -65,12 +67,24 @@ function cleanProfileInput(body: any) {
       ? body.preferredProviders.map((provider: unknown) => String(provider)).filter(Boolean).slice(0, 20)
       : [],
     showCountryPublicly: Boolean(body.showCountryPublicly),
-    profileImageUrl: String(body.profileImageUrl || "").trim().slice(0, 500),
-    heroImageUrl: String(body.heroImageUrl || "").trim().slice(0, 500),
+    profileImageUrl: cleanImageUrl(body.profileImageUrl),
+    heroImageUrl: cleanImageUrl(body.heroImageUrl),
     favoriteMovie: String(body.favoriteMovie || "").trim().slice(0, 120),
     favoriteGenre: String(body.favoriteGenre || "").trim().slice(0, 80),
     favoriteDirector: String(body.favoriteDirector || "").trim().slice(0, 120),
   };
+}
+
+function cleanImageUrl(value: unknown) {
+  const raw = String(value || "").trim().slice(0, 500);
+  if (!raw) return "";
+  if (raw.startsWith("/")) return raw;
+  try {
+    const url = new URL(raw);
+    return url.protocol === "https:" ? url.toString() : "";
+  } catch {
+    return "";
+  }
 }
 
 function cleanSignupHandle(value: string) {
@@ -99,6 +113,7 @@ async function handleCurrentProfile(request: any, response: any, sql: any) {
   }
 
   if (request.method === "PUT") {
+    await checkRateLimit(sql, request, "profile:update", user.id, 30, 60 * 60);
     const input = cleanProfileInput(await readBody(request));
     const validationMessage = validateProfileHandle(input.handle);
 
@@ -211,6 +226,7 @@ async function handleAuth(request: any, response: any, sql: any, action: string)
   }
 
   if ((action === "signup" || action === "signin") && request.method === "POST") {
+    await checkRateLimit(sql, request, `auth:${action}`, undefined, action === "signup" ? 8 : 20, 15 * 60);
     const body = await readBody(request);
     const email = normalizeEmail(String(body.email || ""));
     const password = String(body.password || "");
@@ -261,6 +277,7 @@ async function handleAuth(request: any, response: any, sql: any, action: string)
 
 async function handleUsernameAvailability(request: any, response: any, sql: any) {
   if (request.method !== "GET") return sendJson(response, 405, { error: "Method not allowed." });
+  await checkRateLimit(sql, request, "profile:username", undefined, 120, 60);
   const handle = cleanSignupHandle(Array.isArray(request.query.handle) ? String(request.query.handle[0] || "") : String(request.query.handle || ""));
   const validationMessage = validateProfileHandle(handle);
   if (validationMessage) return sendJson(response, 200, { handle, available: false, message: validationMessage });
@@ -276,6 +293,7 @@ async function handleUsernameAvailability(request: any, response: any, sql: any)
 async function handleFollowProfile(request: any, response: any, sql: any) {
   const user = await getCurrentUser(sql, request);
   if (!user) return sendJson(response, 401, { error: "Sign in to follow creators." });
+  await checkRateLimit(sql, request, "profile:follow", user.id, 120, 60);
 
   const body = await readBody(request);
   const handle = normalizeHandle(String(body.handle || ""));
@@ -550,6 +568,6 @@ export default async function handler(request: any, response: any) {
       hall_of_fame_summary: hallOfFameSummary,
     }));
   } catch (error) {
-    return sendJson(response, 500, { error: error instanceof Error ? error.message : "Profile request failed." });
+    return sendJson(response, errorStatus(error), { error: error instanceof Error ? error.message : "Profile request failed." });
   }
 }

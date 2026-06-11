@@ -1,4 +1,4 @@
-import { db, ensurePlaylistFollowsTable, ensurePlaylistLikesTable, ensureUserFollowsTable, ensureUserProfilesTable, getCurrentUser, mapPlaylist, sendJson } from "../_db.js";
+import { checkRateLimit, db, ensurePlaylistFollowsTable, ensurePlaylistLikesTable, ensureUserFollowsTable, ensureUserProfilesTable, errorStatus, getCurrentUser, mapPlaylist, sendJson } from "../_db.js";
 import { ensureDirectorSeed } from "../_director.js";
 import {
   findCatalogSearchResults,
@@ -469,6 +469,7 @@ export default async function handler(request: any, response: any) {
     }
 
     const sql = db();
+    await checkRateLimit(sql, request, "discovery:search", undefined, 60, 60);
     await ensureUserProfilesTable(sql);
     await ensurePlaylistFollowsTable(sql);
     await ensurePlaylistLikesTable(sql);
@@ -499,6 +500,6 @@ export default async function handler(request: any, response: any) {
     });
   } catch (error) {
     console.error("discovery_search_failed", error instanceof Error ? error.message : "Discovery search failed.");
-    return sendJson(response, 500, { error: "Discovery search failed. Please try again." });
+    return sendJson(response, errorStatus(error), { error: error instanceof Error ? error.message : "Discovery search failed. Please try again." });
   }
 }

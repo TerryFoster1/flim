@@ -1,4 +1,4 @@
-import { db, ensurePlaylistLikesTable, ensureUserProfilesTable, getCurrentUser, sendJson } from "../../_db.js";
+import { checkRateLimit, db, ensurePlaylistLikesTable, ensureUserProfilesTable, errorStatus, getCurrentUser, sendJson } from "../../_db.js";
 
 async function readLikeState(sql: any, playlistId: string, userId: string) {
   const [state] = await sql`
@@ -33,6 +33,7 @@ export default async function handler(request: any, response: any) {
     const user = await getCurrentUser(sql, request);
 
     if (!user) return sendJson(response, 401, { error: "Sign in to like playlists." });
+    await checkRateLimit(sql, request, "playlist:like", user.id, 120, 60);
 
     const [playlist] = await sql`
       select id
@@ -75,6 +76,6 @@ export default async function handler(request: any, response: any) {
     return sendJson(response, 405, { error: "Method not allowed." });
   } catch (error) {
     console.error("playlist_like_failed", error instanceof Error ? error.message : "Playlist like failed.");
-    return sendJson(response, 500, { error: "Unable to update playlist like. Please try again." });
+    return sendJson(response, errorStatus(error), { error: error instanceof Error ? error.message : "Unable to update playlist like. Please try again." });
   }
 }

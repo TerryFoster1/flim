@@ -488,6 +488,9 @@ create unique index if not exists playlist_movies_playlist_media_tmdb_unique
 create index if not exists playlists_visibility_idx
   on playlists (visibility);
 
+create index if not exists playlists_visibility_updated_idx
+  on playlists (visibility, updated_at desc);
+
 create unique index if not exists playlists_public_slug_idx
   on playlists (public_slug);
 
@@ -1145,6 +1148,10 @@ create index if not exists title_trivia_reports_trivia_idx
 create index if not exists title_trivia_reports_reason_idx
   on title_trivia_reports (reason);
 
+create unique index if not exists title_trivia_reports_user_unique
+  on title_trivia_reports (trivia_id, user_id)
+  where user_id is not null;
+
 create table if not exists title_easter_eggs (
   id uuid primary key default gen_random_uuid(),
   tmdb_id integer not null,
@@ -1213,6 +1220,10 @@ create table if not exists title_easter_egg_reports (
 
 create index if not exists title_easter_egg_reports_hunt_idx
   on title_easter_egg_reports (easter_egg_id, created_at desc);
+
+create unique index if not exists title_easter_egg_reports_user_unique
+  on title_easter_egg_reports (easter_egg_id, user_id)
+  where user_id is not null;
 
 create table if not exists user_trivia_progress (
   id uuid primary key default gen_random_uuid(),
@@ -1522,6 +1533,9 @@ create unique index if not exists user_profiles_handle_unique
 create unique index if not exists user_profiles_user_id_unique
   on user_profiles (user_id);
 
+create index if not exists user_profiles_updated_at_idx
+  on user_profiles (updated_at desc);
+
 create table if not exists user_follows (
   id uuid primary key default gen_random_uuid(),
   follower_user_id uuid not null references users(id) on delete cascade,
@@ -1566,6 +1580,18 @@ create trigger users_set_updated_at
 before update on users
 for each row
 execute function set_updated_at();
+
+create table if not exists api_rate_limits (
+  bucket text not null,
+  identifier_hash text not null,
+  window_start timestamptz not null,
+  request_count integer not null default 0,
+  updated_at timestamptz not null default now(),
+  primary key (bucket, identifier_hash)
+);
+
+create index if not exists api_rate_limits_updated_at_idx
+  on api_rate_limits (updated_at);
 
 create or replace function touch_playlist_after_movie_change()
 returns trigger
