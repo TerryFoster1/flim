@@ -94,7 +94,9 @@ export default async function handler(request: any, response: any) {
       badge: card === "countdown" || card === "title" ? countdownBadge(releaseDate, mediaType) : undefined,
       statLine: card === "countdown" || card === "title"
         ? releaseText || "Release date coming soon"
-        : "No high score yet",
+        : card === "game"
+          ? "No high score yet"
+          : releaseText || "Official trailer",
     };
 
     return sendSvg(response, renderShareCard(data));
