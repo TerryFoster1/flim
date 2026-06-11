@@ -210,22 +210,9 @@ async function progressSummary(sql: any, userId: string, achievementSummary: any
 function pickNextStep(input: {
   collections: any[];
   challenges: any[];
-  seasonalChallenges: any[];
   achievements: any[];
   summary: any;
 }) {
-  const seasonal = input.seasonalChallenges.find((event) => event.userStatus === "in_progress" && event.dateStatus === "active");
-  if (seasonal) {
-    return {
-      type: "seasonal_challenge",
-      title: `Continue ${seasonal.name}`,
-      description: `${seasonal.completedRequirements} / ${seasonal.totalRequirements} tasks complete.`,
-      cta: "Open Challenges",
-      path: "/challenges",
-      completionPercent: seasonal.completionPercent,
-    };
-  }
-
   const collection = input.collections.find((item) => item.status === "in_progress");
   if (collection) {
     return {
@@ -397,7 +384,7 @@ export async function progressHubFeed(sql: any, userId: string) {
   const challenges = challengeData.challenges || [];
   const seasonalChallenges = seasonalData.events || [];
   const achievements = achievementState.achievements || [];
-  const nextStep = pickNextStep({ collections, challenges, seasonalChallenges, achievements, summary });
+  const nextStep = pickNextStep({ collections, challenges, achievements, summary });
   const timeline = await activityTimeline(sql, userId);
 
   return {

@@ -26,6 +26,8 @@ export interface DirectorSeasonalChallenge {
   description: string;
   start_date: string;
   end_date: string;
+  season_key?: string;
+  is_active?: boolean;
   badge: string;
   banner?: string;
   difficulty: "easy" | "medium" | "hard" | "expert";

@@ -15,9 +15,10 @@ interface SeasonalRequirement {
 const defaultEvents = [
   {
     slug: "halloween-horror-2026",
+    seasonKey: "halloween",
     name: "Halloween Horror Challenge",
     description: "Watch horror picks, answer trivia, and hunt for spooky details before Halloween ends.",
-    startDate: "2026-10-01",
+    startDate: "2026-09-15",
     endDate: "2026-10-31",
     badge: "Halloween Horror Hunter 2026",
     banner: "horror",
@@ -31,9 +32,10 @@ const defaultEvents = [
   },
   {
     slug: "christmas-movie-2026",
+    seasonKey: "christmas",
     name: "Christmas Movie Challenge",
     description: "Build a holiday movie streak and earn a seasonal badge.",
-    startDate: "2026-12-01",
+    startDate: "2026-11-15",
     endDate: "2026-12-31",
     badge: "Christmas Movie Marathoner 2026",
     banner: "holiday",
@@ -46,9 +48,10 @@ const defaultEvents = [
   },
   {
     slug: "summer-blockbuster-2026",
+    seasonKey: "summer_blockbusters",
     name: "Summer Blockbuster Challenge",
     description: "Finish action, adventure, and franchise movie goals during blockbuster season.",
-    startDate: "2026-06-01",
+    startDate: "2026-05-15",
     endDate: "2026-08-31",
     badge: "Summer Blockbuster Champion 2026",
     banner: "blockbuster",
@@ -61,6 +64,7 @@ const defaultEvents = [
   },
   {
     slug: "oscar-challenge-2026",
+    seasonKey: "oscars",
     name: "Oscar Challenge",
     description: "Watch award-season films and complete companion trivia.",
     startDate: "2026-01-15",
@@ -159,6 +163,8 @@ export async function ensureSeasonalChallengeTables(sql: any) {
       end_date date not null,
       badge text not null,
       banner text,
+      season_key text not null default 'general',
+      is_active boolean not null default true,
       difficulty text not null default 'medium',
       requirements jsonb not null default '[]'::jsonb,
       points integer not null default 0,
@@ -167,7 +173,10 @@ export async function ensureSeasonalChallengeTables(sql: any) {
       updated_at timestamptz not null default now()
     )
   `);
+  await safe(sql`alter table seasonal_challenge_events add column if not exists season_key text not null default 'general'`);
+  await safe(sql`alter table seasonal_challenge_events add column if not exists is_active boolean not null default true`);
   await safe(sql`create index if not exists seasonal_challenge_events_status_dates_idx on seasonal_challenge_events (status, start_date, end_date)`);
+  await safe(sql`create index if not exists seasonal_challenge_events_active_window_idx on seasonal_challenge_events (is_active, status, start_date, end_date)`);
   await safe(sql`create index if not exists seasonal_challenge_events_slug_idx on seasonal_challenge_events (slug)`);
 
   await safe(sql`
@@ -203,6 +212,8 @@ export async function ensureSeasonalChallengeTables(sql: any) {
         end_date,
         badge,
         banner,
+        season_key,
+        is_active,
         difficulty,
         requirements,
         points,
@@ -217,6 +228,8 @@ export async function ensureSeasonalChallengeTables(sql: any) {
         ${event.endDate},
         ${event.badge},
         ${event.banner},
+        ${event.seasonKey},
+        true,
         ${event.difficulty},
         ${safeJson(event.requirements)}::jsonb,
         ${event.points},
@@ -226,6 +239,31 @@ export async function ensureSeasonalChallengeTables(sql: any) {
       on conflict (slug) do nothing
     `;
   }
+
+  await sql`
+    update seasonal_challenge_events
+    set
+      season_key = case slug
+        when 'halloween-horror-2026' then case when season_key = 'general' then 'halloween' else season_key end
+        when 'christmas-movie-2026' then case when season_key = 'general' then 'christmas' else season_key end
+        when 'summer-blockbuster-2026' then case when season_key = 'general' then 'summer_blockbusters' else season_key end
+        when 'oscar-challenge-2026' then case when season_key = 'general' then 'oscars' else season_key end
+        else season_key
+      end,
+      start_date = case slug
+        when 'halloween-horror-2026' then case when start_date = date '2026-10-01' then date '2026-09-15' else start_date end
+        when 'christmas-movie-2026' then case when start_date = date '2026-12-01' then date '2026-11-15' else start_date end
+        when 'summer-blockbuster-2026' then case when start_date = date '2026-06-01' then date '2026-05-15' else start_date end
+        else start_date
+      end,
+      updated_at = now()
+    where slug in (
+      'halloween-horror-2026',
+      'christmas-movie-2026',
+      'summer-blockbuster-2026',
+      'oscar-challenge-2026'
+    )
+  `;
 }
 
 async function progressForRequirement(sql: any, userId: string | undefined, requirement: SeasonalRequirement) {
@@ -424,6 +462,8 @@ async function mapEvent(sql: any, row: any, userId?: string) {
     endDate: dateOnly(row.end_date),
     badge: row.badge,
     banner: row.banner || "",
+    seasonKey: row.season_key || "general",
+    isActive: row.is_active !== false,
     difficulty: row.difficulty || "medium",
     requirements: mappedRequirements,
     points: Number(row.points || 0),
@@ -448,6 +488,8 @@ export async function seasonalChallengeFeed(sql: any, userId?: string) {
     from seasonal_challenge_events sce
     left join user_seasonal_challenges usc on usc.event_id = sce.id and usc.user_id = ${userId || null}::uuid
     where sce.status = 'published'
+      and sce.is_active = true
+      and (now() at time zone 'America/Toronto')::date between sce.start_date and sce.end_date
     order by sce.start_date asc, sce.points desc
   `;
   const events = [];
@@ -457,9 +499,9 @@ export async function seasonalChallengeFeed(sql: any, userId?: string) {
     sections: {
       active: events.filter((event) => event.dateStatus === "active"),
       endingSoon: events.filter((event) => event.dateStatus === "active" && event.daysRemaining <= 14),
-      upcoming: events.filter((event) => event.dateStatus === "upcoming"),
+      upcoming: [],
       recentlyCompleted: events.filter((event) => event.userStatus === "completed").slice(0, 8),
-      featured: events.find((event) => event.dateStatus === "active") || events[0] || null,
+      featured: events.find((event) => event.dateStatus === "active") || null,
     },
   };
 }
@@ -471,6 +513,8 @@ export async function joinSeasonalChallenge(sql: any, userId: string, eventId: s
     from seasonal_challenge_events
     where id = ${eventId}
       and status = 'published'
+      and is_active = true
+      and (now() at time zone 'America/Toronto')::date between start_date and end_date
     limit 1
   `;
   if (!event) return null;
@@ -584,12 +628,15 @@ function slugify(value: string) {
 
 export function cleanSeasonalChallengeInput(body: any) {
   const name = String(body.name || "").trim().slice(0, 120);
+  const rawIsActive = body.isActive ?? body.is_active ?? true;
   return {
     slug: slugify(String(body.slug || name)),
     name,
     description: String(body.description || "").trim().slice(0, 600),
     startDate: String(body.startDate || body.start_date || "").slice(0, 10),
     endDate: String(body.endDate || body.end_date || "").slice(0, 10),
+    seasonKey: String(body.seasonKey || body.season_key || "general").trim().toLowerCase().replace(/[^a-z0-9_]+/g, "_").slice(0, 80) || "general",
+    isActive: rawIsActive === true || rawIsActive === "true" || rawIsActive === "on" || rawIsActive === "1" || rawIsActive === 1,
     badge: String(body.badge || `${name} Badge`).trim().slice(0, 120),
     banner: String(body.banner || "").trim().slice(0, 120),
     difficulty: ["easy", "medium", "hard", "expert"].includes(body.difficulty) ? body.difficulty : "medium",

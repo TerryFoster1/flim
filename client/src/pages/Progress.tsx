@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { getProgressHub } from "../services/progressService";
-import type { CollectionChallenge, CompanionAchievement, ProgressActivityItem, ProgressCollectionItem, ProgressHubFeed, SeasonalChallengeEvent } from "../types";
+import type { CollectionChallenge, CompanionAchievement, ProgressActivityItem, ProgressCollectionItem, ProgressHubFeed } from "../types";
 
 interface ProgressProps {
   onNavigate: (path: string) => void;
@@ -67,27 +67,6 @@ function ChallengeCard({ challenge, onNavigate }: { challenge: CollectionChallen
   );
 }
 
-function SeasonalCard({ event, onNavigate }: { event: SeasonalChallengeEvent; onNavigate: (path: string) => void }) {
-  const status = event.userStatus === "completed"
-    ? "Badge unlocked"
-    : event.dateStatus === "active"
-      ? `${event.daysRemaining} day${event.daysRemaining === 1 ? "" : "s"} left`
-      : event.dateStatus === "upcoming"
-        ? "Coming soon"
-        : "Ended";
-  return (
-    <button className={`progress-challenge-card seasonal-${event.dateStatus}`} onClick={() => onNavigate("/challenges")} type="button">
-      <span className="progress-badge-mark">{event.banner || event.badge}</span>
-      <span className="progress-card-copy">
-        <strong>{event.name}</strong>
-        <small>{event.completedRequirements} / {event.totalRequirements} tasks - {status}</small>
-        <ProgressTrack value={event.completionPercent} label={`${event.completionPercent}% complete`} />
-      </span>
-      <em>{event.points} pts</em>
-    </button>
-  );
-}
-
 function AchievementCard({ achievement }: { achievement: CompanionAchievement }) {
   const remaining = Math.max(0, Number(achievement.goalCount || 0) - Number(achievement.progressCount || 0));
   return (
@@ -141,14 +120,6 @@ export function Progress({ onNavigate }: ProgressProps) {
   }, []);
 
   const inProgressChallenges = useMemo(() => feed?.challenges.inProgress || [], [feed]);
-  const seasonal = useMemo(() => {
-    const map = new Map<string, SeasonalChallengeEvent>();
-    for (const event of [...(feed?.seasonalChallenges.inProgress || []), ...(feed?.seasonalChallenges.active || [])]) {
-      map.set(event.id, event);
-    }
-    return Array.from(map.values()).slice(0, 4);
-  }, [feed]);
-
   if (status === "loading") {
     return <section className="route-page progress-hub-page"><p className="empty-state">Loading your progress...</p></section>;
   }
@@ -224,18 +195,6 @@ export function Progress({ onNavigate }: ProgressProps) {
               <ChallengeCard challenge={challenge} key={challenge.id} onNavigate={onNavigate} />
             ))}
             {inProgressChallenges.length === 0 && feed.challenges.completed.length === 0 ? <p className="empty-state">Collection challenges will appear as you make progress.</p> : null}
-          </div>
-        </div>
-
-        <div className="progress-panel">
-          <div className="progress-panel-heading">
-            <h2>Seasonal Events</h2>
-            <button onClick={() => onNavigate("/challenges")} type="button">Open</button>
-          </div>
-          <div className="progress-stack">
-            {seasonal.length > 0 ? seasonal.map((event) => (
-              <SeasonalCard event={event} key={event.id} onNavigate={onNavigate} />
-            )) : <p className="empty-state">No active seasonal event progress yet.</p>}
           </div>
         </div>
 

@@ -347,6 +347,8 @@ create table if not exists seasonal_challenge_events (
   end_date date not null,
   badge text not null,
   banner text,
+  season_key text not null default 'general',
+  is_active boolean not null default true,
   difficulty text not null default 'medium',
   requirements jsonb not null default '[]'::jsonb,
   points integer not null default 0,
@@ -357,6 +359,9 @@ create table if not exists seasonal_challenge_events (
 
 create index if not exists seasonal_challenge_events_status_dates_idx
   on seasonal_challenge_events (status, start_date, end_date);
+
+create index if not exists seasonal_challenge_events_active_window_idx
+  on seasonal_challenge_events (is_active, status, start_date, end_date);
 
 create index if not exists seasonal_challenge_events_slug_idx
   on seasonal_challenge_events (slug);

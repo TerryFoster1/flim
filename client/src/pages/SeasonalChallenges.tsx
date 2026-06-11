@@ -119,7 +119,7 @@ export function SeasonalChallenges({ onNavigate }: SeasonalChallengesProps) {
 
   const card = (event: SeasonalChallengeEvent) => (
     <SeasonalChallengeCard event={event} key={event.id} onNavigate={onNavigate}>
-      {event.userStatus === "not_started" && event.dateStatus !== "ended" ? (
+      {event.userStatus === "not_started" && event.dateStatus === "active" ? (
         <button className="primary-button compact" disabled={joiningId === event.id} onClick={() => handleJoin(event)} type="button">
           {joiningId === event.id ? "Starting..." : "Start Challenge"}
         </button>
@@ -132,14 +132,13 @@ export function SeasonalChallenges({ onNavigate }: SeasonalChallengesProps) {
   );
 
   const activeEvents = feed.sections.active;
-  const upcoming = feed.sections.upcoming;
   const completed = feed.sections.recentlyCompleted;
 
   return (
     <section className="route-page seasonal-challenges-page">
       <div className="page-heading">
-        <h1>Seasonal Challenges</h1>
-        <p>Limited-time movie goals, exclusive badges, and reasons to come back throughout the year.</p>
+        <h1>Games & Trivia</h1>
+        <p>Limited-time movie goals, seasonal badges, trivia, and challenges when an event is active.</p>
         <div className="collection-hero-actions">
           <button className="secondary-button hall-inline-link" onClick={() => onNavigate("/progress")} type="button">
             View Progress
@@ -166,18 +165,7 @@ export function SeasonalChallenges({ onNavigate }: SeasonalChallengesProps) {
             {activeEvents.map(card)}
           </div>
         </section>
-      ) : null}
-
-      {upcoming.length > 0 ? (
-        <section className="discovery-section">
-          <div className="discovery-section-heading">
-            <h2>Coming Soon</h2>
-          </div>
-          <div className="seasonal-challenge-grid">
-            {upcoming.map(card)}
-          </div>
-        </section>
-      ) : null}
+      ) : <p className="empty-state">No seasonal challenge is active right now.</p>}
 
       {completed.length > 0 ? (
         <section className="discovery-section">

@@ -210,6 +210,8 @@ export interface SeasonalChallengeEvent {
   description: string;
   startDate: string;
   endDate: string;
+  seasonKey?: string;
+  isActive?: boolean;
   badge: string;
   banner?: string;
   difficulty: "easy" | "medium" | "hard" | "expert";
