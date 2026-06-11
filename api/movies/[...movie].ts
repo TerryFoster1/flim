@@ -22,6 +22,17 @@ function hasCoreTitlePayload(details: any, mediaType: "movie" | "tv", tmdbId: nu
   return Number.isFinite(id) && id === tmdbId && type === mediaType && title.length > 0;
 }
 
+function titleFailureReason(error: unknown) {
+  return error instanceof Error ? error.message : "TMDb details fetch failed.";
+}
+
+function logTitleDetailsIssue(event: string, details: Record<string, unknown>) {
+  console.warn(event, {
+    route: `/api/movies/${details.mediaType === "tv" ? `${details.tmdbId}?type=tv` : details.tmdbId}`,
+    ...details,
+  });
+}
+
 function moviePath(request: any) {
   const pathname = new URL(request.url || "", "https://www.flim.ca").pathname;
   const fromPath = pathname.split("/api/movies/").pop()?.split("?")[0];
@@ -115,6 +126,14 @@ async function handleMovieDetails(tmdbId: number, response: any, forceRefresh = 
     order by created_at desc
     limit 1
   `;
+  const staleCached = await sql`
+      select response_json
+      from tmdb_movie_cache
+      where tmdb_id = ${tmdbId}
+        and media_type = 'movie'
+    order by created_at desc
+    limit 1
+  `;
 
   if (hasCoreTitlePayload(cached[0]?.response_json, "movie", tmdbId)) {
     await upsertMediaItem(sql, cached[0].response_json);
@@ -134,16 +153,33 @@ async function handleMovieDetails(tmdbId: number, response: any, forceRefresh = 
     movie = await fetchTmdbMovieDetails(tmdbId, "movie");
   } catch (error) {
     if (hasCoreTitlePayload(catalogDetails, "movie", tmdbId)) {
-      console.warn("title_details_catalog_fallback", {
+      logTitleDetailsIssue("title_details_catalog_fallback", {
         tmdbId,
         mediaType: "movie",
-        reason: error instanceof Error ? error.message : "TMDb details fetch failed.",
+        reason: titleFailureReason(error),
         hasCoreData: true,
       });
       response.setHeader("X-Flim-Catalog", "FALLBACK");
       response.setHeader("X-Flim-Cache", "ERROR");
       return sendJson(response, 200, catalogDetails);
     }
+    if (hasCoreTitlePayload(staleCached[0]?.response_json, "movie", tmdbId)) {
+      logTitleDetailsIssue("title_details_stale_cache_fallback", {
+        tmdbId,
+        mediaType: "movie",
+        reason: titleFailureReason(error),
+        hasCoreData: true,
+      });
+      response.setHeader("X-Flim-Catalog", catalogItem ? "STALE" : "MISS");
+      response.setHeader("X-Flim-Cache", "STALE");
+      return sendJson(response, 200, staleCached[0].response_json);
+    }
+    logTitleDetailsIssue("title_details_fetch_failed", {
+      tmdbId,
+      mediaType: "movie",
+      reason: titleFailureReason(error),
+      hasCoreData: false,
+    });
     throw error;
   }
   const mediaItem = await upsertMediaItem(sql, movie);
@@ -179,6 +215,14 @@ async function handleTvDetails(tmdbId: number, response: any, forceRefresh = fal
     order by created_at desc
     limit 1
   `;
+  const staleCached = await sql`
+    select response_json
+    from tmdb_movie_cache
+    where tmdb_id = ${tmdbId}
+      and media_type = 'tv'
+    order by created_at desc
+    limit 1
+  `;
 
   if (hasCoreTitlePayload(cached[0]?.response_json, "tv", tmdbId)) {
     await upsertMediaItem(sql, cached[0].response_json);
@@ -198,16 +242,33 @@ async function handleTvDetails(tmdbId: number, response: any, forceRefresh = fal
     show = await fetchTmdbMovieDetails(tmdbId, "tv");
   } catch (error) {
     if (hasCoreTitlePayload(catalogDetails, "tv", tmdbId)) {
-      console.warn("title_details_catalog_fallback", {
+      logTitleDetailsIssue("title_details_catalog_fallback", {
         tmdbId,
         mediaType: "tv",
-        reason: error instanceof Error ? error.message : "TMDb details fetch failed.",
+        reason: titleFailureReason(error),
         hasCoreData: true,
       });
       response.setHeader("X-Flim-Catalog", "FALLBACK");
       response.setHeader("X-Flim-Cache", "ERROR");
       return sendJson(response, 200, catalogDetails);
     }
+    if (hasCoreTitlePayload(staleCached[0]?.response_json, "tv", tmdbId)) {
+      logTitleDetailsIssue("title_details_stale_cache_fallback", {
+        tmdbId,
+        mediaType: "tv",
+        reason: titleFailureReason(error),
+        hasCoreData: true,
+      });
+      response.setHeader("X-Flim-Catalog", catalogItem ? "STALE" : "MISS");
+      response.setHeader("X-Flim-Cache", "STALE");
+      return sendJson(response, 200, staleCached[0].response_json);
+    }
+    logTitleDetailsIssue("title_details_fetch_failed", {
+      tmdbId,
+      mediaType: "tv",
+      reason: titleFailureReason(error),
+      hasCoreData: false,
+    });
     throw error;
   }
   const mediaItem = await upsertMediaItem(sql, show);

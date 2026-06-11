@@ -41,14 +41,46 @@ function chooseContentRating(ratings: ContentRating[] = [], countryCode = "") {
   )?.rating;
 }
 
-const detailRetryDelays = [750, 1500];
+const detailRetryDelays = [0, 1500];
 
 function errorReason(error: unknown) {
   return error instanceof Error ? error.message : "Unknown title details error.";
 }
 
+function logDetailsLoad(event: string, details: Record<string, unknown>) {
+  console.warn(event, {
+    route: typeof window !== "undefined" ? `${window.location.pathname}${window.location.search}` : "",
+    ...details,
+  });
+}
+
 function OptionalLoading({ label }: { label: string }) {
   return <section className="optional-section-fallback"><p>{label} is loading...</p></section>;
+}
+
+function DetailsSkeleton({ mediaType, retryCount }: { mediaType: MediaType; retryCount: number }) {
+  return (
+    <section className="route-page" aria-busy="true">
+      <div className="movie-detail-hero movie-detail-skeleton">
+        <div className="movie-detail-poster skeleton-block" aria-hidden="true" />
+        <div className="movie-detail-copy">
+          <div className="skeleton-line skeleton-title" aria-hidden="true" />
+          <div className="skeleton-meta-row" aria-hidden="true">
+            <span />
+            <span />
+            <span />
+          </div>
+          <div className="skeleton-line" aria-hidden="true" />
+          <div className="skeleton-line short" aria-hidden="true" />
+          <p className="helper-text">
+            {retryCount > 0
+              ? `Having trouble loading details. Trying again... (${retryCount}/2)`
+              : `Loading ${mediaType === "tv" ? "show" : "movie"} details...`}
+          </p>
+        </div>
+      </div>
+    </section>
+  );
 }
 
 function hasCoreTitleData(details: MovieDetails | null | undefined, expectedType: MediaType, expectedTmdbId: number) {
@@ -84,7 +116,6 @@ export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addTo
   useEffect(() => {
     let mounted = true;
     let retryTimer: ReturnType<typeof setTimeout> | null = null;
-    const route = `/${mediaType === "tv" ? "tv" : "movies"}/${tmdbId}`;
     const wait = (delay: number) => new Promise<void>((resolve) => {
       retryTimer = setTimeout(resolve, delay);
     });
@@ -121,22 +152,21 @@ export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addTo
             const nextRetryCount = attempt + 1;
             setStatus("retrying");
             setRetryCount(nextRetryCount);
-            console.warn("title_details_retrying", {
-              route,
+            logDetailsLoad("title_details_retrying", {
               tmdbId,
               mediaType,
               retryCount: nextRetryCount,
               reason: errorReason(error),
               hasCoreData: false,
               optionalSection: false,
+              retryDelayMs: detailRetryDelays[attempt],
             });
             await wait(detailRetryDelays[attempt]);
           }
         }
       }
 
-      console.error("title_details_load_failed", {
-        route,
+      logDetailsLoad("title_details_load_failed", {
         tmdbId,
         mediaType,
         retryCount: detailRetryDelays.length,
@@ -169,13 +199,7 @@ export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addTo
   }, []);
 
   if (status === "loading" || status === "retrying") {
-    return (
-      <PageShell
-        eyebrow={mediaType === "tv" ? "TV Show" : "Movie"}
-        title={`Loading ${mediaType === "tv" ? "show" : "movie"}...`}
-        description={status === "retrying" ? `Having trouble loading details. Trying again... (${retryCount}/2)` : "Loading title details."}
-      />
-    );
+    return <DetailsSkeleton mediaType={mediaType} retryCount={status === "retrying" ? retryCount : 0} />;
   }
 
   if (!normalizedMovie) {
@@ -183,7 +207,7 @@ export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addTo
       <PageShell
         eyebrow={mediaType === "tv" ? "TV Show" : "Movie"}
         title="Details are taking longer than expected."
-        description="Refresh the title details without leaving this page."
+        description="The title did not load after a couple of attempts. Try again without refreshing the browser."
         action={<button className="primary-button" onClick={() => {
           setMovie(null);
           setStatus("loading");

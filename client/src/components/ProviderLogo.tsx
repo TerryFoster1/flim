@@ -1,4 +1,5 @@
 import { providerLogoResolution } from "../data/providerAssets";
+import { useState } from "react";
 import type { WatchProvider } from "../types";
 
 interface ProviderLogoProps {
@@ -6,14 +7,15 @@ interface ProviderLogoProps {
 }
 
 export function ProviderLogo({ provider }: ProviderLogoProps) {
+  const [imageFailed, setImageFailed] = useState(false);
   const resolution = providerLogoResolution(provider);
 
-  if (resolution.asset) {
-    return <img className="provider-logo provider-logo-image" src={resolution.asset.src} alt={provider.name} loading="lazy" />;
+  if (resolution.asset && !imageFailed) {
+    return <img className="provider-logo provider-logo-image" src={resolution.asset.src} alt={provider.name} loading="lazy" onError={() => setImageFailed(true)} />;
   }
 
-  if (resolution.usesExternalLogo && provider.logoUrl) {
-    return <img className="provider-logo provider-logo-image provider-logo-external" src={provider.logoUrl} alt={provider.name} loading="lazy" />;
+  if (resolution.usesExternalLogo && provider.logoUrl && !imageFailed) {
+    return <img className="provider-logo provider-logo-image provider-logo-external" src={provider.logoUrl} alt={provider.name} loading="lazy" onError={() => setImageFailed(true)} />;
   }
 
   if (resolution.isKnown) {

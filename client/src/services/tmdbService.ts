@@ -1,20 +1,50 @@
 import type { MediaType, MovieDetails, MovieSearchResult } from "../types";
 
 async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const response = await fetch(path, {
-    headers: {
-      Accept: "application/json",
-      ...options.headers,
-    },
-    ...options,
-  });
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), 15000);
+  let response: Response;
+
+  try {
+    response = await fetch(path, {
+      headers: {
+        Accept: "application/json",
+        ...options.headers,
+      },
+      ...options,
+      signal: options.signal || controller.signal,
+    });
+  } catch (error) {
+    const reason = error instanceof DOMException && error.name === "AbortError" ? "timeout" : "network";
+    console.warn("tmdb_client_request_failed", {
+      path,
+      reason,
+      message: error instanceof Error ? error.message : "Movie request failed.",
+    });
+    throw error;
+  } finally {
+    window.clearTimeout(timeout);
+  }
 
   if (!response.ok) {
     const payload = await response.json().catch(() => null);
+    console.warn("tmdb_client_response_failed", {
+      path,
+      status: response.status,
+      reason: payload?.error || response.statusText || "Movie request failed.",
+    });
     throw new Error(payload?.error || "Movie request failed.");
   }
 
-  return response.json() as Promise<T>;
+  try {
+    return await response.json() as T;
+  } catch (error) {
+    console.warn("tmdb_client_parse_failed", {
+      path,
+      message: error instanceof Error ? error.message : "Movie response could not be parsed.",
+    });
+    throw error;
+  }
 }
 
 export function hasTmdbApiKey() {
