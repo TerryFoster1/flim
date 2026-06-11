@@ -406,7 +406,7 @@ async function recomputeDerivedProgress(sql: any, userId: string, mediaItem: any
   `;
 }
 
-export async function setEpisodeProgress(sql: any, userId: string, mediaItem: any, seasonNumber: number, episodeNumber: number, status: string) {
+async function writeEpisodeProgress(sql: any, userId: string, mediaItem: any, seasonNumber: number, episodeNumber: number, status: string) {
   const normalized = progressStatus(status);
   const progressPercent = normalized === "watched" ? 100 : normalized === "watching" ? 50 : 0;
   const touchedAt = normalized === "not_started" ? null : new Date().toISOString();
@@ -444,6 +444,10 @@ export async function setEpisodeProgress(sql: any, userId: string, mediaItem: an
       completed_at = case when excluded.status = 'watched' then coalesce(user_episode_progress.completed_at, now()) else null end,
       updated_at = now()
   `;
+}
+
+export async function setEpisodeProgress(sql: any, userId: string, mediaItem: any, seasonNumber: number, episodeNumber: number, status: string) {
+  await writeEpisodeProgress(sql, userId, mediaItem, seasonNumber, episodeNumber, status);
   await recomputeDerivedProgress(sql, userId, mediaItem);
 }
 
@@ -457,7 +461,7 @@ export async function setSeasonProgress(sql: any, userId: string, mediaItem: any
     order by episode_number
   `;
   for (const episode of episodes) {
-    await setEpisodeProgress(sql, userId, mediaItem, seasonNumber, Number(episode.episode_number), watched ? "watched" : "not_started");
+    await writeEpisodeProgress(sql, userId, mediaItem, seasonNumber, Number(episode.episode_number), watched ? "watched" : "not_started");
   }
   await recomputeDerivedProgress(sql, userId, mediaItem);
 }
@@ -470,7 +474,17 @@ export async function setShowProgress(sql: any, userId: string, mediaItem: any, 
     order by season_number
   `;
   for (const season of seasons) {
-    await setSeasonProgress(sql, userId, mediaItem, Number(season.season_number), watched);
+    const episodes = await sql`
+      select episode_number
+      from tv_episode_catalog
+      where tmdb_show_id = ${mediaItem.tmdb_id}
+        and season_number = ${Number(season.season_number)}
+        and released = true
+      order by episode_number
+    `;
+    for (const episode of episodes) {
+      await writeEpisodeProgress(sql, userId, mediaItem, Number(season.season_number), Number(episode.episode_number), watched ? "watched" : "not_started");
+    }
   }
   await recomputeDerivedProgress(sql, userId, mediaItem);
 }

@@ -1,4 +1,12 @@
-export function LandingPage() {
+import { ContinueWatchingRow } from "../components/ContinueWatchingRow";
+import type { CurrentUser } from "../types";
+
+interface LandingPageProps {
+  currentUser: CurrentUser | null;
+  onNavigate: (path: string) => void;
+}
+
+export function LandingPage({ currentUser, onNavigate }: LandingPageProps) {
   return (
     <section className="route-page landing-page">
       <section className="collections-cinematic-hero landing-hero" aria-label="Flim movie playlists">
@@ -12,6 +20,7 @@ export function LandingPage() {
           <p>Create, share, and discover movie and TV playlists.</p>
         </div>
       </section>
+      {currentUser ? <ContinueWatchingRow onNavigate={onNavigate} variant="home" /> : null}
     </section>
   );
 }

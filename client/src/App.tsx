@@ -275,7 +275,7 @@ export default function App() {
     />
   );
   const pages: Partial<Record<AppRoute, ReactNode>> = {
-    "/": <LandingPage />,
+    "/": <LandingPage currentUser={currentUser} onNavigate={navigate} />,
     "/discover": <Discover onNavigate={navigate} />,
     "/curators": <Curators onNavigate={navigate} />,
     "/playlists": playlistsPage("my"),

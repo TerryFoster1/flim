@@ -4,6 +4,7 @@ import type { ContinueWatchingItem } from "../types";
 
 interface ContinueWatchingRowProps {
   onNavigate: (path: string) => void;
+  variant?: "default" | "home";
 }
 
 function formatEpisode(item: ContinueWatchingItem) {
@@ -18,7 +19,7 @@ function formatDate(value?: string) {
   return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
-export function ContinueWatchingRow({ onNavigate }: ContinueWatchingRowProps) {
+export function ContinueWatchingRow({ onNavigate, variant = "default" }: ContinueWatchingRowProps) {
   const [items, setItems] = useState<ContinueWatchingItem[]>([]);
   const [status, setStatus] = useState<"loading" | "ready" | "hidden">("loading");
 
@@ -41,9 +42,10 @@ export function ContinueWatchingRow({ onNavigate }: ContinueWatchingRowProps) {
   if (status !== "ready") return null;
 
   return (
-    <section className="continue-watching-section">
+    <section className={variant === "home" ? "continue-watching-section continue-watching-section-home" : "continue-watching-section"}>
       <div className="shelf-header">
         <h2>Continue Watching</h2>
+        {variant === "home" ? <p>Pick up from the next episode.</p> : null}
       </div>
       <div className="continue-watching-row">
         {items.map((item) => (

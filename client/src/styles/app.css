@@ -4454,7 +4454,8 @@ textarea { min-height: 42px; resize: vertical; }
   border-radius: 999px;
   background: rgba(255,255,255,.12);
 }
-.tv-progress-meter span {
+.tv-progress-meter span,
+.season-progress-meter span {
   display: block;
   height: 100%;
   border-radius: inherit;
@@ -4494,6 +4495,13 @@ textarea { min-height: 42px; resize: vertical; }
   gap: 12px;
   text-align: left;
 }
+.season-progress-meter {
+  height: 6px;
+  margin: 0 14px 14px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255,255,255,.1);
+}
 .season-progress-toggle small,
 .episode-progress-row small {
   display: block;
@@ -4522,6 +4530,19 @@ textarea { min-height: 42px; resize: vertical; }
   display: grid;
   gap: 12px;
   margin: 10px 0 18px;
+}
+.continue-watching-section-home {
+  margin: -36px auto 0;
+  width: min(1120px, calc(100% - 32px));
+  position: relative;
+  z-index: 3;
+}
+.continue-watching-section-home .shelf-header {
+  padding: 0 4px;
+}
+.continue-watching-section-home .shelf-header p {
+  margin: 4px 0 0;
+  color: var(--muted);
 }
 .continue-watching-row {
   display: grid;
