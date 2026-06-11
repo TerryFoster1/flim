@@ -14,6 +14,7 @@ Documents:
 - `youtube-integration-strategy.md` - Trailer lookup, YouTube fallback links, and future official video matching.
 - `trivia-architecture.md` - Trivia, awards, behind-the-scenes, and production information planning.
 - `trivia-games-challenges-architecture.md` - Feature-flagged trivia, games, and challenge hub foundation.
+- `arcade-economy-architecture.md` - Future tokens, tickets, concession stand rewards, and arcade economy foundation.
 - `database-design.md` - PostgreSQL entity placeholders.
 - `api-design.md` - API-first route and contract placeholders.
 - `future-features.md` - Explicit future feature parking lot.
