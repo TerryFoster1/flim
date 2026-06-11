@@ -1653,6 +1653,57 @@ create table if not exists recommendations (
 create index if not exists recommendations_tmdb_id_idx
   on recommendations (tmdb_id);
 
+create table if not exists recommendation_events (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  media_item_id uuid not null references media_items(id) on delete cascade,
+  source_type text not null,
+  source_id text,
+  reason text not null,
+  score numeric not null default 0,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create unique index if not exists recommendation_events_user_media_source_unique
+  on recommendation_events (user_id, media_item_id, source_type, coalesce(source_id, ''));
+
+create index if not exists recommendation_events_user_score_idx
+  on recommendation_events (user_id, score desc, updated_at desc);
+
+create table if not exists recommendation_sources (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  media_item_id uuid references media_items(id) on delete cascade,
+  source_type text not null,
+  source_id text,
+  source_label text not null,
+  signal_payload jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists recommendation_sources_user_type_idx
+  on recommendation_sources (user_id, source_type, updated_at desc);
+
+create table if not exists recommendation_scores (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  media_item_id uuid not null references media_items(id) on delete cascade,
+  source_type text not null,
+  source_id text,
+  reason text not null,
+  score numeric not null default 0,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create unique index if not exists recommendation_scores_user_media_source_unique
+  on recommendation_scores (user_id, media_item_id, source_type, coalesce(source_id, ''));
+
+create index if not exists recommendation_scores_user_score_idx
+  on recommendation_scores (user_id, score desc, updated_at desc);
+
 create table if not exists ad_campaigns (
   id uuid primary key default gen_random_uuid(),
   brand_name text not null,
