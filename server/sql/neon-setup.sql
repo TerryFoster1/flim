@@ -161,6 +161,64 @@ create index if not exists tmdb_person_search_cache_normalized_query_idx
 create index if not exists tmdb_person_search_cache_expires_at_idx
   on tmdb_person_search_cache (expires_at);
 
+create table if not exists media_collections (
+  id uuid primary key default gen_random_uuid(),
+  tmdb_id integer not null unique,
+  slug text not null unique,
+  title text not null,
+  overview text,
+  poster_url text,
+  backdrop_url text,
+  category text,
+  source_payload jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists media_collections_title_idx
+  on media_collections using gin (to_tsvector('simple', title));
+
+create table if not exists media_collection_items (
+  id uuid primary key default gen_random_uuid(),
+  collection_id uuid not null references media_collections(id) on delete cascade,
+  media_type text not null default 'movie'
+    check (media_type in ('movie', 'tv')),
+  tmdb_id integer not null,
+  title text not null,
+  year text,
+  poster_url text,
+  overview text,
+  release_date date,
+  sort_order integer,
+  source_payload jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create unique index if not exists media_collection_items_collection_title_unique
+  on media_collection_items (collection_id, media_type, tmdb_id);
+
+create index if not exists media_collection_items_title_idx
+  on media_collection_items (media_type, tmdb_id);
+
+create table if not exists user_collection_progress (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  collection_id uuid not null references media_collections(id) on delete cascade,
+  watched_count integer not null default 0,
+  total_count integer not null default 0,
+  completion_percent integer not null default 0,
+  status text not null default 'not_started'
+    check (status in ('not_started', 'in_progress', 'completed')),
+  updated_at timestamptz not null default now()
+);
+
+create unique index if not exists user_collection_progress_user_collection_unique
+  on user_collection_progress (user_id, collection_id);
+
+create index if not exists user_collection_progress_user_status_idx
+  on user_collection_progress (user_id, status, updated_at desc);
+
 create table if not exists user_sessions (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references users(id) on delete cascade,

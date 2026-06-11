@@ -80,6 +80,15 @@ interface TmdbPersonDetails extends TmdbPersonSearchResult {
   };
 }
 
+interface TmdbCollectionDetails {
+  id: number;
+  name?: string;
+  overview?: string;
+  poster_path?: string | null;
+  backdrop_path?: string | null;
+  parts?: Array<TmdbSearchMovie & { media_type?: "movie" | "tv" }>;
+}
+
 interface TmdbSeasonDetails {
   id?: number;
   season_number?: number;
@@ -443,6 +452,35 @@ export async function fetchTmdbPersonSearch(query: string) {
 
   const payload = (await response.json()) as { results?: TmdbPersonSearchResult[] };
   return (payload.results || []).map(mapPersonSearchResult).slice(0, 8);
+}
+
+export async function fetchTmdbCollectionDetails(collectionId: number) {
+  if (!hasServerTmdbCredential()) {
+    throw new Error("TMDb server credentials are missing.");
+  }
+
+  const url = new URL(`${TMDB_API_BASE_URL}/collection/${collectionId}`);
+  url.searchParams.set("language", "en-US");
+
+  const response = await fetch(url, applyTmdbAuth(url));
+  if (!response.ok) {
+    throw new Error("Collection details failed.");
+  }
+
+  const payload = (await response.json()) as TmdbCollectionDetails;
+  const parts = (payload.parts || [])
+    .map((part) => mapSearchMovie(part, part.media_type === "tv" ? "tv" : "movie"))
+    .filter((part) => part.tmdbId && part.title)
+    .sort((a, b) => String(a.releaseDate || "9999").localeCompare(String(b.releaseDate || "9999")));
+
+  return {
+    tmdbId: payload.id,
+    title: payload.name || "Untitled Collection",
+    overview: payload.overview || "No overview is available yet.",
+    posterUrl: posterUrl(payload.poster_path),
+    backdropUrl: posterUrl(payload.backdrop_path),
+    items: parts,
+  };
 }
 
 export async function fetchTmdbTvSeasonDetails(tmdbShowId: number, seasonNumber: number) {

@@ -17,6 +17,7 @@ import {
 } from "./services/apiPlaylistStore";
 import { MovieDetailsPage } from "./pages/MovieDetails";
 import { ActorDetailsPage } from "./pages/ActorDetails";
+import { CollectionDetailsPage } from "./pages/CollectionDetails";
 import { PlaylistDetails } from "./pages/PlaylistDetails";
 import { Playlists } from "./pages/Playlists";
 import { Profile } from "./pages/Profile";
@@ -52,6 +53,7 @@ function routeFromPath(pathname = window.location.pathname): RouteState {
   if (pathname.startsWith("/movies/")) return { route: "/movies/:tmdbId", tmdbId: pathname.split("/")[2] };
   if (pathname.startsWith("/tv/")) return { route: "/tv/:tmdbId", tmdbId: pathname.split("/")[2] };
   if (pathname.startsWith("/actor/")) return { route: "/actor/:id", actorId: pathname.split("/")[2] };
+  if (pathname.startsWith("/collection/")) return { route: "/collection/:id", collectionId: pathname.split("/")[2] };
   if (pathname === "/public" || pathname === "/public-playlists") return { route: "/public" };
   if (pathname === "/roulette") return { route: "/" };
   if (pathname === "/profile") return { route: "/profile" };
@@ -268,6 +270,7 @@ export default function App() {
       />
     ),
     "/actor/:id": <ActorDetailsPage actorId={Number(routeState.actorId)} onNavigate={navigate} />,
+    "/collection/:id": <CollectionDetailsPage collectionId={routeState.collectionId || ""} onNavigate={navigate} />,
     "/public": playlistsPage("public"),
     "/roulette": playlistsPage("my"),
     "/profile": <Profile onNavigate={navigate} playlists={displayPlaylists} />,

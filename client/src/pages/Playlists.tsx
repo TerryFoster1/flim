@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { ContinueWatchingRow } from "../components/ContinueWatchingRow";
 import { PlaylistGrid } from "../components/PlaylistGrid";
 import { landingPosterSeeds } from "../data/landingPosterSeeds";
-import type { CurrentUser, Playlist } from "../types";
+import { getCollections } from "../services/collectionService";
+import type { CurrentUser, MediaCollection, Playlist } from "../types";
 
 interface PlaylistsProps {
   onNavigate: (path: string) => void;
@@ -162,6 +163,27 @@ function DiscoveryShelf({ title, playlists, onNavigate, emptyMessage }: { title:
   );
 }
 
+function CollectionDiscoveryShelf({ collections, onNavigate }: { collections: MediaCollection[]; onNavigate: (path: string) => void }) {
+  if (collections.length === 0) return null;
+  return (
+    <section className="discovery-section">
+      <div className="discovery-section-heading">
+        <h2>Collections</h2>
+      </div>
+      <div className="collection-discovery-row">
+        {collections.slice(0, 8).map((collection) => (
+          <button className="collection-discovery-card" key={collection.slug} onClick={() => onNavigate(`/collection/${collection.slug}`)} type="button">
+            {collection.posterUrl ? <img alt={`${collection.title} poster`} src={collection.posterUrl} /> : <span className="actor-credit-placeholder" />}
+            <strong>{collection.title}</strong>
+            <small>{collection.progress.movieCount} movies / {collection.progress.completionPercent}% complete</small>
+            <span className={`collection-status-pill is-${collection.progress.status}`}>{collection.progress.status === "completed" ? "Complete" : collection.progress.status === "in_progress" ? "In Progress" : "Not Started"}</span>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function CuratorResults({ query, playlists, onNavigate }: { query: string; playlists: Playlist[]; onNavigate: (path: string) => void }) {
   const normalizedQuery = query.trim().toLowerCase();
   const groups = curatorGroups(playlists).filter((group) => {
@@ -201,6 +223,7 @@ function PublicDiscovery({
   searchResults,
   visibleCount,
   onLoadMore,
+  collections,
 }: {
   onNavigate: (path: string) => void;
   playlists: Playlist[];
@@ -208,6 +231,7 @@ function PublicDiscovery({
   searchResults: Playlist[];
   visibleCount: number;
   onLoadMore: () => void;
+  collections: MediaCollection[];
 }) {
   const normalizedQuery = query.trim().toLowerCase();
   const followedPlaylists = playlists.filter((playlist) => playlist.isFollowing);
@@ -234,6 +258,7 @@ function PublicDiscovery({
   if (normalizedQuery) {
     return (
       <div className="discovery-grid">
+        <CollectionDiscoveryShelf collections={collections.filter((collection) => collection.title.toLowerCase().includes(normalizedQuery) || collection.category?.toLowerCase().includes(normalizedQuery))} onNavigate={onNavigate} />
         <DiscoveryShelf title="Playlists" playlists={visibleSearchResults} onNavigate={onNavigate} emptyMessage="No matching playlists yet." />
         <CuratorResults query={query} playlists={playlists} onNavigate={onNavigate} />
         <DiscoveryShelf title="Titles Found in Playlists" playlists={titleMatchPlaylists} onNavigate={onNavigate} />
@@ -253,6 +278,7 @@ function PublicDiscovery({
 
   return (
     <div className="discovery-grid">
+      <CollectionDiscoveryShelf collections={collections} onNavigate={onNavigate} />
       <DiscoveryShelf title="Followed Playlists" playlists={followedPlaylists} onNavigate={onNavigate} />
       <DiscoveryShelf title="Flim Picks" playlists={flimPicks} onNavigate={onNavigate} />
       <DiscoveryShelf title="Featured Curators" playlists={featuredCuratorPlaylists} onNavigate={onNavigate} />
@@ -284,6 +310,7 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
   const [view, setView] = useState<PlaylistView>(initialView);
   const [showCreate, setShowCreate] = useState(false);
   const [visibleCount, setVisibleCount] = useState(7);
+  const [collections, setCollections] = useState<MediaCollection[]>([]);
   const directorPlaylists = useMemo(
     () => playlists.filter(isDirectorPlaylist),
     [playlists],
@@ -315,6 +342,21 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
       setShowCreate(false);
     }
   }, [currentUser]);
+
+  useEffect(() => {
+    if (view !== "public") return;
+    let mounted = true;
+    getCollections()
+      .then((feed) => {
+        if (mounted) setCollections(feed.collections || []);
+      })
+      .catch(() => {
+        if (mounted) setCollections([]);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [view]);
 
   const visiblePlaylists = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -430,6 +472,7 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
           searchResults={visiblePlaylists}
           visibleCount={visibleCount}
           onLoadMore={() => setVisibleCount((count) => count + 7)}
+          collections={collections}
         />
       ) : visiblePagePlaylists.length > 0 ? (
         <>

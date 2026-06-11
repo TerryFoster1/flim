@@ -8,6 +8,7 @@ export type AppRoute =
   | "/movies/:tmdbId"
   | "/tv/:tmdbId"
   | "/actor/:id"
+  | "/collection/:id"
   | "/public"
   | "/roulette"
   | "/upcoming"
@@ -43,6 +44,7 @@ export interface RouteState {
   sharedToken?: string;
   tmdbId?: string;
   actorId?: string;
+  collectionId?: string;
   handle?: string;
   adminPlaylistId?: string;
 }
@@ -119,6 +121,55 @@ export interface ActorDetails extends ActorSummary {
   tvCredits: ActorCredit[];
   featuredPlaylists: Playlist[];
   relatedActors: ActorSummary[];
+}
+
+export type CollectionStatus = "not_started" | "in_progress" | "completed";
+
+export interface MediaCollectionItem {
+  tmdbId: number;
+  mediaType: MediaType;
+  title: string;
+  releaseYear?: string;
+  releaseDate?: string;
+  overview?: string;
+  posterUrl?: string;
+  watchStatus: WatchStatus;
+  userRating: number;
+  triviaCompleted: number;
+  triviaTotal: number;
+}
+
+export interface MediaCollectionProgress {
+  totalCount: number;
+  movieCount: number;
+  tvCount: number;
+  watchedCount: number;
+  remainingCount: number;
+  completionPercent: number;
+  status: CollectionStatus;
+}
+
+export interface MediaCollection {
+  id: string;
+  tmdbId: number;
+  slug: string;
+  title: string;
+  overview: string;
+  posterUrl?: string;
+  backdropUrl?: string;
+  category?: string;
+  items: MediaCollectionItem[];
+  progress: MediaCollectionProgress;
+}
+
+export interface MediaCollectionFeed {
+  collections: MediaCollection[];
+  sections: {
+    popular: MediaCollection[];
+    inProgress: MediaCollection[];
+    completed: MediaCollection[];
+    recentlyReleased: MediaCollection[];
+  };
 }
 
 export interface ContentRating {
