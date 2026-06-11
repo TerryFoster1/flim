@@ -288,7 +288,7 @@ async function readCachedTrivia(sql: any, tmdbId: number, mediaType: MediaType, 
   return rows.map((row: any) => mapTrivia(row, completedIds));
 }
 
-async function readCompletedIds(sql: any, userId: string | undefined, table: "user_trivia_progress" | "user_easter_egg_progress", idColumn: "trivia_id" | "easter_egg_id") {
+async function readCompletedIds(sql: any, userId: string | undefined, table: "user_trivia_progress" | "user_easter_egg_progress", idColumn: "trivia_id" | "easter_egg_id"): Promise<Set<string>> {
   if (!userId) return new Set<string>();
   const rows = table === "user_trivia_progress"
     ? await sql`select trivia_id as id from user_trivia_progress where user_id = ${userId}`
