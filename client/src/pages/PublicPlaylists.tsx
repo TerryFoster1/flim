@@ -27,37 +27,6 @@ function byFollowerCount(playlists: Playlist[]) {
   });
 }
 
-function byLikeCount(playlists: Playlist[]) {
-  return [...playlists].sort((a, b) => {
-    const likeDelta = (b.likeCount || 0) - (a.likeCount || 0);
-    if (likeDelta !== 0) return likeDelta;
-    const followerDelta = (b.followerCount || 0) - (a.followerCount || 0);
-    if (followerDelta !== 0) return followerDelta;
-    return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
-  });
-}
-
-const discoveryGenres = [
-  { title: "Action", keywords: ["action"] },
-  { title: "Comedy", keywords: ["comedy"] },
-  { title: "Drama", keywords: ["drama"] },
-  { title: "Sci-Fi", keywords: ["sci-fi", "science fiction", "sci fi"] },
-  { title: "Horror", keywords: ["horror"] },
-  { title: "Disaster Movies", keywords: ["disaster", "apocalypse"] },
-  { title: "Family", keywords: ["family", "kids"] },
-];
-
-function matchesPlaylistKeywords(playlist: Playlist, keywords: string[]) {
-  const searchable = [
-    playlist.name,
-    playlist.description,
-    playlist.creatorDisplayName || "",
-    playlist.creatorHandle || "",
-    ...playlist.movies.flatMap((movie) => [movie.title, ...movie.genres]),
-  ].join(" ").toLowerCase();
-  return keywords.some((keyword) => searchable.includes(keyword));
-}
-
 function isTemporaryVerificationPlaylist(playlist: Playlist) {
   const name = playlist.name.toLowerCase();
   return (
@@ -67,19 +36,8 @@ function isTemporaryVerificationPlaylist(playlist: Playlist) {
   );
 }
 
-function uniqueCuratorPlaylists(playlists: Playlist[]) {
-  const seen = new Set<string>();
-  return byFollowerCount(playlists).filter((playlist) => {
-    const key = playlist.creatorHandle || playlist.creatorDisplayName || playlist.ownerUserId || playlist.id;
-    if (seen.has(key)) {
-      return false;
-    }
-    seen.add(key);
-    return true;
-  });
-}
-
 function DiscoveryShelf({ title, playlists, onNavigate }: { title: string; playlists: Playlist[]; onNavigate: (path: string) => void }) {
+  if (playlists.length === 0) return null;
   return (
     <section className="discovery-section">
       <div className="discovery-section-heading">
@@ -94,10 +52,8 @@ export function PublicPlaylists({ onNavigate, playlists }: PublicPlaylistsProps)
   const publicPlaylists = playlists.filter((playlist) => playlist.visibility === "public" && !playlist.isSystem && !isTemporaryVerificationPlaylist(playlist));
   const flimPicks = publicPlaylists.filter(isDirectorPlaylist);
   const communityPlaylists = publicPlaylists.filter((playlist) => !isDirectorPlaylist(playlist));
-  const featuredCurators = uniqueCuratorPlaylists(communityPlaylists.filter((playlist) => playlist.creatorDisplayName || playlist.creatorHandle));
-  const favorites = byFollowerCount(communityPlaylists);
-  const mostLiked = byLikeCount(communityPlaylists);
-  const recentlyUpdated = byUpdated(communityPlaylists);
+  const followedPlaylists = byUpdated(publicPlaylists.filter((playlist) => playlist.isFollowing));
+  const discoveryPlaylists = byFollowerCount(communityPlaylists);
 
   return (
     <PageShell title="Public Playlists">
@@ -113,28 +69,9 @@ export function PublicPlaylists({ onNavigate, playlists }: PublicPlaylistsProps)
       ) : null}
 
       <div className="discovery-grid">
-        <section className="hall-discovery-callout">
-          <div>
-            <h2>Discover Curators</h2>
-            <p>Browse Flim creators by real playlist followers, likes, and public collections.</p>
-          </div>
-          <button className="secondary-button" onClick={() => onNavigate("/curators")} type="button">
-            Browse Curators
-          </button>
-        </section>
-        <DiscoveryShelf title="Flim Picks" playlists={flimPicks} onNavigate={onNavigate} />
-        <DiscoveryShelf title="Featured Curators" playlists={featuredCurators} onNavigate={onNavigate} />
-        <DiscoveryShelf title="Community Favorites" playlists={favorites} onNavigate={onNavigate} />
-        <DiscoveryShelf title="Most Liked Playlists" playlists={mostLiked} onNavigate={onNavigate} />
-        {discoveryGenres.map((genre) => (
-          <DiscoveryShelf
-            key={genre.title}
-            title={genre.title}
-            playlists={byFollowerCount(publicPlaylists.filter((playlist) => matchesPlaylistKeywords(playlist, genre.keywords)))}
-            onNavigate={onNavigate}
-          />
-        ))}
-        <DiscoveryShelf title="Recently Updated" playlists={recentlyUpdated} onNavigate={onNavigate} />
+        <DiscoveryShelf title="Followed Playlists" playlists={followedPlaylists} onNavigate={onNavigate} />
+        <DiscoveryShelf title="Director's Cut" playlists={flimPicks} onNavigate={onNavigate} />
+        <DiscoveryShelf title="Public Playlists" playlists={discoveryPlaylists} onNavigate={onNavigate} />
       </div>
 
     </PageShell>

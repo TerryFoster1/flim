@@ -254,7 +254,6 @@ export default function App() {
     <Playlists
       initialView={initialView}
       currentUser={currentUser}
-      seasonalTheme={activeSeasonalTheme}
       rewindPlaylists={rewindPlaylists}
       notice={playlistNotice}
       onCreatePlaylist={createRemotePlaylist}

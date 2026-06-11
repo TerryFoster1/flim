@@ -2,11 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { ContinueWatchingRow } from "../components/ContinueWatchingRow";
 import { PlaylistGrid } from "../components/PlaylistGrid";
 import { landingPosterSeeds } from "../data/landingPosterSeeds";
-import { getCollections } from "../services/collectionService";
-import { getSeasonalChallenges } from "../services/seasonalChallengeService";
-import { SeasonalChallengeCard } from "./SeasonalChallenges";
-import type { ActiveSeasonalTheme } from "../seasonalThemes";
-import type { CollectionChallenge, CurrentUser, MediaCollection, Playlist, SeasonalChallengeEvent } from "../types";
+import type { CurrentUser, Playlist } from "../types";
 
 interface PlaylistsProps {
   onNavigate: (path: string) => void;
@@ -14,7 +10,6 @@ interface PlaylistsProps {
   rewindPlaylists: Playlist[];
   onCreatePlaylist: (input: Pick<Playlist, "name" | "description" | "visibility">) => Promise<Playlist>;
   currentUser: CurrentUser | null;
-  seasonalTheme?: ActiveSeasonalTheme | null;
   notice?: string;
   initialView?: PlaylistView;
 }
@@ -57,19 +52,6 @@ function scorePlaylistSearch(playlist: Playlist, normalizedQuery: string) {
   return 6;
 }
 
-const discoveryGenres = [
-  { title: "Action", keywords: ["action"] },
-  { title: "Comedy", keywords: ["comedy"] },
-  { title: "Drama", keywords: ["drama"] },
-  { title: "Sci-Fi", keywords: ["sci-fi", "science fiction", "sci fi"] },
-  { title: "Fantasy", keywords: ["fantasy"] },
-  { title: "Horror", keywords: ["horror"] },
-  { title: "Disaster Movies", keywords: ["disaster", "end of the world", "apocalypse"] },
-  { title: "Thrillers", keywords: ["thriller", "suspense"] },
-  { title: "Documentaries", keywords: ["documentary"] },
-  { title: "Family", keywords: ["family", "kids"] },
-];
-
 function byFollowerCount(playlists: Playlist[]) {
   return [...playlists].sort((a, b) => {
     const followerDelta = (b.followerCount || 0) - (a.followerCount || 0);
@@ -82,77 +64,8 @@ function byFollowerCount(playlists: Playlist[]) {
   });
 }
 
-function byLikeCount(playlists: Playlist[]) {
-  return [...playlists].sort((a, b) => {
-    const likeDelta = (b.likeCount || 0) - (a.likeCount || 0);
-    if (likeDelta !== 0) return likeDelta;
-    const followerDelta = (b.followerCount || 0) - (a.followerCount || 0);
-    if (followerDelta !== 0) return followerDelta;
-    const titleDelta = b.movies.length - a.movies.length;
-    if (titleDelta !== 0) return titleDelta;
-    return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
-  });
-}
-
 function byUpdated(playlists: Playlist[]) {
   return [...playlists].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
-}
-
-function matchesPlaylistKeywords(playlist: Playlist, keywords: string[]) {
-  const searchable = [
-    playlist.name,
-    playlist.description,
-    playlist.creatorDisplayName || "",
-    playlist.creatorHandle || "",
-    ...playlist.movies.flatMap((movie) => [movie.title, ...movie.genres]),
-  ].join(" ").toLowerCase();
-  return keywords.some((keyword) => searchable.includes(keyword));
-}
-
-function matchesPlaylistPrimaryFields(playlist: Playlist, normalizedQuery: string) {
-  return [
-    playlist.name,
-    playlist.description,
-    playlist.visibility,
-    playlist.creatorDisplayName || "",
-    playlist.creatorHandle || "",
-  ].some((value) => value.toLowerCase().includes(normalizedQuery));
-}
-
-function getCreatorKey(playlist: Playlist) {
-  if (isDirectorPlaylist(playlist)) return "the-director";
-  return playlist.creatorHandle || playlist.creatorDisplayName || playlist.ownerUserId || playlist.id;
-}
-
-function getCreatorDisplay(playlist: Playlist) {
-  if (isDirectorPlaylist(playlist)) return "The Director";
-  return playlist.creatorDisplayName || (playlist.creatorHandle ? `@${playlist.creatorHandle}` : "Flim curator");
-}
-
-function curatorGroups(playlists: Playlist[]) {
-  const groups = new Map<string, { displayName: string; handle?: string; playlists: Playlist[]; titleCount: number; followerCount: number }>();
-  playlists.forEach((playlist) => {
-    const key = getCreatorKey(playlist);
-    const existing = groups.get(key);
-    const next = existing || {
-      displayName: getCreatorDisplay(playlist),
-      handle: playlist.creatorHandle,
-      playlists: [],
-      titleCount: 0,
-      followerCount: 0,
-    };
-    next.playlists.push(playlist);
-    next.titleCount += playlist.movies.length;
-    next.followerCount += playlist.followerCount || 0;
-    groups.set(key, next);
-  });
-  return [...groups.values()].sort((a, b) => b.followerCount - a.followerCount || b.titleCount - a.titleCount);
-}
-
-function hasCuratorMatch(playlists: Playlist[], normalizedQuery: string) {
-  return curatorGroups(playlists).some((group) =>
-    group.displayName.toLowerCase().includes(normalizedQuery) || (group.handle || "").toLowerCase().includes(normalizedQuery),
-  );
 }
 
 function DiscoveryShelf({ title, playlists, onNavigate, emptyMessage }: { title: string; playlists: Playlist[]; onNavigate: (path: string) => void; emptyMessage?: string }) {
@@ -167,106 +80,6 @@ function DiscoveryShelf({ title, playlists, onNavigate, emptyMessage }: { title:
   );
 }
 
-function CollectionDiscoveryShelf({ collections, onNavigate }: { collections: MediaCollection[]; onNavigate: (path: string) => void }) {
-  if (collections.length === 0) return null;
-  return (
-    <section className="discovery-section">
-      <div className="discovery-section-heading">
-        <h2>Collections</h2>
-      </div>
-      <div className="collection-discovery-row">
-        {collections.slice(0, 8).map((collection) => (
-          <button className="collection-discovery-card" key={collection.slug} onClick={() => onNavigate(`/collection/${collection.slug}`)} type="button">
-            {collection.posterUrl ? <img alt={`${collection.title} poster`} src={collection.posterUrl} /> : <span className="actor-credit-placeholder" />}
-            <strong>{collection.title}</strong>
-            <small>{collection.progress.movieCount} movies / {collection.progress.completionPercent}% complete</small>
-            <span className={`collection-status-pill is-${collection.progress.status}`}>{collection.progress.status === "completed" ? "Complete" : collection.progress.status === "in_progress" ? "In Progress" : "Not Started"}</span>
-          </button>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function ChallengeDiscoveryShelf({ challenges, onNavigate }: { challenges: CollectionChallenge[]; onNavigate: (path: string) => void }) {
-  if (challenges.length === 0) return null;
-  return (
-    <section className="discovery-section">
-      <div className="discovery-section-heading">
-        <h2>Collection Challenges</h2>
-      </div>
-      <div className="challenge-discovery-row">
-        {challenges.slice(0, 8).map((challenge) => (
-          <button className={`challenge-discovery-card is-${challenge.status}`} key={challenge.id} onClick={() => onNavigate(`/collection/${challenge.collectionSlug}`)} type="button">
-            <span className="challenge-badge-mark">{challenge.badge}</span>
-            <strong>{challenge.name}</strong>
-            <small>{challenge.completedRequirements} of {challenge.totalRequirements} requirements / {challenge.points} points</small>
-            <span className="challenge-mini-track" aria-label={`${challenge.completionPercent}% complete`}>
-              <span style={{ width: `${challenge.completionPercent}%` }} />
-            </span>
-          </button>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function SeasonalChallengeShelf({ events, onNavigate }: { events: SeasonalChallengeEvent[]; onNavigate: (path: string) => void }) {
-  if (events.length === 0) return null;
-  return (
-    <section className="discovery-section">
-      <div className="discovery-section-heading">
-        <h2>Active Challenges</h2>
-      </div>
-      <div className="seasonal-challenge-grid compact">
-        {events.slice(0, 4).map((event) => <SeasonalChallengeCard event={event} key={event.id} onNavigate={onNavigate} />)}
-      </div>
-    </section>
-  );
-}
-
-function sortSeasonalChallengesForTheme(events: SeasonalChallengeEvent[], seasonalTheme?: ActiveSeasonalTheme | null) {
-  if (!seasonalTheme?.activeChallengeId) return events;
-  return [...events].sort((a, b) => {
-    const aMatches = a.slug === seasonalTheme.activeChallengeId || a.id === seasonalTheme.activeChallengeId;
-    const bMatches = b.slug === seasonalTheme.activeChallengeId || b.id === seasonalTheme.activeChallengeId;
-    if (aMatches !== bMatches) return aMatches ? -1 : 1;
-    return 0;
-  });
-}
-
-function CuratorResults({ query, playlists, onNavigate }: { query: string; playlists: Playlist[]; onNavigate: (path: string) => void }) {
-  const normalizedQuery = query.trim().toLowerCase();
-  const groups = curatorGroups(playlists).filter((group) => {
-    if (!normalizedQuery) return false;
-    return group.displayName.toLowerCase().includes(normalizedQuery) || (group.handle || "").toLowerCase().includes(normalizedQuery);
-  });
-  if (groups.length === 0) return null;
-
-  return (
-    <section className="discovery-section">
-      <div className="discovery-section-heading">
-        <h2>Curators</h2>
-      </div>
-      <div className="curator-result-grid">
-        {groups.slice(0, 6).map((group) => (
-          <button
-            className="curator-result-card reset-button"
-            key={`${group.handle || group.displayName}-${group.playlists.length}`}
-            onClick={() => group.handle ? onNavigate(`/@${group.handle}`) : onNavigate(`/p/${group.playlists[0]?.publicSlug}`)}
-            type="button"
-          >
-            <strong>{group.displayName}</strong>
-            <span>{group.playlists.length} {group.playlists.length === 1 ? "playlist" : "playlists"}</span>
-            <span>{group.titleCount} {group.titleCount === 1 ? "title" : "titles"}</span>
-            <span>{group.followerCount} {group.followerCount === 1 ? "follower" : "followers"}</span>
-          </button>
-        ))}
-      </div>
-    </section>
-  );
-}
-
 function PublicDiscovery({
   onNavigate,
   playlists,
@@ -274,10 +87,6 @@ function PublicDiscovery({
   searchResults,
   visibleCount,
   onLoadMore,
-  collections,
-  challenges,
-  seasonalChallenges,
-  seasonalTheme,
 }: {
   onNavigate: (path: string) => void;
   playlists: Playlist[];
@@ -285,43 +94,20 @@ function PublicDiscovery({
   searchResults: Playlist[];
   visibleCount: number;
   onLoadMore: () => void;
-  collections: MediaCollection[];
-  challenges: CollectionChallenge[];
-  seasonalChallenges: SeasonalChallengeEvent[];
-  seasonalTheme?: ActiveSeasonalTheme | null;
 }) {
   const normalizedQuery = query.trim().toLowerCase();
   const followedPlaylists = playlists.filter((playlist) => playlist.isFollowing);
   const flimPicks = playlists.filter(isDirectorPlaylist);
   const userPlaylists = playlists.filter((playlist) => !isDirectorPlaylist(playlist));
-  const featuredCuratorPlaylists = byFollowerCount(userPlaylists).filter((playlist) => playlist.creatorDisplayName || playlist.creatorHandle);
-  const communityFavorites = byFollowerCount(userPlaylists);
-  const mostLiked = byLikeCount(userPlaylists);
-  const recentlyUpdated = byUpdated(userPlaylists);
-  const titleMatchPlaylists = normalizedQuery
-    ? playlists.filter((playlist) =>
-      playlist.movies.some((movie) =>
-        [movie.title, movie.releaseYear || "", ...movie.genres].some((value) => value.toLowerCase().includes(normalizedQuery)),
-      ),
-    )
-    : [];
-  const playlistSearchResults = normalizedQuery
-    ? searchResults.filter((playlist) => matchesPlaylistPrimaryFields(playlist, normalizedQuery))
-    : searchResults;
-  const curatorMatches = normalizedQuery ? hasCuratorMatch(playlists, normalizedQuery) : false;
+  const publicPlaylistResults = byFollowerCount(userPlaylists);
+  const playlistSearchResults = searchResults;
   const visibleSearchResults = playlistSearchResults.slice(0, visibleCount);
   const hasMoreSearchResults = playlistSearchResults.length > visibleCount;
-  const themedSeasonalChallenges = sortSeasonalChallengesForTheme(seasonalChallenges, seasonalTheme);
 
   if (normalizedQuery) {
     return (
       <div className="discovery-grid">
-        <CollectionDiscoveryShelf collections={collections.filter((collection) => collection.title.toLowerCase().includes(normalizedQuery) || collection.category?.toLowerCase().includes(normalizedQuery))} onNavigate={onNavigate} />
-        <ChallengeDiscoveryShelf challenges={challenges.filter((challenge) => challenge.name.toLowerCase().includes(normalizedQuery) || challenge.description.toLowerCase().includes(normalizedQuery))} onNavigate={onNavigate} />
-        <SeasonalChallengeShelf events={themedSeasonalChallenges.filter((event) => event.name.toLowerCase().includes(normalizedQuery) || event.description.toLowerCase().includes(normalizedQuery))} onNavigate={onNavigate} />
-        <DiscoveryShelf title="Playlists" playlists={visibleSearchResults} onNavigate={onNavigate} emptyMessage="No matching playlists yet." />
-        <CuratorResults query={query} playlists={playlists} onNavigate={onNavigate} />
-        <DiscoveryShelf title="Titles Found in Playlists" playlists={titleMatchPlaylists} onNavigate={onNavigate} />
+        <DiscoveryShelf title="Public Playlists" playlists={visibleSearchResults} onNavigate={onNavigate} emptyMessage="No matching playlists yet." />
         {hasMoreSearchResults ? (
           <div className="load-more-row">
             <button className="secondary-button" onClick={onLoadMore} type="button">
@@ -329,8 +115,8 @@ function PublicDiscovery({
             </button>
           </div>
         ) : null}
-        {playlistSearchResults.length === 0 && titleMatchPlaylists.length === 0 && !curatorMatches ? (
-          <p className="empty-state">No playlist matches yet. Try a title, genre, or curator name.</p>
+        {playlistSearchResults.length === 0 ? (
+          <p className="empty-state">No playlist matches yet. Try a title, genre, or playlist name.</p>
         ) : null}
       </div>
     );
@@ -338,42 +124,9 @@ function PublicDiscovery({
 
   return (
     <div className="discovery-grid">
-      <section className="hall-discovery-callout">
-        <div>
-          <h2>Hall of Fame</h2>
-          <p>See top curators, collectors, trivia players, and challenge finishers.</p>
-        </div>
-        <button className="secondary-button" onClick={() => onNavigate("/hall-of-fame")} type="button">
-          View Rankings
-        </button>
-      </section>
-      <section className="hall-discovery-callout">
-        <div>
-          <h2>Discover Curators</h2>
-          <p>Find people whose playlists match your taste, ranked with real follows and likes.</p>
-        </div>
-        <button className="secondary-button" onClick={() => onNavigate("/curators")} type="button">
-          Browse Curators
-        </button>
-      </section>
-      <CollectionDiscoveryShelf collections={collections} onNavigate={onNavigate} />
-      {seasonalTheme ? <p className="seasonal-discovery-banner">{seasonalTheme.bannerText}</p> : null}
-      <SeasonalChallengeShelf events={themedSeasonalChallenges} onNavigate={onNavigate} />
-      <ChallengeDiscoveryShelf challenges={challenges} onNavigate={onNavigate} />
       <DiscoveryShelf title="Followed Playlists" playlists={followedPlaylists} onNavigate={onNavigate} />
-      <DiscoveryShelf title="Flim Picks" playlists={flimPicks} onNavigate={onNavigate} />
-      <DiscoveryShelf title="Featured Curators" playlists={featuredCuratorPlaylists} onNavigate={onNavigate} />
-      <DiscoveryShelf title="Community Favorites" playlists={communityFavorites} onNavigate={onNavigate} />
-      <DiscoveryShelf title="Most Liked Playlists" playlists={mostLiked} onNavigate={onNavigate} />
-      {discoveryGenres.map((genre) => (
-        <DiscoveryShelf
-          key={genre.title}
-          title={genre.title}
-          playlists={byFollowerCount(playlists.filter((playlist) => matchesPlaylistKeywords(playlist, genre.keywords)))}
-          onNavigate={onNavigate}
-        />
-      ))}
-      <DiscoveryShelf title="Recently Updated" playlists={recentlyUpdated} onNavigate={onNavigate} />
+      <DiscoveryShelf title="Director's Cut" playlists={flimPicks} onNavigate={onNavigate} />
+      <DiscoveryShelf title="Public Playlists" playlists={publicPlaylistResults} onNavigate={onNavigate} />
       {playlists.length === 0 ? (
         <p className="empty-state">Public playlists will appear here.</p>
       ) : null}
@@ -381,7 +134,7 @@ function PublicDiscovery({
   );
 }
 
-export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlaylist, currentUser, seasonalTheme, notice, initialView = "my" }: PlaylistsProps) {
+export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlaylist, currentUser, notice, initialView = "my" }: PlaylistsProps) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [visibility, setVisibility] = useState<Playlist["visibility"]>("private");
@@ -391,9 +144,6 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
   const [view, setView] = useState<PlaylistView>(initialView);
   const [showCreate, setShowCreate] = useState(false);
   const [visibleCount, setVisibleCount] = useState(7);
-  const [collections, setCollections] = useState<MediaCollection[]>([]);
-  const [challenges, setChallenges] = useState<CollectionChallenge[]>([]);
-  const [seasonalChallenges, setSeasonalChallenges] = useState<SeasonalChallengeEvent[]>([]);
   const directorPlaylists = useMemo(
     () => playlists.filter(isDirectorPlaylist),
     [playlists],
@@ -425,29 +175,6 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
       setShowCreate(false);
     }
   }, [currentUser]);
-
-  useEffect(() => {
-    if (view !== "public") return;
-    let mounted = true;
-    Promise.all([getCollections(), getSeasonalChallenges()])
-      .then(([feed, seasonalFeed]) => {
-        if (mounted) {
-          setCollections(feed.collections || []);
-          setChallenges(feed.challenges || feed.challengeSections?.popular || []);
-          setSeasonalChallenges([...(seasonalFeed.sections.active || []), ...(seasonalFeed.sections.upcoming || [])]);
-        }
-      })
-      .catch(() => {
-        if (mounted) {
-          setCollections([]);
-          setChallenges([]);
-          setSeasonalChallenges([]);
-        }
-      });
-    return () => {
-      mounted = false;
-    };
-  }, [view]);
 
   const visiblePlaylists = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -563,10 +290,6 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
           searchResults={visiblePlaylists}
           visibleCount={visibleCount}
           onLoadMore={() => setVisibleCount((count) => count + 7)}
-          collections={collections}
-          challenges={challenges}
-          seasonalChallenges={seasonalChallenges}
-          seasonalTheme={seasonalTheme}
         />
       ) : visiblePagePlaylists.length > 0 ? (
         <>
