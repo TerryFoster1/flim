@@ -105,11 +105,6 @@ async function handleMovieDetails(tmdbId: number, response: any, forceRefresh = 
   await ensureTmdbCacheTables(sql);
   const catalogItem = await getCatalogMediaItem(sql, tmdbId, "movie");
   const catalogDetails = catalogItem ? mapCatalogDetails(catalogItem) : null;
-  if (!forceRefresh && hasCoreTitlePayload(catalogDetails, "movie", tmdbId)) {
-    response.setHeader("X-Flim-Catalog", "HIT");
-    response.setHeader("X-Flim-Cache", "SKIP");
-    return sendJson(response, 200, catalogDetails);
-  }
 
   const cached = forceRefresh ? [] : await sql`
       select response_json
@@ -126,6 +121,12 @@ async function handleMovieDetails(tmdbId: number, response: any, forceRefresh = 
     response.setHeader("X-Flim-Catalog", catalogItem ? "STALE" : "MISS");
     response.setHeader("X-Flim-Cache", "HIT");
     return sendJson(response, 200, cached[0].response_json);
+  }
+
+  if (!forceRefresh && hasCoreTitlePayload(catalogDetails, "movie", tmdbId)) {
+    response.setHeader("X-Flim-Catalog", "HIT");
+    response.setHeader("X-Flim-Cache", "MISS");
+    return sendJson(response, 200, catalogDetails);
   }
 
   let movie;
@@ -168,11 +169,6 @@ async function handleTvDetails(tmdbId: number, response: any, forceRefresh = fal
   await ensureTmdbCacheTables(sql);
   const catalogItem = await getCatalogMediaItem(sql, tmdbId, "tv");
   const catalogDetails = catalogItem ? mapCatalogDetails(catalogItem) : null;
-  if (!forceRefresh && hasCoreTitlePayload(catalogDetails, "tv", tmdbId)) {
-    response.setHeader("X-Flim-Catalog", "HIT");
-    response.setHeader("X-Flim-Cache", "SKIP");
-    return sendJson(response, 200, catalogDetails);
-  }
 
   const cached = forceRefresh ? [] : await sql`
     select response_json
@@ -189,6 +185,12 @@ async function handleTvDetails(tmdbId: number, response: any, forceRefresh = fal
     response.setHeader("X-Flim-Catalog", catalogItem ? "STALE" : "MISS");
     response.setHeader("X-Flim-Cache", "HIT");
     return sendJson(response, 200, cached[0].response_json);
+  }
+
+  if (!forceRefresh && hasCoreTitlePayload(catalogDetails, "tv", tmdbId)) {
+    response.setHeader("X-Flim-Catalog", "HIT");
+    response.setHeader("X-Flim-Cache", "MISS");
+    return sendJson(response, 200, catalogDetails);
   }
 
   let show;
