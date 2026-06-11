@@ -1,73 +1,24 @@
-import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
 import { db, ensurePlaylistFollowsTable, ensurePlaylistLikesTable, ensureUserProfilesTable, mapPlaylist } from "../_db.js";
 import { ensureDirectorSeed } from "../_director.js";
-
-function escapeHtml(value: string) {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
-
-async function getBuiltIndexHtml(request: any) {
-  const host = request.headers?.host;
-  if (host) {
-    try {
-      const protocol = host.includes("localhost") ? "http" : "https";
-      const result = await fetch(`${protocol}://${host}/index.html`);
-      if (result.ok) return result.text();
-    } catch {
-      // Fall back to local file lookup below.
-    }
-  }
-
-  const candidates = [
-    join(process.cwd(), "client", "dist", "index.html"),
-    join(process.cwd(), "dist", "index.html"),
-  ];
-  const found = candidates.find((candidate) => existsSync(candidate));
-  if (found) return readFileSync(found, "utf8");
-
-  return `<!doctype html><html lang="en"><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>Flim</title></head><body><div id="root"></div></body></html>`;
-}
+import { getBuiltIndexHtml, injectMeta } from "../_shareCards.js";
 
 function injectPlaylistMeta(indexHtml: string, playlist: any, slug: string) {
   const mapped = mapPlaylist(playlist, playlist.movies || []);
   const movieCount = mapped.movies.length;
   const title = `${mapped.name} | Flim`;
   const creator = mapped.creatorDisplayName || (mapped.creatorHandle ? `@${mapped.creatorHandle}` : "Flim curator");
-  const likeCount = mapped.likeCount || 0;
   const followerCount = mapped.followerCount || 0;
   const description = mapped.description || `${movieCount} ${movieCount === 1 ? "title" : "titles"} by ${creator}. Discover this playlist on Flim.`;
   const url = `https://www.flim.ca/p/${slug}`;
   const image = `https://www.flim.ca/api/og/playlist/${encodeURIComponent(slug)}`;
-  const socialDescription = `${movieCount} ${movieCount === 1 ? "Title" : "Titles"} | ${followerCount} ${followerCount === 1 ? "Follower" : "Followers"} | ${likeCount} ${likeCount === 1 ? "Like" : "Likes"} | by ${creator} | Discover on Flim`;
-  const replacement = [
-    `<title>${escapeHtml(title)}</title>`,
-    `<meta name="description" content="${escapeHtml(description)}" />`,
-    `<meta property="og:title" content="${escapeHtml(mapped.name)}" />`,
-    `<meta property="og:description" content="${escapeHtml(socialDescription)}" />`,
-    `<meta property="og:type" content="website" />`,
-    `<meta property="og:image" content="${escapeHtml(image)}" />`,
-    `<meta property="og:image:width" content="1200" />`,
-    `<meta property="og:image:height" content="630" />`,
-    `<meta property="og:url" content="${escapeHtml(url)}" />`,
-    `<meta name="twitter:card" content="summary_large_image" />`,
-    `<meta name="twitter:title" content="${escapeHtml(mapped.name)}" />`,
-    `<meta name="twitter:description" content="${escapeHtml(socialDescription)}" />`,
-    `<meta name="twitter:image" content="${escapeHtml(image)}" />`,
-  ].join("\n    ");
+  const socialDescription = `${movieCount} ${movieCount === 1 ? "Title" : "Titles"} | ${followerCount} ${followerCount === 1 ? "Follower" : "Followers"} | by ${creator} | Discover on Flim`;
 
-  const cleaned = indexHtml
-    .replace(/<title>.*?<\/title>/s, "")
-    .replace(/\s*<meta name="description"[^>]*>\s*/g, "\n")
-    .replace(/\s*<meta property="og:[^"]+"[^>]*>\s*/g, "\n")
-    .replace(/\s*<meta name="twitter:[^"]+"[^>]*>\s*/g, "\n");
-
-  return cleaned.replace("</head>", `    ${replacement}\n  </head>`);
+  return injectMeta(indexHtml, {
+    title,
+    description: socialDescription || description,
+    url,
+    image,
+  });
 }
 
 export default async function handler(request: any, response: any) {

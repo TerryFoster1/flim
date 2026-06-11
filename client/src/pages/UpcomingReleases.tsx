@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { AddToPlaylistControl } from "../components/AddToPlaylistControl";
 import { FollowTitleControl } from "../components/FollowTitleControl";
+import { ShareAssetButton } from "../components/ShareAssetButton";
 import { WhereToWatch } from "../components/WhereToWatch";
 import { getUpcomingReleases, type UpcomingReleaseFilters } from "../services/upcomingReleaseService";
 import type { MediaType, MovieDetails, MovieSearchResult, Playlist, UpcomingRelease, UpcomingReleaseEvent, UpcomingReleaseFeed } from "../types";
@@ -111,6 +112,7 @@ function UpcomingReleaseCard({ item, playlists, addToPlaylist, onNavigate }: {
   onNavigate: (path: string) => void;
 }) {
   const movie = toMovieDetails(item);
+  const cardSlug = item.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || `${item.mediaType}-${item.tmdbId}`;
   return (
     <article className="upcoming-release-card">
       <button className="upcoming-poster-button" onClick={() => onNavigate(titlePath(item))} type="button">
@@ -135,6 +137,14 @@ function UpcomingReleaseCard({ item, playlists, addToPlaylist, onNavigate }: {
         <div className="upcoming-card-actions">
           <FollowTitleControl movie={movie} />
           <AddToPlaylistControl movie={movie} playlists={playlists} addToPlaylist={addToPlaylist} />
+          <ShareAssetButton
+            label="Share Countdown"
+            title={`${item.title} release countdown`}
+            text="Share a Flim release countdown card."
+            url={`${titlePath(item)}?share=countdown`}
+            cardUrl={`/api/og/title/${item.mediaType}/${item.tmdbId}?card=countdown`}
+            downloadName={`${cardSlug}-countdown-card.svg`}
+          />
         </div>
         {item.availabilityKnown ? <WhereToWatch compact movie={movie} /> : <p className="watch-provider-empty">Streaming availability coming soon.</p>}
       </div>

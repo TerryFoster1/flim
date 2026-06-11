@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { PlaylistGrid } from "../components/PlaylistGrid";
+import { ShareAssetButton } from "../components/ShareAssetButton";
 import { followProfile, getPublicProfile, unfollowProfile } from "../services/profileService";
 import type { Playlist, PublicUserProfile } from "../types";
 
@@ -140,9 +141,14 @@ export function PublicProfile({ handle, onNavigate }: PublicProfileProps) {
                   {followStatus === "saving" ? "Saving..." : profile.isFollowing ? "Following" : "Follow Curator"}
                 </button>
               )}
-              <button className="secondary-button" onClick={() => navigator.clipboard?.writeText(`https://www.flim.ca/@${profile.handle}`)} type="button">
-                Share Profile
-              </button>
+              <ShareAssetButton
+                label="Share Profile"
+                title={profile.displayName || `@${profile.handle}`}
+                text="Share this curator profile on Flim."
+                url={`/@${profile.handle}`}
+                cardUrl={`/api/og/profile/${encodeURIComponent(profile.handle)}`}
+                downloadName={`${profile.handle}-flim-profile-card.svg`}
+              />
             </div>
             {followMessage ? <p className="error-message">{followMessage}</p> : null}
           </div>

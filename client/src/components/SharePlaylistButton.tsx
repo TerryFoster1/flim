@@ -35,6 +35,7 @@ export function SharePlaylistButton({ playlist, label = "Share", iconOnly = fals
   const sharedUrl = useMemo(() => (sharedSlug ? `${getPublicOrigin()}/s/${sharedSlug}` : ""), [sharedSlug]);
   const activeUrl = isPublicShareable ? publicUrl : sharedUrl;
   const activeLinkLabel = isPublicShareable ? "Public Link" : "Shared Link";
+  const shareCardUrl = useMemo(() => `${getPublicOrigin()}/api/og/playlist/${encodeURIComponent(playlist.publicSlug)}`, [playlist.publicSlug]);
 
   useEffect(() => {
     setSharedSlug(playlist.sharedSlug || "");
@@ -256,6 +257,9 @@ export function SharePlaylistButton({ playlist, label = "Share", iconOnly = fals
               {qrCodeUrl ? <img alt={`QR code for ${playlist.name}`} src={qrCodeUrl} /> : <div className="qr-placeholder">Generating QR code...</div>}
             </div>
             <div className="share-actions secondary-share-actions">
+              <a className="secondary-button qr-download share-primary-action" download={`${playlist.publicSlug}-flim-share-card.svg`} href={shareCardUrl}>
+                Download Card
+              </a>
               {qrCodeUrl ? (
                 <a className="secondary-button qr-download share-primary-action" download={`${playlist.publicSlug}-qr.png`} href={qrCodeUrl}>
                   Download QR

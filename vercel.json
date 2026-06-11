@@ -17,6 +17,22 @@
       "destination": "/api/public-page/:slug*"
     },
     {
+      "source": "/@:handle",
+      "destination": "/api/profile-page/:handle"
+    },
+    {
+      "source": "/movies/:tmdbId",
+      "destination": "/api/title-page/movie/:tmdbId"
+    },
+    {
+      "source": "/tv/:tmdbId",
+      "destination": "/api/title-page/tv/:tmdbId"
+    },
+    {
+      "source": "/games/title/:mediaType/:tmdbId",
+      "destination": "/api/games-title-page/:mediaType/:tmdbId"
+    },
+    {
       "source": "/((?!api/).*)",
       "destination": "/index.html"
     }

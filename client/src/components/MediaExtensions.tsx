@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ShareAssetButton } from "./ShareAssetButton";
 import { getMediaExtensions } from "../services/mediaExtensionService";
 import { completeCompanionItem, getTitleTrivia, reportEasterEggHunt, reportTriviaQuestion, updateEasterEggHunt } from "../services/triviaService";
 import type { EasterEggHunt, MediaType, TriviaFeed, TriviaQuestion, TriviaReportReason } from "../types";
@@ -28,9 +29,11 @@ export function MediaExtensions({ media, onNavigate }: MediaExtensionsProps) {
   const [revealedHunts, setRevealedHunts] = useState<Record<string, boolean>>({});
   const [huntAnswers, setHuntAnswers] = useState<Record<string, string>>({});
   const [activeCompanionMode, setActiveCompanionMode] = useState<"trivia" | "hunts">("trivia");
+  const mediaType = media.mediaType || "movie";
+  const titlePath = `/${mediaType === "tv" ? "tv" : "movies"}/${media.tmdbId}`;
+  const titleLabel = media.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || `${mediaType}-${media.tmdbId}`;
 
   function openTriviaGames() {
-    const mediaType = media.mediaType || "movie";
     const returnTo = `${window.location.pathname}${window.location.search}`;
     const path = `/games/title/${mediaType}/${media.tmdbId}?returnTo=${encodeURIComponent(returnTo)}`;
     if (onNavigate) {
@@ -166,6 +169,25 @@ export function MediaExtensions({ media, onNavigate }: MediaExtensionsProps) {
             <p>Open title trivia, challenges, and future game modes.</p>
           </div>
         </button>
+      </div>
+
+      <div className="share-inline-row" aria-label={`Share ${media.title}`}>
+        <ShareAssetButton
+          label="Share Trailer"
+          title={`${media.title} trailer`}
+          text="Share a Flim trailer card."
+          url={`${titlePath}?share=trailer`}
+          cardUrl={`/api/og/title/${mediaType}/${media.tmdbId}?card=trailer`}
+          downloadName={`${titleLabel}-trailer-card.svg`}
+        />
+        <ShareAssetButton
+          label="Share Trivia"
+          title={`${media.title} Trivia & Games`}
+          text="Share a Flim challenge card."
+          url={`/games/title/${mediaType}/${media.tmdbId}`}
+          cardUrl={`/api/og/title/${mediaType}/${media.tmdbId}?card=game`}
+          downloadName={`${titleLabel}-game-card.svg`}
+        />
       </div>
 
       {triviaOpen ? (

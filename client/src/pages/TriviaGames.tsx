@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { BrandMark } from "../components/BrandMark";
+import { ShareAssetButton } from "../components/ShareAssetButton";
 import { isTriviaGamesEnabled } from "../featureFlags";
 import { getMovieDetails, getTvDetails } from "../services/tmdbService";
 import type { MediaType, MovieDetails } from "../types";
@@ -147,6 +148,7 @@ function TitleGamesPage({ mediaType = "movie", tmdbId = 0, returnTo, onNavigate 
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const enabled = isTriviaGamesEnabled();
   const targetPath = Number.isFinite(tmdbId) && tmdbId > 0 ? gameTargetPath(mediaType, tmdbId) : "/playlists";
+  const gamePath = `/games/title/${mediaType}/${tmdbId}`;
   const genres = useMemo(() => title?.genres?.filter(Boolean) || [], [title]);
   const recommendationReason = genres[0] ? `Because this is ${genres[0]}` : `Because this is ${mediaType === "tv" ? "TV" : "Movies"}`;
   const recommendedGames = useMemo(() => {
@@ -225,6 +227,16 @@ function TitleGamesPage({ mediaType = "movie", tmdbId = 0, returnTo, onNavigate 
               <div className="meta-row">
                 {title.releaseYear ? <span>{title.releaseYear}</span> : null}
                 {genres.slice(0, 3).map((genre) => <span key={genre}>{genre}</span>)}
+              </div>
+              <div className="share-inline-row">
+                <ShareAssetButton
+                  label="Share Challenge"
+                  title={`${title.title} Trivia & Games`}
+                  text="Share a Flim challenge card."
+                  url={gamePath}
+                  cardUrl={`/api/og/title/${mediaType}/${tmdbId}?card=game`}
+                  downloadName={`${title.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || `${mediaType}-${tmdbId}`}-challenge-card.svg`}
+                />
               </div>
             </div>
           </section>
