@@ -44,6 +44,20 @@ export const watchProviders: WatchProvider[] = [
     notes: "Availability varies by region.",
   },
   {
+    id: "cineplex",
+    name: "Cineplex",
+    icon: "Cineplex",
+    searchUrlTemplate: "https://store.cineplex.com/search?query={title}",
+    notes: "Cineplex rental and purchase availability varies by title.",
+  },
+  {
+    id: "shudder",
+    name: "Shudder",
+    icon: "Shudder",
+    searchUrlTemplate: "https://www.shudder.com/search?search={title}",
+    notes: "Shudder catalog availability varies by region.",
+  },
+  {
     id: "youtube",
     name: "YouTube",
     icon: "YT",
