@@ -202,6 +202,11 @@ async function getRecommendations(sql: any, userId: string) {
       left join media_items mi on mi.media_type = coalesce(pm.media_type, 'movie') and mi.tmdb_id = pm.tmdb_id
       where p.owner_user_id = ${userId}
     ),
+    progress_titles as (
+      select distinct media_item_id
+      from user_show_progress
+      where user_id = ${userId}
+    ),
     playlist_graph as (
       select
         candidate.id as media_item_id,
@@ -230,7 +235,9 @@ async function getRecommendations(sql: any, userId: string) {
         on candidate.media_type = coalesce(pm_candidate.media_type, 'movie')
         and candidate.tmdb_id = pm_candidate.tmdb_id
       where candidate.id <> signal.media_item_id
+        and candidate.tmdb_id <> signal.tmdb_id
         and not exists (select 1 from saved_titles st where st.media_item_id = candidate.id)
+        and not exists (select 1 from progress_titles pt where pt.media_item_id = candidate.id)
         and not exists (select 1 from followed_titles ft where ft.user_id = ${userId} and ft.media_item_id = candidate.id)
       group by candidate.id
     ),
@@ -260,6 +267,7 @@ async function getRecommendations(sql: any, userId: string) {
       ) pf_counts on pf_counts.playlist_id = p.id
       where pf.follower_user_id = ${userId}
         and not exists (select 1 from saved_titles st where st.media_item_id = candidate.id)
+        and not exists (select 1 from progress_titles pt where pt.media_item_id = candidate.id)
         and not exists (select 1 from followed_titles ft where ft.user_id = ${userId} and ft.media_item_id = candidate.id)
     ),
     genre_affinity as (
@@ -288,7 +296,9 @@ async function getRecommendations(sql: any, userId: string) {
       inner join media_items candidate on candidate.media_type = coalesce(pm.media_type, 'movie') and candidate.tmdb_id = pm.tmdb_id
       where candidate.genres ? genre_match.genre
         and candidate.id <> signal.media_item_id
+        and candidate.tmdb_id <> signal.tmdb_id
         and not exists (select 1 from saved_titles st where st.media_item_id = candidate.id)
+        and not exists (select 1 from progress_titles pt where pt.media_item_id = candidate.id)
         and not exists (select 1 from followed_titles ft where ft.user_id = ${userId} and ft.media_item_id = candidate.id)
     ),
     director_picks as (
@@ -313,6 +323,7 @@ async function getRecommendations(sql: any, userId: string) {
       inner join media_items candidate on candidate.media_type = coalesce(pm.media_type, 'movie') and candidate.tmdb_id = pm.tmdb_id
       where (up.handle = 'the-director' or up.display_name = 'The Director' or lower(p.name) like 'director%')
         and candidate.id <> signal.media_item_id
+        and candidate.tmdb_id <> signal.tmdb_id
         and (
           candidate.genres ?| coalesce((
             select array_agg(value::text)
@@ -320,6 +331,7 @@ async function getRecommendations(sql: any, userId: string) {
           ), array[]::text[])
         )
         and not exists (select 1 from saved_titles st where st.media_item_id = candidate.id)
+        and not exists (select 1 from progress_titles pt where pt.media_item_id = candidate.id)
         and not exists (select 1 from followed_titles ft where ft.user_id = ${userId} and ft.media_item_id = candidate.id)
     ),
     community_followed_titles as (
@@ -345,7 +357,9 @@ async function getRecommendations(sql: any, userId: string) {
         on other_follow.user_id = shared_seed.user_id
         and other_follow.media_item_id <> seed.media_item_id
       inner join media_items candidate on candidate.id = other_follow.media_item_id
-      where not exists (select 1 from saved_titles st where st.media_item_id = candidate.id)
+      where candidate.tmdb_id <> seed.tmdb_id
+        and not exists (select 1 from saved_titles st where st.media_item_id = candidate.id)
+        and not exists (select 1 from progress_titles pt where pt.media_item_id = candidate.id)
         and not exists (select 1 from followed_titles ft where ft.user_id = ${userId} and ft.media_item_id = candidate.id)
       group by candidate.id
     ),
@@ -394,6 +408,12 @@ async function getTitleRecommendations(sql: any, mediaType: "movie" | "tv", tmdb
       where ${userId}::uuid is not null
         and p.owner_user_id = ${userId}::uuid
     ),
+    progress_titles as (
+      select distinct media_item_id
+      from user_show_progress
+      where ${userId}::uuid is not null
+        and user_id = ${userId}::uuid
+    ),
     playlist_graph as (
       select
         candidate.id as media_item_id,
@@ -422,9 +442,14 @@ async function getTitleRecommendations(sql: any, mediaType: "movie" | "tv", tmdb
         on candidate.media_type = coalesce(pm_candidate.media_type, 'movie')
         and candidate.tmdb_id = pm_candidate.tmdb_id
       where candidate.id <> source.id
+        and candidate.tmdb_id <> source.tmdb_id
         and (
           ${userId}::uuid is null
           or not exists (select 1 from saved_titles st where st.media_item_id = candidate.id)
+        )
+        and (
+          ${userId}::uuid is null
+          or not exists (select 1 from progress_titles pt where pt.media_item_id = candidate.id)
         )
         and (
           ${userId}::uuid is null
@@ -455,9 +480,14 @@ async function getTitleRecommendations(sql: any, mediaType: "movie" | "tv", tmdb
         and other_follow.media_item_id <> source.id
       inner join media_items candidate
         on candidate.id = other_follow.media_item_id
-      where (
+      where candidate.tmdb_id <> source.tmdb_id
+        and (
           ${userId}::uuid is null
           or not exists (select 1 from saved_titles st where st.media_item_id = candidate.id)
+        )
+        and (
+          ${userId}::uuid is null
+          or not exists (select 1 from progress_titles pt where pt.media_item_id = candidate.id)
         )
         and (
           ${userId}::uuid is null
@@ -492,10 +522,15 @@ async function getTitleRecommendations(sql: any, mediaType: "movie" | "tv", tmdb
         on candidate.media_type = coalesce(pm.media_type, 'movie')
         and candidate.tmdb_id = pm.tmdb_id
       where candidate.id <> source.id
+        and candidate.tmdb_id <> source.tmdb_id
         and candidate.genres ? genre_match.genre
         and (
           ${userId}::uuid is null
           or not exists (select 1 from saved_titles st where st.media_item_id = candidate.id)
+        )
+        and (
+          ${userId}::uuid is null
+          or not exists (select 1 from progress_titles pt where pt.media_item_id = candidate.id)
         )
         and (
           ${userId}::uuid is null
