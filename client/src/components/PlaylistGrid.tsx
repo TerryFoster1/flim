@@ -5,9 +5,10 @@ interface PlaylistGridProps {
   playlists: Playlist[];
   onNavigate?: (path: string) => void;
   emptyMessage?: string;
+  hideLikes?: boolean;
 }
 
-export function PlaylistGrid({ playlists, onNavigate, emptyMessage = "Create your first playlist." }: PlaylistGridProps) {
+export function PlaylistGrid({ playlists, onNavigate, emptyMessage = "Create your first playlist.", hideLikes = false }: PlaylistGridProps) {
   if (playlists.length === 0) {
     return <p className="empty-state">{emptyMessage}</p>;
   }
@@ -20,6 +21,7 @@ export function PlaylistGrid({ playlists, onNavigate, emptyMessage = "Create you
           playlist={playlist}
           large={index === 0 && playlists.length > 3}
           onNavigate={onNavigate}
+          hideLikes={hideLikes}
         />
       ))}
     </div>

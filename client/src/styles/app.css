@@ -5535,6 +5535,44 @@ textarea { min-height: 42px; resize: vertical; }
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
 }
+.featured-playlist-picker {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+.featured-playlist-picker h3,
+.featured-playlist-picker p {
+  margin: 0;
+}
+.featured-playlist-picker p {
+  color: var(--muted);
+}
+.featured-playlist-options {
+  display: grid;
+  gap: 8px;
+}
+.featured-playlist-option {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  min-height: 54px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 14px;
+  padding: 10px 12px;
+  background: rgba(255,255,255,.055);
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+}
+.featured-playlist-option.is-selected {
+  border-color: rgba(255,184,77,.46);
+  background: rgba(255,184,77,.12);
+}
+.featured-playlist-option span {
+  color: #ffe7b8;
+  font-weight: 900;
+}
 .profile-badge-row {
   display: flex;
   flex-wrap: wrap;

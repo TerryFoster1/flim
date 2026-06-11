@@ -490,6 +490,7 @@ export interface UserProfile {
   favoriteMovie?: string;
   favoriteGenre?: string;
   favoriteDirector?: string;
+  featuredPlaylistIds?: string[];
   countryCode: string;
   region?: string;
   provinceState?: string;
@@ -648,6 +649,7 @@ export interface PublicUserProfile {
   favoriteMovie?: string;
   favoriteGenre?: string;
   favoriteDirector?: string;
+  featuredPlaylistIds?: string[];
   joinedAt?: string;
   isOwnProfile?: boolean;
   isFollowing?: boolean;

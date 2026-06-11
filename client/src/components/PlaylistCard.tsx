@@ -4,9 +4,10 @@ interface PlaylistCardProps {
   playlist: Playlist;
   large?: boolean;
   onNavigate?: (path: string) => void;
+  hideLikes?: boolean;
 }
 
-export function PlaylistCard({ playlist, large, onNavigate }: PlaylistCardProps) {
+export function PlaylistCard({ playlist, large, onNavigate, hideLikes = false }: PlaylistCardProps) {
   const coverMovies = playlist.movies.slice(0, 4);
   const isDirectorPlaylist = playlist.creatorHandle === "the-director" || playlist.creatorDisplayName === "The Director";
   const detailPath = playlist.visibility === "public" && !playlist.isOwner ? `/p/${playlist.publicSlug}` : `/playlists/${playlist.id}`;
@@ -45,7 +46,7 @@ export function PlaylistCard({ playlist, large, onNavigate }: PlaylistCardProps)
           {playlist.visibility !== "public" ? <span>{playlist.visibility}</span> : null}
           <span>{titleCountLabel}</span>
           {playlist.visibility === "public" ? <span>{followerCount} {followerCount === 1 ? "follower" : "followers"}</span> : null}
-          {playlist.visibility === "public" ? <span>{likeCount} {likeCount === 1 ? "like" : "likes"}</span> : null}
+          {playlist.visibility === "public" && !hideLikes ? <span>{likeCount} {likeCount === 1 ? "like" : "likes"}</span> : null}
           {playlist.isFollowing ? <span>Following</span> : null}
           {creatorLabel ? <span>{creatorLabel}</span> : null}
           {updatedLabel ? <span>{updatedLabel}</span> : null}

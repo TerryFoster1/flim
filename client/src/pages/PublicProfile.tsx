@@ -50,12 +50,9 @@ export function PublicProfile({ handle, onNavigate }: PublicProfileProps) {
           isFollowing: result.isFollowing,
           stats: {
             playlistCount: current.stats?.playlistCount || publicPlaylists.length,
-            movieCount: current.stats?.movieCount || publicPlaylists.reduce((total, playlist) => total + playlist.movies.length, 0),
+            movieCount: current.stats?.movieCount || 0,
             followerCount: result.followerCount,
-            followingCount: result.followingCount,
-            playlistFollowerCount: current.stats?.playlistFollowerCount,
-            playlistLikeCount: current.stats?.playlistLikeCount,
-            trustScore: current.stats?.trustScore,
+            followingCount: current.stats?.followingCount || result.followingCount,
             latestPlaylistUpdatedAt: current.stats?.latestPlaylistUpdatedAt,
           },
         }
@@ -95,25 +92,18 @@ export function PublicProfile({ handle, onNavigate }: PublicProfileProps) {
   }
 
   const playlistCount = profile.stats?.playlistCount || publicPlaylists.length;
-  const titleCount = profile.stats?.movieCount || publicPlaylists.reduce((total, playlist) => total + playlist.movies.length, 0);
   const followerCount = profile.stats?.followerCount || 0;
-  const followingCount = profile.stats?.followingCount || 0;
-  const playlistFollowerCount = profile.stats?.playlistFollowerCount || publicPlaylists.reduce((total, playlist) => total + (playlist.followerCount || 0), 0);
-  const playlistLikeCount = profile.stats?.playlistLikeCount || publicPlaylists.reduce((total, playlist) => total + (playlist.likeCount || 0), 0);
-  const trustScore = profile.stats?.trustScore || 0;
-  const achievementCount = profile.achievements?.achievementCount || 0;
-  const totalAchievementPoints = profile.achievements?.totalPoints || 0;
-  const featuredBadges = profile.achievements?.featuredBadges || [];
-  const challengeCount = profile.challenges?.challengeCount || 0;
-  const challengePoints = profile.challenges?.challengePoints || 0;
-  const challengeBadges = profile.challenges?.featuredBadges || [];
-  const seasonalBadgeCount = profile.seasonalChallenges?.seasonalBadgeCount || 0;
-  const seasonalPoints = profile.seasonalChallenges?.seasonalPoints || 0;
-  const seasonalBadges = profile.seasonalChallenges?.featuredBadges || [];
-  const hallOfFame = profile.hallOfFame;
   const recentlyUpdated = [...publicPlaylists].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
   const mostFollowed = [...publicPlaylists].sort((a, b) => (b.followerCount || 0) - (a.followerCount || 0));
-  const featuredPlaylists = mostFollowed.slice(0, 3);
+  const selectedFeatured = (profile.featuredPlaylistIds || [])
+    .map((id) => publicPlaylists.find((playlist) => playlist.id === id))
+    .filter(Boolean) as Playlist[];
+  const featuredPlaylists = (selectedFeatured.length > 0 ? selectedFeatured : mostFollowed).slice(0, 3);
+  const useSinglePlaylistSection = publicPlaylists.length < 5;
+  const featuredIds = new Set(featuredPlaylists.map((playlist) => playlist.id));
+  const recentlyUpdatedUnique = recentlyUpdated.filter((playlist) => !featuredIds.has(playlist.id)).slice(0, 6);
+  const usedIds = new Set([...featuredIds, ...recentlyUpdatedUnique.map((playlist) => playlist.id)]);
+  const mostFollowedUnique = mostFollowed.filter((playlist) => !usedIds.has(playlist.id)).slice(0, 6);
   const joinedAt = profile.joinedAt
     ? new Intl.DateTimeFormat(undefined, { month: "short", year: "numeric" }).format(new Date(profile.joinedAt))
     : "";
@@ -140,19 +130,7 @@ export function PublicProfile({ handle, onNavigate }: PublicProfileProps) {
             </div>
             <div className="public-profile-stats" aria-label="Creator stats">
               <span><strong>{followerCount}</strong> {followerCount === 1 ? "Follower" : "Followers"}</span>
-              <span><strong>{followingCount}</strong> Following</span>
               <span><strong>{playlistCount}</strong> Public {playlistCount === 1 ? "Playlist" : "Playlists"}</span>
-              <span><strong>{titleCount}</strong> {titleCount === 1 ? "Title" : "Titles"}</span>
-              <span><strong>{playlistFollowerCount}</strong> Playlist {playlistFollowerCount === 1 ? "Follow" : "Follows"}</span>
-              <span><strong>{playlistLikeCount}</strong> Playlist {playlistLikeCount === 1 ? "Like" : "Likes"}</span>
-              {trustScore > 0 ? <span><strong>{trustScore}</strong> Curator Score</span> : null}
-              <span><strong>{achievementCount}</strong> {achievementCount === 1 ? "Badge" : "Badges"}</span>
-              <span><strong>{totalAchievementPoints}</strong> Points</span>
-              <span><strong>{challengeCount}</strong> {challengeCount === 1 ? "Challenge" : "Challenges"}</span>
-              <span><strong>{challengePoints}</strong> Challenge Points</span>
-              <span><strong>{seasonalBadgeCount}</strong> Seasonal {seasonalBadgeCount === 1 ? "Badge" : "Badges"}</span>
-              <span><strong>{seasonalPoints}</strong> Seasonal Points</span>
-              {hallOfFame?.bestRank ? <span><strong>#{hallOfFame.bestRank}</strong> Hall of Fame</span> : null}
             </div>
             <div className="public-profile-actions">
               {profile.isOwnProfile ? (
@@ -167,47 +145,6 @@ export function PublicProfile({ handle, onNavigate }: PublicProfileProps) {
               </button>
             </div>
             {followMessage ? <p className="error-message">{followMessage}</p> : null}
-            {featuredBadges.length > 0 ? (
-              <div className="profile-badge-row" aria-label="Featured badges">
-                {featuredBadges.map((badge) => (
-                  <span className={`profile-badge profile-badge-${badge.rarity || "common"}`} key={badge.id} title={badge.description}>
-                    <strong>{badge.name}</strong>
-                    <small>{badge.points || 0} pts</small>
-                  </span>
-                ))}
-              </div>
-            ) : null}
-            {challengeBadges.length > 0 ? (
-              <div className="profile-badge-row" aria-label="Featured challenge badges">
-                {challengeBadges.map((badge) => (
-                  <span className="profile-badge profile-badge-epic" key={badge.id} title={badge.description}>
-                    <strong>{badge.name}</strong>
-                    <small>{badge.points || 0} challenge pts</small>
-                  </span>
-                ))}
-              </div>
-            ) : null}
-            {seasonalBadges.length > 0 ? (
-              <div className="profile-badge-row" aria-label="Featured seasonal badges">
-                {seasonalBadges.map((badge) => (
-                  <span className="profile-badge profile-badge-legendary" key={badge.id} title={badge.description}>
-                    <strong>{badge.badge || badge.name}</strong>
-                    <small>{badge.points || 0} seasonal pts</small>
-                  </span>
-                ))}
-              </div>
-            ) : null}
-            {hallOfFame && hallOfFame.appearanceCount > 0 ? (
-              <div className="profile-hall-card">
-                <div>
-                  <strong>{hallOfFame.appearanceCount} Hall of Fame {hallOfFame.appearanceCount === 1 ? "appearance" : "appearances"}</strong>
-                  <small>{hallOfFame.bestCategory ? `Best rank: #${hallOfFame.bestRank} in ${hallOfFame.bestCategory}` : "Ranked Flim activity"}</small>
-                </div>
-                <button className="secondary-button" onClick={() => onNavigate("/hall-of-fame")} type="button">
-                  View Rankings
-                </button>
-              </div>
-            ) : null}
           </div>
         </div>
       </div>
@@ -219,37 +156,35 @@ export function PublicProfile({ handle, onNavigate }: PublicProfileProps) {
         </section>
       ) : null}
 
-      {featuredPlaylists.length > 0 ? (
+      {useSinglePlaylistSection ? (
+        <section className="settings-panel">
+          <h2>Playlists</h2>
+          {publicPlaylists.length > 0 ? (
+            <PlaylistGrid hideLikes onNavigate={onNavigate} playlists={publicPlaylists} />
+          ) : (
+            <p>Public playlists from this creator will appear here.</p>
+          )}
+        </section>
+      ) : featuredPlaylists.length > 0 ? (
         <section className="settings-panel">
           <h2>Featured Playlists</h2>
-          <PlaylistGrid onNavigate={onNavigate} playlists={featuredPlaylists} />
+          <PlaylistGrid hideLikes onNavigate={onNavigate} playlists={featuredPlaylists} />
         </section>
       ) : null}
 
-      <section className="settings-panel">
-        <h2>Recently Updated</h2>
-        {recentlyUpdated.length > 0 ? (
-          <PlaylistGrid onNavigate={onNavigate} playlists={recentlyUpdated} />
-        ) : (
-          <p>Public playlists from this creator will appear here.</p>
-        )}
-      </section>
+      {!useSinglePlaylistSection && recentlyUpdatedUnique.length > 0 ? (
+        <section className="settings-panel">
+          <h2>Recently Updated</h2>
+          <PlaylistGrid hideLikes onNavigate={onNavigate} playlists={recentlyUpdatedUnique} />
+        </section>
+      ) : null}
 
-      {mostFollowed.length > 0 ? (
+      {!useSinglePlaylistSection && mostFollowedUnique.length > 0 ? (
         <section className="settings-panel">
           <h2>Most Followed</h2>
-          <PlaylistGrid onNavigate={onNavigate} playlists={mostFollowed} />
+          <PlaylistGrid hideLikes onNavigate={onNavigate} playlists={mostFollowedUnique} />
         </section>
       ) : null}
-
-      <section className="settings-panel">
-        <h2>All Public Playlists</h2>
-        {publicPlaylists.length > 0 ? (
-          <PlaylistGrid onNavigate={onNavigate} playlists={publicPlaylists} />
-        ) : (
-          <p>Public playlists from this creator will appear here.</p>
-        )}
-      </section>
     </section>
   );
 }

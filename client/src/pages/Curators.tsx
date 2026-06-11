@@ -24,7 +24,6 @@ function formatUpdatedAt(value?: string) {
 function CuratorCard({ curator, onNavigate }: { curator: CuratorDiscoveryProfile; onNavigate: (path: string) => void }) {
   const initial = (curator.displayName || curator.handle || "F").charAt(0).toUpperCase();
   const stats = curator.stats;
-  const totalFollowers = stats.followerCount + stats.playlistFollowerCount;
   const latest = formatUpdatedAt(stats.latestPlaylistUpdatedAt);
 
   return (
@@ -40,16 +39,9 @@ function CuratorCard({ curator, onNavigate }: { curator: CuratorDiscoveryProfile
           {curator.bio ? <span>{curator.bio}</span> : null}
         </span>
       </button>
-      {curator.trustBadges.length > 0 ? (
-        <div className="curator-trust-badges" aria-label="Curator badges">
-          {curator.trustBadges.map((badge) => <span key={badge}>{badge}</span>)}
-        </div>
-      ) : null}
       <div className="curator-stat-grid" aria-label="Curator trust signals">
         <span><strong>{compactNumber(stats.playlistCount)}</strong> Playlists</span>
-        <span><strong>{compactNumber(stats.titleCount)}</strong> Titles</span>
-        <span><strong>{compactNumber(totalFollowers)}</strong> Followers</span>
-        <span><strong>{compactNumber(stats.playlistLikeCount)}</strong> Likes</span>
+        <span><strong>{compactNumber(stats.followerCount)}</strong> Followers</span>
       </div>
       {curator.favoriteGenres.length > 0 ? (
         <div className="curator-genre-row">
@@ -64,8 +56,6 @@ function CuratorCard({ curator, onNavigate }: { curator: CuratorDiscoveryProfile
             {curator.featuredPlaylist.movies.length} {curator.featuredPlaylist.movies.length === 1 ? "Title" : "Titles"}
             {" · "}
             {compactNumber(curator.featuredPlaylist.followerCount || 0)} Followers
-            {" · "}
-            {compactNumber(curator.featuredPlaylist.likeCount || 0)} Likes
           </small>
         </button>
       ) : null}
@@ -130,12 +120,9 @@ export function Curators({ onNavigate }: CuratorsProps) {
   const activeSections = useMemo(() => {
     if (!feed) return [];
     return [
-      { title: "Top Curators", curators: feed.sections.topCurators },
-      { title: "Trending Curators", curators: feed.sections.trendingCurators },
-      { title: "Rising Curators", curators: feed.sections.risingCurators },
-      { title: "Most Followed Curators", curators: feed.sections.mostFollowedCurators },
-      { title: "Most Liked Curators", curators: feed.sections.mostLikedCurators },
-      { title: "Recently Featured Curators", curators: feed.sections.recentlyFeaturedCurators },
+      { title: "Featured Curators", curators: feed.sections.recentlyFeaturedCurators.length ? feed.sections.recentlyFeaturedCurators : feed.sections.topCurators },
+      { title: "Popular Curators", curators: feed.sections.mostFollowedCurators },
+      { title: "Recently Updated Curators", curators: feed.sections.trendingCurators },
     ];
   }, [feed]);
 
@@ -168,9 +155,9 @@ export function Curators({ onNavigate }: CuratorsProps) {
       </form>
 
       <section className="curator-trust-summary">
-        <span>Real playlist metrics only</span>
-        <span>Followers, likes, titles, and public playlists</span>
-        <span>No fake popularity</span>
+        <span>Playlist-first discovery</span>
+        <span>Follow taste, not timelines</span>
+        <span>No reviews or feeds</span>
       </section>
 
       {status === "loading" ? <p className="empty-state">Loading curators...</p> : null}

@@ -24,10 +24,6 @@ import {
   validateProfileHandle,
   verifyPassword,
 } from "../_db.js";
-import { getAchievementSummary } from "../_achievements.js";
-import { challengeSummaryForUser } from "../_challenges.js";
-import { seasonalChallengeSummaryForUser } from "../_seasonalChallenges.js";
-import { hallOfFameSummaryForUser } from "../_hallOfFame.js";
 import { directorHandle, ensureDirectorSeed } from "../_director.js";
 
 const defaultProfile = {
@@ -40,6 +36,7 @@ const defaultProfile = {
   streamingRegion: "",
   preferredProviders: [],
   showCountryPublicly: false,
+  featuredPlaylistIds: [],
 };
 
 const exportSchemaVersion = "2026-06-01-neon-hardening";
@@ -55,6 +52,10 @@ async function safeRows(query: Promise<any[]>) {
 }
 
 function cleanProfileInput(body: any) {
+  const featuredPlaylistIds = Array.isArray(body.featuredPlaylistIds)
+    ? body.featuredPlaylistIds.map((id: unknown) => String(id)).filter(Boolean).slice(0, 3)
+    : [];
+
   return {
     displayName: String(body.displayName || "").trim().slice(0, 80),
     handle: normalizeHandle(String(body.handle || "")).replace(/[^a-z0-9_]/g, ""),
@@ -72,6 +73,7 @@ function cleanProfileInput(body: any) {
     favoriteMovie: String(body.favoriteMovie || "").trim().slice(0, 120),
     favoriteGenre: String(body.favoriteGenre || "").trim().slice(0, 80),
     favoriteDirector: String(body.favoriteDirector || "").trim().slice(0, 120),
+    featuredPlaylistIds,
   };
 }
 
@@ -148,10 +150,11 @@ async function handleCurrentProfile(request: any, response: any, sql: any) {
         hero_image_url,
         favorite_movie,
         favorite_genre,
-        favorite_director
+        favorite_director,
+        featured_playlist_ids
       )
       values (
-          ${user.id},
+        ${user.id},
         ${input.displayName},
         ${input.handle},
         ${input.bio},
@@ -166,7 +169,8 @@ async function handleCurrentProfile(request: any, response: any, sql: any) {
         ${input.heroImageUrl || null},
         ${input.favoriteMovie || null},
         ${input.favoriteGenre || null},
-        ${input.favoriteDirector || null}
+        ${input.favoriteDirector || null},
+        ${JSON.stringify(input.featuredPlaylistIds)}::jsonb
       )
       on conflict (user_id) do update set
         display_name = excluded.display_name,
@@ -184,6 +188,7 @@ async function handleCurrentProfile(request: any, response: any, sql: any) {
         favorite_movie = excluded.favorite_movie,
         favorite_genre = excluded.favorite_genre,
         favorite_director = excluded.favorite_director,
+        featured_playlist_ids = excluded.featured_playlist_ids,
         updated_at = now()
       returning *
     `;
@@ -554,19 +559,7 @@ export default async function handler(request: any, response: any) {
     `;
     if (!rows[0]) return sendJson(response, 404, { error: "Profile not found." });
 
-    const [achievementSummary, challengeSummary, seasonalChallengeSummary, hallOfFameSummary] = await Promise.all([
-      getAchievementSummary(sql, String(rows[0].user_id)),
-      challengeSummaryForUser(sql, String(rows[0].user_id)),
-      seasonalChallengeSummaryForUser(sql, String(rows[0].user_id)),
-      hallOfFameSummaryForUser(sql, String(rows[0].user_id)),
-    ]);
-    return sendJson(response, 200, mapPublicUserProfile({
-      ...rows[0],
-      achievement_summary: achievementSummary,
-      challenge_summary: challengeSummary,
-      seasonal_challenge_summary: seasonalChallengeSummary,
-      hall_of_fame_summary: hallOfFameSummary,
-    }));
+    return sendJson(response, 200, mapPublicUserProfile(rows[0]));
   } catch (error) {
     return sendJson(response, errorStatus(error), { error: error instanceof Error ? error.message : "Profile request failed." });
   }

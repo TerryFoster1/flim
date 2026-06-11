@@ -2060,6 +2060,7 @@ create table if not exists user_profiles (
   favorite_movie text,
   favorite_genre text,
   favorite_director text,
+  featured_playlist_ids jsonb not null default '[]'::jsonb,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -2081,6 +2082,9 @@ alter table user_profiles
 
 alter table user_profiles
   add column if not exists favorite_director text;
+
+alter table user_profiles
+  add column if not exists featured_playlist_ids jsonb not null default '[]'::jsonb;
 
 create unique index if not exists user_profiles_handle_unique
   on user_profiles (handle);

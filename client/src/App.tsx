@@ -333,7 +333,7 @@ export default function App() {
     "/followed-titles": <FollowedTitles onNavigate={navigate} />,
     "/upcoming": <UpcomingReleases playlists={ownedPlaylists} addToPlaylist={addToPlaylist} onNavigate={navigate} />,
     "/providers": playlistsPage("my"),
-    "/settings": <Settings currentUser={currentUser} onNavigate={navigate} />,
+    "/settings": <Settings currentUser={currentUser} onNavigate={navigate} playlists={ownedPlaylists} />,
     "/signin": <AuthPage mode="signin" onAuth={handleAuthenticated} onNavigate={navigate} />,
     "/signup": <AuthPage mode="signup" onAuth={handleAuthenticated} onNavigate={navigate} />,
     "/@handle": <PublicProfile handle={routeState.handle || ""} onNavigate={navigate} />,

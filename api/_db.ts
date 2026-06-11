@@ -453,6 +453,7 @@ export async function ensureUserProfilesTable(sql: any) {
       favorite_movie text,
       favorite_genre text,
       favorite_director text,
+      featured_playlist_ids jsonb not null default '[]'::jsonb,
       created_at timestamptz not null default now(),
       updated_at timestamptz not null default now()
     )
@@ -463,6 +464,7 @@ export async function ensureUserProfilesTable(sql: any) {
   await sql`alter table user_profiles add column if not exists favorite_movie text`;
   await sql`alter table user_profiles add column if not exists favorite_genre text`;
   await sql`alter table user_profiles add column if not exists favorite_director text`;
+  await sql`alter table user_profiles add column if not exists featured_playlist_ids jsonb not null default '[]'::jsonb`;
   await sql`create unique index if not exists user_profiles_handle_unique on user_profiles (handle)`;
   await sql`create unique index if not exists user_profiles_user_id_unique on user_profiles (user_id)`;
   await sql`create index if not exists user_profiles_updated_at_idx on user_profiles (updated_at desc)`;
@@ -1082,6 +1084,7 @@ export function mapUserProfile(row: any) {
     favoriteMovie: row.favorite_movie || "",
     favoriteGenre: row.favorite_genre || "",
     favoriteDirector: row.favorite_director || "",
+    featuredPlaylistIds: Array.isArray(row.featured_playlist_ids) ? row.featured_playlist_ids : [],
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -1101,6 +1104,7 @@ export function mapPublicUserProfile(row: any) {
     favoriteMovie: row.favorite_movie || "",
     favoriteGenre: row.favorite_genre || "",
     favoriteDirector: row.favorite_director || "",
+    featuredPlaylistIds: Array.isArray(row.featured_playlist_ids) ? row.featured_playlist_ids : [],
     favoriteGenres: row.favorite_genre ? [row.favorite_genre] : [],
     joinedAt: row.created_at,
     isOwnProfile: Boolean(row.is_own_profile),

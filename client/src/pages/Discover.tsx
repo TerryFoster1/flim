@@ -157,7 +157,7 @@ export function Discover({ onNavigate }: DiscoverProps) {
                     <small>@{profile.handle}</small>
                     {profile.bio ? <p>{profile.bio}</p> : null}
                     <span>
-                      {profile.playlistCount} public playlist{profile.playlistCount === 1 ? "" : "s"} / {profile.followerCount || 0} profile follower{profile.followerCount === 1 ? "" : "s"} / {profile.playlistFollowerCount || 0} playlist follows / {profile.playlistLikeCount || 0} likes
+                      {profile.playlistCount} public playlist{profile.playlistCount === 1 ? "" : "s"} / {profile.followerCount || 0} follower{profile.followerCount === 1 ? "" : "s"}
                     </span>
                   </button>
                 ))}

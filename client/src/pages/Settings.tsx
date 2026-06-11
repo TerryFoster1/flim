@@ -4,7 +4,7 @@ import { ProviderLogo } from "../components/ProviderLogo";
 import { PushNotificationSettings } from "../components/PushNotificationSettings";
 import { getCurrentProfile, saveCurrentProfile } from "../services/profileService";
 import { watchProviders } from "../services/watchProviderService";
-import type { CurrentUser, UserProfile } from "../types";
+import type { CurrentUser, Playlist, UserProfile } from "../types";
 
 const emptyProfile: UserProfile = {
   displayName: "",
@@ -15,6 +15,7 @@ const emptyProfile: UserProfile = {
   favoriteMovie: "",
   favoriteGenre: "",
   favoriteDirector: "",
+  featuredPlaylistIds: [],
   countryCode: "",
   region: "",
   provinceState: "",
@@ -39,14 +40,16 @@ function cleanHandle(value: string) {
 interface SettingsProps {
   currentUser: CurrentUser | null;
   onNavigate: (path: string) => void;
+  playlists?: Playlist[];
 }
 
-export function Settings({ currentUser, onNavigate }: SettingsProps) {
+export function Settings({ currentUser, onNavigate, playlists = [] }: SettingsProps) {
   const [profile, setProfile] = useState<UserProfile>(emptyProfile);
   const [status, setStatus] = useState<"loading" | "ready" | "saving" | "saved" | "error">("loading");
   const [message, setMessage] = useState("");
   const vanityUrl = useMemo(() => (profile.handle ? `https://www.flim.ca/@${profile.handle}` : "Choose a username to create your Flim URL."), [profile.handle]);
   const streamingProviders = useMemo(() => watchProviders.filter((provider) => provider.id !== "plex"), []);
+  const publicOwnedPlaylists = useMemo(() => playlists.filter((playlist) => playlist.isOwner && playlist.visibility === "public" && !playlist.isSystem), [playlists]);
 
   useEffect(() => {
     let isActive = true;
@@ -79,6 +82,17 @@ export function Settings({ currentUser, onNavigate }: SettingsProps) {
         : [...current.preferredProviders, providerId];
 
       return { ...current, preferredProviders };
+    });
+  }
+
+  function toggleFeaturedPlaylist(playlistId: string) {
+    setProfile((current) => {
+      const selected = current.featuredPlaylistIds || [];
+      const featuredPlaylistIds = selected.includes(playlistId)
+        ? selected.filter((id) => id !== playlistId)
+        : [...selected, playlistId].slice(0, 3);
+
+      return { ...current, featuredPlaylistIds };
     });
   }
 
@@ -231,6 +245,28 @@ export function Settings({ currentUser, onNavigate }: SettingsProps) {
               />
             </label>
           </div>
+          {publicOwnedPlaylists.length > 0 ? (
+            <div className="featured-playlist-picker">
+              <h3>Featured playlists</h3>
+              <p>Choose up to three public playlists to highlight on your curator profile.</p>
+              <div className="featured-playlist-options">
+                {publicOwnedPlaylists.map((playlist) => {
+                  const selected = Boolean(profile.featuredPlaylistIds?.includes(playlist.id));
+                  return (
+                    <button
+                      className={selected ? "featured-playlist-option is-selected" : "featured-playlist-option"}
+                      key={playlist.id}
+                      onClick={() => toggleFeaturedPlaylist(playlist.id)}
+                      type="button"
+                    >
+                      <strong>{playlist.name}</strong>
+                      <span>{selected ? "Featured" : "Feature"}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
         </section>
 
         <section className="settings-panel">
