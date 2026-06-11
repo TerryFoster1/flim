@@ -94,6 +94,9 @@ export function PublicProfile({ handle, onNavigate }: PublicProfileProps) {
   const titleCount = profile.stats?.movieCount || publicPlaylists.reduce((total, playlist) => total + playlist.movies.length, 0);
   const followerCount = profile.stats?.followerCount || 0;
   const followingCount = profile.stats?.followingCount || 0;
+  const achievementCount = profile.achievements?.achievementCount || 0;
+  const totalAchievementPoints = profile.achievements?.totalPoints || 0;
+  const featuredBadges = profile.achievements?.featuredBadges || [];
   const recentlyUpdated = [...publicPlaylists].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
   const mostFollowed = [...publicPlaylists].sort((a, b) => (b.followerCount || 0) - (a.followerCount || 0));
   const featuredPlaylists = mostFollowed.slice(0, 3);
@@ -126,6 +129,8 @@ export function PublicProfile({ handle, onNavigate }: PublicProfileProps) {
               <span><strong>{followingCount}</strong> Following</span>
               <span><strong>{playlistCount}</strong> Public {playlistCount === 1 ? "Playlist" : "Playlists"}</span>
               <span><strong>{titleCount}</strong> {titleCount === 1 ? "Title" : "Titles"}</span>
+              <span><strong>{achievementCount}</strong> {achievementCount === 1 ? "Badge" : "Badges"}</span>
+              <span><strong>{totalAchievementPoints}</strong> Points</span>
             </div>
             <div className="public-profile-actions">
               {profile.isOwnProfile ? (
@@ -140,6 +145,16 @@ export function PublicProfile({ handle, onNavigate }: PublicProfileProps) {
               </button>
             </div>
             {followMessage ? <p className="error-message">{followMessage}</p> : null}
+            {featuredBadges.length > 0 ? (
+              <div className="profile-badge-row" aria-label="Featured badges">
+                {featuredBadges.map((badge) => (
+                  <span className={`profile-badge profile-badge-${badge.rarity || "common"}`} key={badge.id} title={badge.description}>
+                    <strong>{badge.name}</strong>
+                    <small>{badge.points || 0} pts</small>
+                  </span>
+                ))}
+              </div>
+            ) : null}
           </div>
         </div>
       </div>

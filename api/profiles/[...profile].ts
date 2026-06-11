@@ -22,6 +22,7 @@ import {
   validateProfileHandle,
   verifyPassword,
 } from "../_db.js";
+import { getAchievementSummary } from "../_achievements.js";
 import { directorHandle, ensureDirectorSeed } from "../_director.js";
 
 const defaultProfile = {
@@ -498,7 +499,8 @@ export default async function handler(request: any, response: any) {
     `;
     if (!rows[0]) return sendJson(response, 404, { error: "Profile not found." });
 
-    return sendJson(response, 200, mapPublicUserProfile(rows[0]));
+    const achievementSummary = await getAchievementSummary(sql, String(rows[0].user_id));
+    return sendJson(response, 200, mapPublicUserProfile({ ...rows[0], achievement_summary: achievementSummary }));
   } catch (error) {
     return sendJson(response, 500, { error: error instanceof Error ? error.message : "Profile request failed." });
   }

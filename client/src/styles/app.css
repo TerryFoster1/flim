@@ -4161,6 +4161,11 @@ textarea { min-height: 42px; resize: vertical; }
   color: var(--text);
   font-weight: 850;
 }
+.achievement-unlock-card small {
+  color: #ffe7b8;
+  font-size: .82rem;
+  font-weight: 850;
+}
 .trivia-question-card {
   display: grid;
   gap: 12px;
@@ -4441,6 +4446,41 @@ textarea { min-height: 42px; resize: vertical; }
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
+}
+.profile-badge-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.profile-badge {
+  display: inline-grid;
+  gap: 2px;
+  min-height: 46px;
+  align-content: center;
+  border: 1px solid rgba(255, 184, 77, 0.24);
+  border-radius: 999px;
+  padding: 7px 13px;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--text);
+}
+.profile-badge strong {
+  font-size: .86rem;
+  line-height: 1;
+}
+.profile-badge small {
+  color: var(--muted);
+  font-size: .72rem;
+  font-weight: 850;
+}
+.profile-badge-rare {
+  border-color: rgba(169, 128, 255, 0.42);
+  background: rgba(169, 128, 255, 0.12);
+}
+.profile-badge-epic,
+.profile-badge-legendary {
+  border-color: rgba(255, 109, 168, 0.45);
+  background: linear-gradient(135deg, rgba(255, 184, 77, 0.16), rgba(255, 79, 109, 0.16));
 }
 .push-settings-panel {
   align-content: start;

@@ -1,4 +1,5 @@
 import { db, ensureNotificationsTable, ensurePlaylistFollowsTable, ensureUserProfilesTable, getCurrentUser, sendJson } from "../../_db.js";
+import { evaluateAchievements } from "../../_achievements.js";
 
 async function readFollowState(sql: any, playlistId: string, userId: string) {
   const [state] = await sql`
@@ -97,10 +98,12 @@ export default async function handler(request: any, response: any) {
         `;
       }
       const state = await readFollowState(sql, playlistId, user.id);
+      const unlockedAchievements = await evaluateAchievements(sql, user.id);
       return sendJson(response, 200, {
         ok: true,
         followerCount: Number(state?.follower_count || 0),
         isFollowing: Boolean(state?.is_following),
+        unlockedAchievements,
       });
     }
 
@@ -111,10 +114,12 @@ export default async function handler(request: any, response: any) {
           and follower_user_id = ${user.id}
       `;
       const state = await readFollowState(sql, playlistId, user.id);
+      const unlockedAchievements = await evaluateAchievements(sql, user.id);
       return sendJson(response, 200, {
         ok: true,
         followerCount: Number(state?.follower_count || 0),
         isFollowing: Boolean(state?.is_following),
+        unlockedAchievements,
       });
     }
 

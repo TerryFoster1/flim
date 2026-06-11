@@ -153,6 +153,7 @@ export function MediaExtensions({ media }: MediaExtensionsProps) {
             <div className="achievement-unlock-card">
               <strong>Achievement unlocked</strong>
               <span>{triviaFeed.unlockedAchievements[0].name}</span>
+              <small>{triviaFeed.unlockedAchievements[0].points || 0} points</small>
             </div>
           ) : null}
           {triviaFeed?.questions.map((question) => {

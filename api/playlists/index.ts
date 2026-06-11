@@ -1,5 +1,6 @@
 import { createPublicSlug, createPublicSlugBase, db, ensurePlaylistFollowsTable, ensurePlaylistLikesTable, ensurePlaylistSharingColumns, ensureUserProfilesTable, getCurrentUser, mapPlaylist, sendJson, readBody } from "../_db.js";
 import { ensureDirectorSeed } from "../_director.js";
+import { evaluateAchievements } from "../_achievements.js";
 
 async function createUniquePublicSlug(sql: any, name: string) {
   const base = createPublicSlugBase(name);
@@ -98,7 +99,8 @@ export default async function handler(request: any, response: any) {
         returning *
       `;
 
-      return sendJson(response, 201, mapPlaylist({ ...created, is_owner: true }));
+      const unlockedAchievements = await evaluateAchievements(sql, user.id);
+      return sendJson(response, 201, { ...mapPlaylist({ ...created, is_owner: true }), unlockedAchievements });
     }
 
     return sendJson(response, 405, { error: "Method not allowed." });

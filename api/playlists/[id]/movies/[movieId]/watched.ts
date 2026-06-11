@@ -1,4 +1,5 @@
 import { db, getCurrentUser, readBody, sendJson } from "../../../../_db.js";
+import { evaluateAchievements } from "../../../../_achievements.js";
 
 export default async function handler(request: any, response: any) {
   const playlistId = request.query.id as string;
@@ -25,7 +26,8 @@ export default async function handler(request: any, response: any) {
           and p.owner_user_id = ${user.id}
       `;
 
-      return sendJson(response, 200, { ok: true });
+      const unlockedAchievements = await evaluateAchievements(sql, user.id);
+      return sendJson(response, 200, { ok: true, unlockedAchievements });
     }
 
     return sendJson(response, 405, { error: "Method not allowed." });

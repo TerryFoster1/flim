@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { evaluateAchievements, readAchievementState } from "../_achievements.js";
 import { db, ensureTriviaTables, getCurrentUser, readBody, sendJson } from "../_db.js";
 import { getCatalogMediaItem, mapCatalogDetails, upsertMediaItem } from "../_mediaCatalog.js";
 import { ensureTmdbCacheTables, fetchTmdbMovieDetails } from "../_tmdb.js";
@@ -486,98 +487,6 @@ function progressSummary(questionCount: number, completedTriviaCount: number, hu
   };
 }
 
-async function readAchievementState(sql: any, userId?: string) {
-  if (!userId) return { achievements: [], unlocked: [] };
-  const rows = await sql`
-    select
-      a.id,
-      a.name,
-      a.description,
-      a.badge_icon,
-      a.category,
-      a.goal_count,
-      coalesce(ua.progress_count, 0) as progress_count,
-      ua.unlocked_at
-    from achievements a
-    left join user_achievements ua on ua.achievement_id = a.id and ua.user_id = ${userId}
-    order by a.category, a.name
-  `;
-  const achievements = rows.map((row: any) => ({
-    id: row.id,
-    name: row.name,
-    description: row.description,
-    badgeIcon: row.badge_icon,
-    category: row.category,
-    goalCount: Number(row.goal_count || 0),
-    progressCount: Number(row.progress_count || 0),
-    unlockedAt: row.unlocked_at || undefined,
-  }));
-  return { achievements, unlocked: [] };
-}
-
-async function updateAchievements(sql: any, userId: string, tmdbId?: number, mediaType?: MediaType) {
-  const [counts] = await sql`
-    select
-      (select count(*)::int from user_trivia_progress where user_id = ${userId}) as trivia_count,
-      (select count(*)::int from user_easter_egg_progress where user_id = ${userId}) as hunt_count
-  `;
-  const triviaCount = Number(counts?.trivia_count || 0);
-  const huntCount = Number(counts?.hunt_count || 0);
-  const candidates = [
-    { id: "movie_detective", progress: triviaCount, goal: 10 },
-    { id: "easter_egg_hunter", progress: huntCount, goal: 5 },
-  ];
-
-  if (tmdbId === 105 && mediaType === "movie") {
-    const [titleCounts] = await sql`
-      select
-        (select count(*)::int from title_trivia where tmdb_id = 105 and media_type = 'movie' and status in ('approved', 'auto_generated') and report_count < ${REPORT_THRESHOLD}) as trivia_total,
-        (select count(*)::int from user_trivia_progress utp inner join title_trivia tt on tt.id = utp.trivia_id where utp.user_id = ${userId} and tt.tmdb_id = 105 and tt.media_type = 'movie') as trivia_done,
-        (select count(*)::int from title_easter_eggs where tmdb_id = 105 and media_type = 'movie' and status in ('approved', 'auto_generated') and report_count < ${REPORT_THRESHOLD}) as hunt_total,
-        (select count(*)::int from user_easter_egg_progress uep inner join title_easter_eggs tee on tee.id = uep.easter_egg_id where uep.user_id = ${userId} and tee.tmdb_id = 105 and tee.media_type = 'movie') as hunt_done
-    `;
-    const titleTotal = Number(titleCounts?.trivia_total || 0) + Number(titleCounts?.hunt_total || 0);
-    const titleDone = Number(titleCounts?.trivia_done || 0) + Number(titleCounts?.hunt_done || 0);
-    candidates.push({ id: "back_to_the_future_expert", progress: titleTotal > 0 && titleDone >= titleTotal ? 1 : 0, goal: 1 });
-  }
-
-  const unlocked: any[] = [];
-  for (const candidate of candidates) {
-    const rows = await sql`
-      insert into user_achievements (user_id, achievement_id, progress_count, goal_count, unlocked_at, updated_at)
-      values (
-        ${userId},
-        ${candidate.id},
-        ${candidate.progress},
-        ${candidate.goal},
-        case when ${candidate.progress} >= ${candidate.goal} then now() else null end,
-        now()
-      )
-      on conflict (user_id, achievement_id) do update set
-        progress_count = excluded.progress_count,
-        goal_count = excluded.goal_count,
-        unlocked_at = case
-          when user_achievements.unlocked_at is null and excluded.progress_count >= excluded.goal_count then now()
-          else user_achievements.unlocked_at
-        end,
-        updated_at = now()
-      returning achievement_id, progress_count, goal_count, unlocked_at, xmax = 0 as inserted
-    `;
-    const row = rows[0];
-    if (row?.unlocked_at && Number(row.progress_count || 0) >= Number(row.goal_count || 0)) {
-      const [achievement] = await sql`select id, name, description, badge_icon from achievements where id = ${candidate.id} limit 1`;
-      if (achievement) unlocked.push({
-        id: achievement.id,
-        name: achievement.name,
-        description: achievement.description,
-        badgeIcon: achievement.badge_icon,
-        unlockedAt: row.unlocked_at,
-      });
-    }
-  }
-  return unlocked;
-}
-
 async function handleGet(request: any, response: any) {
   const mediaType = normalizeMediaType(Array.isArray(request.query.mediaType) ? request.query.mediaType[0] : request.query.mediaType);
   const tmdbId = Number(Array.isArray(request.query.tmdbId) ? request.query.tmdbId[0] : request.query.tmdbId);
@@ -732,7 +641,7 @@ async function handleComplete(request: any, response: any) {
     readCachedTrivia(sql, Number(item.tmdb_id), mediaType, user.id),
     readCachedEasterEggs(sql, Number(item.tmdb_id), mediaType, user.id),
   ]);
-  const unlockedAchievements = await updateAchievements(sql, user.id, Number(item.tmdb_id), mediaType);
+  const unlockedAchievements = await evaluateAchievements(sql, user.id);
   const achievementState = await readAchievementState(sql, user.id);
   const completedTriviaCount = questions.filter((question: any) => question.completed).length;
   const completedHuntCount = hunts.filter((hunt: any) => hunt.completed).length;

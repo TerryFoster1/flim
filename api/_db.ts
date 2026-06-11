@@ -560,12 +560,22 @@ export async function ensureTriviaTables(sql: any) {
       description text not null,
       badge_icon text not null default 'star',
       category text not null default 'companion',
+      rarity text not null default 'common',
+      tier text,
+      points integer not null default 0,
       goal_count integer not null default 1,
+      unlock_requirements jsonb not null default '{}'::jsonb,
       metadata jsonb not null default '{}'::jsonb,
       created_at timestamptz not null default now(),
       updated_at timestamptz not null default now()
     )
   `;
+  await sql`alter table achievements add column if not exists rarity text not null default 'common'`;
+  await sql`alter table achievements add column if not exists tier text`;
+  await sql`alter table achievements add column if not exists points integer not null default 0`;
+  await sql`alter table achievements add column if not exists unlock_requirements jsonb not null default '{}'::jsonb`;
+  await sql`create index if not exists achievements_category_idx on achievements (category)`;
+  await sql`create index if not exists achievements_rarity_idx on achievements (rarity)`;
 
   await sql`
     create table if not exists user_achievements (
@@ -573,27 +583,57 @@ export async function ensureTriviaTables(sql: any) {
       user_id uuid not null references users(id) on delete cascade,
       achievement_id text not null references achievements(id) on delete cascade,
       progress_count integer not null default 0,
+      progress numeric not null default 0,
+      completion_percentage integer not null default 0,
       goal_count integer not null default 1,
+      earned_at timestamptz,
       unlocked_at timestamptz,
       created_at timestamptz not null default now(),
       updated_at timestamptz not null default now()
     )
   `;
+  await sql`alter table user_achievements add column if not exists progress numeric not null default 0`;
+  await sql`alter table user_achievements add column if not exists completion_percentage integer not null default 0`;
+  await sql`alter table user_achievements add column if not exists earned_at timestamptz`;
+  await sql`update user_achievements set earned_at = unlocked_at where earned_at is null and unlocked_at is not null`;
   await sql`create unique index if not exists user_achievements_user_achievement_unique on user_achievements (user_id, achievement_id)`;
   await sql`create index if not exists user_achievements_user_unlocked_idx on user_achievements (user_id, unlocked_at desc)`;
+  await sql`create index if not exists user_achievements_user_earned_idx on user_achievements (user_id, earned_at desc)`;
 
   await sql`
-    insert into achievements (id, name, description, badge_icon, category, goal_count, metadata)
+    insert into achievements (id, name, description, badge_icon, category, rarity, tier, points, goal_count, unlock_requirements, metadata)
     values
-      ('movie_detective', 'Movie Detective', 'Complete 10 trivia questions.', 'detective', 'trivia', 10, '{}'::jsonb),
-      ('easter_egg_hunter', 'Easter Egg Hunter', 'Complete 5 Easter Egg Hunts.', 'egg', 'easter_egg', 5, '{}'::jsonb),
-      ('back_to_the_future_expert', 'Back to the Future Expert', 'Complete every available trivia question and Easter Egg Hunt for Back to the Future.', 'clock', 'title', 1, '{"mediaType":"movie","tmdbId":105}'::jsonb)
+      ('first_movie_watched', 'First Movie Watched', 'Mark your first movie as watched.', 'clapper', 'movies', 'common', 'bronze', 10, 1, '{"metric":"movies_watched","threshold":1}'::jsonb, '{}'::jsonb),
+      ('movie_explorer_bronze', 'Movie Explorer Bronze', 'Mark 10 movies as watched.', 'compass', 'movies', 'common', 'bronze', 10, 10, '{"metric":"movies_watched","threshold":10}'::jsonb, '{}'::jsonb),
+      ('movie_collector_silver', 'Movie Collector Silver', 'Mark 50 movies as watched.', 'film-stack', 'movies', 'rare', 'silver', 25, 50, '{"metric":"movies_watched","threshold":50}'::jsonb, '{}'::jsonb),
+      ('episode_tracker_bronze', 'Episode Tracker Bronze', 'Track 10 TV episodes.', 'tv', 'tv', 'common', 'bronze', 10, 10, '{"metric":"episodes_watched","threshold":10}'::jsonb, '{}'::jsonb),
+      ('season_finisher_silver', 'Season Finisher Silver', 'Finish 3 TV seasons.', 'season', 'tv', 'rare', 'silver', 25, 3, '{"metric":"seasons_completed","threshold":3}'::jsonb, '{}'::jsonb),
+      ('binge_watcher_gold', 'Binge Watcher Gold', 'Track 100 watched episodes.', 'bolt', 'tv', 'epic', 'gold', 50, 100, '{"metric":"episodes_watched","threshold":100}'::jsonb, '{}'::jsonb),
+      ('playlist_creator_bronze', 'Playlist Creator Bronze', 'Create your first playlist.', 'playlist', 'playlists', 'common', 'bronze', 10, 1, '{"metric":"playlists_created","threshold":1}'::jsonb, '{}'::jsonb),
+      ('playlist_collector_bronze', 'Playlist Collector Bronze', 'Follow 5 public playlists.', 'bookmark', 'playlists', 'common', 'bronze', 10, 5, '{"metric":"playlists_followed","threshold":5}'::jsonb, '{}'::jsonb),
+      ('playlist_curator_silver', 'Playlist Curator Silver', 'Publish 3 public playlists.', 'spark', 'playlists', 'rare', 'silver', 25, 3, '{"metric":"public_playlists_created","threshold":3}'::jsonb, '{}'::jsonb),
+      ('movie_buff_bronze', 'Movie Buff Bronze', 'Answer 10 trivia questions.', 'star', 'trivia', 'common', 'bronze', 10, 10, '{"metric":"trivia_completed","threshold":10}'::jsonb, '{}'::jsonb),
+      ('film_fanatic_silver', 'Film Fanatic Silver', 'Answer 50 trivia questions.', 'stars', 'trivia', 'rare', 'silver', 25, 50, '{"metric":"trivia_completed","threshold":50}'::jsonb, '{}'::jsonb),
+      ('trivia_master_gold', 'Trivia Master Gold', 'Answer 100 trivia questions.', 'trophy', 'trivia', 'epic', 'gold', 50, 100, '{"metric":"trivia_completed","threshold":100}'::jsonb, '{}'::jsonb),
+      ('movie_detective', 'Movie Detective', 'Complete 10 trivia questions.', 'detective', 'trivia', 'common', 'bronze', 10, 10, '{"metric":"trivia_completed","threshold":10}'::jsonb, '{}'::jsonb),
+      ('easter_egg_hunter', 'Easter Egg Hunter', 'Complete 5 Easter Egg Hunts.', 'egg', 'easter_eggs', 'common', 'bronze', 10, 5, '{"metric":"easter_eggs_completed","threshold":5}'::jsonb, '{}'::jsonb),
+      ('master_hunter_gold', 'Master Hunter Gold', 'Complete 25 Easter Egg Hunts.', 'target', 'easter_eggs', 'epic', 'gold', 50, 25, '{"metric":"easter_eggs_completed","threshold":25}'::jsonb, '{}'::jsonb),
+      ('sci_fi_expert_bronze', 'Sci-Fi Expert Bronze', 'Complete companion progress in 3 sci-fi titles.', 'rocket', 'collections', 'common', 'bronze', 10, 3, '{"metric":"genre_titles_completed","genre":"Science Fiction","threshold":3}'::jsonb, '{}'::jsonb),
+      ('horror_expert_bronze', 'Horror Expert Bronze', 'Complete companion progress in 3 horror titles.', 'mask', 'collections', 'common', 'bronze', 10, 3, '{"metric":"genre_titles_completed","genre":"Horror","threshold":3}'::jsonb, '{}'::jsonb),
+      ('comedy_expert_bronze', 'Comedy Expert Bronze', 'Complete companion progress in 3 comedy titles.', 'laugh', 'collections', 'common', 'bronze', 10, 3, '{"metric":"genre_titles_completed","genre":"Comedy","threshold":3}'::jsonb, '{}'::jsonb),
+      ('disaster_expert_bronze', 'Disaster Expert Bronze', 'Complete companion progress in 3 disaster titles.', 'storm', 'collections', 'common', 'bronze', 10, 3, '{"metric":"playlist_keyword_watched","keyword":"disaster","threshold":3}'::jsonb, '{}'::jsonb),
+      ('franchise_expert_bronze', 'Franchise Expert Bronze', 'Complete companion progress in 3 related franchise titles.', 'collection', 'collections', 'common', 'bronze', 10, 3, '{"metric":"collection_titles_completed","threshold":3}'::jsonb, '{}'::jsonb),
+      ('back_to_the_future_expert', 'Back to the Future Expert', 'Complete every available trivia question and Easter Egg Hunt for Back to the Future.', 'clock', 'collections', 'rare', 'gold', 50, 1, '{"metric":"title_companion_complete","mediaType":"movie","tmdbId":105,"threshold":1}'::jsonb, '{"mediaType":"movie","tmdbId":105}'::jsonb)
     on conflict (id) do update set
       name = excluded.name,
       description = excluded.description,
       badge_icon = excluded.badge_icon,
       category = excluded.category,
+      rarity = excluded.rarity,
+      tier = excluded.tier,
+      points = excluded.points,
       goal_count = excluded.goal_count,
+      unlock_requirements = excluded.unlock_requirements,
       metadata = excluded.metadata,
       updated_at = now()
   `;
@@ -815,6 +855,7 @@ export function mapPublicUserProfile(row: any) {
     isFollowing: Boolean(row.is_following),
     countryCode: row.show_country_publicly ? row.country_code || undefined : undefined,
     stats: row.stats || undefined,
+    achievements: row.achievement_summary || undefined,
     publicPlaylists,
   };
 }

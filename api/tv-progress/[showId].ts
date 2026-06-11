@@ -1,4 +1,5 @@
 import { db, getCurrentUser, readBody, sendJson } from "../_db.js";
+import { evaluateAchievements } from "../_achievements.js";
 import {
   ensureTvShowCatalog,
   getTvProgress,
@@ -56,7 +57,9 @@ export default async function handler(request: any, response: any) {
       return sendJson(response, 400, { error: "Choose a valid progress action." });
     }
 
-    return sendJson(response, 200, await getTvProgress(sql, user.id, mediaItem));
+    const progress = await getTvProgress(sql, user.id, mediaItem);
+    const unlockedAchievements = await evaluateAchievements(sql, user.id);
+    return sendJson(response, 200, { ...progress, unlockedAchievements });
   } catch (error) {
     console.error("tv_progress_request_failed", error instanceof Error ? error.message : "TV progress request failed.");
     return sendJson(response, 500, { error: "Unable to update TV progress. Please try again." });

@@ -451,6 +451,12 @@ export interface PublicUserProfile {
     followerCount: number;
     followingCount: number;
   };
+  achievements?: {
+    achievementCount: number;
+    totalPoints: number;
+    featuredBadges: CompanionAchievement[];
+    recentUnlocks: CompanionAchievement[];
+  };
   publicPlaylists?: Playlist[];
 }
 
@@ -579,8 +585,12 @@ export interface CompanionAchievement {
   description: string;
   badgeIcon: string;
   category: string;
+  rarity?: string;
+  tier?: string;
+  points?: number;
   goalCount?: number;
   progressCount?: number;
+  completionPercentage?: number;
   unlockedAt?: string;
 }
 
