@@ -42,6 +42,7 @@ import { DirectorAdmin } from "./pages/DirectorAdmin";
 import { LandingPage } from "./pages/LandingPage";
 import { Discover } from "./pages/Discover";
 import { createSystemPlaylists } from "./services/systemPlaylists";
+import { getActiveSeasonalTheme } from "./seasonalThemes";
 import type { AppRoute, CurrentUser, MovieDetails, MovieSearchResult, Playlist, RouteState, WatchStatus } from "./types";
 
 function routeFromPath(pathname = window.location.pathname): RouteState {
@@ -95,6 +96,7 @@ export default function App() {
   const [isRouletteOpen, setIsRouletteOpen] = useState(() => window.location.pathname === "/roulette");
   const [roulettePlaylists, setRoulettePlaylists] = useState<Playlist[] | null>(null);
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
+  const activeSeasonalTheme = useMemo(() => getActiveSeasonalTheme(), [routeState.route]);
 
   useEffect(() => {
     getSession().then((result) => setCurrentUser(result.user)).catch(() => setCurrentUser(null));
@@ -116,6 +118,29 @@ export default function App() {
     window.addEventListener("flim:open-roulette", openRoulette);
     return () => window.removeEventListener("flim:open-roulette", openRoulette);
   }, []);
+
+  useEffect(() => {
+    const previousTheme = document.body.dataset.seasonalTheme;
+    const previousPreview = document.body.dataset.seasonalThemePreview;
+    document.body.dataset.seasonalTheme = activeSeasonalTheme?.id || "default";
+    if (activeSeasonalTheme?.isPreview) {
+      document.body.dataset.seasonalThemePreview = "true";
+    } else {
+      delete document.body.dataset.seasonalThemePreview;
+    }
+    return () => {
+      if (previousTheme) {
+        document.body.dataset.seasonalTheme = previousTheme;
+      } else {
+        delete document.body.dataset.seasonalTheme;
+      }
+      if (previousPreview) {
+        document.body.dataset.seasonalThemePreview = previousPreview;
+      } else {
+        delete document.body.dataset.seasonalThemePreview;
+      }
+    };
+  }, [activeSeasonalTheme]);
 
   function navigate(path: string) {
     setIsRouletteOpen(false);
@@ -223,6 +248,7 @@ export default function App() {
     <Playlists
       initialView={initialView}
       currentUser={currentUser}
+      seasonalTheme={activeSeasonalTheme}
       rewindPlaylists={rewindPlaylists}
       notice={playlistNotice}
       onCreatePlaylist={createRemotePlaylist}
@@ -231,7 +257,7 @@ export default function App() {
     />
   );
   const pages: Partial<Record<AppRoute, ReactNode>> = {
-    "/": <LandingPage />,
+    "/": <LandingPage seasonalTheme={activeSeasonalTheme} />,
     "/discover": <Discover onNavigate={navigate} />,
     "/playlists": playlistsPage("my"),
     "/playlists/:id": detailPlaylist ? (
@@ -301,7 +327,11 @@ export default function App() {
   const page = pages[activeRoute] ?? playlistsPage("my");
 
   return (
-    <div className="app-shell">
+    <div
+      className={`app-shell ${activeSeasonalTheme?.themeClass || ""}`}
+      data-seasonal-theme={activeSeasonalTheme?.id || "default"}
+      data-seasonal-theme-preview={activeSeasonalTheme?.isPreview ? "true" : undefined}
+    >
       <div className="main-shell">
         <NavigationBar activeRoute={activeRoute} currentUser={currentUser} onNavigate={navigate} onLogout={logout} />
         <main className={isHomeRoute ? "page-container home-page-container" : "page-container"}>

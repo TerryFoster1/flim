@@ -27,7 +27,64 @@ body {
 }
 button { color: inherit; font: inherit; }
 .reset-button { border: 0; background: transparent; text-align: left; cursor: pointer; }
-.app-shell { min-height: 100vh; display: grid; grid-template-columns: 1fr; }
+.app-shell {
+  --seasonal-accent: var(--hot);
+  --seasonal-accent-2: var(--amber);
+  --seasonal-glow: rgba(255, 184, 77, .12);
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr;
+  position: relative;
+  isolation: isolate;
+}
+.app-shell::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: .72;
+  background:
+    radial-gradient(circle at 10% 8%, var(--seasonal-glow), transparent 26rem),
+    radial-gradient(circle at 88% 2%, color-mix(in srgb, var(--seasonal-accent) 13%, transparent), transparent 24rem);
+}
+.seasonal-theme-summer {
+  --seasonal-accent: #ffb84d;
+  --seasonal-accent-2: #ff4f6d;
+  --seasonal-glow: rgba(255, 184, 77, .16);
+}
+.seasonal-theme-spooky,
+.seasonal-theme-halloween {
+  --seasonal-accent: #ff7a2f;
+  --seasonal-accent-2: #a980ff;
+  --seasonal-glow: rgba(255, 122, 47, .18);
+}
+.seasonal-theme-holidays {
+  --seasonal-accent: #3ee2a0;
+  --seasonal-accent-2: #ff4f6d;
+  --seasonal-glow: rgba(62, 226, 160, .14);
+}
+.seasonal-theme-new-year,
+.seasonal-theme-oscars {
+  --seasonal-accent: #ffd76f;
+  --seasonal-accent-2: #fff3b8;
+  --seasonal-glow: rgba(255, 215, 111, .16);
+}
+.seasonal-theme-valentines {
+  --seasonal-accent: #ff6f91;
+  --seasonal-accent-2: #ffb3c7;
+  --seasonal-glow: rgba(255, 111, 145, .14);
+}
+.seasonal-theme-sci-fi {
+  --seasonal-accent: #65a7ff;
+  --seasonal-accent-2: #3ee2e2;
+  --seasonal-glow: rgba(101, 167, 255, .16);
+}
+.seasonal-theme-back-to-school {
+  --seasonal-accent: #ffb84d;
+  --seasonal-accent-2: #65a7ff;
+  --seasonal-glow: rgba(255, 184, 77, .12);
+}
 .sidebar {
   position: sticky;
   top: 0;
@@ -595,6 +652,12 @@ h3 { margin-bottom: 8px; }
     linear-gradient(180deg, rgba(5,6,8,.08) 0%, rgba(5,6,8,.08) 42%, rgba(5,6,8,.82) 100%);
   pointer-events: none;
 }
+.app-shell[class*="seasonal-theme-"] .collections-cinematic-hero::after {
+  background:
+    radial-gradient(circle at 16% 28%, color-mix(in srgb, var(--seasonal-accent) 18%, transparent), transparent 22rem),
+    linear-gradient(90deg, rgba(5,6,8,.86) 0%, rgba(5,6,8,.52) 34%, rgba(5,6,8,.08) 68%),
+    linear-gradient(180deg, rgba(5,6,8,.08) 0%, rgba(5,6,8,.08) 42%, rgba(5,6,8,.82) 100%);
+}
 .collections-hero-picture {
   position: absolute;
   inset: 0;
@@ -626,6 +689,25 @@ h3 { margin-bottom: 8px; }
   font-size: clamp(1rem, 1.8vw, 1.22rem);
   line-height: 1.45;
   margin-bottom: 18px;
+}
+.seasonal-theme-banner,
+.seasonal-discovery-banner {
+  width: fit-content;
+  border: 1px solid color-mix(in srgb, var(--seasonal-accent) 42%, rgba(255,255,255,.14));
+  border-radius: 999px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--seasonal-accent) 22%, transparent), color-mix(in srgb, var(--seasonal-accent-2) 16%, transparent)),
+    rgba(0,0,0,.32);
+  color: #fff9ec;
+  box-shadow: 0 14px 46px color-mix(in srgb, var(--seasonal-accent) 20%, transparent);
+  font-size: .86rem;
+  font-weight: 950;
+  line-height: 1.2;
+  margin: 0 0 14px;
+  padding: 9px 13px;
+}
+.seasonal-discovery-banner {
+  margin-bottom: -4px;
 }
 .collections-command-bar {
   display: grid;
@@ -5027,10 +5109,10 @@ textarea { min-height: 42px; resize: vertical; }
 .seasonal-challenge-card {
   min-width: 0;
   overflow: hidden;
-  border: 1px solid rgba(255,255,255,.12);
+  border: 1px solid color-mix(in srgb, var(--seasonal-accent) 22%, rgba(255,255,255,.12));
   border-radius: 20px;
   background:
-    radial-gradient(circle at 18% 4%, rgba(255,184,77,.16), transparent 16rem),
+    radial-gradient(circle at 18% 4%, color-mix(in srgb, var(--seasonal-accent) 18%, transparent), transparent 16rem),
     rgba(255,255,255,.055);
   box-shadow: 0 22px 70px rgba(0,0,0,.28);
 }
@@ -5046,7 +5128,7 @@ textarea { min-height: 42px; resize: vertical; }
   align-items: end;
   padding: 16px;
   background:
-    linear-gradient(135deg, rgba(255,79,109,.22), rgba(255,184,77,.16)),
+    linear-gradient(135deg, color-mix(in srgb, var(--seasonal-accent) 24%, transparent), color-mix(in srgb, var(--seasonal-accent-2) 18%, transparent)),
     rgba(0,0,0,.28);
   color: rgba(255,255,255,.62);
   font-size: .76rem;
