@@ -1,6 +1,7 @@
 export type AppRoute =
   | "/"
   | "/discover"
+  | "/curators"
   | "/playlists"
   | "/playlists/:id"
   | "/p/:slug"
@@ -641,7 +642,13 @@ export interface PublicUserProfile {
     movieCount: number;
     followerCount: number;
     followingCount: number;
+    playlistFollowerCount?: number;
+    playlistLikeCount?: number;
+    trustScore?: number;
+    latestPlaylistUpdatedAt?: string;
   };
+  favoriteGenres?: string[];
+  featuredPlaylist?: Playlist;
   achievements?: {
     achievementCount: number;
     totalPoints: number;
@@ -795,7 +802,51 @@ export interface DiscoveryProfileResult {
   playlistCount: number;
   titleCount: number;
   followerCount?: number;
+  playlistFollowerCount?: number;
+  playlistLikeCount?: number;
   profileImageUrl?: string;
+}
+
+export interface CuratorDiscoveryProfile {
+  displayName: string;
+  handle: string;
+  bio?: string;
+  profileImageUrl?: string;
+  heroImageUrl?: string;
+  isFollowing?: boolean;
+  joinedAt?: string;
+  favoriteGenres: string[];
+  trustBadges: string[];
+  trustScore: number;
+  stats: {
+    playlistCount: number;
+    titleCount: number;
+    followerCount: number;
+    followingCount: number;
+    playlistFollowerCount: number;
+    playlistLikeCount: number;
+    latestPlaylistUpdatedAt?: string;
+  };
+  featuredPlaylist?: Playlist;
+  publicPlaylists: Playlist[];
+}
+
+export interface CuratorDiscoveryFeed {
+  query: string;
+  curators: CuratorDiscoveryProfile[];
+  sections: {
+    topCurators: CuratorDiscoveryProfile[];
+    trendingCurators: CuratorDiscoveryProfile[];
+    risingCurators: CuratorDiscoveryProfile[];
+    mostFollowedCurators: CuratorDiscoveryProfile[];
+    mostLikedCurators: CuratorDiscoveryProfile[];
+    recentlyFeaturedCurators: CuratorDiscoveryProfile[];
+  };
+  genres: Array<{
+    name: string;
+    curators: CuratorDiscoveryProfile[];
+  }>;
+  generatedAt: string;
 }
 
 export interface DiscoveryCollectionResult {

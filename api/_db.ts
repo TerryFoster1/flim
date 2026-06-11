@@ -895,6 +895,7 @@ export function mapPublicUserProfile(row: any) {
     favoriteMovie: row.favorite_movie || "",
     favoriteGenre: row.favorite_genre || "",
     favoriteDirector: row.favorite_director || "",
+    favoriteGenres: row.favorite_genre ? [row.favorite_genre] : [],
     joinedAt: row.created_at,
     isOwnProfile: Boolean(row.is_own_profile),
     isFollowing: Boolean(row.is_following),

@@ -99,6 +99,9 @@ export function Discover({ onNavigate }: DiscoverProps) {
         <div>
           <h1>Discover</h1>
           <p>Search playlists, curators, collections, movies, and TV shows.</p>
+          <button className="secondary-button discover-hero-link" onClick={() => onNavigate("/curators")} type="button">
+            Browse Curators
+          </button>
         </div>
         <form className="discover-search-form" onSubmit={submit}>
           <label>
@@ -154,7 +157,7 @@ export function Discover({ onNavigate }: DiscoverProps) {
                     <small>@{profile.handle}</small>
                     {profile.bio ? <p>{profile.bio}</p> : null}
                     <span>
-                      {profile.playlistCount} public playlist{profile.playlistCount === 1 ? "" : "s"} · {profile.followerCount || 0} follower{profile.followerCount === 1 ? "" : "s"}
+                      {profile.playlistCount} public playlist{profile.playlistCount === 1 ? "" : "s"} / {profile.followerCount || 0} profile follower{profile.followerCount === 1 ? "" : "s"} / {profile.playlistFollowerCount || 0} playlist follows / {profile.playlistLikeCount || 0} likes
                     </span>
                   </button>
                 ))}

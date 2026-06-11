@@ -262,7 +262,21 @@ async function searchProfiles(sql: any, query: string) {
         select count(*)::int
         from user_follows uf
         where uf.followed_user_id::text = up.user_id
-      ) as follower_count
+      ) as follower_count,
+      (
+        select count(*)::int
+        from playlist_follows pf
+        join playlists followed_playlist on followed_playlist.id = pf.playlist_id
+        where followed_playlist.owner_user_id::text = up.user_id
+          and followed_playlist.visibility = 'public'
+      ) as playlist_follower_count,
+      (
+        select count(*)::int
+        from playlist_likes pl
+        join playlists liked_playlist on liked_playlist.id = pl.playlist_id
+        where liked_playlist.owner_user_id::text = up.user_id
+          and liked_playlist.visibility = 'public'
+      ) as playlist_like_count
     from user_profiles up
     left join playlists p on p.owner_user_id::text = up.user_id and p.visibility = 'public'
     left join playlist_movies pm on pm.playlist_id = p.id
@@ -304,6 +318,8 @@ async function searchProfiles(sql: any, query: string) {
     playlistCount: Number(row.playlist_count || 0),
     titleCount: Number(row.title_count || 0),
     followerCount: Number(row.follower_count || 0),
+    playlistFollowerCount: Number(row.playlist_follower_count || 0),
+    playlistLikeCount: Number(row.playlist_like_count || 0),
   }));
 }
 

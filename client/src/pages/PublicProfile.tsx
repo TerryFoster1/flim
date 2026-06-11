@@ -53,6 +53,10 @@ export function PublicProfile({ handle, onNavigate }: PublicProfileProps) {
             movieCount: current.stats?.movieCount || publicPlaylists.reduce((total, playlist) => total + playlist.movies.length, 0),
             followerCount: result.followerCount,
             followingCount: result.followingCount,
+            playlistFollowerCount: current.stats?.playlistFollowerCount,
+            playlistLikeCount: current.stats?.playlistLikeCount,
+            trustScore: current.stats?.trustScore,
+            latestPlaylistUpdatedAt: current.stats?.latestPlaylistUpdatedAt,
           },
         }
         : current);
@@ -94,6 +98,9 @@ export function PublicProfile({ handle, onNavigate }: PublicProfileProps) {
   const titleCount = profile.stats?.movieCount || publicPlaylists.reduce((total, playlist) => total + playlist.movies.length, 0);
   const followerCount = profile.stats?.followerCount || 0;
   const followingCount = profile.stats?.followingCount || 0;
+  const playlistFollowerCount = profile.stats?.playlistFollowerCount || publicPlaylists.reduce((total, playlist) => total + (playlist.followerCount || 0), 0);
+  const playlistLikeCount = profile.stats?.playlistLikeCount || publicPlaylists.reduce((total, playlist) => total + (playlist.likeCount || 0), 0);
+  const trustScore = profile.stats?.trustScore || 0;
   const achievementCount = profile.achievements?.achievementCount || 0;
   const totalAchievementPoints = profile.achievements?.totalPoints || 0;
   const featuredBadges = profile.achievements?.featuredBadges || [];
@@ -136,6 +143,9 @@ export function PublicProfile({ handle, onNavigate }: PublicProfileProps) {
               <span><strong>{followingCount}</strong> Following</span>
               <span><strong>{playlistCount}</strong> Public {playlistCount === 1 ? "Playlist" : "Playlists"}</span>
               <span><strong>{titleCount}</strong> {titleCount === 1 ? "Title" : "Titles"}</span>
+              <span><strong>{playlistFollowerCount}</strong> Playlist {playlistFollowerCount === 1 ? "Follow" : "Follows"}</span>
+              <span><strong>{playlistLikeCount}</strong> Playlist {playlistLikeCount === 1 ? "Like" : "Likes"}</span>
+              {trustScore > 0 ? <span><strong>{trustScore}</strong> Curator Score</span> : null}
               <span><strong>{achievementCount}</strong> {achievementCount === 1 ? "Badge" : "Badges"}</span>
               <span><strong>{totalAchievementPoints}</strong> Points</span>
               <span><strong>{challengeCount}</strong> {challengeCount === 1 ? "Challenge" : "Challenges"}</span>
@@ -149,7 +159,7 @@ export function PublicProfile({ handle, onNavigate }: PublicProfileProps) {
                 <button className="primary-button" onClick={() => onNavigate("/settings")} type="button">Edit Profile</button>
               ) : (
                 <button className={profile.isFollowing ? "secondary-button follow-creator-button following" : "primary-button follow-creator-button"} onClick={toggleFollow} disabled={followStatus === "saving"} type="button">
-                  {followStatus === "saving" ? "Saving..." : profile.isFollowing ? "Following ✓" : "Follow"}
+                  {followStatus === "saving" ? "Saving..." : profile.isFollowing ? "Following" : "Follow Curator"}
                 </button>
               )}
               <button className="secondary-button" onClick={() => navigator.clipboard?.writeText(`https://www.flim.ca/@${profile.handle}`)} type="button">

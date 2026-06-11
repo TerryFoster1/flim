@@ -43,6 +43,7 @@ import { AuthPage } from "./pages/AuthPage";
 import { DirectorAdmin } from "./pages/DirectorAdmin";
 import { LandingPage } from "./pages/LandingPage";
 import { Discover } from "./pages/Discover";
+import { Curators } from "./pages/Curators";
 import { createSystemPlaylists } from "./services/systemPlaylists";
 import { getActiveSeasonalTheme } from "./seasonalThemes";
 import type { AppRoute, CurrentUser, MovieDetails, MovieSearchResult, Playlist, RouteState, WatchStatus } from "./types";
@@ -50,6 +51,7 @@ import type { AppRoute, CurrentUser, MovieDetails, MovieSearchResult, Playlist, 
 function routeFromPath(pathname = window.location.pathname): RouteState {
   if (pathname === "/") return { route: "/" };
   if (pathname === "/discover") return { route: "/discover" };
+  if (pathname === "/curators") return { route: "/curators" };
   if (pathname === "/playlists") return { route: "/playlists" };
   if (pathname.startsWith("/playlists/")) return { route: "/playlists/:id", playlistId: pathname.split("/")[2] };
   if (pathname.startsWith("/p/")) return { route: "/p/:slug", publicSlug: pathname.split("/")[2] };
@@ -263,6 +265,7 @@ export default function App() {
   const pages: Partial<Record<AppRoute, ReactNode>> = {
     "/": <LandingPage seasonalTheme={activeSeasonalTheme} />,
     "/discover": <Discover onNavigate={navigate} />,
+    "/curators": <Curators onNavigate={navigate} />,
     "/playlists": playlistsPage("my"),
     "/playlists/:id": detailPlaylist ? (
       <PlaylistDetails
@@ -350,7 +353,7 @@ export default function App() {
       <InstallFlimPrompt />
       {!isDirectorAdminRoute ? <div className="playlist-bottom-control" role="navigation" aria-label="Playlist controls">
         <button
-          className={`bottom-control-tab ${activeRoute === "/playlists" || activeRoute === "/playlists/:id" || activeRoute === "/discover" ? "is-active" : ""}`}
+          className={`bottom-control-tab ${activeRoute === "/playlists" || activeRoute === "/playlists/:id" || activeRoute === "/discover" || activeRoute === "/curators" ? "is-active" : ""}`}
           onClick={() => navigate("/playlists")}
           type="button"
         >

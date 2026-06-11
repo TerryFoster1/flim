@@ -347,6 +347,15 @@ function PublicDiscovery({
           View Rankings
         </button>
       </section>
+      <section className="hall-discovery-callout">
+        <div>
+          <h2>Discover Curators</h2>
+          <p>Find people whose playlists match your taste, ranked with real follows and likes.</p>
+        </div>
+        <button className="secondary-button" onClick={() => onNavigate("/curators")} type="button">
+          Browse Curators
+        </button>
+      </section>
       <CollectionDiscoveryShelf collections={collections} onNavigate={onNavigate} />
       {seasonalTheme ? <p className="seasonal-discovery-banner">{seasonalTheme.bannerText}</p> : null}
       <SeasonalChallengeShelf events={themedSeasonalChallenges} onNavigate={onNavigate} />

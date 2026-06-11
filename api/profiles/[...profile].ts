@@ -447,7 +447,41 @@ export default async function handler(request: any, response: any) {
           'playlistCount', count(distinct p.id)::int,
           'movieCount', count(pm.id)::int,
           'followerCount', (select count(*)::int from user_follows uf where uf.followed_user_id::text = up.user_id),
-          'followingCount', (select count(*)::int from user_follows uf where uf.follower_user_id::text = up.user_id)
+          'followingCount', (select count(*)::int from user_follows uf where uf.follower_user_id::text = up.user_id),
+          'playlistFollowerCount', (
+            select count(*)::int
+            from playlist_follows pf
+            join playlists followed_playlist on followed_playlist.id = pf.playlist_id
+            where followed_playlist.owner_user_id::text = up.user_id
+              and followed_playlist.visibility = 'public'
+          ),
+          'playlistLikeCount', (
+            select count(*)::int
+            from playlist_likes pl
+            join playlists liked_playlist on liked_playlist.id = pl.playlist_id
+            where liked_playlist.owner_user_id::text = up.user_id
+              and liked_playlist.visibility = 'public'
+          ),
+          'trustScore', (
+            ((select count(*)::int from user_follows uf where uf.followed_user_id::text = up.user_id) * 5) +
+            ((
+              select count(*)::int
+              from playlist_follows pf
+              join playlists followed_playlist on followed_playlist.id = pf.playlist_id
+              where followed_playlist.owner_user_id::text = up.user_id
+                and followed_playlist.visibility = 'public'
+            ) * 4) +
+            ((
+              select count(*)::int
+              from playlist_likes pl
+              join playlists liked_playlist on liked_playlist.id = pl.playlist_id
+              where liked_playlist.owner_user_id::text = up.user_id
+                and liked_playlist.visibility = 'public'
+            ) * 3) +
+            (count(distinct p.id)::int * 2) +
+            least(count(pm.id)::int, 250)
+          ),
+          'latestPlaylistUpdatedAt', max(p.updated_at)
         ) as stats,
         coalesce(
           json_agg(

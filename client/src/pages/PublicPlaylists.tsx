@@ -113,6 +113,15 @@ export function PublicPlaylists({ onNavigate, playlists }: PublicPlaylistsProps)
       ) : null}
 
       <div className="discovery-grid">
+        <section className="hall-discovery-callout">
+          <div>
+            <h2>Discover Curators</h2>
+            <p>Browse Flim creators by real playlist followers, likes, and public collections.</p>
+          </div>
+          <button className="secondary-button" onClick={() => onNavigate("/curators")} type="button">
+            Browse Curators
+          </button>
+        </section>
         <DiscoveryShelf title="Flim Picks" playlists={flimPicks} onNavigate={onNavigate} />
         <DiscoveryShelf title="Featured Curators" playlists={featuredCurators} onNavigate={onNavigate} />
         <DiscoveryShelf title="Community Favorites" playlists={favorites} onNavigate={onNavigate} />
