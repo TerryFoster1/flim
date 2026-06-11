@@ -19,6 +19,13 @@ function hasCastPayload(details: any) {
   return Array.isArray(details?.cast) && details.cast.length > 0;
 }
 
+function hasCoreTitlePayload(details: any, mediaType: "movie" | "tv", tmdbId: number) {
+  const id = Number(details?.tmdbId ?? details?.tmdb_id);
+  const title = typeof details?.title === "string" ? details.title.trim() : "";
+  const type = details?.mediaType || details?.media_type || mediaType;
+  return Number.isFinite(id) && id === tmdbId && type === mediaType && title.length > 0;
+}
+
 function moviePath(request: any) {
   const pathname = new URL(request.url || "", "https://www.flim.ca").pathname;
   const fromPath = pathname.split("/api/movies/").pop()?.split("?")[0];
@@ -96,19 +103,19 @@ async function handleSearch(request: any, response: any) {
   return sendJson(response, 200, mergeSearchResults(catalogResults, movies));
 }
 
-async function handleMovieDetails(tmdbId: number, response: any) {
+async function handleMovieDetails(tmdbId: number, response: any, forceRefresh = false) {
   response.setHeader("X-Flim-Movie-Function", "ratings-v1");
   const sql = db();
   await ensureTmdbCacheTables(sql);
   const catalogItem = await getCatalogMediaItem(sql, tmdbId, "movie");
   const catalogDetails = catalogItem ? mapCatalogDetails(catalogItem) : null;
-  if ((catalogDetails?.contentRatingVersion === 1 || (catalogDetails?.genres?.length || 0) > 0) && hasCastPayload(catalogDetails)) {
+  if (!forceRefresh && hasCoreTitlePayload(catalogDetails, "movie", tmdbId) && ((catalogDetails?.contentRatingVersion === 1 || (catalogDetails?.genres?.length || 0) > 0) && hasCastPayload(catalogDetails))) {
     response.setHeader("X-Flim-Catalog", "HIT");
     response.setHeader("X-Flim-Cache", "SKIP");
     return sendJson(response, 200, catalogDetails);
   }
 
-  const cached = await sql`
+  const cached = forceRefresh ? [] : await sql`
       select response_json
       from tmdb_movie_cache
       where tmdb_id = ${tmdbId}
@@ -118,14 +125,30 @@ async function handleMovieDetails(tmdbId: number, response: any) {
     limit 1
   `;
 
-  if (cached[0]?.response_json?.contentRatingVersion === 1 && hasCastPayload(cached[0].response_json)) {
+  if (hasCoreTitlePayload(cached[0]?.response_json, "movie", tmdbId) && cached[0]?.response_json?.contentRatingVersion === 1 && hasCastPayload(cached[0].response_json)) {
     await upsertMediaItem(sql, cached[0].response_json);
     response.setHeader("X-Flim-Catalog", catalogItem ? "STALE" : "MISS");
     response.setHeader("X-Flim-Cache", "HIT");
     return sendJson(response, 200, cached[0].response_json);
   }
 
-  const movie = await fetchTmdbMovieDetails(tmdbId, "movie");
+  let movie;
+  try {
+    movie = await fetchTmdbMovieDetails(tmdbId, "movie");
+  } catch (error) {
+    if (hasCoreTitlePayload(catalogDetails, "movie", tmdbId)) {
+      console.warn("title_details_catalog_fallback", {
+        tmdbId,
+        mediaType: "movie",
+        reason: error instanceof Error ? error.message : "TMDb details fetch failed.",
+        hasCoreData: true,
+      });
+      response.setHeader("X-Flim-Catalog", "FALLBACK");
+      response.setHeader("X-Flim-Cache", "ERROR");
+      return sendJson(response, 200, catalogDetails);
+    }
+    throw error;
+  }
   const mediaItem = await upsertMediaItem(sql, movie);
   await upsertMediaCast(sql, mediaItem, movie.cast || []);
   await sql`
@@ -143,19 +166,19 @@ async function handleMovieDetails(tmdbId: number, response: any) {
   return sendJson(response, 200, movie);
 }
 
-async function handleTvDetails(tmdbId: number, response: any) {
+async function handleTvDetails(tmdbId: number, response: any, forceRefresh = false) {
   response.setHeader("X-Flim-Movie-Function", "ratings-v1");
   const sql = db();
   await ensureTmdbCacheTables(sql);
   const catalogItem = await getCatalogMediaItem(sql, tmdbId, "tv");
   const catalogDetails = catalogItem ? mapCatalogDetails(catalogItem) : null;
-  if ((catalogDetails?.contentRatingVersion === 1 || (catalogDetails?.genres?.length || 0) > 0) && hasCastPayload(catalogDetails)) {
+  if (!forceRefresh && hasCoreTitlePayload(catalogDetails, "tv", tmdbId) && ((catalogDetails?.contentRatingVersion === 1 || (catalogDetails?.genres?.length || 0) > 0) && hasCastPayload(catalogDetails))) {
     response.setHeader("X-Flim-Catalog", "HIT");
     response.setHeader("X-Flim-Cache", "SKIP");
     return sendJson(response, 200, catalogDetails);
   }
 
-  const cached = await sql`
+  const cached = forceRefresh ? [] : await sql`
     select response_json
     from tmdb_movie_cache
     where tmdb_id = ${tmdbId}
@@ -165,14 +188,30 @@ async function handleTvDetails(tmdbId: number, response: any) {
     limit 1
   `;
 
-  if (cached[0]?.response_json?.contentRatingVersion === 1 && hasCastPayload(cached[0].response_json)) {
+  if (hasCoreTitlePayload(cached[0]?.response_json, "tv", tmdbId) && cached[0]?.response_json?.contentRatingVersion === 1 && hasCastPayload(cached[0].response_json)) {
     await upsertMediaItem(sql, cached[0].response_json);
     response.setHeader("X-Flim-Catalog", catalogItem ? "STALE" : "MISS");
     response.setHeader("X-Flim-Cache", "HIT");
     return sendJson(response, 200, cached[0].response_json);
   }
 
-  const show = await fetchTmdbMovieDetails(tmdbId, "tv");
+  let show;
+  try {
+    show = await fetchTmdbMovieDetails(tmdbId, "tv");
+  } catch (error) {
+    if (hasCoreTitlePayload(catalogDetails, "tv", tmdbId)) {
+      console.warn("title_details_catalog_fallback", {
+        tmdbId,
+        mediaType: "tv",
+        reason: error instanceof Error ? error.message : "TMDb details fetch failed.",
+        hasCoreData: true,
+      });
+      response.setHeader("X-Flim-Catalog", "FALLBACK");
+      response.setHeader("X-Flim-Cache", "ERROR");
+      return sendJson(response, 200, catalogDetails);
+    }
+    throw error;
+  }
   const mediaItem = await upsertMediaItem(sql, show);
   await upsertMediaCast(sql, mediaItem, show.cast || []);
   await sql`
@@ -197,16 +236,17 @@ export default async function handler(request: any, response: any) {
     const path = moviePath(request);
     if (path === "search") return handleSearch(request, response);
     const requestedType = Array.isArray(request.query.type) ? request.query.type[0] : request.query.type;
+    const forceRefresh = Boolean(request.query._retry || request.query.refresh);
     if (path.startsWith("tv/")) {
       const tmdbId = Number(path.split("/")[1]);
       if (!Number.isFinite(tmdbId)) return sendJson(response, 400, { error: "A valid TV show ID is required." });
-      return handleTvDetails(tmdbId, response);
+      return handleTvDetails(tmdbId, response, forceRefresh);
     }
 
     const tmdbId = Number(path);
     if (!Number.isFinite(tmdbId)) return sendJson(response, 400, { error: "A valid movie ID is required." });
-    if (requestedType === "tv") return handleTvDetails(tmdbId, response);
-    return handleMovieDetails(tmdbId, response);
+    if (requestedType === "tv") return handleTvDetails(tmdbId, response, forceRefresh);
+    return handleMovieDetails(tmdbId, response, forceRefresh);
   } catch (error) {
     return sendJson(response, 500, { error: error instanceof Error ? error.message : "Movie request failed." });
   }

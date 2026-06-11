@@ -1,17 +1,18 @@
-import { useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { AddToPlaylistControl } from "../components/AddToPlaylistControl";
 import { FollowTitleControl } from "../components/FollowTitleControl";
-import { MediaExtensions } from "../components/MediaExtensions";
 import { OptionalSectionBoundary } from "../components/OptionalSectionBoundary";
 import { PageShell } from "../components/PageShell";
-import { TitleRatingControl } from "../components/TitleRatingControl";
-import { TvProgressTracker } from "../components/TvProgressTracker";
 import { WatchStatusBadge } from "../components/WatchStatusBadge";
-import { WhereToWatch } from "../components/WhereToWatch";
 import { getCurrentProfile } from "../services/profileService";
 import { getMovieDetails, getTvDetails, hasTmdbApiKey } from "../services/tmdbService";
 import type { ContentRating } from "../types";
 import type { MediaType, MovieDetails, Playlist, WatchStatus } from "../types";
+
+const MediaExtensions = lazy(() => import("../components/MediaExtensions").then((module) => ({ default: module.MediaExtensions })));
+const TitleRatingControl = lazy(() => import("../components/TitleRatingControl").then((module) => ({ default: module.TitleRatingControl })));
+const TvProgressTracker = lazy(() => import("../components/TvProgressTracker").then((module) => ({ default: module.TvProgressTracker })));
+const WhereToWatch = lazy(() => import("../components/WhereToWatch").then((module) => ({ default: module.WhereToWatch })));
 
 interface MovieDetailsPageProps {
   tmdbId: number;
@@ -44,6 +45,17 @@ const detailRetryDelays = [750, 1500];
 
 function errorReason(error: unknown) {
   return error instanceof Error ? error.message : "Unknown title details error.";
+}
+
+function OptionalLoading({ label }: { label: string }) {
+  return <section className="optional-section-fallback"><p>{label} is loading...</p></section>;
+}
+
+function hasCoreTitleData(details: MovieDetails | null | undefined, expectedType: MediaType, expectedTmdbId: number) {
+  const id = Number(details?.tmdbId);
+  const type = details?.mediaType || expectedType;
+  const title = typeof details?.title === "string" ? details.title.trim() : "";
+  return Number.isFinite(id) && id === expectedTmdbId && type === expectedType && title.length > 0;
 }
 
 export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addToPlaylist, updateWatchStatus, onNavigate }: MovieDetailsPageProps) {
@@ -92,6 +104,9 @@ export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addTo
           const details = mediaType === "tv"
             ? await getTvDetails(tmdbId, { bypassCache: attempt > 0 })
             : await getMovieDetails(tmdbId, { bypassCache: attempt > 0 });
+          if (!hasCoreTitleData(details, mediaType, tmdbId)) {
+            throw new Error("Title details response was missing core title data.");
+          }
           if (mounted) {
             setMovie(details);
             setStatus("idle");
@@ -112,6 +127,8 @@ export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addTo
               mediaType,
               retryCount: nextRetryCount,
               reason: errorReason(error),
+              hasCoreData: false,
+              optionalSection: false,
             });
             await wait(detailRetryDelays[attempt]);
           }
@@ -124,6 +141,8 @@ export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addTo
         mediaType,
         retryCount: detailRetryDelays.length,
         reason: errorReason(finalError),
+        hasCoreData: false,
+        optionalSection: false,
       });
       if (mounted) setStatus("error");
     }
@@ -164,8 +183,12 @@ export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addTo
       <PageShell
         eyebrow={mediaType === "tv" ? "TV Show" : "Movie"}
         title="Details unavailable"
-        description="Details unavailable. Try refreshing."
-        action={<button className="primary-button" onClick={() => setLoadVersion((current) => current + 1)} type="button">Try again</button>}
+        description="Details unavailable."
+        action={<button className="primary-button" onClick={() => {
+          setMovie(null);
+          setStatus("loading");
+          setLoadVersion((current) => current + 1);
+        }} type="button">Try Again</button>}
       />
     );
   }
@@ -212,7 +235,11 @@ export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addTo
               </button>
             </div>
           ) : null}
-          <TitleRatingControl mediaType={normalizedMovie.mediaType || mediaType} tmdbId={normalizedMovie.tmdbId} />
+          <OptionalSectionBoundary key={`rating-${detailsKey}`} label="Title rating">
+            <Suspense fallback={<OptionalLoading label="Title rating" />}>
+              <TitleRatingControl mediaType={normalizedMovie.mediaType || mediaType} tmdbId={normalizedMovie.tmdbId} />
+            </Suspense>
+          </OptionalSectionBoundary>
           {normalizedMovie.cast && normalizedMovie.cast.length > 0 ? (
             <section className="cast-section">
               <div className="actor-section-heading">
@@ -236,15 +263,21 @@ export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addTo
             </section>
           ) : null}
           <OptionalSectionBoundary key={`where-${detailsKey}`} label="Where To Watch">
-            <WhereToWatch movie={normalizedMovie} />
+            <Suspense fallback={<OptionalLoading label="Where To Watch" />}>
+              <WhereToWatch movie={normalizedMovie} />
+            </Suspense>
           </OptionalSectionBoundary>
           {mediaType === "tv" ? (
             <OptionalSectionBoundary key={`progress-${detailsKey}`} label="TV progress">
-              <TvProgressTracker show={normalizedMovie} />
+              <Suspense fallback={<OptionalLoading label="TV progress" />}>
+                <TvProgressTracker show={normalizedMovie} />
+              </Suspense>
             </OptionalSectionBoundary>
           ) : null}
           <OptionalSectionBoundary key={`extensions-${detailsKey}`} label="Trailers and extras">
-            <MediaExtensions media={normalizedMovie} />
+            <Suspense fallback={<OptionalLoading label="Trailers and extras" />}>
+              <MediaExtensions media={normalizedMovie} />
+            </Suspense>
           </OptionalSectionBoundary>
         </div>
       </div>
