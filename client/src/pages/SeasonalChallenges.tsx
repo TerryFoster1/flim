@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { getSeasonalChallenges } from "../services/seasonalChallengeService";
+import type { ReactNode } from "react";
+import { getSeasonalChallenges, joinSeasonalChallenge } from "../services/seasonalChallengeService";
 import type { SeasonalChallengeEvent, SeasonalChallengeFeed } from "../types";
 
 interface SeasonalChallengesProps {
@@ -13,7 +14,15 @@ function statusText(event: SeasonalChallengeEvent) {
   return "Event ended";
 }
 
-export function SeasonalChallengeCard({ event, onNavigate }: { event: SeasonalChallengeEvent; onNavigate?: (path: string) => void }) {
+export function SeasonalChallengeCard({
+  children,
+  event,
+  onNavigate,
+}: {
+  children?: ReactNode;
+  event: SeasonalChallengeEvent;
+  onNavigate?: (path: string) => void;
+}) {
   return (
     <article className={`seasonal-challenge-card is-${event.dateStatus} user-${event.userStatus}`}>
       <div className="seasonal-banner-mark" aria-hidden="true">{event.banner || event.badge}</div>
@@ -43,6 +52,7 @@ export function SeasonalChallengeCard({ event, onNavigate }: { event: SeasonalCh
             Find Playlists
           </button>
         ) : null}
+        {children}
       </div>
     </article>
   );
@@ -51,6 +61,8 @@ export function SeasonalChallengeCard({ event, onNavigate }: { event: SeasonalCh
 export function SeasonalChallenges({ onNavigate }: SeasonalChallengesProps) {
   const [feed, setFeed] = useState<SeasonalChallengeFeed | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [joiningId, setJoiningId] = useState<string | null>(null);
+  const [actionError, setActionError] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -78,6 +90,47 @@ export function SeasonalChallenges({ onNavigate }: SeasonalChallengesProps) {
     return <section className="route-page seasonal-challenges-page"><p className="error-message">Seasonal challenges are unavailable right now.</p></section>;
   }
 
+  function replaceEvent(event: SeasonalChallengeEvent) {
+    if (!feed) return;
+    const replace = (events: SeasonalChallengeEvent[]) => events.map((item) => (item.id === event.id ? event : item));
+    setFeed({
+      events: replace(feed.events),
+      sections: {
+        active: replace(feed.sections.active),
+        endingSoon: replace(feed.sections.endingSoon),
+        upcoming: replace(feed.sections.upcoming),
+        recentlyCompleted: replace(feed.sections.recentlyCompleted),
+        featured: feed.sections.featured?.id === event.id ? event : feed.sections.featured,
+      },
+    });
+  }
+
+  async function handleJoin(event: SeasonalChallengeEvent) {
+    setActionError("");
+    setJoiningId(event.id);
+    try {
+      replaceEvent(await joinSeasonalChallenge(event.id));
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : "Unable to join seasonal challenge.");
+    } finally {
+      setJoiningId(null);
+    }
+  }
+
+  const card = (event: SeasonalChallengeEvent) => (
+    <SeasonalChallengeCard event={event} key={event.id} onNavigate={onNavigate}>
+      {event.userStatus === "not_started" && event.dateStatus !== "ended" ? (
+        <button className="primary-button compact" disabled={joiningId === event.id} onClick={() => handleJoin(event)} type="button">
+          {joiningId === event.id ? "Starting..." : "Start Challenge"}
+        </button>
+      ) : event.userStatus === "completed" ? (
+        <span className="challenge-action-status">Badge unlocked</span>
+      ) : (
+        <span className="challenge-action-status">Challenge started</span>
+      )}
+    </SeasonalChallengeCard>
+  );
+
   const activeEvents = feed.sections.active;
   const upcoming = feed.sections.upcoming;
   const completed = feed.sections.recentlyCompleted;
@@ -88,10 +141,11 @@ export function SeasonalChallenges({ onNavigate }: SeasonalChallengesProps) {
         <h1>Seasonal Challenges</h1>
         <p>Limited-time movie goals, exclusive badges, and reasons to come back throughout the year.</p>
       </div>
+      {actionError ? <p className="error-message">{actionError}</p> : null}
 
       {feed.sections.featured ? (
         <section className="seasonal-featured-section">
-          <SeasonalChallengeCard event={feed.sections.featured} onNavigate={onNavigate} />
+          {card(feed.sections.featured)}
         </section>
       ) : null}
 
@@ -101,7 +155,7 @@ export function SeasonalChallenges({ onNavigate }: SeasonalChallengesProps) {
             <h2>Active Challenges</h2>
           </div>
           <div className="seasonal-challenge-grid">
-            {activeEvents.map((event) => <SeasonalChallengeCard event={event} key={event.id} onNavigate={onNavigate} />)}
+            {activeEvents.map(card)}
           </div>
         </section>
       ) : null}
@@ -112,7 +166,7 @@ export function SeasonalChallenges({ onNavigate }: SeasonalChallengesProps) {
             <h2>Coming Soon</h2>
           </div>
           <div className="seasonal-challenge-grid">
-            {upcoming.map((event) => <SeasonalChallengeCard event={event} key={event.id} onNavigate={onNavigate} />)}
+            {upcoming.map(card)}
           </div>
         </section>
       ) : null}

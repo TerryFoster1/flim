@@ -337,8 +337,10 @@ async function mapEvent(sql: any, row: any, userId?: string) {
   const completedRequirements = mappedRequirements.filter((requirement) => requirement.completed).length;
   const totalRequirements = mappedRequirements.length;
   const completionPercent = totalRequirements > 0 ? Math.round((completedRequirements / totalRequirements) * 100) : 0;
-  const userStatus = completionPercent >= 100 ? "completed" : completionPercent > 0 ? "in_progress" : "not_started";
   const dateStatus = todayStatus(row.start_date, row.end_date);
+  const storedUserStatus = row.user_challenge_status || null;
+  const userStatus = completionPercent >= 100 ? "completed" : completionPercent > 0 ? "in_progress" : storedUserStatus || "not_started";
+  const remainingDays = dateStatus === "active" ? daysRemaining(row.end_date) : 0;
 
   if (userId && userStatus !== "not_started") {
     await sql`
@@ -396,6 +398,21 @@ async function mapEvent(sql: any, row: any, userId?: string) {
         on conflict do nothing
       `;
     }
+
+    if (userStatus === "in_progress" && dateStatus === "active" && remainingDays <= 7) {
+      await sql`
+        insert into notifications (recipient_user_id, type, entity_type, entity_id, title, message)
+        values (
+          ${userId},
+          'seasonal_challenge_ending',
+          'seasonal_challenge',
+          ${row.id},
+          'Seasonal challenge ending soon',
+          ${`${row.name} ends in ${remainingDays === 1 ? "1 day" : `${remainingDays} days`}.`}
+        )
+        on conflict do nothing
+      `;
+    }
   }
 
   return {
@@ -416,7 +433,7 @@ async function mapEvent(sql: any, row: any, userId?: string) {
     completedRequirements,
     totalRequirements,
     completionPercent,
-    daysRemaining: dateStatus === "active" ? daysRemaining(row.end_date) : 0,
+    daysRemaining: remainingDays,
     earnedAt: row.completed_at || undefined,
   };
 }
@@ -426,7 +443,8 @@ export async function seasonalChallengeFeed(sql: any, userId?: string) {
   const rows = await sql`
     select
       sce.*,
-      usc.completed_at
+      usc.completed_at,
+      usc.status as user_challenge_status
     from seasonal_challenge_events sce
     left join user_seasonal_challenges usc on usc.event_id = sce.id and usc.user_id = ${userId || null}::uuid
     where sce.status = 'published'
@@ -444,6 +462,62 @@ export async function seasonalChallengeFeed(sql: any, userId?: string) {
       featured: events.find((event) => event.dateStatus === "active") || events[0] || null,
     },
   };
+}
+
+export async function joinSeasonalChallenge(sql: any, userId: string, eventId: string) {
+  await ensureSeasonalChallengeTables(sql);
+  const [event] = await sql`
+    select *
+    from seasonal_challenge_events
+    where id = ${eventId}
+      and status = 'published'
+    limit 1
+  `;
+  if (!event) return null;
+
+  await sql`
+    insert into user_seasonal_challenges (
+      user_id,
+      event_id,
+      status,
+      completed_requirements,
+      total_requirements,
+      completion_percentage,
+      points_awarded,
+      updated_at
+    )
+    values (
+      ${userId},
+      ${eventId},
+      'in_progress',
+      0,
+      ${normalizeRequirements(event.requirements).length},
+      0,
+      0,
+      now()
+    )
+    on conflict (user_id, event_id) do update set
+      status = case
+        when user_seasonal_challenges.status = 'completed' then user_seasonal_challenges.status
+        else 'in_progress'
+      end,
+      updated_at = now()
+  `;
+
+  await sql`
+    insert into notifications (recipient_user_id, type, entity_type, entity_id, title, message)
+    values (
+      ${userId},
+      'seasonal_challenge_started',
+      'seasonal_challenge',
+      ${eventId},
+      'Seasonal challenge started',
+      ${`You joined ${event.name}.`}
+    )
+    on conflict do nothing
+  `;
+
+  return mapEvent(sql, event, userId);
 }
 
 export async function seasonalChallengeSummaryForUser(sql: any, userId: string) {

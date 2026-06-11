@@ -5067,6 +5067,21 @@ textarea { min-height: 42px; resize: vertical; }
   color: var(--muted);
   line-height: 1.45;
 }
+.seasonal-challenge-copy .primary-button.compact {
+  width: fit-content;
+  min-height: 40px;
+  padding: 0 18px;
+}
+.challenge-action-status {
+  width: fit-content;
+  border: 1px solid rgba(62,226,160,.32);
+  border-radius: 999px;
+  padding: 9px 13px;
+  color: rgba(236,255,247,.92);
+  font-size: .86rem;
+  font-weight: 900;
+  background: rgba(62,226,160,.12);
+}
 .seasonal-admin-card {
   grid-column: 1 / -1;
 }

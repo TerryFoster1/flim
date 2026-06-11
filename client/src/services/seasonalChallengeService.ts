@@ -1,4 +1,4 @@
-import type { SeasonalChallengeFeed } from "../types";
+import type { SeasonalChallengeEvent, SeasonalChallengeFeed } from "../types";
 
 async function seasonalRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
   const response = await fetch(path, {
@@ -21,4 +21,11 @@ async function seasonalRequest<T>(path: string, options: RequestInit = {}): Prom
 
 export function getSeasonalChallenges() {
   return seasonalRequest<SeasonalChallengeFeed>("/api/seasonal-challenges");
+}
+
+export function joinSeasonalChallenge(eventId: string) {
+  return seasonalRequest<{ event: SeasonalChallengeEvent }>("/api/seasonal-challenges", {
+    method: "POST",
+    body: JSON.stringify({ eventId }),
+  }).then((result) => result.event);
 }
