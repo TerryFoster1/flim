@@ -888,6 +888,7 @@ create table if not exists title_easter_eggs (
   prompt text not null,
   hint text,
   answer text not null,
+  explanation text not null default '',
   difficulty text not null default 'easy',
   spoiler_level text not null default 'minor',
   source_urls jsonb not null default '[]'::jsonb,
@@ -898,6 +899,18 @@ create table if not exists title_easter_eggs (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table title_easter_eggs
+  add column if not exists explanation text not null default '';
+
+update title_easter_eggs
+set status = 'hidden',
+  updated_at = now()
+where status in ('approved', 'auto_generated')
+  and (
+    prompt like 'Watch for one piece of technology%'
+    or prompt like 'Look for a repeated object%'
+  );
 
 create unique index if not exists title_easter_eggs_media_source_prompt_unique
   on title_easter_eggs (media_type, tmdb_id, source_hash, prompt);
@@ -940,9 +953,42 @@ create table if not exists user_easter_egg_progress (
   tmdb_id integer not null,
   media_type text not null
     check (media_type in ('movie', 'tv')),
-  completed_at timestamptz not null default now(),
+  status text not null default 'started'
+    check (status in ('started', 'hint_used', 'answered', 'completed')),
+  answer text,
+  is_correct boolean,
+  hint_used boolean not null default false,
+  started_at timestamptz not null default now(),
+  completed_at timestamptz,
   created_at timestamptz not null default now()
 );
+
+alter table user_easter_egg_progress
+  add column if not exists status text not null default 'completed';
+
+alter table user_easter_egg_progress
+  add column if not exists answer text;
+
+alter table user_easter_egg_progress
+  add column if not exists is_correct boolean;
+
+alter table user_easter_egg_progress
+  add column if not exists hint_used boolean not null default false;
+
+alter table user_easter_egg_progress
+  add column if not exists started_at timestamptz not null default now();
+
+alter table user_easter_egg_progress
+  alter column completed_at drop not null;
+
+update user_easter_egg_progress
+set
+  status = 'completed',
+  is_correct = true,
+  started_at = coalesce(started_at, created_at),
+  completed_at = coalesce(completed_at, created_at)
+where completed_at is not null
+  and status = 'started';
 
 create unique index if not exists user_easter_egg_progress_user_hunt_unique
   on user_easter_egg_progress (user_id, easter_egg_id);
@@ -1037,6 +1083,8 @@ values
   ('trivia_master_gold', 'Trivia Master Gold', 'Answer 100 trivia questions.', 'trophy', 'trivia', 'epic', 'gold', 50, 100, '{"metric":"trivia_completed","threshold":100}'::jsonb, '{}'::jsonb),
   ('movie_detective', 'Movie Detective', 'Complete 10 trivia questions.', 'detective', 'trivia', 'common', 'bronze', 10, 10, '{"metric":"trivia_completed","threshold":10}'::jsonb, '{}'::jsonb),
   ('easter_egg_hunter', 'Easter Egg Hunter', 'Complete 5 Easter Egg Hunts.', 'egg', 'easter_eggs', 'common', 'bronze', 10, 5, '{"metric":"easter_eggs_completed","threshold":5}'::jsonb, '{}'::jsonb),
+  ('easter_egg_hunter_silver', 'Easter Egg Hunter Silver', 'Complete 25 Easter Egg Hunts.', 'egg', 'easter_eggs', 'rare', 'silver', 25, 25, '{"metric":"easter_eggs_completed","threshold":25}'::jsonb, '{}'::jsonb),
+  ('easter_egg_hunter_gold', 'Easter Egg Hunter Gold', 'Complete 100 Easter Egg Hunts.', 'target', 'easter_eggs', 'epic', 'gold', 50, 100, '{"metric":"easter_eggs_completed","threshold":100}'::jsonb, '{}'::jsonb),
   ('master_hunter_gold', 'Master Hunter Gold', 'Complete 25 Easter Egg Hunts.', 'target', 'easter_eggs', 'epic', 'gold', 50, 25, '{"metric":"easter_eggs_completed","threshold":25}'::jsonb, '{}'::jsonb),
   ('sci_fi_expert_bronze', 'Sci-Fi Expert Bronze', 'Complete companion progress in 3 sci-fi titles.', 'rocket', 'collections', 'common', 'bronze', 10, 3, '{"metric":"genre_titles_completed","genre":"Science Fiction","threshold":3}'::jsonb, '{}'::jsonb),
   ('horror_expert_bronze', 'Horror Expert Bronze', 'Complete companion progress in 3 horror titles.', 'mask', 'collections', 'common', 'bronze', 10, 3, '{"metric":"genre_titles_completed","genre":"Horror","threshold":3}'::jsonb, '{}'::jsonb),

@@ -21,6 +21,7 @@ interface EasterEggDraft {
   prompt: string;
   hint: string;
   answer: string;
+  explanation: string;
   difficulty: "easy" | "medium" | "hard";
   spoilerLevel: "none" | "minor" | "major";
   confidence: number;
@@ -168,16 +169,15 @@ function generateTrivia(details: any): TriviaDraft[] {
 function generateEasterEggHunts(details: any): EasterEggDraft[] {
   const mediaType = normalizeMediaType(details.mediaType);
   const tmdbId = Number(details.tmdbId);
-  const title = details.title || "this title";
-  const genres = Array.isArray(details.genres) ? details.genres.filter(Boolean) : [];
   const hunts: EasterEggDraft[] = [];
 
   if (mediaType === "movie" && tmdbId === 105) {
     hunts.push({
-      title: "Twin Pines to Lone Pine",
+      title: "Twin Pines / Lone Pine",
       prompt: "Watch for the mall sign near the beginning and again after Marty returns to 1985.",
       hint: "Pay attention to the name of the farm Marty drives through in 1955.",
-      answer: "Marty runs over one of Old Man Peabody's twin pine trees, changing Twin Pines Mall into Lone Pine Mall.",
+      answer: "Twin Pines Mall became Lone Pine Mall.",
+      explanation: "Marty runs over one of Old Man Peabody's twin pine trees in 1955, changing the mall name in 1985.",
       difficulty: "medium",
       spoilerLevel: "minor",
       confidence: 0.92,
@@ -189,6 +189,7 @@ function generateEasterEggHunts(details: any): EasterEggDraft[] {
       prompt: "Notice how the town clock becomes important before the climax explains why.",
       hint: "Look for the flyer about saving the clock tower.",
       answer: "The clock tower flyer gives Marty the exact lightning strike time he needs to get back to 1985.",
+      explanation: "The flyer is a small detail that becomes the key to Doc and Marty's final plan.",
       difficulty: "easy",
       spoilerLevel: "minor",
       confidence: 0.88,
@@ -197,31 +198,18 @@ function generateEasterEggHunts(details: any): EasterEggDraft[] {
     });
   }
 
-  if (genres.includes("Science Fiction") || genres.includes("Sci-Fi")) {
+  if (mediaType === "movie" && tmdbId === 329) {
     hunts.push({
-      title: "Future Tech Check",
-      prompt: `Watch for one piece of technology or science-fiction logic that changes how ${title}'s world works.`,
-      hint: "Look for the first scene where the rules of the world feel different from real life.",
-      answer: `The hunt is complete when you can name the technology or rule and explain how it changes the story.`,
-      difficulty: "easy",
-      spoilerLevel: "none",
-      confidence: 0.76,
-      sourceLabels: SOURCE_LABELS,
-      sourceUrls: SOURCE_URLS,
-    });
-  }
-
-  if (genres.includes("Animation") || genres.includes("Family")) {
-    hunts.push({
-      title: "Visual Callback",
-      prompt: `Look for a repeated object, phrase, or visual gag in ${title}.`,
-      hint: "Animated and family titles often use repeated details to reward close watching.",
-      answer: "The hunt is complete when you can identify the repeated detail and where it returns.",
-      difficulty: "easy",
-      spoilerLevel: "none",
-      confidence: 0.74,
-      sourceLabels: SOURCE_LABELS,
-      sourceUrls: SOURCE_URLS,
+      title: "The Barbasol Can",
+      prompt: "Watch for the fake shaving cream can that Dennis Nedry carries during his escape.",
+      hint: "It is designed to hide dinosaur embryos.",
+      answer: "The Barbasol can is used to smuggle dinosaur embryos.",
+      explanation: "The prop is central to Nedry's plan and becomes easy to miss once the storm and escape sequence take over.",
+      difficulty: "medium",
+      spoilerLevel: "minor",
+      confidence: 0.9,
+      sourceLabels: CURATED_SOURCE_LABELS,
+      sourceUrls: CURATED_SOURCE_URLS,
     });
   }
 
@@ -251,6 +239,7 @@ function mapTrivia(row: any, completedIds = new Set<string>()) {
 }
 
 function mapEasterEgg(row: any, completedIds = new Set<string>()) {
+  const userStatus = row.user_status || (completedIds.has(row.id) ? "completed" : "not_started");
   return {
     id: row.id,
     tmdbId: row.tmdb_id,
@@ -259,6 +248,7 @@ function mapEasterEgg(row: any, completedIds = new Set<string>()) {
     prompt: row.prompt,
     hint: row.hint || "",
     answer: row.answer,
+    explanation: row.explanation || "",
     difficulty: row.difficulty || "easy",
     spoilerLevel: row.spoiler_level || "minor",
     sourceUrls: Array.isArray(row.source_urls) ? row.source_urls : [],
@@ -266,7 +256,13 @@ function mapEasterEgg(row: any, completedIds = new Set<string>()) {
     confidence: Number(row.confidence || 0),
     status: row.status,
     reportCount: Number(row.report_count || 0),
-    completed: completedIds.has(row.id),
+    userStatus,
+    submittedAnswer: row.submitted_answer || "",
+    isCorrect: row.is_correct === null || row.is_correct === undefined ? undefined : Boolean(row.is_correct),
+    hintUsed: Boolean(row.hint_used),
+    startedAt: row.started_at || undefined,
+    completedAt: row.completed_at || undefined,
+    completed: userStatus === "completed",
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -297,7 +293,28 @@ async function readCompletedIds(sql: any, userId: string | undefined, table: "us
 }
 
 async function readCachedEasterEggs(sql: any, tmdbId: number, mediaType: MediaType, userId?: string) {
-  const completedIds = await readCompletedIds(sql, userId, "user_easter_egg_progress", "easter_egg_id");
+  if (userId) {
+    const rows = await sql`
+      select
+        tee.*,
+        coalesce(uep.status, 'not_started') as user_status,
+        uep.answer as submitted_answer,
+        uep.is_correct,
+        coalesce(uep.hint_used, false) as hint_used,
+        uep.started_at,
+        uep.completed_at
+      from title_easter_eggs tee
+      left join user_easter_egg_progress uep on uep.easter_egg_id = tee.id and uep.user_id = ${userId}
+      where tee.tmdb_id = ${tmdbId}
+        and tee.media_type = ${mediaType}
+        and tee.status in ('approved', 'auto_generated')
+        and tee.report_count < ${REPORT_THRESHOLD}
+      order by tee.confidence desc, tee.created_at asc
+      limit 8
+    `;
+    return rows.map((row: any) => mapEasterEgg(row));
+  }
+
   const rows = await sql`
     select *
     from title_easter_eggs
@@ -308,7 +325,7 @@ async function readCachedEasterEggs(sql: any, tmdbId: number, mediaType: MediaTy
     order by confidence desc, created_at asc
     limit 8
   `;
-  return rows.map((row: any) => mapEasterEgg(row, completedIds));
+  return rows.map((row: any) => mapEasterEgg(row));
 }
 
 async function loadTitleDetails(sql: any, tmdbId: number, mediaType: MediaType) {
@@ -420,7 +437,7 @@ async function generateAndStoreEasterEggs(sql: any, tmdbId: number, mediaType: M
     title: titleDetails.title,
     genres: titleDetails.genres || [],
     releaseYear: titleDetails.releaseYear || titleDetails.firstAirYear,
-    curatedVersion: mediaType === "movie" && tmdbId === 105 ? "bttf-v1" : "metadata-v1",
+    curatedVersion: mediaType === "movie" && tmdbId === 105 ? "bttf-v1" : mediaType === "movie" && tmdbId === 329 ? "jurassic-park-v1" : "no-hunts-v1",
   });
   const drafts = generateEasterEggHunts(titleDetails);
 
@@ -434,6 +451,7 @@ async function generateAndStoreEasterEggs(sql: any, tmdbId: number, mediaType: M
         prompt,
         hint,
         answer,
+        explanation,
         difficulty,
         spoiler_level,
         source_urls,
@@ -450,6 +468,7 @@ async function generateAndStoreEasterEggs(sql: any, tmdbId: number, mediaType: M
         ${draft.prompt},
         ${draft.hint},
         ${draft.answer},
+        ${draft.explanation},
         ${draft.difficulty},
         ${draft.spoilerLevel},
         ${JSON.stringify(draft.sourceUrls)}::jsonb,
@@ -463,6 +482,7 @@ async function generateAndStoreEasterEggs(sql: any, tmdbId: number, mediaType: M
         title = excluded.title,
         hint = excluded.hint,
         answer = excluded.answer,
+        explanation = excluded.explanation,
         difficulty = excluded.difficulty,
         spoiler_level = excluded.spoiler_level,
         source_urls = excluded.source_urls,
@@ -484,6 +504,44 @@ function progressSummary(questionCount: number, completedTriviaCount: number, hu
     easterEggsCompleted: completedHuntCount,
     easterEggsTotal: huntCount,
     completionPercent: total > 0 ? Math.round((completed / total) * 100) : 0,
+  };
+}
+
+function normalizeAnswer(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function isHuntAnswerCorrect(expected: string, submitted: string) {
+  const expectedNormalized = normalizeAnswer(expected);
+  const submittedNormalized = normalizeAnswer(submitted);
+  if (!submittedNormalized) return false;
+  if (expectedNormalized === submittedNormalized) return true;
+  if (expectedNormalized.includes(submittedNormalized) && submittedNormalized.length >= 8) return true;
+  if (submittedNormalized.includes(expectedNormalized) && expectedNormalized.length >= 8) return true;
+  return expectedNormalized
+    .split(" ")
+    .filter((word) => word.length >= 4)
+    .some((word) => submittedNormalized.includes(word));
+}
+
+async function readHuntResponse(sql: any, userId: string, tmdbId: number, mediaType: MediaType) {
+  const [questions, hunts] = await Promise.all([
+    readCachedTrivia(sql, tmdbId, mediaType, userId),
+    readCachedEasterEggs(sql, tmdbId, mediaType, userId),
+  ]);
+  const unlockedAchievements = await evaluateAchievements(sql, userId);
+  const achievementState = await readAchievementState(sql, userId);
+  const completedTriviaCount = questions.filter((question: any) => question.completed).length;
+  const completedHuntCount = hunts.filter((hunt: any) => hunt.completed).length;
+  return {
+    questions,
+    hunts,
+    progress: progressSummary(questions.length, completedTriviaCount, hunts.length, completedHuntCount),
+    achievements: achievementState.achievements,
+    unlockedAchievements,
   };
 }
 
@@ -591,6 +649,89 @@ async function handleReport(request: any, response: any) {
   return sendJson(response, 200, { ok: true, reportCount: Number(rows[0]?.report_count || 0), status: rows[0]?.status || "unknown" });
 }
 
+async function handleHuntAction(request: any, response: any) {
+  const body = await readBody(request);
+  const huntId = String(body.huntId || body.easterEggId || "").trim();
+  const action = String(body.action || "").trim();
+  const submittedAnswer = String(body.answer || "").trim();
+  const allowedActions = new Set(["start", "hint", "answer", "complete"]);
+  if (!huntId || !allowedActions.has(action)) return sendJson(response, 400, { error: "A valid hunt action is required." });
+
+  const sql = db();
+  await ensureTriviaTables(sql);
+  const user = await getCurrentUser(sql, request);
+  if (!user) return sendJson(response, 401, { error: "Sign in to save Easter Egg Hunt progress." });
+
+  const rows = await sql`
+    select id, tmdb_id, media_type, answer
+    from title_easter_eggs
+    where id = ${huntId}
+      and status in ('approved', 'auto_generated')
+      and report_count < ${REPORT_THRESHOLD}
+    limit 1
+  `;
+  const hunt = rows[0];
+  if (!hunt) return sendJson(response, 404, { error: "Easter Egg Hunt not found." });
+
+  const mediaType = normalizeMediaType(hunt.media_type);
+  const answerIsCorrect = action === "answer" ? isHuntAnswerCorrect(hunt.answer || "", submittedAnswer) : action === "complete" ? true : null;
+  const nextStatus = action === "complete" || answerIsCorrect ? "completed" : action === "answer" ? "answered" : action === "hint" ? "hint_used" : "started";
+  const shouldComplete = nextStatus === "completed";
+
+  await sql`
+    insert into user_easter_egg_progress (
+      user_id,
+      easter_egg_id,
+      tmdb_id,
+      media_type,
+      status,
+      answer,
+      is_correct,
+      hint_used,
+      started_at,
+      completed_at
+    )
+    values (
+      ${user.id},
+      ${hunt.id},
+      ${hunt.tmdb_id},
+      ${hunt.media_type},
+      ${nextStatus},
+      ${submittedAnswer || null},
+      ${answerIsCorrect},
+      ${action === "hint"},
+      now(),
+      case when ${shouldComplete} then now() else null end
+    )
+    on conflict (user_id, easter_egg_id) do update set
+      status = case
+        when user_easter_egg_progress.status = 'completed' then 'completed'
+        else excluded.status
+      end,
+      answer = coalesce(excluded.answer, user_easter_egg_progress.answer),
+      is_correct = coalesce(excluded.is_correct, user_easter_egg_progress.is_correct),
+      hint_used = user_easter_egg_progress.hint_used or excluded.hint_used,
+      completed_at = case
+        when user_easter_egg_progress.completed_at is not null then user_easter_egg_progress.completed_at
+        when excluded.status = 'completed' then now()
+        else null
+      end
+  `;
+
+  const payload = await readHuntResponse(sql, user.id, Number(hunt.tmdb_id), mediaType);
+  return sendJson(response, 200, {
+    ok: true,
+    huntId,
+    action,
+    isCorrect: answerIsCorrect,
+    progress: payload.progress,
+    achievements: payload.achievements,
+    unlockedAchievements: payload.unlockedAchievements,
+    easterEggs: payload.hunts,
+    questions: payload.questions,
+  });
+}
+
 async function handleComplete(request: any, response: any) {
   const body = await readBody(request);
   const itemType = String(body.itemType || "");
@@ -630,9 +771,12 @@ async function handleComplete(request: any, response: any) {
     item = rows[0];
     if (!item) return sendJson(response, 404, { error: "Easter Egg Hunt not found." });
     await sql`
-      insert into user_easter_egg_progress (user_id, easter_egg_id, tmdb_id, media_type, completed_at)
-      values (${user.id}, ${item.id}, ${item.tmdb_id}, ${item.media_type}, now())
-      on conflict (user_id, easter_egg_id) do update set completed_at = excluded.completed_at
+      insert into user_easter_egg_progress (user_id, easter_egg_id, tmdb_id, media_type, status, is_correct, started_at, completed_at)
+      values (${user.id}, ${item.id}, ${item.tmdb_id}, ${item.media_type}, 'completed', true, now(), now())
+      on conflict (user_id, easter_egg_id) do update set
+        status = 'completed',
+        is_correct = true,
+        completed_at = coalesce(user_easter_egg_progress.completed_at, now())
     `;
   }
 
@@ -660,6 +804,7 @@ export default async function handler(request: any, response: any) {
   try {
     const path = triviaPath(request);
     if (request.method === "GET") return handleGet(request, response);
+    if (request.method === "POST" && path === "hunt") return handleHuntAction(request, response);
     if (request.method === "POST" && path === "complete") return handleComplete(request, response);
     if (request.method === "POST" && path === "report") return handleReport(request, response);
     return sendJson(response, 405, { error: "Method not allowed." });

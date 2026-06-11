@@ -1,4 +1,4 @@
-import type { CompanionAchievement, CompanionProgress, MediaType, TriviaFeed, TriviaReportReason } from "../types";
+import type { CompanionAchievement, CompanionProgress, EasterEggHunt, MediaType, TriviaFeed, TriviaQuestion, TriviaReportReason } from "../types";
 
 async function parseJson<T>(response: Response): Promise<T> {
   const payload = await response.json().catch(() => ({}));
@@ -49,5 +49,24 @@ export async function completeCompanionItem(itemType: "trivia" | "easter_egg", i
     progress: CompanionProgress;
     achievements: CompanionAchievement[];
     unlockedAchievements: CompanionAchievement[];
+  }>(response);
+}
+
+export async function updateEasterEggHunt(input: { huntId: string; action: "start" | "hint" | "answer" | "complete"; answer?: string }) {
+  const response = await fetch("/api/trivia/hunt", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  return parseJson<{
+    ok: boolean;
+    huntId: string;
+    action: "start" | "hint" | "answer" | "complete";
+    isCorrect: boolean | null;
+    progress: CompanionProgress;
+    achievements: CompanionAchievement[];
+    unlockedAchievements: CompanionAchievement[];
+    easterEggs: EasterEggHunt[];
+    questions: TriviaQuestion[];
   }>(response);
 }

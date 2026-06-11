@@ -567,6 +567,7 @@ export interface EasterEggHunt {
   prompt: string;
   hint: string;
   answer: string;
+  explanation: string;
   difficulty: "easy" | "medium" | "hard";
   spoilerLevel: "none" | "minor" | "major";
   sourceUrls: string[];
@@ -574,6 +575,12 @@ export interface EasterEggHunt {
   confidence: number;
   status: string;
   reportCount: number;
+  userStatus: "not_started" | "started" | "hint_used" | "answered" | "completed";
+  submittedAnswer?: string;
+  isCorrect?: boolean;
+  hintUsed?: boolean;
+  startedAt?: string;
+  completedAt?: string;
   completed: boolean;
   createdAt: string;
   updatedAt: string;

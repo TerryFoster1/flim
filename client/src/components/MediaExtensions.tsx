@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { getMediaExtensions } from "../services/mediaExtensionService";
-import { completeCompanionItem, getTitleTrivia, reportEasterEggHunt, reportTriviaQuestion } from "../services/triviaService";
+import { completeCompanionItem, getTitleTrivia, reportEasterEggHunt, reportTriviaQuestion, updateEasterEggHunt } from "../services/triviaService";
 import type { EasterEggHunt, MediaType, TriviaFeed, TriviaQuestion, TriviaReportReason } from "../types";
 
 interface MediaExtensionsProps {
@@ -25,6 +25,8 @@ export function MediaExtensions({ media }: MediaExtensionsProps) {
   const [reportedQuestions, setReportedQuestions] = useState<Record<string, string>>({});
   const [completionStatus, setCompletionStatus] = useState<Record<string, string>>({});
   const [revealedHunts, setRevealedHunts] = useState<Record<string, boolean>>({});
+  const [huntAnswers, setHuntAnswers] = useState<Record<string, string>>({});
+  const [activeCompanionMode, setActiveCompanionMode] = useState<"trivia" | "hunts">("trivia");
 
   async function openTrivia() {
     setTriviaOpen((current) => !current);
@@ -76,6 +78,29 @@ export function MediaExtensions({ media }: MediaExtensionsProps) {
       setCompletionStatus((current) => ({ ...current, [itemId]: result.unlockedAchievements.length > 0 ? `Unlocked: ${result.unlockedAchievements[0].name}` : "Completed." }));
     } catch (error) {
       setCompletionStatus((current) => ({ ...current, [itemId]: error instanceof Error && error.message.includes("Sign in") ? "Sign in to save progress." : "Could not save progress." }));
+    }
+  }
+
+  async function updateHunt(hunt: EasterEggHunt, action: "start" | "hint" | "answer" | "complete") {
+    setCompletionStatus((current) => ({ ...current, [hunt.id]: action === "answer" ? "Checking answer..." : "Saving..." }));
+    if (action === "hint") setRevealedHunts((current) => ({ ...current, [hunt.id]: true }));
+    try {
+      const result = await updateEasterEggHunt({ huntId: hunt.id, action, answer: huntAnswers[hunt.id] || "" });
+      setTriviaFeed((current) => current ? {
+        ...current,
+        questions: result.questions,
+        easterEggs: result.easterEggs,
+        progress: result.progress,
+        achievements: result.achievements,
+        unlockedAchievements: result.unlockedAchievements,
+      } : current);
+      if (action === "answer") {
+        setCompletionStatus((current) => ({ ...current, [hunt.id]: result.isCorrect ? "Correct. Hunt completed." : "Not quite. Try again or mark found after watching." }));
+      } else {
+        setCompletionStatus((current) => ({ ...current, [hunt.id]: result.unlockedAchievements.length > 0 ? `Unlocked: ${result.unlockedAchievements[0].name}` : action === "complete" ? "Completed." : "Saved." }));
+      }
+    } catch (error) {
+      setCompletionStatus((current) => ({ ...current, [hunt.id]: error instanceof Error && error.message.includes("Sign in") ? "Sign in to save hunt progress." : "Could not save progress." }));
     }
   }
 
@@ -156,7 +181,17 @@ export function MediaExtensions({ media }: MediaExtensionsProps) {
               <small>{triviaFeed.unlockedAchievements[0].points || 0} points</small>
             </div>
           ) : null}
-          {triviaFeed?.questions.map((question) => {
+          {triviaFeed ? (
+            <div className="companion-mode-tabs" role="tablist" aria-label="Trivia and Easter Egg Hunts">
+              <button className={activeCompanionMode === "trivia" ? "is-active" : ""} onClick={() => setActiveCompanionMode("trivia")} type="button">
+                Trivia
+              </button>
+              <button className={activeCompanionMode === "hunts" ? "is-active" : ""} onClick={() => setActiveCompanionMode("hunts")} type="button">
+                Easter Egg Hunts
+              </button>
+            </div>
+          ) : null}
+          {activeCompanionMode === "trivia" ? triviaFeed?.questions.map((question) => {
             const selected = selectedAnswers[question.id];
             const answered = Boolean(selected);
             const correct = selected === question.answer;
@@ -217,8 +252,11 @@ export function MediaExtensions({ media }: MediaExtensionsProps) {
                 {reportedQuestions[question.id] ? <p className="trivia-report-status">{reportedQuestions[question.id]}</p> : null}
               </article>
             );
-          })}
-          {(triviaFeed?.easterEggs || []).length > 0 ? (
+          }) : null}
+          {activeCompanionMode === "hunts" && triviaFeed && (triviaFeed.easterEggs || []).length === 0 ? (
+            <p className="empty-state">No Easter Egg Hunts yet for this title.</p>
+          ) : null}
+          {activeCompanionMode === "hunts" && (triviaFeed?.easterEggs || []).length > 0 ? (
             <div className="easter-egg-section">
               <div className="trivia-question-heading">
                 <h3>Easter Egg Hunts</h3>
@@ -232,14 +270,31 @@ export function MediaExtensions({ media }: MediaExtensionsProps) {
                       <h3>{hunt.title}</h3>
                       <span>{hunt.difficulty}</span>
                     </div>
+                    {hunt.spoilerLevel !== "none" ? <p className="hunt-spoiler-note">Spoiler level: {hunt.spoilerLevel}</p> : null}
                     <p>{hunt.prompt}</p>
-                    <p className="hunt-hint">Hint: {hunt.hint}</p>
-                    {revealed ? <p className="trivia-feedback is-correct">Answer: {hunt.answer}</p> : null}
+                    {hunt.userStatus === "not_started" ? (
+                      <button className="secondary-button" onClick={() => void updateHunt(hunt, "start")} type="button">Start Hunt</button>
+                    ) : null}
+                    {revealed || hunt.hintUsed ? <p className="hunt-hint">Hint: {hunt.hint}</p> : null}
+                    {hunt.completed || revealed ? (
+                      <p className="trivia-feedback is-correct">Answer: {hunt.answer}. {hunt.explanation}</p>
+                    ) : null}
+                    {!hunt.completed ? (
+                      <div className="hunt-answer-row">
+                        <input
+                          aria-label={`Answer for ${hunt.title}`}
+                          onChange={(event) => setHuntAnswers((current) => ({ ...current, [hunt.id]: event.target.value }))}
+                          placeholder="Type what you found"
+                          value={huntAnswers[hunt.id] || hunt.submittedAnswer || ""}
+                        />
+                        <button className="primary-button" onClick={() => void updateHunt(hunt, "answer")} type="button">Submit</button>
+                      </div>
+                    ) : null}
                     <div className="hunt-action-row">
-                      <button className="secondary-button" onClick={() => setRevealedHunts((current) => ({ ...current, [hunt.id]: !current[hunt.id] }))} type="button">
-                        {revealed ? "Hide Answer" : "Reveal Answer"}
+                      <button className="secondary-button" onClick={() => void updateHunt(hunt, "hint")} type="button">
+                        {revealed || hunt.hintUsed ? "Hint Shown" : "Reveal Hint"}
                       </button>
-                      <button className={hunt.completed ? "watched-toggle is-watched" : "watched-toggle"} disabled={hunt.completed} onClick={() => void completeItem("easter_egg", hunt.id)} type="button">
+                      <button className={hunt.completed ? "watched-toggle is-watched" : "watched-toggle"} disabled={hunt.completed} onClick={() => void updateHunt(hunt, "complete")} type="button">
                         {hunt.completed ? "Found" : "Mark Found"}
                       </button>
                     </div>

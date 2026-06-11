@@ -55,7 +55,7 @@ async function companionTitleComplete(sql: any, userId: string, mediaType: Media
       (select count(*)::int from title_trivia where media_type = ${mediaType} and tmdb_id = ${tmdbId} and status in ('approved', 'auto_generated') and report_count < 3) as trivia_total,
       (select count(*)::int from user_trivia_progress utp inner join title_trivia tt on tt.id = utp.trivia_id where utp.user_id = ${userId} and tt.media_type = ${mediaType} and tt.tmdb_id = ${tmdbId}) as trivia_done,
       (select count(*)::int from title_easter_eggs where media_type = ${mediaType} and tmdb_id = ${tmdbId} and status in ('approved', 'auto_generated') and report_count < 3) as hunt_total,
-      (select count(*)::int from user_easter_egg_progress uep inner join title_easter_eggs tee on tee.id = uep.easter_egg_id where uep.user_id = ${userId} and tee.media_type = ${mediaType} and tee.tmdb_id = ${tmdbId}) as hunt_done
+      (select count(*)::int from user_easter_egg_progress uep inner join title_easter_eggs tee on tee.id = uep.easter_egg_id where uep.user_id = ${userId} and uep.status = 'completed' and tee.media_type = ${mediaType} and tee.tmdb_id = ${tmdbId}) as hunt_done
   `;
   const total = Number(row?.trivia_total || 0) + Number(row?.hunt_total || 0);
   const done = Number(row?.trivia_done || 0) + Number(row?.hunt_done || 0);
@@ -103,7 +103,7 @@ async function metricProgress(sql: any, userId: string, requirement: Achievement
     return safeCount(sql, sql`select count(*)::int as count from user_trivia_progress where user_id = ${userId}`);
   }
   if (metric === "easter_eggs_completed") {
-    return safeCount(sql, sql`select count(*)::int as count from user_easter_egg_progress where user_id = ${userId}`);
+    return safeCount(sql, sql`select count(*)::int as count from user_easter_egg_progress where user_id = ${userId} and status = 'completed'`);
   }
   if (metric === "title_companion_complete" && requirement.mediaType && requirement.tmdbId) {
     return companionTitleComplete(sql, userId, requirement.mediaType, Number(requirement.tmdbId));
