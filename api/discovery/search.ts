@@ -74,6 +74,21 @@ function searchPatterns(query: string) {
   return expandedSearchTerms(query).map((term) => `%${term}%`);
 }
 
+function collectionSearchTerms(query: string) {
+  const normalized = normalizeSearchText(query);
+  const terms = new Set([normalized]);
+  if (normalized.includes("sci fi") || normalized.includes("scifi")) {
+    terms.add("sci-fi");
+    terms.add("science fiction");
+  }
+  if (normalized.includes("science fiction")) {
+    terms.add("sci-fi");
+    terms.add("sci fi");
+  }
+  if (normalized.includes("marvel")) terms.add("mcu");
+  return [...terms].filter(Boolean);
+}
+
 function mergeTitleResults(primary: any[], secondary: any[]) {
   const seen = new Set<string>();
   const merged: any[] = [];
@@ -293,7 +308,7 @@ async function searchProfiles(sql: any, query: string) {
 }
 
 async function searchCollections(sql: any, query: string) {
-  const terms = expandedSearchTerms(query);
+  const terms = collectionSearchTerms(query);
   const patterns = terms.map((term) => `%${term}%`);
   const rows = await safeRows(sql`
     select
