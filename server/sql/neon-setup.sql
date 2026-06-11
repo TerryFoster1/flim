@@ -265,7 +265,7 @@ create table if not exists challenges (
   title text not null,
   description text not null default '',
   challenge_type text not null,
-  target_type text not null check (target_type in ('media_item', 'playlist', 'genre', 'director_collection', 'global')),
+  target_type text not null check (target_type in ('media_item', 'playlist', 'genre', 'franchise', 'director_collection', 'global')),
   target_id text,
   genre text,
   status text not null default 'draft' check (status in ('draft', 'scheduled', 'active', 'paused', 'ended', 'archived')),
@@ -289,7 +289,7 @@ create index if not exists challenges_type_idx
 create table if not exists challenge_targets (
   id uuid primary key default gen_random_uuid(),
   challenge_id uuid not null references challenges(id) on delete cascade,
-  target_type text not null check (target_type in ('media_item', 'playlist', 'genre', 'director_collection', 'global')),
+  target_type text not null check (target_type in ('media_item', 'playlist', 'genre', 'franchise', 'director_collection', 'global')),
   target_id text,
   media_item_id uuid references media_items(id) on delete cascade,
   playlist_id uuid references playlists(id) on delete cascade,
@@ -368,7 +368,7 @@ create table if not exists challenge_promotions (
   id uuid primary key default gen_random_uuid(),
   challenge_id uuid not null references challenges(id) on delete cascade,
   placement text not null check (placement in ('title_detail_card', 'games_hub_hero', 'playlist_detail_card', 'director_cut_card')),
-  target_type text check (target_type in ('media_item', 'playlist', 'genre', 'director_collection', 'global')),
+  target_type text check (target_type in ('media_item', 'playlist', 'genre', 'franchise', 'director_collection', 'global')),
   target_id text,
   starts_at timestamptz,
   ends_at timestamptz,
@@ -382,6 +382,119 @@ create index if not exists challenge_promotions_placement_status_idx
 
 create index if not exists challenge_promotions_target_idx
   on challenge_promotions (target_type, target_id);
+
+do $$
+begin
+  if exists (select 1 from pg_constraint where conname = 'challenges_target_type_check') then
+    alter table challenges drop constraint challenges_target_type_check;
+  end if;
+  alter table challenges
+    add constraint challenges_target_type_check
+    check (target_type in ('media_item', 'playlist', 'genre', 'franchise', 'director_collection', 'global'));
+
+  if exists (select 1 from pg_constraint where conname = 'challenge_targets_target_type_check') then
+    alter table challenge_targets drop constraint challenge_targets_target_type_check;
+  end if;
+  alter table challenge_targets
+    add constraint challenge_targets_target_type_check
+    check (target_type in ('media_item', 'playlist', 'genre', 'franchise', 'director_collection', 'global'));
+
+  if exists (select 1 from pg_constraint where conname = 'challenge_promotions_target_type_check') then
+    alter table challenge_promotions drop constraint challenge_promotions_target_type_check;
+  end if;
+  alter table challenge_promotions
+    add constraint challenge_promotions_target_type_check
+    check (target_type in ('media_item', 'playlist', 'genre', 'franchise', 'director_collection', 'global'));
+end $$;
+
+create table if not exists games (
+  id uuid primary key default gen_random_uuid(),
+  public_id text not null unique,
+  title text not null,
+  description text not null default '',
+  game_type text not null,
+  category text not null default 'title',
+  difficulty text not null default 'medium',
+  estimated_seconds integer,
+  status text not null default 'draft' check (status in ('draft', 'scheduled', 'active', 'paused', 'ended', 'archived')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists games_type_status_idx
+  on games (game_type, status);
+
+create table if not exists game_instances (
+  id uuid primary key default gen_random_uuid(),
+  game_id uuid not null references games(id) on delete cascade,
+  target_type text not null check (target_type in ('media_item', 'playlist', 'genre', 'franchise', 'director_collection', 'global')),
+  target_id text,
+  media_item_id uuid references media_items(id) on delete cascade,
+  playlist_id uuid references playlists(id) on delete cascade,
+  genre text,
+  franchise text,
+  starts_at timestamptz,
+  ends_at timestamptz,
+  status text not null default 'draft' check (status in ('draft', 'scheduled', 'active', 'paused', 'ended', 'archived')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists game_instances_target_idx
+  on game_instances (target_type, target_id, status);
+
+create index if not exists game_instances_game_status_idx
+  on game_instances (game_id, status);
+
+create table if not exists game_attempts (
+  id uuid primary key default gen_random_uuid(),
+  game_instance_id uuid not null references game_instances(id) on delete cascade,
+  user_id uuid references users(id) on delete cascade,
+  session_id text,
+  status text not null default 'started' check (status in ('started', 'in_progress', 'completed', 'abandoned')),
+  score integer not null default 0,
+  correct_count integer not null default 0,
+  question_count integer not null default 0,
+  started_at timestamptz not null default now(),
+  completed_at timestamptz,
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists game_attempts_user_status_idx
+  on game_attempts (user_id, status, updated_at desc);
+
+create index if not exists game_attempts_instance_score_idx
+  on game_attempts (game_instance_id, score desc, completed_at desc);
+
+create table if not exists game_scores (
+  id uuid primary key default gen_random_uuid(),
+  game_instance_id uuid not null references game_instances(id) on delete cascade,
+  user_id uuid references users(id) on delete set null,
+  display_name text,
+  score integer not null default 0,
+  is_public boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists game_scores_public_high_score_idx
+  on game_scores (game_instance_id, is_public, score desc, created_at asc);
+
+create table if not exists game_badges (
+  id uuid primary key default gen_random_uuid(),
+  public_id text not null unique,
+  game_id uuid references games(id) on delete set null,
+  name text not null,
+  description text not null default '',
+  icon text,
+  rarity text not null default 'common',
+  points integer not null default 0,
+  status text not null default 'draft' check (status in ('draft', 'active', 'archived')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists game_badges_game_status_idx
+  on game_badges (game_id, status);
 
 insert into collection_challenges (id, collection_slug, name, description, badge, points, requirements, difficulty, category)
 values

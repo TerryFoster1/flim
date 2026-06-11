@@ -4863,6 +4863,158 @@ textarea { min-height: 42px; resize: vertical; }
 .soundtrack-card { border-color: rgba(62,226,160,.18); }
 .trailer-card { border-color: rgba(255,184,77,.2); }
 .trivia-card { border-color: rgba(169,128,255,.22); }
+.title-games-page {
+  display: grid;
+  gap: 18px;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
+}
+.title-games-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 18px;
+  padding: 10px 12px;
+  background: rgba(8,9,13,.72);
+}
+.title-games-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #ffe7b8;
+  font-weight: 950;
+}
+.title-games-brand .brand-mark {
+  width: 38px;
+  height: 38px;
+}
+.title-games-close {
+  appearance: none;
+  width: 44px;
+  height: 44px;
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 999px;
+  color: #ffe7b8;
+  background: rgba(255,255,255,.07);
+  font-weight: 950;
+  cursor: pointer;
+}
+.title-games-close:hover,
+.title-games-close:focus-visible {
+  border-color: rgba(255,184,77,.48);
+  background: rgba(255,184,77,.12);
+}
+.title-games-hero {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(130px, 220px) minmax(0, 1fr);
+  gap: clamp(16px, 4vw, 32px);
+  align-items: end;
+  min-height: 360px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 24px;
+  padding: clamp(16px, 4vw, 34px);
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 18% 10%, rgba(255,79,109,.2), transparent 22rem),
+    rgba(255,255,255,.045);
+}
+.title-games-backdrop {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(8,9,13,.9), rgba(8,9,13,.6), rgba(8,9,13,.92)),
+    var(--title-games-backdrop, none);
+  background-size: cover;
+  background-position: center;
+  opacity: .74;
+}
+.title-games-hero > img,
+.title-games-hero > .poster {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 220px;
+  aspect-ratio: 2 / 3;
+  border-radius: 18px;
+  object-fit: cover;
+  box-shadow: var(--shadow);
+}
+.title-games-copy {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+}
+.title-games-copy > span {
+  color: #ffcf8a;
+  font-weight: 950;
+}
+.title-games-copy h1 {
+  margin: 6px 0 10px;
+  font-size: clamp(2.4rem, 7vw, 6rem);
+  line-height: .95;
+}
+.title-games-copy p {
+  max-width: 760px;
+  color: var(--muted);
+  line-height: 1.65;
+}
+.title-games-coming-soon,
+.title-games-section {
+  display: grid;
+  gap: 14px;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 20px;
+  padding: clamp(16px, 3vw, 24px);
+  background: rgba(255,255,255,.045);
+}
+.title-games-coming-soon h2,
+.title-games-coming-soon p {
+  margin: 0;
+}
+.title-games-coming-soon p {
+  color: var(--muted);
+}
+.title-game-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 12px;
+}
+.title-game-card {
+  display: grid;
+  gap: 18px;
+  align-content: space-between;
+  min-height: 228px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 18px;
+  padding: 16px;
+  background:
+    radial-gradient(circle at 14% 10%, rgba(255,184,77,.14), transparent 13rem),
+    linear-gradient(145deg, rgba(255,255,255,.09), rgba(255,255,255,.035));
+}
+.title-game-card-copy span {
+  color: #ffcf8a;
+  font-size: .78rem;
+  font-weight: 950;
+}
+.title-game-card h3 {
+  margin: 8px 0 6px;
+}
+.title-game-card p,
+.title-game-score-row small {
+  color: var(--muted);
+  line-height: 1.45;
+}
+.title-game-score-row {
+  display: grid;
+  gap: 10px;
+}
+.title-game-score-row .primary-button.compact {
+  min-height: 42px;
+}
 .trivia-panel {
   display: grid;
   gap: 12px;
@@ -6857,7 +7009,11 @@ textarea { min-height: 42px; resize: vertical; }
   .modal-header .ghost-button { display: inline-flex; }
   .playlist-card { padding: 14px; }
   .playlist-cover { height: 250px; }
-  .empty-playlists-panel, .movie-detail-hero, .actor-hero, .collection-detail-hero { grid-template-columns: 1fr; }
+  .empty-playlists-panel, .movie-detail-hero, .actor-hero, .collection-detail-hero, .title-games-hero { grid-template-columns: 1fr; }
+  .title-games-hero { min-height: 0; }
+  .title-games-hero > img,
+  .title-games-hero > .poster { width: min(62vw, 220px); margin: 0 auto; }
+  .title-games-header { border-radius: 16px; }
   .watch-provider-heading, .settings-integration-card { grid-template-columns: 1fr; }
   .settings-integration-actions { justify-items: start; }
   .region-onboarding-card,

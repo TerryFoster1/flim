@@ -277,7 +277,7 @@ export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addTo
           ) : null}
           <OptionalSectionBoundary key={`extensions-${detailsKey}`} label="Trailers and extras">
             <Suspense fallback={<OptionalLoading label="Trailers and extras" />}>
-              <MediaExtensions media={normalizedMovie} />
+              <MediaExtensions media={normalizedMovie} onNavigate={onNavigate} />
             </Suspense>
           </OptionalSectionBoundary>
         </div>

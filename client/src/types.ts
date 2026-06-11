@@ -11,6 +11,7 @@ export type AppRoute =
   | "/actor/:id"
   | "/collection/:id"
   | "/games"
+  | "/games/title/:mediaType/:tmdbId"
   | "/challenges"
   | "/progress"
   | "/hall-of-fame"
@@ -48,6 +49,9 @@ export interface RouteState {
   publicSlug?: string;
   sharedToken?: string;
   tmdbId?: string;
+  gamesMediaType?: MediaType;
+  gamesTmdbId?: string;
+  returnTo?: string;
   actorId?: string;
   collectionId?: string;
   handle?: string;

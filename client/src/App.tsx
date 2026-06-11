@@ -61,6 +61,16 @@ function routeFromPath(pathname = window.location.pathname): RouteState {
   if (pathname.startsWith("/tv/")) return { route: "/tv/:tmdbId", tmdbId: pathname.split("/")[2] };
   if (pathname.startsWith("/actor/")) return { route: "/actor/:id", actorId: pathname.split("/")[2] };
   if (pathname.startsWith("/collection/")) return { route: "/collection/:id", collectionId: pathname.split("/")[2] };
+  if (pathname.startsWith("/games/title/")) {
+    const parts = pathname.split("/");
+    const mediaType = parts[3] === "tv" ? "tv" : "movie";
+    return {
+      route: "/games/title/:mediaType/:tmdbId",
+      gamesMediaType: mediaType,
+      gamesTmdbId: parts[4],
+      returnTo: new URLSearchParams(window.location.search).get("returnTo") || undefined,
+    };
+  }
   if (pathname === "/games" || pathname === "/trivia-games") return { route: "/games" };
   if (pathname === "/challenges") return { route: "/challenges" };
   if (pathname === "/progress") return { route: "/progress" };
@@ -248,6 +258,7 @@ export default function App() {
 
   const isDirectorAdminRoute = activeRoute.startsWith("/director-admin");
   const isTitleDetailRoute = activeRoute === "/movies/:tmdbId" || activeRoute === "/tv/:tmdbId";
+  const isTitleGameRoute = activeRoute === "/games/title/:mediaType/:tmdbId";
   const openNowPlaying = () => {
     setRoulettePlaylists(null);
     setIsRouletteOpen(true);
@@ -308,6 +319,7 @@ export default function App() {
     "/actor/:id": <ActorDetailsPage actorId={Number(routeState.actorId)} onNavigate={navigate} />,
     "/collection/:id": <CollectionDetailsPage collectionId={routeState.collectionId || ""} onNavigate={navigate} />,
     "/games": <TriviaGames onNavigate={navigate} />,
+    "/games/title/:mediaType/:tmdbId": <TriviaGames mediaType={routeState.gamesMediaType || "movie"} tmdbId={Number(routeState.gamesTmdbId)} returnTo={routeState.returnTo} onNavigate={navigate} />,
     "/challenges": <SeasonalChallenges onNavigate={navigate} />,
     "/progress": <Progress onNavigate={navigate} />,
     "/hall-of-fame": <HallOfFame onNavigate={navigate} />,
@@ -346,14 +358,14 @@ export default function App() {
       <div className="main-shell">
         <NavigationBar activeRoute={activeRoute} currentUser={currentUser} onNavigate={navigate} onLogout={logout} />
         <main className={isHomeRoute ? "page-container home-page-container" : "page-container"}>
-          {dataStatus === "loading" && !isTitleDetailRoute ? <p className="empty-state">Loading playlists...</p> : null}
+          {dataStatus === "loading" && !isTitleDetailRoute && !isTitleGameRoute ? <p className="empty-state">Loading playlists...</p> : null}
           {dataStatus === "error" ? <p className="error-message">{dataMessage}</p> : null}
-          {dataStatus !== "loading" || isTitleDetailRoute ? page : null}
+          {dataStatus !== "loading" || isTitleDetailRoute || isTitleGameRoute ? page : null}
         </main>
-        {!isHomeRoute ? <Footer /> : null}
+        {!isHomeRoute && !isTitleGameRoute ? <Footer /> : null}
       </div>
       <InstallFlimPrompt />
-      {!isDirectorAdminRoute ? <div className="playlist-bottom-control" role="navigation" aria-label="Playlist controls">
+      {!isDirectorAdminRoute && !isTitleGameRoute ? <div className="playlist-bottom-control" role="navigation" aria-label="Playlist controls">
         <button
           className={`bottom-control-tab ${activeRoute === "/playlists" || activeRoute === "/playlists/:id" || activeRoute === "/discover" || activeRoute === "/curators" ? "is-active" : ""}`}
           onClick={() => navigate("/playlists")}

@@ -11,9 +11,10 @@ interface MediaExtensionsProps {
     posterUrl?: string;
     backdropUrl?: string;
   };
+  onNavigate?: (path: string) => void;
 }
 
-export function MediaExtensions({ media }: MediaExtensionsProps) {
+export function MediaExtensions({ media, onNavigate }: MediaExtensionsProps) {
   const extensions = getMediaExtensions(media);
   const soundtrackLink = extensions.soundtrack.soundtrack?.links[0];
   const trailerLink = extensions.videos[0];
@@ -27,6 +28,17 @@ export function MediaExtensions({ media }: MediaExtensionsProps) {
   const [revealedHunts, setRevealedHunts] = useState<Record<string, boolean>>({});
   const [huntAnswers, setHuntAnswers] = useState<Record<string, string>>({});
   const [activeCompanionMode, setActiveCompanionMode] = useState<"trivia" | "hunts">("trivia");
+
+  function openTriviaGames() {
+    const mediaType = media.mediaType || "movie";
+    const returnTo = `${window.location.pathname}${window.location.search}`;
+    const path = `/games/title/${mediaType}/${media.tmdbId}?returnTo=${encodeURIComponent(returnTo)}`;
+    if (onNavigate) {
+      onNavigate(path);
+      return;
+    }
+    window.location.assign(path);
+  }
 
   async function openTrivia() {
     setTriviaOpen((current) => !current);
@@ -144,14 +156,14 @@ export function MediaExtensions({ media }: MediaExtensionsProps) {
           </div>
         </a>
 
-        <button className="media-extension-card media-extension-card-action trivia-card reset-button" onClick={openTrivia} type="button" aria-expanded={triviaOpen} aria-label={`Open trivia and facts for ${media.title}`}>
+        <button className="media-extension-card media-extension-card-action trivia-card reset-button" onClick={openTriviaGames} type="button" aria-label={`Open Trivia and Games for ${media.title}`}>
           <div className="extension-art trivia-art" aria-hidden="true">
             <span />
             <strong>?</strong>
           </div>
           <div>
-            <h3>Trivia & Facts</h3>
-            <p>{triviaStatus === "loading" ? "Loading cached trivia..." : "Source-grounded questions and facts."}</p>
+            <h3>Trivia & Games</h3>
+            <p>Open title trivia, challenges, and future game modes.</p>
           </div>
         </button>
       </div>
