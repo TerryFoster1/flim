@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { PlaylistGrid } from "../components/PlaylistGrid";
 import { getActorDetails } from "../services/actorService";
-import type { ActorCredit, ActorDetails } from "../types";
+import { addMovieToPlaylist, createPlaylist, getPlaylists } from "../services/apiPlaylistStore";
+import type { ActorCredit, ActorDetails, MovieSearchResult, Playlist } from "../types";
 
 interface ActorDetailsPageProps {
   actorId: number;
@@ -16,7 +17,35 @@ function yearLabel(credit: ActorCredit) {
   return credit.releaseYear || "Year";
 }
 
-function CreditShelf({ title, credits, onNavigate }: { title: string; credits: ActorCredit[]; onNavigate: (path: string) => void }) {
+function creditKey(credit: ActorCredit) {
+  return `${credit.mediaType}-${credit.tmdbId}`;
+}
+
+function creditToMovieSearchResult(credit: ActorCredit): MovieSearchResult {
+  return {
+    tmdbId: credit.tmdbId,
+    mediaType: credit.mediaType,
+    title: credit.title,
+    releaseYear: credit.releaseYear,
+    overview: "",
+    posterUrl: credit.posterUrl,
+    genreIds: [],
+  };
+}
+
+function CreditShelf({
+  title,
+  credits,
+  onNavigate,
+  onQuickAdd,
+  quickAddState,
+}: {
+  title: string;
+  credits: ActorCredit[];
+  onNavigate: (path: string) => void;
+  onQuickAdd?: (credit: ActorCredit) => void;
+  quickAddState?: (credit: ActorCredit) => "idle" | "saving" | "added" | "error" | "signin";
+}) {
   if (credits.length === 0) return null;
 
   return (
@@ -28,12 +57,30 @@ function CreditShelf({ title, credits, onNavigate }: { title: string; credits: A
       <div className="actor-credit-row">
         {credits.map((credit) => (
           <article className="actor-credit-card" key={`${credit.mediaType}-${credit.tmdbId}-${credit.character || ""}`}>
-            <button className="reset-button" onClick={() => onNavigate(creditPath(credit))} type="button">
+            <button className="reset-button actor-credit-main" onClick={() => onNavigate(creditPath(credit))} type="button">
               {credit.posterUrl ? <img alt={`${credit.title} poster`} src={credit.posterUrl} /> : <span className="actor-credit-placeholder" />}
               <strong>{credit.title}</strong>
               <small>{yearLabel(credit)} / {credit.mediaType === "tv" ? "TV" : "Movie"}</small>
               {credit.character ? <span>{credit.character}</span> : null}
             </button>
+            {onQuickAdd ? (
+              <button
+                className={quickAddState?.(credit) === "added" ? "actor-quick-add-button is-added" : "actor-quick-add-button"}
+                disabled={quickAddState?.(credit) === "saving" || quickAddState?.(credit) === "added"}
+                onClick={() => onQuickAdd(credit)}
+                type="button"
+              >
+                {quickAddState?.(credit) === "saving"
+                  ? "Adding..."
+                  : quickAddState?.(credit) === "added"
+                    ? "Added"
+                    : quickAddState?.(credit) === "signin"
+                      ? "Sign in to add"
+                      : quickAddState?.(credit) === "error"
+                        ? "Try again"
+                        : "Quick Add"}
+              </button>
+            ) : null}
           </article>
         ))}
       </div>
@@ -45,6 +92,9 @@ export function ActorDetailsPage({ actorId, onNavigate }: ActorDetailsPageProps)
   const [actor, setActor] = useState<ActorDetails | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [message, setMessage] = useState("");
+  const [watchlist, setWatchlist] = useState<Playlist | null>(null);
+  const [watchlistKeys, setWatchlistKeys] = useState<Set<string>>(new Set());
+  const [quickAddStatus, setQuickAddStatus] = useState<Record<string, "idle" | "saving" | "added" | "error" | "signin">>({});
 
   useEffect(() => {
     let mounted = true;
@@ -69,8 +119,57 @@ export function ActorDetailsPage({ actorId, onNavigate }: ActorDetailsPageProps)
     };
   }, [actorId]);
 
+  useEffect(() => {
+    let mounted = true;
+
+    getPlaylists()
+      .then((playlists) => {
+        if (!mounted) return;
+        const target = playlists.find((playlist) => playlist.isOwner && playlist.name.trim().toLowerCase() === "movies to watch") || null;
+        setWatchlist(target);
+        setWatchlistKeys(new Set((target?.movies || []).map((movie) => `${movie.mediaType || "movie"}-${movie.tmdbId}`)));
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setWatchlist(null);
+        setWatchlistKeys(new Set());
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   const knownForText = useMemo(() => actor?.knownFor?.filter(Boolean).join(", "), [actor]);
   const biography = actor?.biography?.trim();
+
+  function getQuickAddState(credit: ActorCredit) {
+    const key = creditKey(credit);
+    if (watchlistKeys.has(key)) return "added";
+    return quickAddStatus[key] || "idle";
+  }
+
+  async function quickAddToWatchlist(credit: ActorCredit) {
+    const key = creditKey(credit);
+    if (watchlistKeys.has(key) || quickAddStatus[key] === "saving") return;
+
+    setQuickAddStatus((current) => ({ ...current, [key]: "saving" }));
+
+    try {
+      const target = watchlist || await createPlaylist({
+        name: "Movies to Watch",
+        description: "Titles saved from actor pages.",
+        visibility: "private",
+      });
+      setWatchlist(target);
+      await addMovieToPlaylist(target.id, creditToMovieSearchResult(credit));
+      setWatchlistKeys((current) => new Set([...current, key]));
+      setQuickAddStatus((current) => ({ ...current, [key]: "added" }));
+    } catch (error) {
+      const message = error instanceof Error ? error.message.toLowerCase() : "";
+      setQuickAddStatus((current) => ({ ...current, [key]: message.includes("sign in") ? "signin" : "error" }));
+    }
+  }
 
   if (status === "loading") {
     return (
@@ -104,7 +203,7 @@ export function ActorDetailsPage({ actorId, onNavigate }: ActorDetailsPageProps)
         </div>
       </section>
 
-      <CreditShelf title="Movies" credits={actor.movieCredits || []} onNavigate={onNavigate} />
+      <CreditShelf title="Movies" credits={actor.movieCredits || []} onNavigate={onNavigate} onQuickAdd={quickAddToWatchlist} quickAddState={getQuickAddState} />
       <CreditShelf title="TV Shows" credits={actor.tvCredits || []} onNavigate={onNavigate} />
 
       <section className="actor-section">

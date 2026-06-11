@@ -182,13 +182,13 @@ export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addTo
     return (
       <PageShell
         eyebrow={mediaType === "tv" ? "TV Show" : "Movie"}
-        title="Details unavailable"
-        description="Details unavailable."
+        title="Details are taking longer than expected."
+        description="Refresh the title details without leaving this page."
         action={<button className="primary-button" onClick={() => {
           setMovie(null);
           setStatus("loading");
           setLoadVersion((current) => current + 1);
-        }} type="button">Try Again</button>}
+        }} type="button" aria-label="Refresh title details">Refresh Details</button>}
       />
     );
   }
