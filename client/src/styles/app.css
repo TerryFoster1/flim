@@ -4370,6 +4370,10 @@ textarea { min-height: 42px; resize: vertical; }
   border-color: rgba(62,226,160,.28);
   background: rgba(62,226,160,.08);
 }
+.episode-progress-row.is-target {
+  border-color: rgba(255,184,77,.62);
+  box-shadow: 0 0 0 1px rgba(255,184,77,.28), 0 18px 48px rgba(255,79,109,.16);
+}
 .continue-watching-section {
   display: grid;
   gap: 12px;

@@ -52,7 +52,7 @@ export function ContinueWatchingRow({ onNavigate }: ContinueWatchingRowProps) {
               {item.backdropUrl || item.posterUrl ? <img alt="" src={item.backdropUrl || item.posterUrl} /> : <span />}
             </button>
             <div className="continue-watching-copy">
-              <span>{formatEpisode(item)}{item.episodeTitle ? ` · ${item.episodeTitle}` : ""}</span>
+              <span>{formatEpisode(item)}{item.episodeTitle ? ` - ${item.episodeTitle}` : ""}</span>
               <h3>{item.title}</h3>
               <div className="tv-progress-meter" aria-label={`${item.progressPercent}% watched`}>
                 <span style={{ width: `${item.progressPercent}%` }} />

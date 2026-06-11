@@ -29,7 +29,11 @@ export function TvProgressTracker({ show }: TvProgressTrackerProps) {
   const [status, setStatus] = useState<"loading" | "ready" | "saving" | "error" | "signed-out">("loading");
   const [message, setMessage] = useState("");
   const requestedSeason = useMemo(() => Number(new URLSearchParams(window.location.search).get("s")), []);
+  const requestedEpisode = useMemo(() => Number(new URLSearchParams(window.location.search).get("e")), []);
   const [openSeason, setOpenSeason] = useState<number | null>(Number.isFinite(requestedSeason) && requestedSeason > 0 ? requestedSeason : null);
+  const targetEpisodeId = Number.isFinite(requestedSeason) && requestedSeason > 0 && Number.isFinite(requestedEpisode) && requestedEpisode > 0
+    ? `episode-${requestedSeason}-${requestedEpisode}`
+    : "";
 
   useEffect(() => {
     let mounted = true;
@@ -50,6 +54,14 @@ export function TvProgressTracker({ show }: TvProgressTrackerProps) {
       mounted = false;
     };
   }, [show.tmdbId]);
+
+  useEffect(() => {
+    if (status !== "ready" || !targetEpisodeId) return undefined;
+    const frame = window.requestAnimationFrame(() => {
+      document.getElementById(targetEpisodeId)?.scrollIntoView({ block: "center", behavior: "smooth" });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [status, targetEpisodeId]);
 
   async function mutate(action: () => Promise<TvShowProgress>) {
     setStatus("saving");
@@ -158,11 +170,17 @@ export function TvProgressTracker({ show }: TvProgressTrackerProps) {
                 </div>
                 {season.episodes.map((episode) => {
                   const watched = episode.status === "watched";
+                  const isTargetEpisode = targetEpisodeId === `episode-${episode.seasonNumber}-${episode.episodeNumber}`;
+                  const rowClassName = [
+                    "episode-progress-row",
+                    watched ? "is-watched" : "",
+                    isTargetEpisode ? "is-target" : "",
+                  ].filter(Boolean).join(" ");
                   return (
-                    <div className={watched ? "episode-progress-row is-watched" : "episode-progress-row"} key={`${episode.seasonNumber}-${episode.episodeNumber}`}>
+                    <div className={rowClassName} id={`episode-${episode.seasonNumber}-${episode.episodeNumber}`} key={`${episode.seasonNumber}-${episode.episodeNumber}`}>
                       <div>
                         <strong>{formatEpisodeLabel(episode.seasonNumber, episode.episodeNumber)} {episode.title}</strong>
-                        <small>{episode.airDate ? formatDate(episode.airDate) : "Air date unknown"}{episode.released ? "" : " · Upcoming"}</small>
+                        <small>{episode.airDate ? formatDate(episode.airDate) : "Air date unknown"}{episode.released ? "" : " - Upcoming"}</small>
                       </div>
                       <button
                         className={watched ? "secondary-button" : "primary-button"}
