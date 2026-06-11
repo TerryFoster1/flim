@@ -404,14 +404,21 @@ export async function ensurePlaylistFollowsTable(sql: any) {
 export async function ensurePlaylistLikesTable(sql: any) {
   await ensureAuthTables(sql);
   await ensurePgCrypto(sql);
-  await sql`
-    create table if not exists playlist_likes (
-      id uuid primary key default gen_random_uuid(),
-      playlist_id uuid not null references playlists(id) on delete cascade,
-      user_id uuid not null references users(id) on delete cascade,
-      created_at timestamptz not null default now()
-    )
-  `;
+  try {
+    await sql`
+      create table if not exists playlist_likes (
+        id uuid primary key default gen_random_uuid(),
+        playlist_id uuid not null references playlists(id) on delete cascade,
+        user_id uuid not null references users(id) on delete cascade,
+        created_at timestamptz not null default now()
+      )
+    `;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String((error as any)?.message || "");
+    if (!message.includes("pg_type_typname_nsp_index") && !message.includes("already exists")) {
+      throw error;
+    }
+  }
   await sql`create unique index if not exists playlist_likes_playlist_user_unique on playlist_likes (playlist_id, user_id)`;
   await sql`create index if not exists playlist_likes_playlist_id_idx on playlist_likes (playlist_id)`;
   await sql`create index if not exists playlist_likes_user_id_idx on playlist_likes (user_id)`;
