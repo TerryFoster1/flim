@@ -13,6 +13,32 @@ const MAX_PLAYLIST_RESULTS = 12;
 const MAX_PROFILE_RESULTS = 8;
 const MAX_COLLECTION_RESULTS = 8;
 const MAX_ACTOR_RESULTS = 8;
+const MAX_HUB_RESULTS = 10;
+
+const discoveryHubs = [
+  { kind: "genre", key: "sci-fi", title: "Sci-Fi", description: "Space, futures, tech, and speculative stories.", terms: ["sci-fi", "sci fi", "science fiction", "space"] },
+  { kind: "genre", key: "horror", title: "Horror", description: "Scary, supernatural, slashers, and creature features.", terms: ["horror", "scary", "slasher"] },
+  { kind: "genre", key: "fantasy", title: "Fantasy", description: "Magic, quests, and mythic worlds.", terms: ["fantasy", "magic"] },
+  { kind: "genre", key: "thriller", title: "Thriller", description: "Suspense, crime, and tense watches.", terms: ["thriller", "suspense"] },
+  { kind: "genre", key: "comedy", title: "Comedy", description: "Funny movies, comfort watches, and sitcoms.", terms: ["comedy", "funny", "sitcom"] },
+  { kind: "genre", key: "action", title: "Action", description: "Action, adventure, heroes, and spectacle.", terms: ["action", "adventure"] },
+  { kind: "genre", key: "family", title: "Family", description: "Family movie nights and animated favorites.", terms: ["family", "kids", "animation"] },
+  { kind: "genre", key: "drama", title: "Drama", description: "Character-driven movies and prestige TV.", terms: ["drama"] },
+  { kind: "decade", key: "1970s", title: "1970s", description: "Browse movies and TV from the 1970s.", terms: ["1970s", "70s", "seventies"] },
+  { kind: "decade", key: "1980s", title: "1980s", description: "Browse movies and TV from the 1980s.", terms: ["1980s", "80s", "eighties"] },
+  { kind: "decade", key: "1990s", title: "1990s", description: "Browse movies and TV from the 1990s.", terms: ["1990s", "90s", "nineties"] },
+  { kind: "decade", key: "2000s", title: "2000s", description: "Browse movies and TV from the 2000s.", terms: ["2000s"] },
+  { kind: "decade", key: "2010s", title: "2010s", description: "Browse movies and TV from the 2010s.", terms: ["2010s"] },
+  { kind: "decade", key: "2020s", title: "2020s", description: "Browse movies and TV from the 2020s.", terms: ["2020s"] },
+  { kind: "franchise", key: "star-wars", title: "Star Wars", description: "Explore the Star Wars franchise.", terms: ["star wars", "jedi", "skywalker"] },
+  { kind: "franchise", key: "back-to-the-future", title: "Back to the Future", description: "Explore the Back to the Future franchise.", terms: ["back to the future", "marty mcfly", "time travel"] },
+  { kind: "franchise", key: "jurassic-park", title: "Jurassic Park", description: "Explore Jurassic Park and Jurassic World.", terms: ["jurassic park", "jurassic world", "dinosaurs"] },
+  { kind: "franchise", key: "marvel", title: "Marvel", description: "Explore Marvel and MCU titles.", terms: ["marvel", "mcu", "avengers", "superhero"] },
+  { kind: "franchise", key: "lord-of-the-rings", title: "Lord of the Rings", description: "Explore Middle-earth stories.", terms: ["lord of the rings", "middle earth", "hobbit"] },
+  { kind: "franchise", key: "mission-impossible", title: "Mission: Impossible", description: "Explore Mission: Impossible films.", terms: ["mission impossible", "tom cruise", "spy"] },
+  { kind: "franchise", key: "harry-potter", title: "Harry Potter", description: "Explore Wizarding World titles.", terms: ["harry potter", "wizarding world", "hogwarts"] },
+  { kind: "franchise", key: "pixar", title: "Pixar", description: "Explore Pixar collections and playlists.", terms: ["pixar", "toy story", "animation"] },
+];
 
 const curatedCollectionSearchSeeds = [
   { slug: "back-to-the-future", title: "Back to the Future Collection", category: "Time Travel", keywords: ["time travel", "sci-fi", "science fiction", "80s"] },
@@ -87,6 +113,23 @@ function collectionSearchTerms(query: string) {
   }
   if (normalized.includes("marvel")) terms.add("mcu");
   return [...terms].filter(Boolean);
+}
+
+function searchHubs(query: string) {
+  const terms = expandedSearchTerms(query);
+  return discoveryHubs
+    .filter((hub) => {
+      const haystack = normalizeSearchText([hub.title, hub.description, ...hub.terms].join(" "));
+      return terms.some((term) => haystack.includes(term));
+    })
+    .slice(0, MAX_HUB_RESULTS)
+    .map((hub) => ({
+      kind: hub.kind,
+      key: hub.key,
+      title: hub.title,
+      description: hub.description,
+      path: `/${hub.kind}/${hub.key}`,
+    }));
 }
 
 function mergeTitleResults(primary: any[], secondary: any[]) {
@@ -254,6 +297,8 @@ async function searchProfiles(sql: any, query: string) {
       up.display_name,
       up.handle,
       up.bio,
+      up.avatar_key,
+      up.avatar_customization,
       up.profile_image_url,
       up.created_at,
       count(distinct p.id)::int as playlist_count,
@@ -314,6 +359,8 @@ async function searchProfiles(sql: any, query: string) {
     displayName: row.display_name || row.handle,
     handle: row.handle,
     bio: row.bio || "",
+    avatarKey: row.avatar_key || "director",
+    avatarCustomization: row.avatar_customization && typeof row.avatar_customization === "object" ? row.avatar_customization : {},
     profileImageUrl: row.profile_image_url || "",
     playlistCount: Number(row.playlist_count || 0),
     titleCount: Number(row.title_count || 0),
@@ -463,6 +510,7 @@ export default async function handler(request: any, response: any) {
         playlists: [],
         profiles: [],
         collections: [],
+        hubs: [],
         actors: [],
         titleSource: "empty",
       });
@@ -487,6 +535,7 @@ export default async function handler(request: any, response: any) {
       searchCollections(sql, query),
       searchActors(sql, query),
     ]);
+    const hubs = searchHubs(query);
 
     response.setHeader("X-Flim-Discovery-Titles", titleResults.source);
     return sendJson(response, 200, {
@@ -495,6 +544,7 @@ export default async function handler(request: any, response: any) {
       playlists,
       profiles,
       collections,
+      hubs,
       actors,
       titleSource: titleResults.source,
     });

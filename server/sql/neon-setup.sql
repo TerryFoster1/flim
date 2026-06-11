@@ -2055,6 +2055,8 @@ create table if not exists user_profiles (
   streaming_region text not null default '',
   preferred_providers jsonb not null default '[]'::jsonb,
   show_country_publicly boolean not null default false,
+  avatar_key text not null default 'director',
+  avatar_customization jsonb not null default '{}'::jsonb,
   profile_image_url text,
   hero_image_url text,
   favorite_movie text,
@@ -2067,6 +2069,12 @@ create table if not exists user_profiles (
 
 alter table user_profiles
   add column if not exists province_state text;
+
+alter table user_profiles
+  add column if not exists avatar_key text not null default 'director';
+
+alter table user_profiles
+  add column if not exists avatar_customization jsonb not null default '{}'::jsonb;
 
 alter table user_profiles
   add column if not exists profile_image_url text;

@@ -1,14 +1,41 @@
 import { useMemo, useState, type FormEvent } from "react";
 import { DiscoveryRecommendationShelf } from "../components/DiscoveryRecommendationShelf";
+import { FlimAvatar } from "../components/FlimAvatar";
 import { PlaylistGrid } from "../components/PlaylistGrid";
 import { searchDiscovery } from "../services/discoveryService";
-import type { DiscoveryCollectionResult, DiscoverySearchResults, MovieSearchResult } from "../types";
+import type { DiscoveryCollectionResult, DiscoveryHubLink, DiscoverySearchResults, MovieSearchResult } from "../types";
 
 interface DiscoverProps {
   onNavigate: (path: string) => void;
 }
 
 const starterSearches = ["Anime", "Horror", "Sci-Fi", "Christmas Movies", "Marvel", "Pixar"];
+const browseGenres: DiscoveryHubLink[] = [
+  { kind: "genre", key: "sci-fi", title: "Sci-Fi", path: "/genre/sci-fi" },
+  { kind: "genre", key: "horror", title: "Horror", path: "/genre/horror" },
+  { kind: "genre", key: "fantasy", title: "Fantasy", path: "/genre/fantasy" },
+  { kind: "genre", key: "thriller", title: "Thriller", path: "/genre/thriller" },
+  { kind: "genre", key: "comedy", title: "Comedy", path: "/genre/comedy" },
+  { kind: "genre", key: "action", title: "Action", path: "/genre/action" },
+  { kind: "genre", key: "family", title: "Family", path: "/genre/family" },
+  { kind: "genre", key: "drama", title: "Drama", path: "/genre/drama" },
+];
+const browseDecades: DiscoveryHubLink[] = ["1970s", "1980s", "1990s", "2000s", "2010s", "2020s"].map((title) => ({
+  kind: "decade",
+  key: title.toLowerCase(),
+  title,
+  path: `/decade/${title.toLowerCase()}`,
+}));
+const browseFranchises: DiscoveryHubLink[] = [
+  { kind: "franchise", key: "star-wars", title: "Star Wars", path: "/franchise/star-wars" },
+  { kind: "franchise", key: "marvel", title: "Marvel", path: "/franchise/marvel" },
+  { kind: "franchise", key: "back-to-the-future", title: "Back to the Future", path: "/franchise/back-to-the-future" },
+  { kind: "franchise", key: "jurassic-park", title: "Jurassic Park", path: "/franchise/jurassic-park" },
+  { kind: "franchise", key: "lord-of-the-rings", title: "Lord of the Rings", path: "/franchise/lord-of-the-rings" },
+  { kind: "franchise", key: "mission-impossible", title: "Mission: Impossible", path: "/franchise/mission-impossible" },
+  { kind: "franchise", key: "harry-potter", title: "Harry Potter", path: "/franchise/harry-potter" },
+  { kind: "franchise", key: "pixar", title: "Pixar", path: "/franchise/pixar" },
+];
 
 function titlePath(title: MovieSearchResult) {
   return title.mediaType === "tv" ? `/tv/${title.tmdbId}` : `/movies/${title.tmdbId}`;
@@ -58,6 +85,22 @@ function CollectionResultGrid({ collections, onNavigate }: { collections: Discov
   );
 }
 
+function HubGrid({ hubs, onNavigate }: { hubs: DiscoveryHubLink[]; onNavigate: (path: string) => void }) {
+  if (hubs.length === 0) return <p className="empty-state">No matching discovery hubs yet.</p>;
+
+  return (
+    <div className="discovery-browse-grid">
+      {hubs.map((hub) => (
+        <button className="discovery-browse-card" key={`${hub.kind}-${hub.key}`} onClick={() => onNavigate(hub.path)} type="button">
+          <span>{hub.kind === "genre" ? "Genre" : hub.kind === "decade" ? "Decade" : "Franchise"}</span>
+          <strong>{hub.title}</strong>
+          {hub.description ? <small>{hub.description}</small> : null}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function Discover({ onNavigate }: DiscoverProps) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<DiscoverySearchResults | null>(null);
@@ -69,6 +112,7 @@ export function Discover({ onNavigate }: DiscoverProps) {
       results.playlists.length > 0 ||
       results.profiles.length > 0 ||
       results.collections.length > 0 ||
+      results.hubs.length > 0 ||
       results.titles.length > 0 ||
       results.actors.length > 0
     )),
@@ -151,11 +195,7 @@ export function Discover({ onNavigate }: DiscoverProps) {
               <div className="curator-result-grid">
                 {results.profiles.map((profile) => (
                   <button className="curator-result-card" key={profile.handle} onClick={() => onNavigate(`/@${profile.handle}`)} type="button">
-                    {profile.profileImageUrl ? (
-                      <img className="curator-avatar curator-avatar-image" alt={`${profile.displayName} profile`} src={profile.profileImageUrl} />
-                    ) : (
-                      <span className="curator-avatar">{profile.displayName.slice(0, 1).toUpperCase()}</span>
-                    )}
+                    <FlimAvatar avatarKey={profile.avatarKey} label={profile.displayName} size="sm" />
                     <strong>{profile.displayName}</strong>
                     <small>@{profile.handle}</small>
                     {profile.bio ? <p>{profile.bio}</p> : null}
@@ -176,6 +216,14 @@ export function Discover({ onNavigate }: DiscoverProps) {
               <span>{results.collections.length} found</span>
             </div>
             <CollectionResultGrid collections={results.collections} onNavigate={onNavigate} />
+          </section>
+
+          <section className="discovery-results-section">
+            <div className="discovery-results-heading">
+              <h2>Discovery Hubs</h2>
+              <span>{results.hubs.length} found</span>
+            </div>
+            <HubGrid hubs={results.hubs} onNavigate={onNavigate} />
           </section>
 
           <section className="discovery-results-section">
@@ -216,10 +264,30 @@ export function Discover({ onNavigate }: DiscoverProps) {
           </section>
         </div>
       ) : (
-        <section className="discovery-empty-panel">
-          <h2>Find what is worth watching.</h2>
-          <p>Start with a playlist, mood, genre, collection, title, or curator.</p>
-        </section>
+        <>
+          <section className="discovery-results-section">
+            <div className="discovery-results-heading">
+              <h2>Browse by Genre</h2>
+            </div>
+            <HubGrid hubs={browseGenres} onNavigate={onNavigate} />
+          </section>
+          <section className="discovery-results-section">
+            <div className="discovery-results-heading">
+              <h2>Browse by Decade</h2>
+            </div>
+            <HubGrid hubs={browseDecades} onNavigate={onNavigate} />
+          </section>
+          <section className="discovery-results-section">
+            <div className="discovery-results-heading">
+              <h2>Browse by Franchise</h2>
+            </div>
+            <HubGrid hubs={browseFranchises} onNavigate={onNavigate} />
+          </section>
+          <section className="discovery-empty-panel">
+            <h2>Find what is worth watching.</h2>
+            <p>Start with a playlist, mood, genre, collection, title, or curator.</p>
+          </section>
+        </>
       )}
 
       {results && !hasResults ? (

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { FlimAvatar } from "../components/FlimAvatar";
 import { getCuratorDiscovery } from "../services/curatorService";
 import type { CuratorDiscoveryFeed, CuratorDiscoveryProfile } from "../types";
 
@@ -22,7 +23,6 @@ function formatUpdatedAt(value?: string) {
 }
 
 function CuratorCard({ curator, onNavigate }: { curator: CuratorDiscoveryProfile; onNavigate: (path: string) => void }) {
-  const initial = (curator.displayName || curator.handle || "F").charAt(0).toUpperCase();
   const stats = curator.stats;
   const latest = formatUpdatedAt(stats.latestPlaylistUpdatedAt);
 
@@ -31,7 +31,7 @@ function CuratorCard({ curator, onNavigate }: { curator: CuratorDiscoveryProfile
       <button className="curator-card-main reset-button" onClick={() => onNavigate(`/@${curator.handle}`)} type="button">
         {curator.heroImageUrl ? <img className="curator-card-hero" alt="" src={curator.heroImageUrl} /> : <div className="curator-card-hero curator-card-hero-fallback" aria-hidden="true" />}
         <span className="curator-card-avatar">
-          {curator.profileImageUrl ? <img alt={`${curator.displayName} profile`} src={curator.profileImageUrl} /> : initial}
+          <FlimAvatar avatarKey={curator.avatarKey} label={curator.displayName || curator.handle} size="sm" />
         </span>
         <span className="curator-card-copy">
           <strong>{curator.displayName || `@${curator.handle}`}</strong>

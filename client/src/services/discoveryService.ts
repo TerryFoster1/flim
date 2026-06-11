@@ -9,6 +9,7 @@ export async function searchDiscovery(query: string) {
       playlists: [],
       profiles: [],
       collections: [],
+      hubs: [],
       actors: [],
       titleSource: "empty",
     } satisfies DiscoverySearchResults;
@@ -29,6 +30,7 @@ export async function searchDiscovery(query: string) {
   return {
     ...payload,
     collections: Array.isArray(payload.collections) ? payload.collections : [],
+    hubs: Array.isArray(payload.hubs) ? payload.hubs : [],
     actors: Array.isArray(payload.actors) ? payload.actors : [],
   };
 }

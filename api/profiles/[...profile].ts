@@ -30,6 +30,8 @@ const defaultProfile = {
   displayName: "",
   handle: "",
   bio: "",
+  avatarKey: "director",
+  avatarCustomization: {},
   countryCode: "",
   region: "",
   postalCode: "",
@@ -40,6 +42,20 @@ const defaultProfile = {
 };
 
 const exportSchemaVersion = "2026-06-01-neon-hardening";
+const allowedAvatarKeys = new Set([
+  "director",
+  "popcorn",
+  "astronaut",
+  "film-reel",
+  "retro-vhs",
+  "detective",
+  "monster-hunter",
+  "explorer",
+  "robot",
+  "projectionist",
+  "film-critter",
+  "movie-buff",
+]);
 
 async function safeRows(query: Promise<any[]>) {
   try {
@@ -56,6 +72,8 @@ function cleanProfileInput(body: any) {
     ? body.featuredPlaylistIds.map((id: unknown) => String(id)).filter(Boolean).slice(0, 3)
     : [];
 
+  const avatarKey = String(body.avatarKey || "director").trim().toLowerCase();
+
   return {
     displayName: String(body.displayName || "").trim().slice(0, 80),
     handle: normalizeHandle(String(body.handle || "")).replace(/[^a-z0-9_]/g, ""),
@@ -68,6 +86,8 @@ function cleanProfileInput(body: any) {
       ? body.preferredProviders.map((provider: unknown) => String(provider)).filter(Boolean).slice(0, 20)
       : [],
     showCountryPublicly: Boolean(body.showCountryPublicly),
+    avatarKey: allowedAvatarKeys.has(avatarKey) ? avatarKey : "director",
+    avatarCustomization: typeof body.avatarCustomization === "object" && body.avatarCustomization ? body.avatarCustomization : {},
     profileImageUrl: cleanImageUrl(body.profileImageUrl),
     heroImageUrl: cleanImageUrl(body.heroImageUrl),
     favoriteMovie: String(body.favoriteMovie || "").trim().slice(0, 120),
@@ -146,6 +166,8 @@ async function handleCurrentProfile(request: any, response: any, sql: any) {
         streaming_region,
         preferred_providers,
         show_country_publicly,
+        avatar_key,
+        avatar_customization,
         profile_image_url,
         hero_image_url,
         favorite_movie,
@@ -165,6 +187,8 @@ async function handleCurrentProfile(request: any, response: any, sql: any) {
         ${input.streamingRegion},
         ${JSON.stringify(input.preferredProviders)}::jsonb,
         ${input.showCountryPublicly},
+        ${input.avatarKey},
+        ${JSON.stringify(input.avatarCustomization)}::jsonb,
         ${input.profileImageUrl || null},
         ${input.heroImageUrl || null},
         ${input.favoriteMovie || null},
@@ -183,6 +207,8 @@ async function handleCurrentProfile(request: any, response: any, sql: any) {
         streaming_region = excluded.streaming_region,
         preferred_providers = excluded.preferred_providers,
         show_country_publicly = excluded.show_country_publicly,
+        avatar_key = excluded.avatar_key,
+        avatar_customization = excluded.avatar_customization,
         profile_image_url = excluded.profile_image_url,
         hero_image_url = excluded.hero_image_url,
         favorite_movie = excluded.favorite_movie,

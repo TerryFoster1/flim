@@ -44,6 +44,7 @@ import { AuthPage } from "./pages/AuthPage";
 import { DirectorAdmin } from "./pages/DirectorAdmin";
 import { LandingPage } from "./pages/LandingPage";
 import { Discover } from "./pages/Discover";
+import { DiscoveryHub } from "./pages/DiscoveryHub";
 import { Curators } from "./pages/Curators";
 import { createSystemPlaylists } from "./services/systemPlaylists";
 import { getActiveSeasonalTheme } from "./seasonalThemes";
@@ -60,7 +61,11 @@ function routeFromPath(pathname = window.location.pathname): RouteState {
   if (pathname.startsWith("/movies/")) return { route: "/movies/:tmdbId", tmdbId: pathname.split("/")[2] };
   if (pathname.startsWith("/tv/")) return { route: "/tv/:tmdbId", tmdbId: pathname.split("/")[2] };
   if (pathname.startsWith("/actor/")) return { route: "/actor/:id", actorId: pathname.split("/")[2] };
+  if (pathname.startsWith("/person/")) return { route: "/person/:id", actorId: pathname.split("/")[2] };
   if (pathname.startsWith("/collection/")) return { route: "/collection/:id", collectionId: pathname.split("/")[2] };
+  if (pathname.startsWith("/genre/")) return { route: "/genre/:id", discoveryKind: "genre", discoveryId: pathname.split("/")[2] };
+  if (pathname.startsWith("/decade/")) return { route: "/decade/:id", discoveryKind: "decade", discoveryId: pathname.split("/")[2] };
+  if (pathname.startsWith("/franchise/")) return { route: "/franchise/:id", discoveryKind: "franchise", discoveryId: pathname.split("/")[2] };
   if (pathname.startsWith("/games/title/")) {
     const parts = pathname.split("/");
     const mediaType = parts[3] === "tv" ? "tv" : "movie";
@@ -318,7 +323,11 @@ export default function App() {
       />
     ),
     "/actor/:id": <ActorDetailsPage actorId={Number(routeState.actorId)} onNavigate={navigate} />,
+    "/person/:id": <ActorDetailsPage actorId={Number(routeState.actorId)} onNavigate={navigate} />,
     "/collection/:id": <CollectionDetailsPage collectionId={routeState.collectionId || ""} onNavigate={navigate} />,
+    "/genre/:id": <DiscoveryHub kind="genre" hubId={routeState.discoveryId || ""} onNavigate={navigate} />,
+    "/decade/:id": <DiscoveryHub kind="decade" hubId={routeState.discoveryId || ""} onNavigate={navigate} />,
+    "/franchise/:id": <DiscoveryHub kind="franchise" hubId={routeState.discoveryId || ""} onNavigate={navigate} />,
     "/games": <TriviaGames onNavigate={navigate} />,
     "/games/title/:mediaType/:tmdbId": <TriviaGames mediaType={routeState.gamesMediaType || "movie"} tmdbId={Number(routeState.gamesTmdbId)} returnTo={routeState.returnTo} onNavigate={navigate} />,
     "/challenges": <SeasonalChallenges onNavigate={navigate} />,

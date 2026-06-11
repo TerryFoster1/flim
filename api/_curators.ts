@@ -56,6 +56,8 @@ function mapCurator(row: any) {
     displayName: row.display_name || row.handle,
     handle: row.handle,
     bio: row.bio || "",
+    avatarKey: row.avatar_key || "director",
+    avatarCustomization: row.avatar_customization && typeof row.avatar_customization === "object" ? row.avatar_customization : {},
     profileImageUrl: row.profile_image_url || "",
     heroImageUrl: row.hero_image_url || "",
     isFollowing: Boolean(row.is_following),

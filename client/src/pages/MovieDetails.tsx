@@ -32,6 +32,12 @@ function countryFromRegion(value?: string) {
   return clean.slice(0, 2);
 }
 
+function genrePath(genre: string) {
+  const key = genre.toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  if (key === "science-fiction") return "/genre/sci-fi";
+  return `/genre/${key || "drama"}`;
+}
+
 function chooseContentRating(ratings: ContentRating[] = [], countryCode = "") {
   const preferredCountry = countryFromRegion(countryCode);
   return (
@@ -237,7 +243,7 @@ export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addTo
           {normalizedMovie.genres.length > 0 ? (
             <div className="genre-strip">
               {normalizedMovie.genres.map((genre) => (
-                <span className="genre-chip" key={genre}>{genre}</span>
+                <button className="genre-chip" key={genre} onClick={() => onNavigate?.(genrePath(genre))} type="button">{genre}</button>
               ))}
             </div>
           ) : null}

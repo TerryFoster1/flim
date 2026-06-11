@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { FlimAvatar } from "./FlimAvatar";
 import { getRecommendations, type RecommendedCurator, type RecommendedPlaylist } from "../services/recommendationService";
 import { PlaylistGrid } from "./PlaylistGrid";
 
@@ -14,16 +15,10 @@ function compactNumber(value: number) {
 }
 
 function CuratorRecommendationCard({ curator, onNavigate }: { curator: RecommendedCurator; onNavigate: (path: string) => void }) {
-  const initial = (curator.displayName || curator.handle || "F").charAt(0).toUpperCase();
-
   return (
     <article className="curator-recommendation-card">
       <button className="curator-recommendation-main reset-button" onClick={() => onNavigate(`/@${curator.handle}`)} type="button">
-        {curator.profileImageUrl ? (
-          <img alt={`${curator.displayName} profile`} src={curator.profileImageUrl} />
-        ) : (
-          <span>{initial}</span>
-        )}
+        <FlimAvatar avatarKey={curator.avatarKey} label={curator.displayName || curator.handle} size="sm" />
         <strong>{curator.displayName || `@${curator.handle}`}</strong>
         <small>@{curator.handle}</small>
       </button>

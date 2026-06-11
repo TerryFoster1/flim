@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { InstallFlimPrompt } from "../components/InstallFlimPrompt";
+import { FlimAvatar } from "../components/FlimAvatar";
 import { ProviderLogo } from "../components/ProviderLogo";
 import { PushNotificationSettings } from "../components/PushNotificationSettings";
+import { defaultAvatarKey, flimAvatars } from "../avatarCatalog";
 import { getCurrentProfile, saveCurrentProfile } from "../services/profileService";
 import { watchProviders } from "../services/watchProviderService";
 import type { CurrentUser, Playlist, UserProfile } from "../types";
@@ -10,6 +12,8 @@ const emptyProfile: UserProfile = {
   displayName: "",
   handle: "",
   bio: "",
+  avatarKey: defaultAvatarKey,
+  avatarCustomization: {},
   profileImageUrl: "",
   heroImageUrl: "",
   favoriteMovie: "",
@@ -199,26 +203,29 @@ export function Settings({ currentUser, onNavigate, playlists = [] }: SettingsPr
               placeholder="Movie lists, family picks, and weekend watch ideas."
             />
           </label>
-          <label>
-            Profile Picture URL
-            <input
-              autoComplete="url"
-              value={profile.profileImageUrl || ""}
-              onChange={(event) => updateProfile("profileImageUrl", event.target.value)}
-              placeholder="https://..."
-              type="url"
-            />
-          </label>
-          <label>
-            Hero Image URL
-            <input
-              autoComplete="url"
-              value={profile.heroImageUrl || ""}
-              onChange={(event) => updateProfile("heroImageUrl", event.target.value)}
-              placeholder="https://..."
-              type="url"
-            />
-          </label>
+          <div className="avatar-picker">
+            <div>
+              <h3>Choose your avatar</h3>
+              <p>Your avatar is your Flim identity. Future skins, frames, and seasonal cosmetics can build on this.</p>
+            </div>
+            <div className="avatar-picker-grid">
+              {flimAvatars.map((avatar) => {
+                const selected = (profile.avatarKey || defaultAvatarKey) === avatar.key;
+                return (
+                  <button
+                    className={selected ? "avatar-option is-selected" : "avatar-option"}
+                    key={avatar.key}
+                    onClick={() => updateProfile("avatarKey", avatar.key)}
+                    type="button"
+                  >
+                    <FlimAvatar avatarKey={avatar.key} label={avatar.name} size="md" />
+                    <strong>{avatar.name}</strong>
+                    <span>{avatar.theme}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
           <div className="profile-favorites-form">
             <label>
               Favorite Movie

@@ -9,7 +9,11 @@ export type AppRoute =
   | "/movies/:tmdbId"
   | "/tv/:tmdbId"
   | "/actor/:id"
+  | "/person/:id"
   | "/collection/:id"
+  | "/genre/:id"
+  | "/decade/:id"
+  | "/franchise/:id"
   | "/games"
   | "/games/title/:mediaType/:tmdbId"
   | "/challenges"
@@ -54,6 +58,8 @@ export interface RouteState {
   returnTo?: string;
   actorId?: string;
   collectionId?: string;
+  discoveryKind?: "genre" | "decade" | "franchise";
+  discoveryId?: string;
   handle?: string;
   adminPlaylistId?: string;
 }
@@ -486,6 +492,8 @@ export interface UserProfile {
   displayName: string;
   handle: string;
   bio?: string;
+  avatarKey?: string;
+  avatarCustomization?: Record<string, unknown>;
   profileImageUrl?: string;
   heroImageUrl?: string;
   favoriteMovie?: string;
@@ -645,6 +653,8 @@ export interface PublicUserProfile {
   displayName: string;
   handle: string;
   bio?: string;
+  avatarKey?: string;
+  avatarCustomization?: Record<string, unknown>;
   profileImageUrl?: string;
   heroImageUrl?: string;
   favoriteMovie?: string;
@@ -822,6 +832,8 @@ export interface DiscoveryProfileResult {
   followerCount?: number;
   playlistFollowerCount?: number;
   playlistLikeCount?: number;
+  avatarKey?: string;
+  avatarCustomization?: Record<string, unknown>;
   profileImageUrl?: string;
 }
 
@@ -829,6 +841,8 @@ export interface CuratorDiscoveryProfile {
   displayName: string;
   handle: string;
   bio?: string;
+  avatarKey?: string;
+  avatarCustomization?: Record<string, unknown>;
   profileImageUrl?: string;
   heroImageUrl?: string;
   isFollowing?: boolean;
@@ -880,14 +894,39 @@ export interface DiscoveryCollectionResult {
   latestReleaseDate?: string;
 }
 
+export interface DiscoveryHubLink {
+  kind: "genre" | "decade" | "franchise";
+  key: string;
+  title: string;
+  path: string;
+  description?: string;
+}
+
 export interface DiscoverySearchResults {
   query: string;
   titles: MovieSearchResult[];
   playlists: Playlist[];
   profiles: DiscoveryProfileResult[];
   collections: DiscoveryCollectionResult[];
+  hubs: DiscoveryHubLink[];
   actors: ActorSummary[];
   titleSource: "empty" | "catalog" | "catalog_cache" | "cache" | "catalog_tmdb" | "tmdb";
+}
+
+export interface DiscoveryBrowseResult {
+  kind: "genre" | "decade" | "franchise";
+  key: string;
+  title: string;
+  description: string;
+  titles: MovieSearchResult[];
+  playlists: Playlist[];
+  profiles: DiscoveryProfileResult[];
+  collections: DiscoveryCollectionResult[];
+  relatedHubs: {
+    genres: DiscoveryHubLink[];
+    decades: DiscoveryHubLink[];
+    franchises: DiscoveryHubLink[];
+  };
 }
 
 export interface Artist {

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { FlimAvatar } from "../components/FlimAvatar";
 import { PlaylistGrid } from "../components/PlaylistGrid";
 import { ShareAssetButton } from "../components/ShareAssetButton";
 import { followProfile, getPublicProfile, unfollowProfile } from "../services/profileService";
@@ -7,6 +8,16 @@ import type { Playlist, PublicUserProfile } from "../types";
 interface PublicProfileProps {
   handle: string;
   onNavigate: (path: string) => void;
+}
+
+function bannerPosters(profile: PublicUserProfile, playlists: Playlist[]) {
+  const preferredIds = new Set(profile.featuredPlaylistIds || []);
+  const preferred = playlists.filter((playlist) => preferredIds.has(playlist.id));
+  const sourcePlaylists = (preferred.length ? preferred : playlists).slice(0, 4);
+  const posters = sourcePlaylists.flatMap((playlist) => playlist.movies || [])
+    .map((movie) => movie.posterUrl)
+    .filter(Boolean) as string[];
+  return [...new Set(posters)].slice(0, 6);
 }
 
 export function PublicProfile({ handle, onNavigate }: PublicProfileProps) {
@@ -69,7 +80,7 @@ export function PublicProfile({ handle, onNavigate }: PublicProfileProps) {
     return (
       <section className="route-page public-profile-page">
         <div className="public-loading-card">
-          <div className="profile-avatar-placeholder" aria-hidden="true">@</div>
+          <FlimAvatar avatarKey="director" label="Loading curator profile" size="lg" />
           <div>
             <h1>Loading profile...</h1>
           </div>
@@ -108,18 +119,32 @@ export function PublicProfile({ handle, onNavigate }: PublicProfileProps) {
   const joinedAt = profile.joinedAt
     ? new Intl.DateTimeFormat(undefined, { month: "short", year: "numeric" }).format(new Date(profile.joinedAt))
     : "";
-  const avatarInitial = (profile.displayName || profile.handle).charAt(0).toUpperCase();
+  const posters = bannerPosters(profile, publicPlaylists);
+  const tasteLabel = profile.favoriteGenre ? `${profile.favoriteGenre} Curator` : "Movie Curator";
 
   return (
     <section className="route-page public-profile-page">
       <div className="public-profile-hero enhanced-profile-hero">
-        {profile.heroImageUrl ? <img className="profile-hero-image" alt="" src={profile.heroImageUrl} /> : <div className="profile-hero-gradient" aria-hidden="true" />}
+        <div className={posters.length > 0 ? "profile-taste-banner has-posters" : "profile-taste-banner"} aria-label={`${tasteLabel} banner`}>
+          <div className="profile-taste-banner-copy">
+            <span>{tasteLabel}</span>
+            <strong>{profile.favoriteMovie || featuredPlaylists[0]?.name || "Curated on Flim"}</strong>
+          </div>
+          <div className="profile-poster-collage" aria-hidden="true">
+            {posters.length > 0 ? posters.map((poster, index) => (
+              <img alt="" key={`${poster}-${index}`} src={poster} />
+            )) : (
+              <>
+                <span />
+                <span />
+                <span />
+                <span />
+              </>
+            )}
+          </div>
+        </div>
         <div className="public-profile-header">
-          {profile.profileImageUrl ? (
-            <img className="profile-avatar-image" alt={`${profile.displayName} profile`} src={profile.profileImageUrl} />
-          ) : (
-            <div className="profile-avatar-placeholder" aria-hidden="true">{avatarInitial}</div>
-          )}
+          <FlimAvatar avatarKey={profile.avatarKey} label={profile.displayName || profile.handle} size="lg" />
           <div className="public-profile-copy">
             <h1>{profile.displayName || `@${profile.handle}`}</h1>
             <p>@{profile.handle}</p>

@@ -448,6 +448,8 @@ export async function ensureUserProfilesTable(sql: any) {
       streaming_region text not null default '',
       preferred_providers jsonb not null default '[]'::jsonb,
       show_country_publicly boolean not null default false,
+      avatar_key text not null default 'director',
+      avatar_customization jsonb not null default '{}'::jsonb,
       profile_image_url text,
       hero_image_url text,
       favorite_movie text,
@@ -459,6 +461,8 @@ export async function ensureUserProfilesTable(sql: any) {
     )
   `;
   await sql`alter table user_profiles add column if not exists province_state text`;
+  await sql`alter table user_profiles add column if not exists avatar_key text not null default 'director'`;
+  await sql`alter table user_profiles add column if not exists avatar_customization jsonb not null default '{}'::jsonb`;
   await sql`alter table user_profiles add column if not exists profile_image_url text`;
   await sql`alter table user_profiles add column if not exists hero_image_url text`;
   await sql`alter table user_profiles add column if not exists favorite_movie text`;
@@ -1079,6 +1083,8 @@ export function mapUserProfile(row: any) {
     streamingRegion: row.streaming_region || "",
     preferredProviders: Array.isArray(row.preferred_providers) ? row.preferred_providers : [],
     showCountryPublicly: Boolean(row.show_country_publicly),
+    avatarKey: row.avatar_key || "director",
+    avatarCustomization: row.avatar_customization && typeof row.avatar_customization === "object" ? row.avatar_customization : {},
     profileImageUrl: row.profile_image_url || "",
     heroImageUrl: row.hero_image_url || "",
     favoriteMovie: row.favorite_movie || "",
@@ -1099,6 +1105,8 @@ export function mapPublicUserProfile(row: any) {
     displayName: row.display_name || row.handle,
     handle: row.handle,
     bio: row.bio || "",
+    avatarKey: row.avatar_key || "director",
+    avatarCustomization: row.avatar_customization && typeof row.avatar_customization === "object" ? row.avatar_customization : {},
     profileImageUrl: row.profile_image_url || "",
     heroImageUrl: row.hero_image_url || "",
     favoriteMovie: row.favorite_movie || "",
