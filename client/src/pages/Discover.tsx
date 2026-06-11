@@ -1,4 +1,5 @@
 import { useMemo, useState, type FormEvent } from "react";
+import { DiscoveryRecommendationShelf } from "../components/DiscoveryRecommendationShelf";
 import { PlaylistGrid } from "../components/PlaylistGrid";
 import { searchDiscovery } from "../services/discoveryService";
 import type { DiscoveryCollectionResult, DiscoverySearchResults, MovieSearchResult } from "../types";
@@ -128,6 +129,8 @@ export function Discover({ onNavigate }: DiscoverProps) {
       </section>
 
       {message ? <p className="error-message">{message}</p> : null}
+
+      {!results ? <DiscoveryRecommendationShelf onNavigate={onNavigate} /> : null}
 
       {results ? (
         <div className="discovery-results-stack">

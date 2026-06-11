@@ -1,4 +1,5 @@
 import { PageShell } from "../components/PageShell";
+import { DiscoveryRecommendationShelf } from "../components/DiscoveryRecommendationShelf";
 import { PlaylistGrid } from "../components/PlaylistGrid";
 import type { Playlist } from "../types";
 
@@ -69,6 +70,7 @@ export function PublicPlaylists({ onNavigate, playlists }: PublicPlaylistsProps)
       ) : null}
 
       <div className="discovery-grid">
+        <DiscoveryRecommendationShelf onNavigate={onNavigate} />
         <DiscoveryShelf title="Followed Playlists" playlists={followedPlaylists} onNavigate={onNavigate} />
         <DiscoveryShelf title="Director's Cut" playlists={flimPicks} onNavigate={onNavigate} />
         <DiscoveryShelf title="Public Playlists" playlists={discoveryPlaylists} onNavigate={onNavigate} />

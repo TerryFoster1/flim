@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { ContinueWatchingRow } from "../components/ContinueWatchingRow";
+import { DiscoveryRecommendationShelf } from "../components/DiscoveryRecommendationShelf";
 import { PlaylistGrid } from "../components/PlaylistGrid";
-import { RecommendationShelf } from "../components/RecommendationShelf";
 import { landingPosterSeeds } from "../data/landingPosterSeeds";
 import type { CurrentUser, Playlist } from "../types";
 
@@ -257,8 +257,6 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
       ) : null}
 
       {view === "my" && currentUser ? <ContinueWatchingRow onNavigate={onNavigate} /> : null}
-      {view === "my" && currentUser ? <RecommendationShelf onNavigate={onNavigate} /> : null}
-
       {showCreate ? (
         <form className="collection-create-panel" onSubmit={submit}>
           {!currentUser ? <p className="helper-text">Sign in to create playlists that belong to you.</p> : null}
@@ -285,14 +283,17 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
       ) : null}
 
       {view === "public" ? (
-        <PublicDiscovery
-          onNavigate={onNavigate}
-          playlists={sourcePlaylists}
-          query={query}
-          searchResults={visiblePlaylists}
-          visibleCount={visibleCount}
-          onLoadMore={() => setVisibleCount((count) => count + 7)}
-        />
+        <>
+          {!query.trim() ? <DiscoveryRecommendationShelf onNavigate={onNavigate} /> : null}
+          <PublicDiscovery
+            onNavigate={onNavigate}
+            playlists={sourcePlaylists}
+            query={query}
+            searchResults={visiblePlaylists}
+            visibleCount={visibleCount}
+            onLoadMore={() => setVisibleCount((count) => count + 7)}
+          />
+        </>
       ) : visiblePagePlaylists.length > 0 ? (
         <>
           <PlaylistGrid onNavigate={onNavigate} playlists={visiblePagePlaylists} />

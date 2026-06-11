@@ -1,4 +1,5 @@
-import { db, getCurrentUser, sendJson } from "./_db.js";
+import { db, ensurePlaylistFollowsTable, ensurePlaylistLikesTable, ensureUserFollowsTable, ensureUserProfilesTable, getCurrentUser, mapPlaylist, sendJson } from "./_db.js";
+import { getCuratorDiscovery } from "./_curators.js";
 import { ensureMediaCatalogTables } from "./_mediaCatalog.js";
 
 type RecommendationRow = {
@@ -51,6 +52,29 @@ function mapRecommendation(row: RecommendationRow) {
     sourceType: row.source_type,
     sourceId: row.source_id,
     score: Number(row.score || 0),
+  };
+}
+
+function decoratePlaylistRecommendation(row: any) {
+  const playlist = mapPlaylist(row, row.movies || []);
+  return {
+    ...playlist,
+    recommendationReason: row.reason || "Recommended for playlist discovery.",
+    sourceType: row.source_type || "playlist_discovery",
+    score: Number(row.score || 0),
+  };
+}
+
+function decorateCuratorRecommendation(curator: any, index: number) {
+  const genres = Array.isArray(curator.favoriteGenres) ? curator.favoriteGenres : [];
+  const genreReason = genres.length ? `Because this curator specializes in ${genres.slice(0, 2).join(" and ")} playlists.` : "";
+  const followerReason = curator.stats?.playlistFollowerCount > 0
+    ? "Because people are following this curator's playlists."
+    : "";
+  return {
+    ...curator,
+    recommendationReason: genreReason || followerReason || "Because this curator has public playlists worth browsing.",
+    sourceType: index === 0 ? "featured_curator" : "curator_discovery",
   };
 }
 
@@ -391,6 +415,158 @@ async function getRecommendations(sql: any, userId: string) {
   return rows as RecommendationRow[];
 }
 
+async function getPlaylistRecommendations(sql: any, userId: string, limit = 18) {
+  await ensureUserProfilesTable(sql);
+  await ensurePlaylistFollowsTable(sql);
+  await ensurePlaylistLikesTable(sql);
+  await ensureUserFollowsTable(sql);
+
+  const rows = await sql`
+    with user_playlist_terms as (
+      select distinct lower(term) as term
+      from (
+        select unnest(regexp_split_to_array(coalesce(p.name, '') || ' ' || coalesce(p.description, ''), '\s+')) as term
+        from playlists p
+        where p.owner_user_id = ${userId}
+
+        union all
+
+        select unnest(regexp_split_to_array(
+          coalesce(pm.title, '') || ' ' || coalesce((
+            select string_agg(value, ' ')
+            from jsonb_array_elements_text(coalesce(pm.genres, '[]'::jsonb)) as value
+          ), ''),
+          '\s+'
+        )) as term
+        from playlists p
+        inner join playlist_movies pm on pm.playlist_id = p.id
+        where p.owner_user_id = ${userId}
+
+        union all
+
+        select unnest(regexp_split_to_array(coalesce(fp.name, '') || ' ' || coalesce(fp.description, ''), '\s+')) as term
+        from playlist_follows pf
+        inner join playlists fp on fp.id = pf.playlist_id
+        where pf.follower_user_id = ${userId}
+      ) raw_terms
+      where length(term) > 3
+        and term not in ('movie', 'movies', 'show', 'shows', 'playlist', 'watch', 'best', 'with', 'from', 'that', 'this')
+      limit 80
+    ),
+    playlist_metrics as (
+      select
+        p.*,
+        up.handle as creator_handle,
+        coalesce(
+          nullif(up.display_name, ''),
+          nullif(initcap(trim(regexp_replace(split_part(u.email, '@', 1), '[^a-zA-Z0-9]+', ' ', 'g'))), '')
+        ) as creator_display_name,
+        false as is_owner,
+        false as expose_shared_slug,
+        (
+          select count(*)::int
+          from playlist_follows pf
+          where pf.playlist_id = p.id
+        ) as follower_count,
+        (
+          select count(*)::int
+          from playlist_likes pl
+          where pl.playlist_id = p.id
+        ) as like_count,
+        exists (
+          select 1
+          from playlist_follows my_pf
+          where my_pf.playlist_id = p.id
+            and my_pf.follower_user_id = ${userId}
+        ) as is_following,
+        exists (
+          select 1
+          from playlist_likes my_pl
+          where my_pl.playlist_id = p.id
+            and my_pl.user_id = ${userId}
+        ) as is_liked,
+        exists (
+          select 1
+          from user_follows uf
+          where uf.follower_user_id = ${userId}
+            and uf.followed_user_id = p.owner_user_id
+        ) as follows_creator,
+        coalesce(
+          json_agg(pm order by coalesce(pm.sort_order, 2147483647), pm.added_at desc) filter (where pm.id is not null),
+          '[]'
+        ) as movies,
+        count(distinct matched_terms.term)::int as term_matches
+      from playlists p
+      left join user_profiles up on up.user_id = p.owner_user_id::text
+      left join users u on u.id = p.owner_user_id
+      left join playlist_movies pm on pm.playlist_id = p.id
+      left join user_playlist_terms matched_terms
+        on lower(
+          coalesce(p.name, '') || ' ' ||
+          coalesce(p.description, '') || ' ' ||
+          coalesce(pm.title, '') || ' ' ||
+          coalesce((
+            select string_agg(value, ' ')
+            from jsonb_array_elements_text(coalesce(pm.genres, '[]'::jsonb)) as value
+          ), '')
+        ) like '%' || matched_terms.term || '%'
+      where p.visibility = 'public'
+        and p.owner_user_id <> ${userId}
+        and not exists (
+          select 1
+          from playlist_follows existing_follow
+          where existing_follow.playlist_id = p.id
+            and existing_follow.follower_user_id = ${userId}
+        )
+        and not (
+          lower(p.name) like '%codex vercel curl add test%'
+          or lower(p.name) like '%temporary production verification%'
+          or lower(p.name) like '%production verification playlist%'
+        )
+      group by p.id, up.handle, up.display_name, u.email
+    ),
+    ranked as (
+      select
+        *,
+        case
+          when follows_creator then 'Because you follow this curator.'
+          when term_matches > 0 then 'Because this matches playlists and titles you already save.'
+          when follower_count > 0 then 'Popular with playlist followers.'
+          when like_count > 0 then 'Liked by Flim users.'
+          else 'A public playlist worth browsing.'
+        end as reason,
+        case
+          when follows_creator then 'followed_curator'
+          when term_matches > 0 then 'playlist_taste_match'
+          when follower_count > 0 or like_count > 0 then 'playlist_popularity'
+          else 'playlist_discovery'
+        end as source_type,
+        (
+          term_matches * 18
+          + case when follows_creator then 45 else 0 end
+          + follower_count * 3
+          + like_count * 4
+          + least(jsonb_array_length(coalesce(movies::jsonb, '[]'::jsonb)), 30)
+        )::numeric as score
+      from playlist_metrics
+    )
+    select *
+    from ranked
+    order by score desc, updated_at desc
+    limit ${limit}
+  `;
+
+  return rows.map(decoratePlaylistRecommendation);
+}
+
+async function getCuratorRecommendations(sql: any, userId: string, limit = 18) {
+  const feed = await getCuratorDiscovery(sql, userId, "");
+  return feed.sections.topCurators
+    .filter((curator: any) => !curator.isFollowing)
+    .slice(0, limit)
+    .map(decorateCuratorRecommendation);
+}
+
 async function getTitleRecommendations(sql: any, mediaType: "movie" | "tv", tmdbId: number, userId: string | null) {
   const rows = await sql`
     with source_title as (
@@ -581,10 +757,30 @@ export default async function handler(request: any, response: any) {
     if (!user) return sendJson(response, 401, { error: "Sign in to get recommendations." });
 
     const rows = await getRecommendations(sql, user.id);
+    const playlistRows = await getPlaylistRecommendations(sql, user.id, 18).catch((error) => {
+      console.error("playlist_recommendations_failed", error instanceof Error ? error.message : "Playlist recommendations failed.");
+      return [];
+    });
+    const curatorRows = await getCuratorRecommendations(sql, user.id, 18).catch((error) => {
+      console.error("curator_recommendations_failed", error instanceof Error ? error.message : "Curator recommendations failed.");
+      return [];
+    });
     await storeRecommendations(sql, user.id, rows);
 
     return sendJson(response, 200, {
       recommendations: rows.map(mapRecommendation),
+      playlistRecommendations: playlistRows,
+      curatorRecommendations: curatorRows,
+      architecture: {
+        primary: ["playlists", "curators"],
+        future: ["collections", "now_watching"],
+        supporting: ["titles"],
+      },
+      limits: {
+        playlists: 6,
+        curators: 6,
+        titles: 12,
+      },
     });
   } catch (error) {
     console.error("recommendations_failed", error instanceof Error ? error.message : "Recommendations failed.");

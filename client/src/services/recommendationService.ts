@@ -1,4 +1,4 @@
-import type { PlaylistMovie } from "../types";
+import type { CuratorDiscoveryProfile, Playlist, PlaylistMovie } from "../types";
 
 async function recommendationRequest<T>(path: string): Promise<T> {
   const response = await fetch(path, {
@@ -15,6 +15,33 @@ interface RecommendationRequestOptions {
   tmdbId?: number;
 }
 
+export interface RecommendedPlaylist extends Playlist {
+  recommendationReason?: string;
+  sourceType?: string;
+  score?: number;
+}
+
+export interface RecommendedCurator extends CuratorDiscoveryProfile {
+  recommendationReason?: string;
+  sourceType?: string;
+}
+
+export interface RecommendationResponse {
+  recommendations: PlaylistMovie[];
+  playlistRecommendations?: RecommendedPlaylist[];
+  curatorRecommendations?: RecommendedCurator[];
+  architecture?: {
+    primary: string[];
+    future: string[];
+    supporting: string[];
+  };
+  limits?: {
+    playlists: number;
+    curators: number;
+    titles: number;
+  };
+}
+
 export function getRecommendations(options: RecommendationRequestOptions = {}) {
   const params = new URLSearchParams();
   if (options.mediaType && Number.isFinite(options.tmdbId)) {
@@ -22,5 +49,5 @@ export function getRecommendations(options: RecommendationRequestOptions = {}) {
     params.set("tmdbId", String(options.tmdbId));
   }
   const query = params.toString();
-  return recommendationRequest<{ recommendations: PlaylistMovie[] }>(`/api/recommendations${query ? `?${query}` : ""}`);
+  return recommendationRequest<RecommendationResponse>(`/api/recommendations${query ? `?${query}` : ""}`);
 }
