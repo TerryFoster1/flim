@@ -18,6 +18,7 @@ import {
 import { MovieDetailsPage } from "./pages/MovieDetails";
 import { ActorDetailsPage } from "./pages/ActorDetails";
 import { CollectionDetailsPage } from "./pages/CollectionDetails";
+import { HallOfFame } from "./pages/HallOfFame";
 import { SeasonalChallenges } from "./pages/SeasonalChallenges";
 import { PlaylistDetails } from "./pages/PlaylistDetails";
 import { Playlists } from "./pages/Playlists";
@@ -57,6 +58,7 @@ function routeFromPath(pathname = window.location.pathname): RouteState {
   if (pathname.startsWith("/actor/")) return { route: "/actor/:id", actorId: pathname.split("/")[2] };
   if (pathname.startsWith("/collection/")) return { route: "/collection/:id", collectionId: pathname.split("/")[2] };
   if (pathname === "/challenges") return { route: "/challenges" };
+  if (pathname === "/hall-of-fame") return { route: "/hall-of-fame" };
   if (pathname === "/public" || pathname === "/public-playlists") return { route: "/public" };
   if (pathname === "/roulette") return { route: "/" };
   if (pathname === "/profile") return { route: "/profile" };
@@ -300,6 +302,7 @@ export default function App() {
     "/actor/:id": <ActorDetailsPage actorId={Number(routeState.actorId)} onNavigate={navigate} />,
     "/collection/:id": <CollectionDetailsPage collectionId={routeState.collectionId || ""} onNavigate={navigate} />,
     "/challenges": <SeasonalChallenges onNavigate={navigate} />,
+    "/hall-of-fame": <HallOfFame onNavigate={navigate} />,
     "/public": playlistsPage("public"),
     "/roulette": playlistsPage("my"),
     "/profile": <Profile onNavigate={navigate} playlists={displayPlaylists} />,

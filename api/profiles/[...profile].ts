@@ -25,6 +25,7 @@ import {
 import { getAchievementSummary } from "../_achievements.js";
 import { challengeSummaryForUser } from "../_challenges.js";
 import { seasonalChallengeSummaryForUser } from "../_seasonalChallenges.js";
+import { hallOfFameSummaryForUser } from "../_hallOfFame.js";
 import { directorHandle, ensureDirectorSeed } from "../_director.js";
 
 const defaultProfile = {
@@ -501,16 +502,18 @@ export default async function handler(request: any, response: any) {
     `;
     if (!rows[0]) return sendJson(response, 404, { error: "Profile not found." });
 
-    const [achievementSummary, challengeSummary, seasonalChallengeSummary] = await Promise.all([
+    const [achievementSummary, challengeSummary, seasonalChallengeSummary, hallOfFameSummary] = await Promise.all([
       getAchievementSummary(sql, String(rows[0].user_id)),
       challengeSummaryForUser(sql, String(rows[0].user_id)),
       seasonalChallengeSummaryForUser(sql, String(rows[0].user_id)),
+      hallOfFameSummaryForUser(sql, String(rows[0].user_id)),
     ]);
     return sendJson(response, 200, mapPublicUserProfile({
       ...rows[0],
       achievement_summary: achievementSummary,
       challenge_summary: challengeSummary,
       seasonal_challenge_summary: seasonalChallengeSummary,
+      hall_of_fame_summary: hallOfFameSummary,
     }));
   } catch (error) {
     return sendJson(response, 500, { error: error instanceof Error ? error.message : "Profile request failed." });

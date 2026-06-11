@@ -103,6 +103,7 @@ export function PublicProfile({ handle, onNavigate }: PublicProfileProps) {
   const seasonalBadgeCount = profile.seasonalChallenges?.seasonalBadgeCount || 0;
   const seasonalPoints = profile.seasonalChallenges?.seasonalPoints || 0;
   const seasonalBadges = profile.seasonalChallenges?.featuredBadges || [];
+  const hallOfFame = profile.hallOfFame;
   const recentlyUpdated = [...publicPlaylists].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
   const mostFollowed = [...publicPlaylists].sort((a, b) => (b.followerCount || 0) - (a.followerCount || 0));
   const featuredPlaylists = mostFollowed.slice(0, 3);
@@ -141,6 +142,7 @@ export function PublicProfile({ handle, onNavigate }: PublicProfileProps) {
               <span><strong>{challengePoints}</strong> Challenge Points</span>
               <span><strong>{seasonalBadgeCount}</strong> Seasonal {seasonalBadgeCount === 1 ? "Badge" : "Badges"}</span>
               <span><strong>{seasonalPoints}</strong> Seasonal Points</span>
+              {hallOfFame?.bestRank ? <span><strong>#{hallOfFame.bestRank}</strong> Hall of Fame</span> : null}
             </div>
             <div className="public-profile-actions">
               {profile.isOwnProfile ? (
@@ -183,6 +185,17 @@ export function PublicProfile({ handle, onNavigate }: PublicProfileProps) {
                     <small>{badge.points || 0} seasonal pts</small>
                   </span>
                 ))}
+              </div>
+            ) : null}
+            {hallOfFame && hallOfFame.appearanceCount > 0 ? (
+              <div className="profile-hall-card">
+                <div>
+                  <strong>{hallOfFame.appearanceCount} Hall of Fame {hallOfFame.appearanceCount === 1 ? "appearance" : "appearances"}</strong>
+                  <small>{hallOfFame.bestCategory ? `Best rank: #${hallOfFame.bestRank} in ${hallOfFame.bestCategory}` : "Ranked Flim activity"}</small>
+                </div>
+                <button className="secondary-button" onClick={() => onNavigate("/hall-of-fame")} type="button">
+                  View Rankings
+                </button>
               </div>
             ) : null}
           </div>

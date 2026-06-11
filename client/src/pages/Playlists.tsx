@@ -338,6 +338,15 @@ function PublicDiscovery({
 
   return (
     <div className="discovery-grid">
+      <section className="hall-discovery-callout">
+        <div>
+          <h2>Hall of Fame</h2>
+          <p>See top curators, collectors, trivia players, and challenge finishers.</p>
+        </div>
+        <button className="secondary-button" onClick={() => onNavigate("/hall-of-fame")} type="button">
+          View Rankings
+        </button>
+      </section>
       <CollectionDiscoveryShelf collections={collections} onNavigate={onNavigate} />
       {seasonalTheme ? <p className="seasonal-discovery-banner">{seasonalTheme.bannerText}</p> : null}
       <SeasonalChallengeShelf events={themedSeasonalChallenges} onNavigate={onNavigate} />

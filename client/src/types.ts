@@ -10,6 +10,7 @@ export type AppRoute =
   | "/actor/:id"
   | "/collection/:id"
   | "/challenges"
+  | "/hall-of-fame"
   | "/public"
   | "/roulette"
   | "/upcoming"
@@ -658,7 +659,60 @@ export interface PublicUserProfile {
     featuredBadges: CollectionChallengeBadge[];
     recentUnlocks: CollectionChallengeBadge[];
   };
+  hallOfFame?: {
+    appearanceCount: number;
+    bestRank?: number | null;
+    bestCategory?: string;
+    positions: Array<{
+      categoryId: string;
+      title: string;
+      rank: number;
+      score: number;
+      unit: string;
+    }>;
+  };
   publicPlaylists?: Playlist[];
+}
+
+export type HallOfFameWindow = "all_time" | "year" | "month" | "week";
+
+export interface HallOfFameCategory {
+  id: string;
+  title: string;
+  description: string;
+  unit: string;
+  group: "prestige" | "watching" | "curators";
+}
+
+export interface HallOfFameEntry {
+  userId: string;
+  rank: number;
+  score: number;
+  secondaryScore: number;
+  displayName: string;
+  handle: string;
+  profileImageUrl?: string;
+  achievementPoints: number;
+  badgeCount: number;
+  topBadge?: {
+    id: string;
+    name: string;
+    description: string;
+    rarity: string;
+    points: number;
+  };
+}
+
+export interface HallOfFameLeaderboard extends HallOfFameCategory {
+  entries: HallOfFameEntry[];
+}
+
+export interface HallOfFameFeed {
+  window: HallOfFameWindow;
+  windowStart?: string | null;
+  generatedAt: string;
+  categories: HallOfFameCategory[];
+  leaderboards: Record<string, HallOfFameLeaderboard>;
 }
 
 export interface DiscoveryProfileResult {

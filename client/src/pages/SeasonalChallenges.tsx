@@ -140,6 +140,9 @@ export function SeasonalChallenges({ onNavigate }: SeasonalChallengesProps) {
       <div className="page-heading">
         <h1>Seasonal Challenges</h1>
         <p>Limited-time movie goals, exclusive badges, and reasons to come back throughout the year.</p>
+        <button className="secondary-button hall-inline-link" onClick={() => onNavigate("/hall-of-fame")} type="button">
+          View Hall of Fame
+        </button>
       </div>
       {actionError ? <p className="error-message">{actionError}</p> : null}
 
