@@ -18,6 +18,8 @@ Documents:
 - `future-features.md` - Explicit future feature parking lot.
 - `roulette-system.md` - Movie Night Roulette architecture planning.
 - `streaming-provider-strategy.md` - Provider availability, logos, links, and country-specific planning.
+- `affiliate-api-foundation.md` - Future provider-link affiliate routing and public API versioning preparation.
+- `commercial-alerts-architecture.md` - Future ticket affiliates, TV release alert gaps, and native playlist ad architecture.
 - `movie-cache-strategy.md` - Cache-first TMDb import strategy and future Flim media database rules.
 - `plex-integration.md` - Plex library, matching, and remote playback planning.
 - `playlist-sharing-system.md` - Sharing, saving, cloning, and collaboration planning.

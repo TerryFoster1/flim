@@ -4,7 +4,7 @@
 
 V1 foundation implemented.
 
-This phase detects changes and records durable events. It does not deliver push, email, SMS, or Plex alerts.
+This phase detects changes and records durable events. In-app notification fanout and Web Push plumbing exist in the app, but email, SMS, Plex alerts, ticket alerts, and precise episode-level release imports remain deferred.
 
 ## Purpose
 
@@ -25,7 +25,7 @@ provider availability cache
 manual/scheduled normalized snapshot
 compare state
 release_events
-future delivery fanout
+notification fanout
 ```
 
 External APIs should be used only by scheduled import/check jobs when cached data is stale. Detail pages should not repeatedly call TMDb or provider APIs just to decide whether something changed.
@@ -92,6 +92,14 @@ Current detection supports:
 - `episode_released`
 - `season_data_changed`
 
+## Current Alert Coverage
+
+- Movie theater release alerts: partially implemented through release-date/status events and follower notification preferences.
+- Advance ticket availability: not implemented; future schema is documented in `commercial-alerts-architecture.md`.
+- Streaming release alerts: partially implemented through provider hash changes from the provider cache.
+- TV season release alerts: partially implemented through season count, release date, and season data changes.
+- TV episode release alerts: partially implemented through episode count changes; precise episode dates require future season/episode refresh jobs.
+
 ## API
 
 `POST /api/release-intelligence`
@@ -140,10 +148,10 @@ Avoid broad catalog polling. Prioritize titles that at least one user follows.
 
 ## Deferred
 
-- Push delivery.
 - Email delivery.
 - SMS.
 - Plex library matching.
-- Full TV episode tracking.
-- Provider API polling jobs.
+- Ticket availability imports and ticket affiliate links.
+- Precise TV season/episode release import jobs.
+- Provider API polling jobs beyond configured cache refreshes.
 - Public upcoming-release SEO pages.
