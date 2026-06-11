@@ -4106,6 +4106,61 @@ textarea { min-height: 42px; resize: vertical; }
   gap: 12px;
   margin-top: 14px;
 }
+.companion-progress-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  border: 1px solid rgba(255, 184, 77, 0.18);
+  border-radius: 14px;
+  padding: 12px;
+  background:
+    radial-gradient(circle at 12% 0%, rgba(255, 184, 77, 0.14), transparent 12rem),
+    rgba(255, 255, 255, 0.045);
+}
+.companion-progress-card div {
+  display: grid;
+  gap: 3px;
+}
+.companion-progress-card strong {
+  color: #fff5dc;
+  font-size: 1rem;
+}
+.companion-progress-card span {
+  color: var(--muted);
+  font-size: .88rem;
+  font-weight: 750;
+}
+.achievement-pill {
+  border: 1px solid rgba(255, 184, 77, 0.28);
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: rgba(255, 184, 77, 0.1);
+  color: #ffe2a6;
+  font-size: .8rem;
+  font-weight: 900;
+}
+.achievement-pill.is-unlocked {
+  border-color: rgba(255, 109, 168, 0.42);
+  background: linear-gradient(135deg, rgba(255, 184, 77, 0.22), rgba(255, 79, 109, 0.18));
+  color: #fff5dc;
+}
+.achievement-unlock-card {
+  display: grid;
+  gap: 4px;
+  border: 1px solid rgba(98, 240, 171, 0.24);
+  border-radius: 14px;
+  padding: 12px;
+  background: rgba(98, 240, 171, 0.08);
+}
+.achievement-unlock-card strong {
+  color: #c9ffd9;
+}
+.achievement-unlock-card span {
+  color: var(--text);
+  font-weight: 850;
+}
 .trivia-question-card {
   display: grid;
   gap: 12px;
@@ -4161,6 +4216,10 @@ textarea { min-height: 42px; resize: vertical; }
   border-color: rgba(255, 79, 109, 0.6);
   background: rgba(255, 79, 109, 0.13);
 }
+.trivia-option.is-completed {
+  border-color: rgba(98, 240, 171, 0.5);
+  box-shadow: inset 0 0 0 1px rgba(98, 240, 171, 0.15);
+}
 .trivia-feedback {
   margin: 0;
   color: var(--muted);
@@ -4194,6 +4253,47 @@ textarea { min-height: 42px; resize: vertical; }
   margin: 0;
   color: #ffe7b8;
   font-size: .88rem;
+}
+.companion-completion-status {
+  margin: 0;
+  color: #c9ffd9;
+  font-size: .88rem;
+  font-weight: 850;
+}
+.easter-egg-section {
+  display: grid;
+  gap: 12px;
+}
+.easter-egg-card {
+  display: grid;
+  gap: 10px;
+  border: 1px solid rgba(255, 184, 77, 0.14);
+  border-radius: 14px;
+  padding: 14px;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(255, 109, 168, 0.11), transparent 12rem),
+    rgba(255, 255, 255, 0.045);
+}
+.easter-egg-card.is-completed {
+  border-color: rgba(98, 240, 171, 0.34);
+  background:
+    radial-gradient(circle at 100% 0%, rgba(98, 240, 171, 0.12), transparent 12rem),
+    rgba(255, 255, 255, 0.05);
+}
+.easter-egg-card p {
+  margin: 0;
+  color: var(--muted);
+}
+.hunt-hint {
+  border-left: 2px solid rgba(255, 184, 77, 0.38);
+  padding-left: 10px;
+  color: #ffe7b8 !important;
+}
+.hunt-action-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 .roulette-card { border-color: rgba(255,79,109,.2); }
 .title-rating-panel {

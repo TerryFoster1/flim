@@ -489,6 +489,114 @@ export async function ensureTriviaTables(sql: any) {
   `;
   await sql`create index if not exists title_trivia_reports_trivia_idx on title_trivia_reports (trivia_id, created_at desc)`;
   await sql`create index if not exists title_trivia_reports_reason_idx on title_trivia_reports (reason)`;
+
+  await sql`
+    create table if not exists title_easter_eggs (
+      id uuid primary key default gen_random_uuid(),
+      tmdb_id integer not null,
+      media_type text not null check (media_type in ('movie', 'tv')),
+      source_hash text not null,
+      title text not null,
+      prompt text not null,
+      hint text,
+      answer text not null,
+      difficulty text not null default 'easy',
+      spoiler_level text not null default 'minor',
+      source_urls jsonb not null default '[]'::jsonb,
+      source_labels jsonb not null default '[]'::jsonb,
+      confidence numeric not null default 0.8,
+      status text not null default 'auto_generated',
+      report_count integer not null default 0,
+      created_at timestamptz not null default now(),
+      updated_at timestamptz not null default now()
+    )
+  `;
+  await sql`create unique index if not exists title_easter_eggs_media_source_prompt_unique on title_easter_eggs (media_type, tmdb_id, source_hash, prompt)`;
+  await sql`create index if not exists title_easter_eggs_media_status_idx on title_easter_eggs (media_type, tmdb_id, status)`;
+
+  await sql`
+    create table if not exists title_easter_egg_reports (
+      id uuid primary key default gen_random_uuid(),
+      easter_egg_id uuid not null references title_easter_eggs(id) on delete cascade,
+      user_id uuid references users(id) on delete set null,
+      reason text not null,
+      created_at timestamptz not null default now()
+    )
+  `;
+  await sql`create index if not exists title_easter_egg_reports_hunt_idx on title_easter_egg_reports (easter_egg_id, created_at desc)`;
+
+  await sql`
+    create table if not exists user_trivia_progress (
+      id uuid primary key default gen_random_uuid(),
+      user_id uuid not null references users(id) on delete cascade,
+      trivia_id uuid not null references title_trivia(id) on delete cascade,
+      tmdb_id integer not null,
+      media_type text not null check (media_type in ('movie', 'tv')),
+      completed_at timestamptz not null default now(),
+      created_at timestamptz not null default now()
+    )
+  `;
+  await sql`create unique index if not exists user_trivia_progress_user_trivia_unique on user_trivia_progress (user_id, trivia_id)`;
+  await sql`create index if not exists user_trivia_progress_user_title_idx on user_trivia_progress (user_id, media_type, tmdb_id)`;
+
+  await sql`
+    create table if not exists user_easter_egg_progress (
+      id uuid primary key default gen_random_uuid(),
+      user_id uuid not null references users(id) on delete cascade,
+      easter_egg_id uuid not null references title_easter_eggs(id) on delete cascade,
+      tmdb_id integer not null,
+      media_type text not null check (media_type in ('movie', 'tv')),
+      completed_at timestamptz not null default now(),
+      created_at timestamptz not null default now()
+    )
+  `;
+  await sql`create unique index if not exists user_easter_egg_progress_user_hunt_unique on user_easter_egg_progress (user_id, easter_egg_id)`;
+  await sql`create index if not exists user_easter_egg_progress_user_title_idx on user_easter_egg_progress (user_id, media_type, tmdb_id)`;
+
+  await sql`
+    create table if not exists achievements (
+      id text primary key,
+      name text not null,
+      description text not null,
+      badge_icon text not null default 'star',
+      category text not null default 'companion',
+      goal_count integer not null default 1,
+      metadata jsonb not null default '{}'::jsonb,
+      created_at timestamptz not null default now(),
+      updated_at timestamptz not null default now()
+    )
+  `;
+
+  await sql`
+    create table if not exists user_achievements (
+      id uuid primary key default gen_random_uuid(),
+      user_id uuid not null references users(id) on delete cascade,
+      achievement_id text not null references achievements(id) on delete cascade,
+      progress_count integer not null default 0,
+      goal_count integer not null default 1,
+      unlocked_at timestamptz,
+      created_at timestamptz not null default now(),
+      updated_at timestamptz not null default now()
+    )
+  `;
+  await sql`create unique index if not exists user_achievements_user_achievement_unique on user_achievements (user_id, achievement_id)`;
+  await sql`create index if not exists user_achievements_user_unlocked_idx on user_achievements (user_id, unlocked_at desc)`;
+
+  await sql`
+    insert into achievements (id, name, description, badge_icon, category, goal_count, metadata)
+    values
+      ('movie_detective', 'Movie Detective', 'Complete 10 trivia questions.', 'detective', 'trivia', 10, '{}'::jsonb),
+      ('easter_egg_hunter', 'Easter Egg Hunter', 'Complete 5 Easter Egg Hunts.', 'egg', 'easter_egg', 5, '{}'::jsonb),
+      ('back_to_the_future_expert', 'Back to the Future Expert', 'Complete every available trivia question and Easter Egg Hunt for Back to the Future.', 'clock', 'title', 1, '{"mediaType":"movie","tmdbId":105}'::jsonb)
+    on conflict (id) do update set
+      name = excluded.name,
+      description = excluded.description,
+      badge_icon = excluded.badge_icon,
+      category = excluded.category,
+      goal_count = excluded.goal_count,
+      metadata = excluded.metadata,
+      updated_at = now()
+  `;
 }
 
 export async function ensureNotificationsTable(sql: any) {

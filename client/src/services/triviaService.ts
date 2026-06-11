@@ -1,4 +1,4 @@
-import type { MediaType, TriviaFeed, TriviaReportReason } from "../types";
+import type { CompanionAchievement, CompanionProgress, MediaType, TriviaFeed, TriviaReportReason } from "../types";
 
 async function parseJson<T>(response: Response): Promise<T> {
   const payload = await response.json().catch(() => ({}));
@@ -25,4 +25,29 @@ export async function reportTriviaQuestion(triviaId: string, reason: TriviaRepor
     body: JSON.stringify({ triviaId, reason }),
   });
   return parseJson<{ ok: boolean; reportCount: number; status: string }>(response);
+}
+
+export async function reportEasterEggHunt(easterEggId: string, reason: TriviaReportReason) {
+  const response = await fetch("/api/trivia/report", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ easterEggId, reason }),
+  });
+  return parseJson<{ ok: boolean; reportCount: number; status: string }>(response);
+}
+
+export async function completeCompanionItem(itemType: "trivia" | "easter_egg", itemId: string) {
+  const response = await fetch("/api/trivia/complete", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ itemType, itemId }),
+  });
+  return parseJson<{
+    ok: boolean;
+    itemType: "trivia" | "easter_egg";
+    itemId: string;
+    progress: CompanionProgress;
+    achievements: CompanionAchievement[];
+    unlockedAchievements: CompanionAchievement[];
+  }>(response);
 }

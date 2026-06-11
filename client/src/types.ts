@@ -548,8 +548,48 @@ export interface TriviaQuestion {
   confidence: number;
   status: string;
   reportCount: number;
+  completed?: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface EasterEggHunt {
+  id: string;
+  tmdbId: number;
+  mediaType: MediaType;
+  title: string;
+  prompt: string;
+  hint: string;
+  answer: string;
+  difficulty: "easy" | "medium" | "hard";
+  spoilerLevel: "none" | "minor" | "major";
+  sourceUrls: string[];
+  sourceLabels: string[];
+  confidence: number;
+  status: string;
+  reportCount: number;
+  completed: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CompanionAchievement {
+  id: string;
+  name: string;
+  description: string;
+  badgeIcon: string;
+  category: string;
+  goalCount?: number;
+  progressCount?: number;
+  unlockedAt?: string;
+}
+
+export interface CompanionProgress {
+  triviaCompleted: number;
+  triviaTotal: number;
+  easterEggsCompleted: number;
+  easterEggsTotal: number;
+  completionPercent: number;
 }
 
 export interface TriviaFeed {
@@ -558,6 +598,11 @@ export interface TriviaFeed {
   availabilityKnown: boolean;
   source: "cache" | "tmdb_metadata" | "none";
   questions: TriviaQuestion[];
+  easterEggs?: EasterEggHunt[];
+  progress?: CompanionProgress;
+  achievements?: CompanionAchievement[];
+  unlockedAchievements?: CompanionAchievement[];
+  authenticated?: boolean;
   notes: string;
 }
 
