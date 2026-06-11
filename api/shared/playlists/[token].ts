@@ -25,7 +25,9 @@ export default async function handler(request: any, response: any) {
           true as expose_shared_slug,
           'shared' as access_mode,
           0 as follower_count,
+          0 as like_count,
           false as is_following,
+          false as is_liked,
           coalesce(
             json_agg(pm order by coalesce(pm.sort_order, 2147483647), pm.added_at desc) filter (where pm.id is not null),
             '[]'

@@ -680,6 +680,8 @@ export interface Playlist {
   accessMode?: "owner" | "private" | "shared" | "public";
   isFollowing?: boolean;
   followerCount?: number;
+  isLiked?: boolean;
+  likeCount?: number;
   createdAt: string;
   updatedAt: string;
   clonedFromId?: string;

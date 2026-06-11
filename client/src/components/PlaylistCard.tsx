@@ -11,6 +11,7 @@ export function PlaylistCard({ playlist, large, onNavigate }: PlaylistCardProps)
   const isDirectorPlaylist = playlist.creatorHandle === "the-director" || playlist.creatorDisplayName === "The Director";
   const detailPath = playlist.visibility === "public" && !playlist.isOwner ? `/p/${playlist.publicSlug}` : `/playlists/${playlist.id}`;
   const followerCount = playlist.followerCount || 0;
+  const likeCount = playlist.likeCount || 0;
   const titleCountLabel = `${playlist.movies.length} ${playlist.movies.length === 1 ? "title" : "titles"}`;
   const creatorLabel = isDirectorPlaylist
     ? "Curated by The Director"
@@ -44,6 +45,7 @@ export function PlaylistCard({ playlist, large, onNavigate }: PlaylistCardProps)
           {playlist.visibility !== "public" ? <span>{playlist.visibility}</span> : null}
           <span>{titleCountLabel}</span>
           {playlist.visibility === "public" ? <span>{followerCount} {followerCount === 1 ? "follower" : "followers"}</span> : null}
+          {playlist.visibility === "public" ? <span>{likeCount} {likeCount === 1 ? "like" : "likes"}</span> : null}
           {playlist.isFollowing ? <span>Following</span> : null}
           {creatorLabel ? <span>{creatorLabel}</span> : null}
           {updatedLabel ? <span>{updatedLabel}</span> : null}

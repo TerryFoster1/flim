@@ -1,4 +1,4 @@
-import { db, ensurePlaylistFollowsTable, ensureUserProfilesTable, getCurrentUser, mapPlaylist, sendJson } from "../../_db.js";
+import { db, ensurePlaylistFollowsTable, ensurePlaylistLikesTable, ensureUserProfilesTable, getCurrentUser, mapPlaylist, sendJson } from "../../_db.js";
 import { ensureDirectorSeed } from "../../_director.js";
 
 export default async function handler(request: any, response: any) {
@@ -8,6 +8,7 @@ export default async function handler(request: any, response: any) {
     const sql = db();
     await ensureUserProfilesTable(sql);
     await ensurePlaylistFollowsTable(sql);
+    await ensurePlaylistLikesTable(sql);
     const user = await getCurrentUser(sql, request);
 
     if (request.method === "GET") {
@@ -29,6 +30,11 @@ export default async function handler(request: any, response: any) {
             from playlist_follows pf
             where pf.playlist_id = p.id
           ) as follower_count,
+          (
+            select count(*)::int
+            from playlist_likes pl
+            where pl.playlist_id = p.id
+          ) as like_count,
           exists (
             select 1
             from playlist_follows my_pf
@@ -36,6 +42,13 @@ export default async function handler(request: any, response: any) {
               and ${user?.id || null}::uuid is not null
               and my_pf.follower_user_id = ${user?.id || null}::uuid
           ) as is_following,
+          exists (
+            select 1
+            from playlist_likes my_pl
+            where my_pl.playlist_id = p.id
+              and ${user?.id || null}::uuid is not null
+              and my_pl.user_id = ${user?.id || null}::uuid
+          ) as is_liked,
           coalesce(
             json_agg(pm order by coalesce(pm.sort_order, 2147483647), pm.added_at desc) filter (where pm.id is not null),
             '[]'

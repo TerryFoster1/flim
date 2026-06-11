@@ -69,6 +69,20 @@ function byFollowerCount(playlists: Playlist[]) {
   return [...playlists].sort((a, b) => {
     const followerDelta = (b.followerCount || 0) - (a.followerCount || 0);
     if (followerDelta !== 0) return followerDelta;
+    const likeDelta = (b.likeCount || 0) - (a.likeCount || 0);
+    if (likeDelta !== 0) return likeDelta;
+    const titleDelta = b.movies.length - a.movies.length;
+    if (titleDelta !== 0) return titleDelta;
+    return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+  });
+}
+
+function byLikeCount(playlists: Playlist[]) {
+  return [...playlists].sort((a, b) => {
+    const likeDelta = (b.likeCount || 0) - (a.likeCount || 0);
+    if (likeDelta !== 0) return likeDelta;
+    const followerDelta = (b.followerCount || 0) - (a.followerCount || 0);
+    if (followerDelta !== 0) return followerDelta;
     const titleDelta = b.movies.length - a.movies.length;
     if (titleDelta !== 0) return titleDelta;
     return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
@@ -201,6 +215,7 @@ function PublicDiscovery({
   const userPlaylists = playlists.filter((playlist) => !isDirectorPlaylist(playlist));
   const featuredCuratorPlaylists = byFollowerCount(userPlaylists).filter((playlist) => playlist.creatorDisplayName || playlist.creatorHandle);
   const communityFavorites = byFollowerCount(userPlaylists);
+  const mostLiked = byLikeCount(userPlaylists);
   const recentlyUpdated = byUpdated(userPlaylists);
   const titleMatchPlaylists = normalizedQuery
     ? playlists.filter((playlist) =>
@@ -242,6 +257,7 @@ function PublicDiscovery({
       <DiscoveryShelf title="Flim Picks" playlists={flimPicks} onNavigate={onNavigate} />
       <DiscoveryShelf title="Featured Curators" playlists={featuredCuratorPlaylists} onNavigate={onNavigate} />
       <DiscoveryShelf title="Community Favorites" playlists={communityFavorites} onNavigate={onNavigate} />
+      <DiscoveryShelf title="Most Liked Playlists" playlists={mostLiked} onNavigate={onNavigate} />
       {discoveryGenres.map((genre) => (
         <DiscoveryShelf
           key={genre.title}

@@ -5,6 +5,7 @@ import {
   ensureAuthTables,
   ensureNotificationsTable,
   ensurePlaylistFollowsTable,
+  ensurePlaylistLikesTable,
   ensureUserFollowsTable,
   ensureUserProfilesTable,
   getCurrentUser,
@@ -338,6 +339,7 @@ async function handleAdminExport(request: any, response: any, sql: any) {
     users,
     userProfiles,
     playlistFollows,
+    playlistLikes,
     notifications,
     tmdbSearchCache,
     tmdbMovieCache,
@@ -347,6 +349,7 @@ async function handleAdminExport(request: any, response: any, sql: any) {
     safeRows(sql`select id, email, created_at from users order by created_at desc`),
     safeRows(sql`select * from user_profiles order by updated_at desc`),
     safeRows(sql`select * from playlist_follows order by created_at desc`),
+    safeRows(sql`select * from playlist_likes order by created_at desc`),
     safeRows(sql`select * from notifications order by created_at desc`),
     safeRows(sql`select * from tmdb_search_cache order by created_at desc`),
     safeRows(sql`select * from tmdb_movie_cache order by created_at desc`),
@@ -361,6 +364,7 @@ async function handleAdminExport(request: any, response: any, sql: any) {
       users: users.length,
       user_profiles: userProfiles.length,
       playlist_follows: playlistFollows.length,
+      playlist_likes: playlistLikes.length,
       notifications: notifications.length,
       tmdb_search_cache: tmdbSearchCache.length,
       tmdb_movie_cache: tmdbMovieCache.length,
@@ -371,6 +375,7 @@ async function handleAdminExport(request: any, response: any, sql: any) {
       users,
       user_profiles: userProfiles,
       playlist_follows: playlistFollows,
+      playlist_likes: playlistLikes,
       notifications,
       tmdb_search_cache: tmdbSearchCache,
       tmdb_movie_cache: tmdbMovieCache,
@@ -384,6 +389,7 @@ export default async function handler(request: any, response: any) {
     const sql = db();
     await ensureUserProfilesTable(sql);
     await ensurePlaylistFollowsTable(sql);
+    await ensurePlaylistLikesTable(sql);
     await ensureUserFollowsTable(sql);
     await ensureNotificationsTable(sql);
 
@@ -451,6 +457,8 @@ export default async function handler(request: any, response: any) {
               'creator_display_name', up.display_name,
               'is_owner', false,
               'follower_count', coalesce(follower_rows.follower_count, 0),
+              'like_count', coalesce(like_rows.like_count, 0),
+              'is_liked', coalesce(like_rows.is_liked, false),
               'created_at', p.created_at,
               'updated_at', p.updated_at,
               'movies', coalesce(movie_rows.movies, '[]'::jsonb)
@@ -471,6 +479,19 @@ export default async function handler(request: any, response: any) {
         from playlist_follows pf
         where pf.playlist_id = p.id
       ) follower_rows on true
+      left join lateral (
+        select
+          count(*)::int as like_count,
+          exists (
+            select 1
+            from playlist_likes my_pl
+            where my_pl.playlist_id = p.id
+              and ${viewer?.id || null}::uuid is not null
+              and my_pl.user_id = ${viewer?.id || null}::uuid
+          ) as is_liked
+        from playlist_likes pl
+        where pl.playlist_id = p.id
+      ) like_rows on true
       where up.handle = ${handle}
       group by up.id
       limit 1

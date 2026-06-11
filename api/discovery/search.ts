@@ -1,4 +1,4 @@
-import { db, ensurePlaylistFollowsTable, ensureUserFollowsTable, ensureUserProfilesTable, getCurrentUser, mapPlaylist, sendJson } from "../_db.js";
+import { db, ensurePlaylistFollowsTable, ensurePlaylistLikesTable, ensureUserFollowsTable, ensureUserProfilesTable, getCurrentUser, mapPlaylist, sendJson } from "../_db.js";
 import { ensureDirectorSeed } from "../_director.js";
 import {
   findCatalogSearchResults,
@@ -103,6 +103,11 @@ async function searchPublicPlaylists(sql: any, query: string, userId?: string) {
         from playlist_follows pf
         where pf.playlist_id = p.id
       ) as follower_count,
+      (
+        select count(*)::int
+        from playlist_likes pl
+        where pl.playlist_id = p.id
+      ) as like_count,
       exists (
         select 1
         from playlist_follows my_pf
@@ -110,6 +115,13 @@ async function searchPublicPlaylists(sql: any, query: string, userId?: string) {
           and ${userId || null}::uuid is not null
           and my_pf.follower_user_id = ${userId || null}::uuid
       ) as is_following,
+      exists (
+        select 1
+        from playlist_likes my_pl
+        where my_pl.playlist_id = p.id
+          and ${userId || null}::uuid is not null
+          and my_pl.user_id = ${userId || null}::uuid
+      ) as is_liked,
       coalesce(
         json_agg(pm order by coalesce(pm.sort_order, 2147483647), pm.added_at desc) filter (where pm.id is not null),
         '[]'
@@ -145,7 +157,7 @@ async function searchPublicPlaylists(sql: any, query: string, userId?: string) {
         )
       )
     group by p.id, up.handle, up.display_name, u.email
-    order by search_rank asc, p.updated_at desc
+    order by search_rank asc, like_count desc, follower_count desc, p.updated_at desc
     limit ${MAX_PLAYLIST_RESULTS}
   `;
 
@@ -224,6 +236,7 @@ export default async function handler(request: any, response: any) {
     const sql = db();
     await ensureUserProfilesTable(sql);
     await ensurePlaylistFollowsTable(sql);
+    await ensurePlaylistLikesTable(sql);
     await ensureUserFollowsTable(sql);
     await ensureTmdbCacheTables(sql);
     await ensureDirectorSeed(sql).catch((error) => {

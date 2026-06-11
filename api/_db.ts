@@ -71,6 +71,7 @@ export function createPublicSlug(name: string) {
 
 export function mapPlaylist(row: any, movies: any[] = []) {
   const followerCount = Number(row.follower_count || 0);
+  const likeCount = Number(row.like_count || 0);
 
   return {
     id: row.id,
@@ -90,6 +91,8 @@ export function mapPlaylist(row: any, movies: any[] = []) {
     accessMode: row.access_mode || (row.is_owner ? "owner" : row.visibility === "public" ? "public" : "private"),
     isFollowing: Boolean(row.is_following),
     followerCount: Number.isFinite(followerCount) ? followerCount : 0,
+    isLiked: Boolean(row.is_liked),
+    likeCount: Number.isFinite(likeCount) ? likeCount : 0,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     movies: movies.map(mapPlaylistMovie),
@@ -396,6 +399,23 @@ export async function ensurePlaylistFollowsTable(sql: any) {
   `;
   await sql`create index if not exists playlist_follows_playlist_id_idx on playlist_follows (playlist_id)`;
   await sql`create index if not exists playlist_follows_user_id_idx on playlist_follows (follower_user_id)`;
+}
+
+export async function ensurePlaylistLikesTable(sql: any) {
+  await ensureAuthTables(sql);
+  await ensurePgCrypto(sql);
+  await sql`
+    create table if not exists playlist_likes (
+      id uuid primary key default gen_random_uuid(),
+      playlist_id uuid not null references playlists(id) on delete cascade,
+      user_id uuid not null references users(id) on delete cascade,
+      created_at timestamptz not null default now()
+    )
+  `;
+  await sql`create unique index if not exists playlist_likes_playlist_user_unique on playlist_likes (playlist_id, user_id)`;
+  await sql`create index if not exists playlist_likes_playlist_id_idx on playlist_likes (playlist_id)`;
+  await sql`create index if not exists playlist_likes_user_id_idx on playlist_likes (user_id)`;
+  await sql`create index if not exists playlist_likes_created_at_idx on playlist_likes (created_at desc)`;
 }
 
 export async function ensureTitleRatingsTable(sql: any) {

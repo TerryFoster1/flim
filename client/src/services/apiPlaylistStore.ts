@@ -55,6 +55,18 @@ export function unfollowPlaylist(playlistId: string) {
   });
 }
 
+export function likePlaylist(playlistId: string) {
+  return apiRequest<{ ok: boolean; likeCount: number; isLiked: boolean }>(`/api/playlists/${playlistId}/like`, {
+    method: "POST",
+  });
+}
+
+export function unlikePlaylist(playlistId: string) {
+  return apiRequest<{ ok: boolean; likeCount: number; isLiked: boolean }>(`/api/playlists/${playlistId}/like`, {
+    method: "DELETE",
+  });
+}
+
 export function createPlaylist(input: Pick<Playlist, "name" | "description" | "visibility">) {
   return apiRequest<Playlist>("/api/playlists", {
     method: "POST",

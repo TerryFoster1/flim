@@ -37,6 +37,7 @@ export function PlaylistDetails({ playlist, onNavigate, addToPlaylist, deletePla
   const shareable = playlist.visibility === "public";
   const sharedAccess = playlist.visibility === "shared" || playlist.accessMode === "shared";
   const followerCount = playlist.followerCount || 0;
+  const likeCount = playlist.likeCount || 0;
 
   async function makePublicForShare() {
     setNotice("");
@@ -123,6 +124,7 @@ export function PlaylistDetails({ playlist, onNavigate, addToPlaylist, deletePla
         secondaryMeta={shareable || sharedAccess || editable ? (
           <>
             {shareable ? <span>{followerCount} {followerCount === 1 ? "follower" : "followers"}</span> : null}
+            {shareable ? <span>{likeCount} {likeCount === 1 ? "like" : "likes"}</span> : null}
             {sharedAccess && !shareable ? <span>Shared Playlist</span> : null}
             <SharePlaylistButton label="Share Playlist" onCreateSharedLink={editable ? createSharedLink : undefined} onMakePublic={editable ? makePublicForShare : undefined} playlist={playlist} />
           </>

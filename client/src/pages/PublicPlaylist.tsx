@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { MovieGrid } from "../components/MovieGrid";
 import { SharePlaylistButton } from "../components/SharePlaylistButton";
-import { followPlaylist, getPublicPlaylistBySlug, unfollowPlaylist } from "../services/apiPlaylistStore";
+import { followPlaylist, getPublicPlaylistBySlug, likePlaylist, unfollowPlaylist, unlikePlaylist } from "../services/apiPlaylistStore";
 import type { CurrentUser, Playlist } from "../types";
 
 interface PublicPlaylistProps {
@@ -13,6 +13,10 @@ interface PublicPlaylistProps {
 
 function formatFollowerCount(count = 0) {
   return `${count} ${count === 1 ? "Follower" : "Followers"}`;
+}
+
+function formatLikeCount(count = 0) {
+  return `${count} ${count === 1 ? "Like" : "Likes"}`;
 }
 
 function generatedCreatorHandle(playlist: Playlist) {
@@ -36,6 +40,8 @@ export function PublicPlaylist({ publicSlug, onNavigate, currentUser, onFollowCh
   const [status, setStatus] = useState<"loading" | "ready" | "not_found">("loading");
   const [followStatus, setFollowStatus] = useState("");
   const [isUpdatingFollow, setIsUpdatingFollow] = useState(false);
+  const [likeStatus, setLikeStatus] = useState("");
+  const [isUpdatingLike, setIsUpdatingLike] = useState(false);
 
   useEffect(() => {
     let isActive = true;
@@ -119,6 +125,38 @@ export function PublicPlaylist({ publicSlug, onNavigate, currentUser, onFollowCh
     }
   }
 
+  async function toggleLike() {
+    const currentPlaylist = playlist;
+    if (!currentPlaylist) return;
+    if (!currentUser) {
+      setLikeStatus("Sign in to save and like this playlist.");
+      onNavigate("/signin");
+      return;
+    }
+
+    setIsUpdatingLike(true);
+    setLikeStatus("");
+
+    try {
+      const result = currentPlaylist.isLiked ? await unlikePlaylist(currentPlaylist.id) : await likePlaylist(currentPlaylist.id);
+      setPlaylist((current) =>
+        current
+          ? {
+              ...current,
+              likeCount: result.likeCount,
+              isLiked: result.isLiked,
+            }
+          : current,
+      );
+      setLikeStatus(result.isLiked ? "Playlist liked." : "Playlist unliked.");
+      await onFollowChanged?.();
+    } catch {
+      setLikeStatus("Unable to update like. Please try again.");
+    } finally {
+      setIsUpdatingLike(false);
+    }
+  }
+
   return (
     <section className="route-page public-playlist-page">
       <div className="public-playlist-hero">
@@ -159,6 +197,7 @@ export function PublicPlaylist({ publicSlug, onNavigate, currentUser, onFollowCh
           <div className="meta-row public-playlist-meta">
             <span>{playlist.movies.length} {playlist.movies.length === 1 ? "Title" : "Titles"}</span>
             <span>{formatFollowerCount(playlist.followerCount || 0)}</span>
+            <span>{formatLikeCount(playlist.likeCount || 0)}</span>
           </div>
           <div className="public-share-actions">
             {!playlist.isOwner ? (
@@ -166,9 +205,14 @@ export function PublicPlaylist({ publicSlug, onNavigate, currentUser, onFollowCh
                 {isUpdatingFollow ? "Updating..." : playlist.isFollowing ? "Following \u2713" : "Follow Playlist"}
               </button>
             ) : null}
+            <button className={playlist.isLiked ? "playlist-like-button is-liked" : "playlist-like-button"} disabled={isUpdatingLike} onClick={toggleLike} type="button">
+              {isUpdatingLike ? "Updating..." : playlist.isLiked ? `Liked \u2665` : "Like Playlist"}
+            </button>
             <SharePlaylistButton iconOnly playlist={playlist} label="Share Playlist" />
           </div>
+          {!currentUser ? <p className="helper-text">Sign in to save, follow, or like this playlist.</p> : null}
           {followStatus ? <p className={followStatus.startsWith("Unable") ? "error-message" : "success-message"}>{followStatus}</p> : null}
+          {likeStatus ? <p className={likeStatus.startsWith("Unable") ? "error-message" : "success-message"}>{likeStatus}</p> : null}
         </div>
       </div>
       <div className="public-playlist-intro">

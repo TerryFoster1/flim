@@ -318,6 +318,25 @@ create index if not exists playlist_follows_playlist_id_idx
 create index if not exists playlist_follows_user_id_idx
   on playlist_follows (follower_user_id);
 
+create table if not exists playlist_likes (
+  id uuid primary key default gen_random_uuid(),
+  playlist_id uuid not null references playlists(id) on delete cascade,
+  user_id uuid not null references users(id) on delete cascade,
+  created_at timestamptz not null default now()
+);
+
+create unique index if not exists playlist_likes_playlist_user_unique
+  on playlist_likes (playlist_id, user_id);
+
+create index if not exists playlist_likes_playlist_id_idx
+  on playlist_likes (playlist_id);
+
+create index if not exists playlist_likes_user_id_idx
+  on playlist_likes (user_id);
+
+create index if not exists playlist_likes_created_at_idx
+  on playlist_likes (created_at desc);
+
 create table if not exists title_ratings (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references users(id) on delete cascade,

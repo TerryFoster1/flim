@@ -19,8 +19,20 @@ function byFollowerCount(playlists: Playlist[]) {
   return [...playlists].sort((a, b) => {
     const followerDelta = (b.followerCount || 0) - (a.followerCount || 0);
     if (followerDelta !== 0) return followerDelta;
+    const likeDelta = (b.likeCount || 0) - (a.likeCount || 0);
+    if (likeDelta !== 0) return likeDelta;
     const titleDelta = b.movies.length - a.movies.length;
     if (titleDelta !== 0) return titleDelta;
+    return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+  });
+}
+
+function byLikeCount(playlists: Playlist[]) {
+  return [...playlists].sort((a, b) => {
+    const likeDelta = (b.likeCount || 0) - (a.likeCount || 0);
+    if (likeDelta !== 0) return likeDelta;
+    const followerDelta = (b.followerCount || 0) - (a.followerCount || 0);
+    if (followerDelta !== 0) return followerDelta;
     return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
   });
 }
@@ -84,6 +96,7 @@ export function PublicPlaylists({ onNavigate, playlists }: PublicPlaylistsProps)
   const communityPlaylists = publicPlaylists.filter((playlist) => !isDirectorPlaylist(playlist));
   const featuredCurators = uniqueCuratorPlaylists(communityPlaylists.filter((playlist) => playlist.creatorDisplayName || playlist.creatorHandle));
   const favorites = byFollowerCount(communityPlaylists);
+  const mostLiked = byLikeCount(communityPlaylists);
   const recentlyUpdated = byUpdated(communityPlaylists);
 
   return (
@@ -103,6 +116,7 @@ export function PublicPlaylists({ onNavigate, playlists }: PublicPlaylistsProps)
         <DiscoveryShelf title="Flim Picks" playlists={flimPicks} onNavigate={onNavigate} />
         <DiscoveryShelf title="Featured Curators" playlists={featuredCurators} onNavigate={onNavigate} />
         <DiscoveryShelf title="Community Favorites" playlists={favorites} onNavigate={onNavigate} />
+        <DiscoveryShelf title="Most Liked Playlists" playlists={mostLiked} onNavigate={onNavigate} />
         {discoveryGenres.map((genre) => (
           <DiscoveryShelf
             key={genre.title}

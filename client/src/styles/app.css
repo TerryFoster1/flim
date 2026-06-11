@@ -1030,7 +1030,8 @@ h3 { margin-bottom: 8px; }
 .public-share-actions .secondary-button {
   min-height: 46px;
 }
-.public-playlist-copy .public-share-actions .follow-playlist-button {
+.public-playlist-copy .public-share-actions .follow-playlist-button,
+.public-playlist-copy .public-share-actions .playlist-like-button {
   min-height: 48px;
   display: inline-flex;
   align-items: center;
@@ -1046,14 +1047,17 @@ h3 { margin-bottom: 8px; }
   transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
 }
 .public-playlist-copy .public-share-actions .follow-playlist-button:hover,
-.public-playlist-copy .public-share-actions .follow-playlist-button:focus-visible {
+.public-playlist-copy .public-share-actions .follow-playlist-button:focus-visible,
+.public-playlist-copy .public-share-actions .playlist-like-button:hover,
+.public-playlist-copy .public-share-actions .playlist-like-button:focus-visible {
   transform: translateY(-1px);
   border-color: rgba(255, 242, 213, 0.92);
   background: linear-gradient(135deg, #ff667d, #ffc66f);
   color: #0f0508;
   outline: none;
 }
-.public-playlist-copy .public-share-actions .follow-playlist-button.is-following {
+.public-playlist-copy .public-share-actions .follow-playlist-button.is-following,
+.public-playlist-copy .public-share-actions .playlist-like-button.is-liked {
   border-color: rgba(255, 184, 77, 0.72);
   background:
     linear-gradient(135deg, rgba(62, 226, 160, 0.28), rgba(62, 226, 160, 0.08)),
@@ -1062,14 +1066,17 @@ h3 { margin-bottom: 8px; }
   box-shadow: 0 16px 34px rgba(255, 108, 78, 0.2);
 }
 .public-playlist-copy .public-share-actions .follow-playlist-button.is-following:hover,
-.public-playlist-copy .public-share-actions .follow-playlist-button.is-following:focus-visible {
+.public-playlist-copy .public-share-actions .follow-playlist-button.is-following:focus-visible,
+.public-playlist-copy .public-share-actions .playlist-like-button.is-liked:hover,
+.public-playlist-copy .public-share-actions .playlist-like-button.is-liked:focus-visible {
   border-color: rgba(255, 242, 213, 0.92);
   background:
     linear-gradient(135deg, rgba(62, 226, 160, 0.34), rgba(62, 226, 160, 0.1)),
     linear-gradient(135deg, #ff667d, #ffc66f);
   color: #0f0508;
 }
-.public-playlist-copy .public-share-actions .follow-playlist-button:disabled {
+.public-playlist-copy .public-share-actions .follow-playlist-button:disabled,
+.public-playlist-copy .public-share-actions .playlist-like-button:disabled {
   cursor: wait;
   opacity: 0.82;
 }
