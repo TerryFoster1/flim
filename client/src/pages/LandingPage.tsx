@@ -1,6 +1,4 @@
-import type { ActiveSeasonalTheme } from "../seasonalThemes";
-
-export function LandingPage({ seasonalTheme }: { seasonalTheme?: ActiveSeasonalTheme | null }) {
+export function LandingPage() {
   return (
     <section className="route-page landing-page">
       <section className="collections-cinematic-hero landing-hero" aria-label="Flim movie playlists">
@@ -10,7 +8,6 @@ export function LandingPage({ seasonalTheme }: { seasonalTheme?: ActiveSeasonalT
           <img alt="" decoding="async" fetchPriority="high" src="/brand/flim-hero-desktop.png" />
         </picture>
         <div className="collections-hero-content">
-          {seasonalTheme ? <span className="seasonal-theme-banner">{seasonalTheme.bannerText}</span> : null}
           <h1>What Are We Watching Tonight?</h1>
           <p>Create, share, and discover movie and TV playlists.</p>
         </div>

@@ -103,6 +103,8 @@ export default function App() {
   const [roulettePlaylists, setRoulettePlaylists] = useState<Playlist[] | null>(null);
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const activeSeasonalTheme = useMemo(() => getActiveSeasonalTheme(), [routeState.route]);
+  const activeRoute: AppRoute = routeState.route;
+  const isHomeRoute = activeRoute === "/";
 
   useEffect(() => {
     getSession().then((result) => setCurrentUser(result.user)).catch(() => setCurrentUser(null));
@@ -128,8 +130,8 @@ export default function App() {
   useEffect(() => {
     const previousTheme = document.body.dataset.seasonalTheme;
     const previousPreview = document.body.dataset.seasonalThemePreview;
-    document.body.dataset.seasonalTheme = activeSeasonalTheme?.id || "default";
-    if (activeSeasonalTheme?.isPreview) {
+    document.body.dataset.seasonalTheme = !isHomeRoute && activeSeasonalTheme?.id ? activeSeasonalTheme.id : "default";
+    if (!isHomeRoute && activeSeasonalTheme?.isPreview) {
       document.body.dataset.seasonalThemePreview = "true";
     } else {
       delete document.body.dataset.seasonalThemePreview;
@@ -146,7 +148,7 @@ export default function App() {
         delete document.body.dataset.seasonalThemePreview;
       }
     };
-  }, [activeSeasonalTheme]);
+  }, [activeSeasonalTheme, isHomeRoute]);
 
   function navigate(path: string) {
     setIsRouletteOpen(false);
@@ -242,9 +244,7 @@ export default function App() {
   );
   const detailPlaylist = useMemo(() => displayPlaylists.find((playlist) => playlist.id === routeState.playlistId), [displayPlaylists, routeState.playlistId]);
 
-  const activeRoute: AppRoute = routeState.route;
   const isDirectorAdminRoute = activeRoute.startsWith("/director-admin");
-  const isHomeRoute = activeRoute === "/";
   const isTitleDetailRoute = activeRoute === "/movies/:tmdbId" || activeRoute === "/tv/:tmdbId";
   const openNowPlaying = () => {
     setRoulettePlaylists(null);
@@ -262,7 +262,7 @@ export default function App() {
     />
   );
   const pages: Partial<Record<AppRoute, ReactNode>> = {
-    "/": <LandingPage seasonalTheme={activeSeasonalTheme} />,
+    "/": <LandingPage />,
     "/discover": <Discover onNavigate={navigate} />,
     "/curators": <Curators onNavigate={navigate} />,
     "/playlists": playlistsPage("my"),
@@ -336,9 +336,9 @@ export default function App() {
 
   return (
     <div
-      className={`app-shell ${activeSeasonalTheme?.themeClass || ""}`}
-      data-seasonal-theme={activeSeasonalTheme?.id || "default"}
-      data-seasonal-theme-preview={activeSeasonalTheme?.isPreview ? "true" : undefined}
+      className={`app-shell ${!isHomeRoute && activeSeasonalTheme?.themeClass ? activeSeasonalTheme.themeClass : ""}`}
+      data-seasonal-theme={!isHomeRoute && activeSeasonalTheme?.id ? activeSeasonalTheme.id : "default"}
+      data-seasonal-theme-preview={!isHomeRoute && activeSeasonalTheme?.isPreview ? "true" : undefined}
     >
       <div className="main-shell">
         <NavigationBar activeRoute={activeRoute} currentUser={currentUser} onNavigate={navigate} onLogout={logout} />
