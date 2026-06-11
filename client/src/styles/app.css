@@ -7150,7 +7150,7 @@ textarea { min-height: 42px; resize: vertical; }
   .media-extension-card {
     min-height: auto;
   }
-  .movie-detail-poster { width: min(82vw, 360px); margin: 0 auto; }
+  .movie-detail-poster { width: min(72vw, 320px); margin: 0 auto; }
   .actor-profile-photo { width: min(72vw, 260px); margin: 0 auto; }
   .collection-detail-poster { width: min(72vw, 260px); margin: 0 auto; }
   .collection-detail-hero { min-height: auto; align-items: start; }
