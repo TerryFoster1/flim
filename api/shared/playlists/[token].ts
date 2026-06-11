@@ -29,13 +29,20 @@ export default async function handler(request: any, response: any) {
           false as is_following,
           false as is_liked,
           coalesce(
-            json_agg(pm order by coalesce(pm.sort_order, 2147483647), pm.added_at desc) filter (where pm.id is not null),
+            json_agg(
+              to_jsonb(pm) || jsonb_build_object(
+                'genres', coalesce(mi.genres, '[]'::jsonb),
+                'genre_ids', coalesce(mi.source_payload->'genreIds', '[]'::jsonb)
+              )
+              order by coalesce(pm.sort_order, 2147483647), pm.added_at desc
+            ) filter (where pm.id is not null),
             '[]'
           ) as movies
         from playlists p
         left join user_profiles up on up.user_id = p.owner_user_id::text
         left join users u on u.id = p.owner_user_id
         left join playlist_movies pm on pm.playlist_id = p.id
+        left join media_items mi on mi.media_type = coalesce(pm.media_type, 'movie') and mi.tmdb_id = pm.tmdb_id
         where p.shared_slug = ${token}
           and p.visibility = 'shared'
         group by p.id, up.handle, up.display_name, u.email

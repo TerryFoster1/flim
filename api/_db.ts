@@ -138,6 +138,7 @@ export function mapPlaylist(row: any, movies: any[] = []) {
 }
 
 export function mapPlaylistMovie(row: any) {
+  const genres = normalizeGenreList(row.genres || row.media_genres);
   return {
     id: row.id,
     playlistId: row.playlist_id,
@@ -148,7 +149,7 @@ export function mapPlaylistMovie(row: any) {
     releaseYear: row.year || undefined,
     posterUrl: row.poster_url || undefined,
     overview: row.overview || "",
-    genres: [],
+    genres: genres.length > 0 ? genres : genresFromIds(row.genre_ids || row.genreIds),
     runtimeMinutes: row.runtime_minutes || undefined,
     seasonCount: row.season_count || undefined,
     episodeCount: row.episode_count || undefined,
@@ -156,6 +157,71 @@ export function mapPlaylistMovie(row: any) {
     addedAt: row.added_at,
     watchStatus: row.watched ? "watched" : "not_watched",
   };
+}
+
+const tmdbGenreNames: Record<number, string> = {
+  12: "Adventure",
+  14: "Fantasy",
+  16: "Animation",
+  18: "Drama",
+  27: "Horror",
+  28: "Action",
+  35: "Comedy",
+  36: "History",
+  37: "Western",
+  53: "Thriller",
+  80: "Crime",
+  99: "Documentary",
+  878: "Science Fiction",
+  9648: "Mystery",
+  10402: "Music",
+  10749: "Romance",
+  10751: "Family",
+  10752: "War",
+  10759: "Action & Adventure",
+  10762: "Kids",
+  10763: "News",
+  10764: "Reality",
+  10765: "Sci-Fi & Fantasy",
+  10766: "Soap",
+  10767: "Talk",
+  10768: "War & Politics",
+  10770: "TV Movie",
+};
+
+function genresFromIds(value: any): string[] {
+  const ids = Array.isArray(value)
+    ? value
+    : typeof value === "string"
+      ? value.split(",")
+      : [];
+  return ids
+    .map((id) => tmdbGenreNames[Number(id)])
+    .filter(Boolean);
+}
+
+function normalizeGenreList(value: any): string[] {
+  if (!value) return [];
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value);
+      return normalizeGenreList(parsed);
+    } catch {
+      return value
+        .split(",")
+        .map((genre) => genre.trim())
+        .filter(Boolean);
+    }
+  }
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((genre) => {
+      if (typeof genre === "string") return genre;
+      if (genre && typeof genre === "object") return String(genre.name || genre.label || genre.title || "");
+      return "";
+    })
+    .map((genre) => genre.trim())
+    .filter(Boolean);
 }
 
 export const reservedProfileHandles = new Set([

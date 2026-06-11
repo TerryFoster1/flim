@@ -3515,6 +3515,9 @@ textarea { min-height: 42px; resize: vertical; }
   align-items: start;
 }
 .movie-detail-hero {
+  position: relative;
+  overflow: hidden;
+  min-height: clamp(520px, 68vh, 820px);
   display: grid;
   grid-template-columns: minmax(280px, 460px) minmax(0, 1fr);
   gap: clamp(24px, 5vw, 56px);
@@ -3522,11 +3525,31 @@ textarea { min-height: 42px; resize: vertical; }
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: clamp(22px, 4vw, 44px);
-  background: radial-gradient(circle at 26% 30%, rgba(255, 79, 109, 0.20), transparent 24rem), linear-gradient(135deg, rgba(255,255,255,.10), rgba(255,255,255,.035));
+  background:
+    linear-gradient(90deg, rgba(5,6,8,.94) 0%, rgba(5,6,8,.72) 46%, rgba(5,6,8,.42) 100%),
+    radial-gradient(circle at 26% 30%, rgba(255, 79, 109, 0.20), transparent 24rem),
+    linear-gradient(135deg, rgba(255,255,255,.10), rgba(255,255,255,.035));
   box-shadow: inset 0 -80px 120px rgba(0, 0, 0, 0.28);
 }
-.movie-detail-poster { border-radius: 12px; }
-.movie-detail-copy h1 { font-size: clamp(2.6rem, 7vw, 6.5rem); }
+.movie-detail-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background:
+    linear-gradient(90deg, rgba(5,6,8,.97) 0%, rgba(5,6,8,.78) 46%, rgba(5,6,8,.42) 100%),
+    var(--movie-backdrop) center / cover no-repeat;
+  opacity: .58;
+}
+.movie-detail-poster,
+.movie-detail-copy {
+  position: relative;
+  z-index: 1;
+}
+.movie-detail-poster {
+  border-radius: 12px;
+  box-shadow: 0 28px 80px rgba(0,0,0,.46);
+}
+.movie-detail-copy h1 { font-size: clamp(2.6rem, 7vw, 6.5rem); line-height: .94; }
 .cast-section,
 .actor-section {
   margin-top: 28px;

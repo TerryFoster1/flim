@@ -39,6 +39,35 @@ function buildMoviePool(playlists: Playlist[], activePlaylistIds: string[]) {
   return pool;
 }
 
+function normalizeGenreValue(value: unknown): string[] {
+  if (!value) return [];
+  if (typeof value === "string") {
+    try {
+      return normalizeGenreValue(JSON.parse(value));
+    } catch {
+      return value.split(",").map((genre) => genre.trim()).filter(Boolean);
+    }
+  }
+  if (!Array.isArray(value)) return [];
+  return value
+    .flatMap((genre) => {
+      if (typeof genre === "string") return [genre];
+      if (genre && typeof genre === "object") {
+        const record = genre as { name?: unknown; label?: unknown; title?: unknown };
+        return [String(record.name || record.label || record.title || "")];
+      }
+      return [];
+    })
+    .map((genre) => genre.toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]+/g, " ").trim())
+    .filter(Boolean);
+}
+
+function genreAliases(genre: string) {
+  const normalized = genre.toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]+/g, " ").trim();
+  if (normalized === "sci fi" || normalized === "science fiction") return ["sci fi", "science fiction", "sci-fi"];
+  return [normalized];
+}
+
 export function Roulette({ playlists, onNavigate }: RouletteProps) {
   const [mediaFilter, setMediaFilter] = useState<MediaFilter>("both");
   const [watchFilter, setWatchFilter] = useState<WatchFilter>("both");
@@ -62,11 +91,10 @@ export function Roulette({ playlists, onNavigate }: RouletteProps) {
     if (watchFilter !== "both" && movie.watchStatus !== watchFilter) return false;
     if (selectedGenres.length === 0) return true;
 
-    const movieGenres = (movie.genres || []).map((genre) => genre.toLowerCase());
+    const movieGenres = normalizeGenreValue(movie.genres);
     return selectedGenres.some((genre) => {
-      const normalizedGenre = genre.toLowerCase();
-      if (normalizedGenre === "sci-fi") return movieGenres.includes("science fiction") || movieGenres.includes("sci-fi");
-      return movieGenres.includes(normalizedGenre);
+      const acceptedGenres = genreAliases(genre);
+      return acceptedGenres.some((acceptedGenre) => movieGenres.includes(acceptedGenre));
     });
   });
   const canSpin = filteredPool.length > 0 && phase !== "spinning" && phase !== "countdown";
@@ -313,50 +341,6 @@ export function Roulette({ playlists, onNavigate }: RouletteProps) {
           </div>
         ) : (
           <>
-            <div className="roulette-chip-grid">
-              <button
-                aria-pressed={excludedPlaylistIds.length === 0}
-                className={`roulette-playlist-chip all-playlists-chip ${excludedPlaylistIds.length === 0 ? "is-selected" : ""}`}
-                disabled={isBusy}
-                onClick={chooseAllPlaylists}
-                type="button"
-              >
-                <span className="roulette-selection-mark" aria-hidden="true">{excludedPlaylistIds.length === 0 ? "In" : ""}</span>
-                <span className="roulette-chip-cover">
-                  {moviePool.slice(0, 4).map(({ movie }) =>
-                    movie.posterUrl ? <img alt="" key={`${movie.mediaType || "movie"}-${movie.tmdbId}`} src={movie.posterUrl} /> : <i key={`${movie.mediaType || "movie"}-${movie.tmdbId}`} />,
-                  )}
-                  {moviePool.length === 0 ? <><i /><i /><i /><i /></> : null}
-                </span>
-                <strong>All Playlists</strong>
-                <small>{moviePool.length} titles included</small>
-              </button>
-
-              {playlists.map((playlist) => {
-                const selected = !excludedPlaylistIds.includes(playlist.id);
-                return (
-                  <button
-                    aria-pressed={selected}
-                    className={`roulette-playlist-chip ${selected ? "is-selected" : "is-excluded"}`}
-                    disabled={isBusy}
-                    key={playlist.id}
-                    onClick={() => togglePlaylist(playlist.id)}
-                    type="button"
-                  >
-                    <span className="roulette-selection-mark" aria-hidden="true">{selected ? "In" : ""}</span>
-                    <span className="roulette-chip-cover">
-                      {playlist.movies.slice(0, 4).map((movie) =>
-                        movie.posterUrl ? <img alt="" key={`${movie.mediaType || "movie"}-${movie.tmdbId}`} src={movie.posterUrl} /> : <i key={`${movie.mediaType || "movie"}-${movie.tmdbId}`} />,
-                      )}
-                      {playlist.movies.length === 0 ? <><i /><i /><i /><i /></> : null}
-                    </span>
-                    <strong>{playlist.name}</strong>
-                    <small>{selected ? "Included" : "Excluded"} · {playlist.movies.length} titles</small>
-                  </button>
-                );
-              })}
-            </div>
-
             {showAdvancedFilters ? (
               <div className="roulette-advanced-filters">
                 <div>
@@ -414,6 +398,50 @@ export function Roulette({ playlists, onNavigate }: RouletteProps) {
                 </div>
               </div>
             ) : null}
+
+            <div className="roulette-chip-grid">
+              <button
+                aria-pressed={excludedPlaylistIds.length === 0}
+                className={`roulette-playlist-chip all-playlists-chip ${excludedPlaylistIds.length === 0 ? "is-selected" : ""}`}
+                disabled={isBusy}
+                onClick={chooseAllPlaylists}
+                type="button"
+              >
+                <span className="roulette-selection-mark" aria-hidden="true">{excludedPlaylistIds.length === 0 ? "In" : ""}</span>
+                <span className="roulette-chip-cover">
+                  {moviePool.slice(0, 4).map(({ movie }) =>
+                    movie.posterUrl ? <img alt="" key={`${movie.mediaType || "movie"}-${movie.tmdbId}`} src={movie.posterUrl} /> : <i key={`${movie.mediaType || "movie"}-${movie.tmdbId}`} />,
+                  )}
+                  {moviePool.length === 0 ? <><i /><i /><i /><i /></> : null}
+                </span>
+                <strong>All Playlists</strong>
+                <small>{moviePool.length} titles included</small>
+              </button>
+
+              {playlists.map((playlist) => {
+                const selected = !excludedPlaylistIds.includes(playlist.id);
+                return (
+                  <button
+                    aria-pressed={selected}
+                    className={`roulette-playlist-chip ${selected ? "is-selected" : "is-excluded"}`}
+                    disabled={isBusy}
+                    key={playlist.id}
+                    onClick={() => togglePlaylist(playlist.id)}
+                    type="button"
+                  >
+                    <span className="roulette-selection-mark" aria-hidden="true">{selected ? "In" : ""}</span>
+                    <span className="roulette-chip-cover">
+                      {playlist.movies.slice(0, 4).map((movie) =>
+                        movie.posterUrl ? <img alt="" key={`${movie.mediaType || "movie"}-${movie.tmdbId}`} src={movie.posterUrl} /> : <i key={`${movie.mediaType || "movie"}-${movie.tmdbId}`} />,
+                      )}
+                      {playlist.movies.length === 0 ? <><i /><i /><i /><i /></> : null}
+                    </span>
+                    <strong>{playlist.name}</strong>
+                    <small>{selected ? "Included" : "Excluded"} · {playlist.movies.length} titles</small>
+                  </button>
+                );
+              })}
+            </div>
           </>
         )}
       </section>

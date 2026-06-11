@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { AddToPlaylistControl } from "../components/AddToPlaylistControl";
 import { FollowTitleControl } from "../components/FollowTitleControl";
 import { OptionalSectionBoundary } from "../components/OptionalSectionBoundary";
@@ -195,7 +195,8 @@ export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addTo
 
   return (
     <section className="route-page">
-      <div className="movie-detail-hero">
+      <div className="movie-detail-hero" style={normalizedMovie.backdropUrl ? { "--movie-backdrop": `url("${normalizedMovie.backdropUrl}")` } as CSSProperties : undefined}>
+        {normalizedMovie.backdropUrl ? <div className="movie-detail-backdrop" aria-hidden="true" /> : null}
         {normalizedMovie.posterUrl ? <img className="movie-detail-poster" src={normalizedMovie.posterUrl} alt={`${normalizedMovie.title} poster`} /> : <div className="poster tone-blue" />}
         <div className="movie-detail-copy">
           <h1>{normalizedMovie.title}</h1>

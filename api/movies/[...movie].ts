@@ -15,10 +15,6 @@ const MOVIE_CACHE_DAYS = 30;
 const USEFUL_SEARCH_RESULT_COUNT = 8;
 const MAX_SEARCH_RESULTS = 24;
 
-function hasCastPayload(details: any) {
-  return Array.isArray(details?.cast) && details.cast.length > 0;
-}
-
 function hasCoreTitlePayload(details: any, mediaType: "movie" | "tv", tmdbId: number) {
   const id = Number(details?.tmdbId ?? details?.tmdb_id);
   const title = typeof details?.title === "string" ? details.title.trim() : "";
@@ -109,7 +105,7 @@ async function handleMovieDetails(tmdbId: number, response: any, forceRefresh = 
   await ensureTmdbCacheTables(sql);
   const catalogItem = await getCatalogMediaItem(sql, tmdbId, "movie");
   const catalogDetails = catalogItem ? mapCatalogDetails(catalogItem) : null;
-  if (!forceRefresh && hasCoreTitlePayload(catalogDetails, "movie", tmdbId) && ((catalogDetails?.contentRatingVersion === 1 || (catalogDetails?.genres?.length || 0) > 0) && hasCastPayload(catalogDetails))) {
+  if (!forceRefresh && hasCoreTitlePayload(catalogDetails, "movie", tmdbId)) {
     response.setHeader("X-Flim-Catalog", "HIT");
     response.setHeader("X-Flim-Cache", "SKIP");
     return sendJson(response, 200, catalogDetails);
@@ -125,7 +121,7 @@ async function handleMovieDetails(tmdbId: number, response: any, forceRefresh = 
     limit 1
   `;
 
-  if (hasCoreTitlePayload(cached[0]?.response_json, "movie", tmdbId) && cached[0]?.response_json?.contentRatingVersion === 1 && hasCastPayload(cached[0].response_json)) {
+  if (hasCoreTitlePayload(cached[0]?.response_json, "movie", tmdbId)) {
     await upsertMediaItem(sql, cached[0].response_json);
     response.setHeader("X-Flim-Catalog", catalogItem ? "STALE" : "MISS");
     response.setHeader("X-Flim-Cache", "HIT");
@@ -172,7 +168,7 @@ async function handleTvDetails(tmdbId: number, response: any, forceRefresh = fal
   await ensureTmdbCacheTables(sql);
   const catalogItem = await getCatalogMediaItem(sql, tmdbId, "tv");
   const catalogDetails = catalogItem ? mapCatalogDetails(catalogItem) : null;
-  if (!forceRefresh && hasCoreTitlePayload(catalogDetails, "tv", tmdbId) && ((catalogDetails?.contentRatingVersion === 1 || (catalogDetails?.genres?.length || 0) > 0) && hasCastPayload(catalogDetails))) {
+  if (!forceRefresh && hasCoreTitlePayload(catalogDetails, "tv", tmdbId)) {
     response.setHeader("X-Flim-Catalog", "HIT");
     response.setHeader("X-Flim-Cache", "SKIP");
     return sendJson(response, 200, catalogDetails);
@@ -188,7 +184,7 @@ async function handleTvDetails(tmdbId: number, response: any, forceRefresh = fal
     limit 1
   `;
 
-  if (hasCoreTitlePayload(cached[0]?.response_json, "tv", tmdbId) && cached[0]?.response_json?.contentRatingVersion === 1 && hasCastPayload(cached[0].response_json)) {
+  if (hasCoreTitlePayload(cached[0]?.response_json, "tv", tmdbId)) {
     await upsertMediaItem(sql, cached[0].response_json);
     response.setHeader("X-Flim-Catalog", catalogItem ? "STALE" : "MISS");
     response.setHeader("X-Flim-Cache", "HIT");
