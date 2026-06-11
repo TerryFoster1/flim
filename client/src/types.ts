@@ -798,11 +798,25 @@ export interface DiscoveryProfileResult {
   profileImageUrl?: string;
 }
 
+export interface DiscoveryCollectionResult {
+  slug: string;
+  title: string;
+  overview?: string;
+  posterUrl?: string;
+  backdropUrl?: string;
+  category?: string;
+  titleCount: number;
+  movieCount: number;
+  tvCount: number;
+  latestReleaseDate?: string;
+}
+
 export interface DiscoverySearchResults {
   query: string;
   titles: MovieSearchResult[];
   playlists: Playlist[];
   profiles: DiscoveryProfileResult[];
+  collections: DiscoveryCollectionResult[];
   actors: ActorSummary[];
   titleSource: "empty" | "catalog" | "catalog_cache" | "cache" | "catalog_tmdb" | "tmdb";
 }

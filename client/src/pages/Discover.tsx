@@ -1,13 +1,13 @@
 import { useMemo, useState, type FormEvent } from "react";
 import { PlaylistGrid } from "../components/PlaylistGrid";
 import { searchDiscovery } from "../services/discoveryService";
-import type { DiscoverySearchResults, MovieSearchResult } from "../types";
+import type { DiscoveryCollectionResult, DiscoverySearchResults, MovieSearchResult } from "../types";
 
 interface DiscoverProps {
   onNavigate: (path: string) => void;
 }
 
-const starterSearches = ["War Movies", "Back to the Future", "Sci-Fi", "The Director", "Family Movie Night"];
+const starterSearches = ["Anime", "Horror", "Sci-Fi", "Christmas Movies", "Marvel", "Pixar"];
 
 function titlePath(title: MovieSearchResult) {
   return title.mediaType === "tv" ? `/tv/${title.tmdbId}` : `/movies/${title.tmdbId}`;
@@ -17,6 +17,46 @@ function titleTypeLabel(title: MovieSearchResult) {
   return title.mediaType === "tv" ? "TV Show" : "Movie";
 }
 
+function titleCountLabel(collection: DiscoveryCollectionResult) {
+  if (collection.titleCount > 0) return `${collection.titleCount} title${collection.titleCount === 1 ? "" : "s"}`;
+  if (collection.movieCount > 0) return `${collection.movieCount} movie${collection.movieCount === 1 ? "" : "s"}`;
+  return "Collection";
+}
+
+function TitleRow({ titles, emptyMessage, onNavigate }: { titles: MovieSearchResult[]; emptyMessage: string; onNavigate: (path: string) => void }) {
+  if (titles.length === 0) return <p className="empty-state">{emptyMessage}</p>;
+
+  return (
+    <div className="discovery-title-row">
+      {titles.map((title) => (
+        <article className="discovery-title-card" key={`${title.mediaType}-${title.tmdbId}`}>
+          <button className="reset-button" onClick={() => onNavigate(titlePath(title))} type="button">
+            {title.posterUrl ? <img alt={`${title.title} poster`} src={title.posterUrl} /> : <span className="discovery-poster-placeholder" />}
+            <strong>{title.title}</strong>
+            <small>{title.releaseYear || "Year"} / {titleTypeLabel(title)}</small>
+          </button>
+        </article>
+      ))}
+    </div>
+  );
+}
+
+function CollectionResultGrid({ collections, onNavigate }: { collections: DiscoveryCollectionResult[]; onNavigate: (path: string) => void }) {
+  if (collections.length === 0) return <p className="empty-state">No matching collections yet.</p>;
+
+  return (
+    <div className="collection-discovery-row discovery-collection-results">
+      {collections.map((collection) => (
+        <button className="collection-discovery-card" key={collection.slug} onClick={() => onNavigate(`/collection/${collection.slug}`)} type="button">
+          {collection.posterUrl ? <img alt={`${collection.title} poster`} src={collection.posterUrl} /> : <span className="actor-credit-placeholder" />}
+          <strong>{collection.title}</strong>
+          <small>{collection.category || "Flim collection"} / {titleCountLabel(collection)}</small>
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function Discover({ onNavigate }: DiscoverProps) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<DiscoverySearchResults | null>(null);
@@ -24,9 +64,17 @@ export function Discover({ onNavigate }: DiscoverProps) {
   const [message, setMessage] = useState("");
 
   const hasResults = useMemo(
-    () => Boolean(results && (results.titles.length > 0 || results.playlists.length > 0 || results.profiles.length > 0 || results.actors.length > 0)),
+    () => Boolean(results && (
+      results.playlists.length > 0 ||
+      results.profiles.length > 0 ||
+      results.collections.length > 0 ||
+      results.titles.length > 0 ||
+      results.actors.length > 0
+    )),
     [results],
   );
+  const movieResults = useMemo(() => (results?.titles || []).filter((title) => title.mediaType !== "tv"), [results]);
+  const tvResults = useMemo(() => (results?.titles || []).filter((title) => title.mediaType === "tv"), [results]);
 
   async function submit(event?: FormEvent<HTMLFormElement>, nextQuery = query) {
     event?.preventDefault();
@@ -50,7 +98,7 @@ export function Discover({ onNavigate }: DiscoverProps) {
       <section className="discover-hero">
         <div>
           <h1>Discover</h1>
-          <p>Search movies, TV shows, public playlists, Director picks, and curators.</p>
+          <p>Search playlists, curators, collections, movies, and TV shows.</p>
         </div>
         <form className="discover-search-form" onSubmit={submit}>
           <label>
@@ -58,7 +106,7 @@ export function Discover({ onNavigate }: DiscoverProps) {
             <input
               autoComplete="off"
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Try War Movies, Robin Williams, Sci-Fi..."
+              placeholder="Try Anime, Horror, Sci-Fi, Marvel..."
               type="search"
               value={query}
             />
@@ -82,50 +130,7 @@ export function Discover({ onNavigate }: DiscoverProps) {
         <div className="discovery-results-stack">
           <section className="discovery-results-section">
             <div className="discovery-results-heading">
-              <h2>Titles</h2>
-              <span>{results.titles.length} found</span>
-            </div>
-            {results.titles.length > 0 ? (
-              <div className="discovery-title-row">
-                {results.titles.map((title) => (
-                  <article className="discovery-title-card" key={`${title.mediaType}-${title.tmdbId}`}>
-                    <button className="reset-button" onClick={() => onNavigate(titlePath(title))} type="button">
-                      {title.posterUrl ? <img alt={`${title.title} poster`} src={title.posterUrl} /> : <span className="discovery-poster-placeholder" />}
-                      <strong>{title.title}</strong>
-                      <small>{title.releaseYear || "Year"} / {titleTypeLabel(title)}</small>
-                    </button>
-                  </article>
-                ))}
-              </div>
-            ) : (
-              <p className="empty-state">No matching movies or shows yet.</p>
-            )}
-          </section>
-
-          <section className="discovery-results-section">
-            <div className="discovery-results-heading">
-              <h2>Actors</h2>
-              <span>{results.actors.length} found</span>
-            </div>
-            {results.actors.length > 0 ? (
-              <div className="actor-result-grid">
-                {results.actors.map((actor) => (
-                  <button className="actor-result-card" key={actor.tmdbId} onClick={() => onNavigate(`/actor/${actor.tmdbId}`)} type="button">
-                    {actor.profileUrl ? <img alt={`${actor.name} profile`} src={actor.profileUrl} /> : <span className="cast-avatar-fallback">{actor.name.slice(0, 1)}</span>}
-                    <strong>{actor.name}</strong>
-                    {actor.knownForDepartment ? <small>{actor.knownForDepartment}</small> : null}
-                    {actor.knownFor?.length ? <span>{actor.knownFor.join(", ")}</span> : null}
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <p className="empty-state">No matching actors yet.</p>
-            )}
-          </section>
-
-          <section className="discovery-results-section">
-            <div className="discovery-results-heading">
-              <h2>Public Playlists</h2>
+              <h2>Playlists</h2>
               <span>{results.playlists.length} found</span>
             </div>
             <PlaylistGrid onNavigate={onNavigate} playlists={results.playlists} emptyMessage="No matching public playlists yet." />
@@ -158,18 +163,63 @@ export function Discover({ onNavigate }: DiscoverProps) {
               <p className="empty-state">No matching curators yet.</p>
             )}
           </section>
+
+          <section className="discovery-results-section">
+            <div className="discovery-results-heading">
+              <h2>Collections</h2>
+              <span>{results.collections.length} found</span>
+            </div>
+            <CollectionResultGrid collections={results.collections} onNavigate={onNavigate} />
+          </section>
+
+          <section className="discovery-results-section">
+            <div className="discovery-results-heading">
+              <h2>Movies</h2>
+              <span>{movieResults.length} found</span>
+            </div>
+            <TitleRow titles={movieResults} emptyMessage="No matching movies yet." onNavigate={onNavigate} />
+          </section>
+
+          <section className="discovery-results-section">
+            <div className="discovery-results-heading">
+              <h2>TV Shows</h2>
+              <span>{tvResults.length} found</span>
+            </div>
+            <TitleRow titles={tvResults} emptyMessage="No matching TV shows yet." onNavigate={onNavigate} />
+          </section>
+
+          <section className="discovery-results-section">
+            <div className="discovery-results-heading">
+              <h2>Actors</h2>
+              <span>{results.actors.length} found</span>
+            </div>
+            {results.actors.length > 0 ? (
+              <div className="actor-result-grid">
+                {results.actors.map((actor) => (
+                  <button className="actor-result-card" key={actor.tmdbId} onClick={() => onNavigate(`/actor/${actor.tmdbId}`)} type="button">
+                    {actor.profileUrl ? <img alt={`${actor.name} profile`} src={actor.profileUrl} /> : <span className="cast-avatar-fallback">{actor.name.slice(0, 1)}</span>}
+                    <strong>{actor.name}</strong>
+                    {actor.knownForDepartment ? <small>{actor.knownForDepartment}</small> : null}
+                    {actor.knownFor?.length ? <span>{actor.knownFor.join(", ")}</span> : null}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="empty-state">No matching actors yet.</p>
+            )}
+          </section>
         </div>
       ) : (
         <section className="discovery-empty-panel">
           <h2>Find what is worth watching.</h2>
-          <p>Start with a title, mood, genre, playlist name, or curator.</p>
+          <p>Start with a playlist, mood, genre, collection, title, or curator.</p>
         </section>
       )}
 
       {results && !hasResults ? (
         <section className="discovery-empty-panel">
           <h2>No matches yet.</h2>
-          <p>Try a broader search like comedy, sci-fi, family, war, or a favorite actor.</p>
+          <p>Try a broader search like anime, horror, sci-fi, Christmas, Marvel, Pixar, or a favorite curator.</p>
         </section>
       ) : null}
     </section>

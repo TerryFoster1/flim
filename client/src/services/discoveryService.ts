@@ -8,6 +8,7 @@ export async function searchDiscovery(query: string) {
       titles: [],
       playlists: [],
       profiles: [],
+      collections: [],
       actors: [],
       titleSource: "empty",
     } satisfies DiscoverySearchResults;
@@ -27,6 +28,7 @@ export async function searchDiscovery(query: string) {
   const payload = await response.json() as DiscoverySearchResults;
   return {
     ...payload,
+    collections: Array.isArray(payload.collections) ? payload.collections : [],
     actors: Array.isArray(payload.actors) ? payload.actors : [],
   };
 }

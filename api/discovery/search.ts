@@ -11,10 +11,67 @@ const SEARCH_CACHE_DAYS = 7;
 const MAX_TITLE_RESULTS = 12;
 const MAX_PLAYLIST_RESULTS = 12;
 const MAX_PROFILE_RESULTS = 8;
+const MAX_COLLECTION_RESULTS = 8;
 const MAX_ACTOR_RESULTS = 8;
+
+const curatedCollectionSearchSeeds = [
+  { slug: "back-to-the-future", title: "Back to the Future Collection", category: "Time Travel", keywords: ["time travel", "sci-fi", "science fiction", "80s"] },
+  { slug: "jurassic-park", title: "Jurassic Park Collection", category: "Adventure", keywords: ["dinosaurs", "adventure", "sci-fi", "science fiction"] },
+  { slug: "mission-impossible", title: "Mission: Impossible Collection", category: "Action", keywords: ["action", "spy", "espionage", "tom cruise"] },
+  { slug: "harry-potter", title: "Harry Potter Collection", category: "Fantasy", keywords: ["fantasy", "magic", "wizarding world"] },
+  { slug: "lord-of-the-rings", title: "The Lord of the Rings Collection", category: "Fantasy", keywords: ["fantasy", "middle earth"] },
+  { slug: "star-wars", title: "Star Wars Collection", category: "Sci-Fi", keywords: ["sci-fi", "sci fi", "science fiction", "space opera"] },
+  { slug: "fast-and-furious", title: "Fast & Furious Collection", category: "Action", keywords: ["cars", "racing", "action"] },
+  { slug: "avengers", title: "The Avengers Collection", category: "Marvel", keywords: ["marvel", "superhero", "mcu", "comic book"] },
+  { slug: "captain-america", title: "Captain America Collection", category: "Marvel", keywords: ["marvel", "superhero", "mcu", "comic book"] },
+  { slug: "toy-story", title: "Toy Story Collection", category: "Pixar", keywords: ["pixar", "animation", "family", "kids"] },
+];
 
 function firstQueryValue(value: unknown) {
   return Array.isArray(value) ? String(value[0] || "") : String(value || "");
+}
+
+function normalizeSearchText(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+function expandedSearchTerms(query: string) {
+  const normalized = normalizeSearchText(query);
+  const terms = new Set([normalized]);
+  if (normalized.includes("sci fi") || normalized.includes("scifi")) {
+    terms.add("sci-fi");
+    terms.add("science fiction");
+  }
+  if (normalized.includes("science fiction")) {
+    terms.add("sci-fi");
+    terms.add("sci fi");
+  }
+  if (normalized.includes("christmas")) {
+    terms.add("holiday");
+    terms.add("family");
+  }
+  if (normalized.includes("zombie")) {
+    terms.add("zombies");
+    terms.add("undead");
+    terms.add("apocalypse");
+  }
+  if (normalized.includes("disaster")) {
+    terms.add("apocalypse");
+    terms.add("end of the world");
+  }
+  if (normalized.includes("anime")) {
+    terms.add("animation");
+    terms.add("japanese animation");
+  }
+  if (normalized.includes("oscar")) {
+    terms.add("award");
+    terms.add("best picture");
+  }
+  return [...terms].filter(Boolean);
+}
+
+function searchPatterns(query: string) {
+  return expandedSearchTerms(query).map((term) => `%${term}%`);
 }
 
 function mergeTitleResults(primary: any[], secondary: any[]) {
@@ -89,6 +146,7 @@ async function searchTitles(sql: any, query: string) {
 }
 
 async function searchPublicPlaylists(sql: any, query: string, userId?: string) {
+  const patterns = searchPatterns(query);
   const rows = await sql`
     select
       p.*,
@@ -130,15 +188,17 @@ async function searchPublicPlaylists(sql: any, query: string, userId?: string) {
       case
         when lower(p.name) = lower(${query}) then 0
         when lower(p.name) like lower(${`${query}%`}) then 1
-        when lower(p.name) like lower(${`%${query}%`}) then 2
-        when lower(coalesce(up.display_name, '')) like lower(${`%${query}%`}) then 3
-        when lower(coalesce(up.handle, '')) like lower(${`%${query}%`}) then 4
-        else 5
+        when lower(p.name) like any(${patterns}) then 2
+        when lower(coalesce(p.description, '')) like any(${patterns}) then 3
+        when lower(coalesce(up.display_name, '')) like any(${patterns}) then 4
+        when lower(coalesce(up.handle, '')) like any(${patterns}) then 5
+        else 6
       end as search_rank
     from playlists p
     left join user_profiles up on up.user_id = p.owner_user_id::text
     left join users u on u.id = p.owner_user_id
     left join playlist_movies pm on pm.playlist_id = p.id
+    left join media_items mi on mi.media_type = coalesce(pm.media_type, 'movie') and mi.tmdb_id = pm.tmdb_id
     where p.visibility = 'public'
       and not (
         lower(p.name) like '%codex vercel curl add test%'
@@ -146,15 +206,22 @@ async function searchPublicPlaylists(sql: any, query: string, userId?: string) {
         or lower(p.name) like '%production verification playlist%'
       )
       and (
-        p.name ilike ${`%${query}%`}
-        or p.description ilike ${`%${query}%`}
-        or coalesce(up.display_name, '') ilike ${`%${query}%`}
-        or coalesce(up.handle, '') ilike ${`%${query}%`}
+        lower(p.name) like any(${patterns})
+        or lower(coalesce(p.description, '')) like any(${patterns})
+        or lower(coalesce(up.display_name, '')) like any(${patterns})
+        or lower(coalesce(up.handle, '')) like any(${patterns})
         or exists (
           select 1
           from playlist_movies pm_match
+          left join media_items mi_match on mi_match.media_type = coalesce(pm_match.media_type, 'movie') and mi_match.tmdb_id = pm_match.tmdb_id
           where pm_match.playlist_id = p.id
-            and pm_match.title ilike ${`%${query}%`}
+            and (
+              lower(pm_match.title) like any(${patterns})
+              or lower(coalesce(pm_match.overview, '')) like any(${patterns})
+              or lower(coalesce(mi_match.title, '')) like any(${patterns})
+              or lower(coalesce(mi_match.overview, '')) like any(${patterns})
+              or lower(coalesce(mi_match.genres::text, '')) like any(${patterns})
+            )
         )
       )
     group by p.id, up.handle, up.display_name, u.email
@@ -166,6 +233,7 @@ async function searchPublicPlaylists(sql: any, query: string, userId?: string) {
 }
 
 async function searchProfiles(sql: any, query: string) {
+  const patterns = searchPatterns(query);
   const rows = await sql`
     select
       up.display_name,
@@ -183,11 +251,16 @@ async function searchProfiles(sql: any, query: string) {
     from user_profiles up
     left join playlists p on p.owner_user_id::text = up.user_id and p.visibility = 'public'
     left join playlist_movies pm on pm.playlist_id = p.id
+    left join media_items mi on mi.media_type = coalesce(pm.media_type, 'movie') and mi.tmdb_id = pm.tmdb_id
     where up.handle <> ''
       and (
-        up.handle ilike ${`%${query}%`}
-        or up.display_name ilike ${`%${query}%`}
-        or coalesce(up.bio, '') ilike ${`%${query}%`}
+        lower(up.handle) like any(${patterns})
+        or lower(up.display_name) like any(${patterns})
+        or lower(coalesce(up.bio, '')) like any(${patterns})
+        or lower(coalesce(p.name, '')) like any(${patterns})
+        or lower(coalesce(p.description, '')) like any(${patterns})
+        or lower(coalesce(pm.title, '')) like any(${patterns})
+        or lower(coalesce(mi.genres::text, '')) like any(${patterns})
       )
     group by up.id
     order by
@@ -217,6 +290,92 @@ async function searchProfiles(sql: any, query: string) {
     titleCount: Number(row.title_count || 0),
     followerCount: Number(row.follower_count || 0),
   }));
+}
+
+async function searchCollections(sql: any, query: string) {
+  const terms = expandedSearchTerms(query);
+  const patterns = terms.map((term) => `%${term}%`);
+  const rows = await safeRows(sql`
+    select
+      mc.slug,
+      mc.title,
+      mc.overview,
+      mc.poster_url,
+      mc.backdrop_url,
+      mc.category,
+      count(mci.id)::int as title_count,
+      count(mci.id) filter (where mci.media_type = 'movie')::int as movie_count,
+      count(mci.id) filter (where mci.media_type = 'tv')::int as tv_count,
+      max(mci.release_date) as latest_release_date,
+      case
+        when lower(mc.title) = lower(${query}) then 0
+        when lower(mc.title) like lower(${`${query}%`}) then 1
+        when lower(mc.title) like any(${patterns}) then 2
+        when lower(coalesce(mc.category, '')) like any(${patterns}) then 3
+        else 4
+      end as search_rank
+    from media_collections mc
+    left join media_collection_items mci on mci.collection_id = mc.id
+    where
+      lower(mc.title) like any(${patterns})
+      or lower(coalesce(mc.overview, '')) like any(${patterns})
+      or lower(coalesce(mc.category, '')) like any(${patterns})
+      or exists (
+        select 1
+        from media_collection_items item_match
+        where item_match.collection_id = mc.id
+          and (
+            lower(item_match.title) like any(${patterns})
+            or lower(coalesce(item_match.overview, '')) like any(${patterns})
+          )
+      )
+    group by mc.id
+    order by search_rank asc, title_count desc, mc.updated_at desc
+    limit ${MAX_COLLECTION_RESULTS}
+  `);
+  const bySlug = new Map<string, any>();
+  for (const row of rows) {
+    bySlug.set(String(row.slug), {
+      slug: row.slug,
+      title: row.title,
+      overview: row.overview || "",
+      posterUrl: row.poster_url || "",
+      backdropUrl: row.backdrop_url || "",
+      category: row.category || "",
+      titleCount: Number(row.title_count || 0),
+      movieCount: Number(row.movie_count || 0),
+      tvCount: Number(row.tv_count || 0),
+      latestReleaseDate: row.latest_release_date || undefined,
+    });
+  }
+
+  for (const seed of curatedCollectionSearchSeeds) {
+    const searchable = [seed.title, seed.category, ...seed.keywords].join(" ").toLowerCase();
+    if (!terms.some((term) => searchable.includes(term)) || bySlug.has(seed.slug)) continue;
+    bySlug.set(seed.slug, {
+      slug: seed.slug,
+      title: seed.title,
+      overview: "",
+      posterUrl: "",
+      backdropUrl: "",
+      category: seed.category,
+      titleCount: 0,
+      movieCount: 0,
+      tvCount: 0,
+    });
+  }
+
+  return [...bySlug.values()].slice(0, MAX_COLLECTION_RESULTS);
+}
+
+async function safeRows(query: Promise<any[]>) {
+  try {
+    return await query;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String((error as any)?.message || "");
+    if (message.includes("does not exist") || message.includes("relation") || message.includes("column")) return [];
+    throw error;
+  }
 }
 
 async function searchActors(sql: any, query: string) {
@@ -272,6 +431,7 @@ export default async function handler(request: any, response: any) {
         titles: [],
         playlists: [],
         profiles: [],
+        collections: [],
         actors: [],
         titleSource: "empty",
       });
@@ -288,10 +448,11 @@ export default async function handler(request: any, response: any) {
     });
 
     const user = await getCurrentUser(sql, request);
-    const [titleResults, playlists, profiles, actors] = await Promise.all([
+    const [titleResults, playlists, profiles, collections, actors] = await Promise.all([
       searchTitles(sql, query),
       searchPublicPlaylists(sql, query, user?.id),
       searchProfiles(sql, query),
+      searchCollections(sql, query),
       searchActors(sql, query),
     ]);
 
@@ -301,6 +462,7 @@ export default async function handler(request: any, response: any) {
       titles: titleResults.items,
       playlists,
       profiles,
+      collections,
       actors,
       titleSource: titleResults.source,
     });
