@@ -143,7 +143,7 @@ export default async function handler(request: any, response: any) {
       limit ${limit}
     `;
 
-    const events = await sql`
+    const announcedEvents = await sql`
       select
         re.event_type,
         re.created_at,
@@ -155,15 +155,44 @@ export default async function handler(request: any, response: any) {
         mi.poster_url
       from release_events re
       inner join media_items mi on mi.id = re.media_item_id
-      where re.event_type in ('season_announced', 'release_date_changed', 'season_release_changed', 'title_status_changed')
+      where re.event_type in (
+        'season_announced',
+        'movie_released',
+        'season_released',
+        'episode_released',
+        'trailer_released',
+        'streaming_available'
+      )
         and re.created_at >= now() - interval '60 days'
         and (${mediaType} = 'both' or re.media_type = ${mediaType})
       order by re.created_at desc
       limit 12
     `;
+    const delayedEvents = await sql`
+      select
+        re.event_type,
+        re.created_at,
+        re.media_type,
+        re.tmdb_id,
+        re.title as event_title,
+        re.body,
+        mi.title,
+        mi.poster_url
+      from release_events re
+      inner join media_items mi on mi.id = re.media_item_id
+      where re.event_type in ('release_date_changed', 'season_release_changed')
+        and re.created_at >= now() - interval '90 days'
+        and (${mediaType} = 'both' or re.media_type = ${mediaType})
+        and (re.old_value #>> '{}') ~ '^\\d{4}-\\d{2}-\\d{2}'
+        and (re.new_value #>> '{}') ~ '^\\d{4}-\\d{2}-\\d{2}'
+        and (re.new_value #>> '{}')::date > (re.old_value #>> '{}')::date
+      order by re.created_at desc
+      limit 12
+    `;
 
     const items = rows.map(mapUpcoming);
-    const recentEvents = events.map(mapReleaseEvent);
+    const recentAnnouncements = announcedEvents.map(mapReleaseEvent);
+    const recentDelays = delayedEvents.map(mapReleaseEvent);
     const upcomingMovies = items.filter((item: any) => item.mediaType === "movie");
     const upcomingTv = items.filter((item: any) => item.mediaType === "tv");
     const now = new Date();
@@ -179,8 +208,8 @@ export default async function handler(request: any, response: any) {
         upcomingMovies,
         upcomingTv,
         releasingThisMonth,
-        recentlyAnnounced: recentEvents,
-        recentlyDelayed: recentEvents.filter((event: any) => event.eventType === "release_date_changed" || event.eventType === "season_release_changed"),
+        recentlyAnnounced: recentAnnouncements,
+        recentlyDelayed: recentDelays,
       },
       filters: { mediaType, window: windowFilter },
       generatedAt: new Date().toISOString(),
