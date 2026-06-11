@@ -3,6 +3,7 @@ import { AddToPlaylistControl } from "../components/AddToPlaylistControl";
 import { FollowTitleControl } from "../components/FollowTitleControl";
 import { OptionalSectionBoundary } from "../components/OptionalSectionBoundary";
 import { PageShell } from "../components/PageShell";
+import { RecommendationShelf } from "../components/RecommendationShelf";
 import { WatchStatusBadge } from "../components/WatchStatusBadge";
 import { getCurrentProfile } from "../services/profileService";
 import { getMovieDetails, getTvDetails, hasTmdbApiKey } from "../services/tmdbService";
@@ -304,6 +305,15 @@ export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addTo
               <MediaExtensions media={normalizedMovie} onNavigate={onNavigate} />
             </Suspense>
           </OptionalSectionBoundary>
+          {onNavigate ? (
+            <RecommendationShelf
+              title="You May Also Like"
+              mediaType={normalizedMovie.mediaType || mediaType}
+              tmdbId={normalizedMovie.tmdbId}
+              onNavigate={onNavigate}
+              limit={8}
+            />
+          ) : null}
         </div>
       </div>
     </section>

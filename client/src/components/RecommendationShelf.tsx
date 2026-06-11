@@ -4,19 +4,25 @@ import type { PlaylistMovie } from "../types";
 
 interface RecommendationShelfProps {
   onNavigate: (path: string) => void;
+  title?: string;
+  mediaType?: "movie" | "tv";
+  tmdbId?: number;
+  limit?: number;
 }
 
 function detailPath(item: PlaylistMovie) {
   return `${item.mediaType === "tv" ? "/tv" : "/movies"}/${item.tmdbId}`;
 }
 
-export function RecommendationShelf({ onNavigate }: RecommendationShelfProps) {
+export function RecommendationShelf({ onNavigate, title = "Recommended For You", mediaType, tmdbId, limit = 12 }: RecommendationShelfProps) {
   const [items, setItems] = useState<PlaylistMovie[]>([]);
   const [status, setStatus] = useState<"loading" | "ready" | "hidden">("loading");
+  const recommendationKey = mediaType && Number.isFinite(tmdbId) ? `${mediaType}-${tmdbId}` : "for-you";
 
   useEffect(() => {
     let mounted = true;
-    getRecommendations()
+    setStatus("loading");
+    getRecommendations({ mediaType, tmdbId })
       .then((result) => {
         if (!mounted) return;
         const explainable = result.recommendations.filter((item) => item.recommendationReason);
@@ -29,17 +35,17 @@ export function RecommendationShelf({ onNavigate }: RecommendationShelfProps) {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [recommendationKey, mediaType, tmdbId]);
 
   if (status !== "ready") return null;
 
   return (
     <section className="recommendation-shelf">
       <div className="shelf-header">
-        <h2>Recommended For You</h2>
+        <h2>{title}</h2>
       </div>
       <div className="recommendation-row">
-        {items.slice(0, 12).map((item) => (
+        {items.slice(0, limit).map((item) => (
           <article className="recommendation-card" key={`${item.mediaType}-${item.tmdbId}`}>
             <button className="recommendation-poster reset-button" onClick={() => onNavigate(detailPath(item))} type="button">
               {item.posterUrl ? <img alt={`${item.title} poster`} src={item.posterUrl} /> : <span />}

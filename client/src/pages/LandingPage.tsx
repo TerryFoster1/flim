@@ -1,4 +1,5 @@
 import { ContinueWatchingRow } from "../components/ContinueWatchingRow";
+import { RecommendationShelf } from "../components/RecommendationShelf";
 import type { CurrentUser } from "../types";
 
 interface LandingPageProps {
@@ -21,6 +22,7 @@ export function LandingPage({ currentUser, onNavigate }: LandingPageProps) {
         </div>
       </section>
       {currentUser ? <ContinueWatchingRow onNavigate={onNavigate} variant="home" /> : null}
+      {currentUser ? <RecommendationShelf onNavigate={onNavigate} limit={10} /> : null}
     </section>
   );
 }

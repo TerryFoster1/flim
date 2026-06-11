@@ -396,6 +396,9 @@ export interface PlaylistMovie {
   addedAt: string;
   watchStatus: WatchStatus;
   recommendationReason?: string;
+  sourceType?: string;
+  sourceId?: string;
+  score?: number;
 }
 
 export type WatchProviderName =

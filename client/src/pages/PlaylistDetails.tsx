@@ -15,9 +15,33 @@ interface PlaylistDetailsProps {
   removeMovie: (playlistId: string, tmdbId: number, mediaType?: string) => void | Promise<void>;
   reorderMovies: (playlistId: string, movieIds: string[]) => void | Promise<void>;
   updateWatchStatus: (playlistId: string, tmdbId: number, watchStatus: WatchStatus, mediaType?: string) => void | Promise<void>;
+  relatedPlaylists?: Playlist[];
 }
 
-export function PlaylistDetails({ playlist, onNavigate, addToPlaylist, deletePlaylist, updatePlaylist, createSharedLink, removeMovie, reorderMovies, updateWatchStatus }: PlaylistDetailsProps) {
+function playlistTitleKey(movie: { tmdbId: number; mediaType?: string }) {
+  return `${movie.mediaType || "movie"}-${movie.tmdbId}`;
+}
+
+function playlistPath(playlist: Playlist) {
+  return playlist.visibility === "public" && playlist.publicSlug ? `/p/${playlist.publicSlug}` : `/playlists/${playlist.id}`;
+}
+
+function getRelatedPlaylists(playlist: Playlist, candidates: Playlist[] = []) {
+  const sourceKeys = new Set(playlist.movies.map(playlistTitleKey));
+  if (sourceKeys.size === 0) return [];
+
+  return candidates
+    .filter((candidate) => candidate.id !== playlist.id && candidate.visibility === "public" && candidate.movies.length > 0)
+    .map((candidate) => {
+      const sharedTitleCount = candidate.movies.reduce((count, movie) => count + (sourceKeys.has(playlistTitleKey(movie)) ? 1 : 0), 0);
+      return { playlist: candidate, sharedTitleCount };
+    })
+    .filter((item) => item.sharedTitleCount > 0)
+    .sort((a, b) => b.sharedTitleCount - a.sharedTitleCount || (b.playlist.followerCount || 0) - (a.playlist.followerCount || 0) || a.playlist.name.localeCompare(b.playlist.name))
+    .slice(0, 6);
+}
+
+export function PlaylistDetails({ playlist, onNavigate, addToPlaylist, deletePlaylist, updatePlaylist, createSharedLink, removeMovie, reorderMovies, updateWatchStatus, relatedPlaylists = [] }: PlaylistDetailsProps) {
   const canAddTitles = !playlist.isSystem && Boolean(playlist.isOwner || playlist.canAddTitles);
   const canRemoveTitles = !playlist.isSystem && Boolean(playlist.isOwner || playlist.canRemoveTitles);
   const canReorderTitles = !playlist.isSystem && Boolean(playlist.isOwner || playlist.canReorderTitles);
@@ -38,6 +62,7 @@ export function PlaylistDetails({ playlist, onNavigate, addToPlaylist, deletePla
   const sharedAccess = playlist.visibility === "shared" || playlist.accessMode === "shared";
   const followerCount = playlist.followerCount || 0;
   const likeCount = playlist.likeCount || 0;
+  const related = getRelatedPlaylists(playlist, relatedPlaylists);
 
   async function makePublicForShare() {
     setNotice("");
@@ -230,6 +255,33 @@ export function PlaylistDetails({ playlist, onNavigate, addToPlaylist, deletePla
         onWatchStatusChange={editable ? updateWatchStatus : undefined}
         playlistId={playlist.id}
       />
+      {related.length > 0 ? (
+        <section className="related-playlists-section">
+          <div className="shelf-header">
+            <h2>Related Playlists</h2>
+          </div>
+          <div className="related-playlists-row">
+            {related.map(({ playlist: relatedPlaylist, sharedTitleCount }) => (
+              <article className="related-playlist-card" key={relatedPlaylist.id}>
+                <button className="playlist-card-button reset-button" onClick={() => onNavigate(playlistPath(relatedPlaylist))} type="button">
+                  <div className="playlist-cover poster-collage" aria-hidden="true">
+                    {relatedPlaylist.movies.slice(0, 4).map((movie) => (
+                      movie.posterUrl
+                        ? <img alt="" key={`${movie.mediaType || "movie"}-${movie.tmdbId}`} src={movie.posterUrl} />
+                        : <span key={`${movie.mediaType || "movie"}-${movie.tmdbId}`} />
+                    ))}
+                  </div>
+                  <div className="related-playlist-copy">
+                    <h3>{relatedPlaylist.name}</h3>
+                    <p>{sharedTitleCount} shared {sharedTitleCount === 1 ? "title" : "titles"} with this playlist.</p>
+                    <span>{relatedPlaylist.movies.length} {relatedPlaylist.movies.length === 1 ? "Title" : "Titles"}</span>
+                  </div>
+                </button>
+              </article>
+            ))}
+          </div>
+        </section>
+      ) : null}
     </section>
   );
 }

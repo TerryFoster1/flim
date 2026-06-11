@@ -10,6 +10,17 @@ async function recommendationRequest<T>(path: string): Promise<T> {
   return payload as T;
 }
 
-export function getRecommendations() {
-  return recommendationRequest<{ recommendations: PlaylistMovie[] }>("/api/recommendations");
+interface RecommendationRequestOptions {
+  mediaType?: "movie" | "tv";
+  tmdbId?: number;
+}
+
+export function getRecommendations(options: RecommendationRequestOptions = {}) {
+  const params = new URLSearchParams();
+  if (options.mediaType && Number.isFinite(options.tmdbId)) {
+    params.set("mediaType", options.mediaType);
+    params.set("tmdbId", String(options.tmdbId));
+  }
+  const query = params.toString();
+  return recommendationRequest<{ recommendations: PlaylistMovie[] }>(`/api/recommendations${query ? `?${query}` : ""}`);
 }

@@ -290,6 +290,7 @@ export default function App() {
         removeMovie={removeFromPlaylist}
         reorderMovies={reorderMovies}
         updateWatchStatus={updateWatchStatus}
+        relatedPlaylists={displayPlaylists}
       />
     ) : (
       <Playlists currentUser={currentUser} rewindPlaylists={rewindPlaylists} initialView="my" notice={playlistNotice || "Playlist not found."} onCreatePlaylist={createRemotePlaylist} onNavigate={navigate} playlists={playlists} />
