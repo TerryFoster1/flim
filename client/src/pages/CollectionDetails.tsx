@@ -87,9 +87,14 @@ export function CollectionDetailsPage({ collectionId, onNavigate }: CollectionDe
           <div className="collection-progress-track" aria-label={`${progress.completionPercent}% complete`}>
             <span style={{ width: `${progress.completionPercent}%` }} />
           </div>
-          <button className="secondary-button hall-inline-link" onClick={() => onNavigate("/hall-of-fame")} type="button">
-            View Hall of Fame
-          </button>
+          <div className="collection-hero-actions">
+            <button className="secondary-button hall-inline-link" onClick={() => onNavigate("/progress")} type="button">
+              View Progress
+            </button>
+            <button className="secondary-button hall-inline-link" onClick={() => onNavigate("/hall-of-fame")} type="button">
+              Hall of Fame
+            </button>
+          </div>
         </div>
       </section>
 

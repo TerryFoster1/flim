@@ -10,6 +10,7 @@ export type AppRoute =
   | "/actor/:id"
   | "/collection/:id"
   | "/challenges"
+  | "/progress"
   | "/hall-of-fame"
   | "/public"
   | "/roulette"
@@ -713,6 +714,78 @@ export interface HallOfFameFeed {
   generatedAt: string;
   categories: HallOfFameCategory[];
   leaderboards: Record<string, HallOfFameLeaderboard>;
+}
+
+export interface ProgressHubSummary {
+  achievementPoints: number;
+  badgeCount: number;
+  collectionsCompleted: number;
+  collectionsInProgress: number;
+  collectionAverageCompletion: number;
+  challengesCompleted: number;
+  challengePoints: number;
+  triviaCompleted: number;
+  triviaTotal: number;
+  easterEggsFound: number;
+  easterEggsTotal: number;
+  seasonalBadges: number;
+  moviesWatched: number;
+  tvEpisodesWatched: number;
+}
+
+export interface ProgressHubNextStep {
+  type: "seasonal_challenge" | "collection" | "challenge" | "achievement" | "trivia" | "discover";
+  title: string;
+  description: string;
+  cta: string;
+  path: string;
+  completionPercent: number;
+}
+
+export interface ProgressCollectionItem {
+  id: string;
+  slug: string;
+  title: string;
+  posterUrl?: string;
+  backdropUrl?: string;
+  totalCount: number;
+  watchedCount: number;
+  remainingCount: number;
+  completionPercent: number;
+  status: CollectionStatus;
+  updatedAt?: string;
+  path: string;
+}
+
+export interface ProgressActivityItem {
+  type: string;
+  title: string;
+  label: string;
+  occurredAt?: string;
+  path?: string;
+}
+
+export interface ProgressHubFeed {
+  summary: ProgressHubSummary;
+  nextStep: ProgressHubNextStep;
+  collections: ProgressCollectionItem[];
+  challenges: {
+    inProgress: CollectionChallenge[];
+    completed: CollectionChallenge[];
+    all: CollectionChallenge[];
+  };
+  seasonalChallenges: {
+    active: SeasonalChallengeEvent[];
+    inProgress: SeasonalChallengeEvent[];
+    completed: SeasonalChallengeEvent[];
+  };
+  achievements: {
+    featuredBadges: CompanionAchievement[];
+    recentUnlocks: CompanionAchievement[];
+    nextUnlocks: CompanionAchievement[];
+  };
+  timeline: ProgressActivityItem[];
+  generatedAt: string;
 }
 
 export interface DiscoveryProfileResult {

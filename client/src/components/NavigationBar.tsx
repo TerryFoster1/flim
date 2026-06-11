@@ -163,6 +163,7 @@ export function NavigationBar({ currentUser, onNavigate, onLogout }: NavigationB
               <>
                 <button onClick={() => navigate("/discover")} type="button">Discover</button>
                 <button onClick={() => navigate(currentUser.profile?.handle ? `/@${currentUser.profile.handle}` : "/profile")} type="button">Profile</button>
+                <button onClick={() => navigate("/progress")} type="button">Progress Hub</button>
                 <button onClick={() => navigate("/followed-titles")} type="button">My Followed Titles</button>
                 <button onClick={() => navigate("/upcoming")} type="button">Upcoming Releases</button>
                 <button onClick={() => navigate("/challenges")} type="button">Seasonal Challenges</button>
