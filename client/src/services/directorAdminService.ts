@@ -19,6 +19,21 @@ export interface DirectorAnalytics {
   nowPlayingUses: number | null;
 }
 
+export interface DirectorSeasonalChallenge {
+  id: string;
+  slug: string;
+  name: string;
+  description: string;
+  start_date: string;
+  end_date: string;
+  badge: string;
+  banner?: string;
+  difficulty: "easy" | "medium" | "hard" | "expert";
+  requirements: unknown[];
+  points: number;
+  status: "draft" | "published" | "archived";
+}
+
 async function directorRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
   const response = await fetch(`/api/director-admin${path}`, {
     credentials: "same-origin",
@@ -119,5 +134,29 @@ export function reorderDirectorPlaylistMovies(playlistId: string, movieIds: stri
   return directorRequest<{ ok: boolean }>(`/playlists/${playlistId}/movies/reorder`, {
     method: "PATCH",
     body: JSON.stringify({ movieIds }),
+  });
+}
+
+export function getDirectorSeasonalChallenges() {
+  return directorRequest<DirectorSeasonalChallenge[]>("/seasonal-challenges");
+}
+
+export function createDirectorSeasonalChallenge(input: Partial<DirectorSeasonalChallenge> & { startDate?: string; endDate?: string }) {
+  return directorRequest<DirectorSeasonalChallenge>("/seasonal-challenges", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function updateDirectorSeasonalChallenge(eventId: string, input: Partial<DirectorSeasonalChallenge> & { startDate?: string; endDate?: string }) {
+  return directorRequest<DirectorSeasonalChallenge>(`/seasonal-challenges/${eventId}`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+}
+
+export function archiveDirectorSeasonalChallenge(eventId: string) {
+  return directorRequest<{ ok: boolean }>(`/seasonal-challenges/${eventId}`, {
+    method: "DELETE",
   });
 }

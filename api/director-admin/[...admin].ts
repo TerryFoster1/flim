@@ -11,6 +11,7 @@ import {
   sendJson,
 } from "../_db.js";
 import { directorHandle, directorUserId, ensureDirectorSeed } from "../_director.js";
+import { cleanSeasonalChallengeInput, ensureSeasonalChallengeTables } from "../_seasonalChallenges.js";
 
 const cookieName = "flim_director_admin";
 const sessionMaxAgeSeconds = 60 * 60 * 8;
@@ -225,6 +226,90 @@ async function handleAnalytics(response: any, sql: any) {
   });
 }
 
+async function handleSeasonalChallenges(request: any, response: any, sql: any, eventId?: string) {
+  await ensureSeasonalChallengeTables(sql);
+
+  if (request.method === "GET") {
+    const rows = await sql`
+      select *
+      from seasonal_challenge_events
+      order by start_date desc, name
+    `;
+    return sendJson(response, 200, rows);
+  }
+
+  if (request.method === "POST" && !eventId) {
+    const input = cleanSeasonalChallengeInput(await readBody(request));
+    if (!input.name || !input.startDate || !input.endDate || input.requirements.length === 0) {
+      return sendJson(response, 400, { error: "Name, dates, and at least one requirement are required." });
+    }
+    const [event] = await sql`
+      insert into seasonal_challenge_events (
+        slug,
+        name,
+        description,
+        start_date,
+        end_date,
+        badge,
+        banner,
+        difficulty,
+        requirements,
+        points,
+        status,
+        updated_at
+      )
+      values (
+        ${input.slug},
+        ${input.name},
+        ${input.description},
+        ${input.startDate},
+        ${input.endDate},
+        ${input.badge},
+        ${input.banner},
+        ${input.difficulty},
+        ${JSON.stringify(input.requirements)}::jsonb,
+        ${input.points},
+        ${input.status},
+        now()
+      )
+      returning *
+    `;
+    return sendJson(response, 201, event);
+  }
+
+  if (request.method === "PATCH" && eventId) {
+    const input = cleanSeasonalChallengeInput(await readBody(request));
+    const [event] = await sql`
+      update seasonal_challenge_events
+      set
+        slug = ${input.slug},
+        name = ${input.name},
+        description = ${input.description},
+        start_date = ${input.startDate},
+        end_date = ${input.endDate},
+        badge = ${input.badge},
+        banner = ${input.banner},
+        difficulty = ${input.difficulty},
+        requirements = ${JSON.stringify(input.requirements)}::jsonb,
+        points = ${input.points},
+        status = ${input.status},
+        updated_at = now()
+      where id = ${eventId}
+      returning *
+    `;
+    if (!event) return sendJson(response, 404, { error: "Seasonal challenge not found." });
+    return sendJson(response, 200, event);
+  }
+
+  if (request.method === "DELETE" && eventId) {
+    const rows = await sql`update seasonal_challenge_events set status = 'archived', updated_at = now() where id = ${eventId} returning id`;
+    if (!rows[0]) return sendJson(response, 404, { error: "Seasonal challenge not found." });
+    return sendJson(response, 200, { ok: true });
+  }
+
+  return sendJson(response, 405, { error: "Method not allowed." });
+}
+
 async function handlePlaylistCollection(request: any, response: any, sql: any) {
   if (request.method === "GET") {
     return sendJson(response, 200, await getDirectorPlaylists(sql));
@@ -387,6 +472,7 @@ export default async function handler(request: any, response: any) {
     if (!resource || resource === "dashboard") return handleAnalytics(response, sql);
     if (resource === "profile") return handleProfile(request, response, sql);
     if (resource === "analytics") return handleAnalytics(response, sql);
+    if (resource === "seasonal-challenges") return handleSeasonalChallenges(request, response, sql, id);
     if (resource === "playlists" && !id) return handlePlaylistCollection(request, response, sql);
     if (resource === "playlists" && id && child === "movies") return handlePlaylistMovies(request, response, sql, id, childId);
     if (resource === "playlists" && id) return handlePlaylistDetail(request, response, sql, id);

@@ -2,21 +2,26 @@ import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "re
 import { PlaylistGrid } from "../components/PlaylistGrid";
 import {
   addMovieToDirectorPlaylist,
+  archiveDirectorSeasonalChallenge,
   createDirectorPlaylist,
+  createDirectorSeasonalChallenge,
   deleteDirectorPlaylist,
   getDirectorAdminSession,
   getDirectorAnalytics,
   getDirectorPlaylist,
   getDirectorPlaylists,
   getDirectorProfile,
+  getDirectorSeasonalChallenges,
   loginDirectorAdmin,
   logoutDirectorAdmin,
   removeMovieFromDirectorPlaylist,
   reorderDirectorPlaylistMovies,
   updateDirectorPlaylist,
   updateDirectorProfile,
+  updateDirectorSeasonalChallenge,
   type DirectorAnalytics,
   type DirectorProfile,
+  type DirectorSeasonalChallenge,
 } from "../services/directorAdminService";
 import { searchMovies } from "../services/tmdbService";
 import type { MediaSearchMode } from "../services/tmdbService";
@@ -202,6 +207,119 @@ function DirectorAnalyticsCards() {
   );
 }
 
+function SeasonalChallengeManager() {
+  const [events, setEvents] = useState<DirectorSeasonalChallenge[]>([]);
+  const [status, setStatus] = useState("");
+  const [name, setName] = useState("");
+  const [startDate, setStartDate] = useState("2026-10-01");
+  const [endDate, setEndDate] = useState("2026-10-31");
+  const [badge, setBadge] = useState("");
+  const [points, setPoints] = useState(100);
+  const [requirementsJson, setRequirementsJson] = useState('[{"type":"movies_watched","label":"Watch 5 movies","target":5}]');
+
+  async function refresh() {
+    setEvents(await getDirectorSeasonalChallenges());
+  }
+
+  useEffect(() => {
+    refresh().catch(() => setStatus("Could not load seasonal challenges."));
+  }, []);
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setStatus("");
+    try {
+      const requirements = JSON.parse(requirementsJson);
+      await createDirectorSeasonalChallenge({
+        name,
+        description: `${name} seasonal event.`,
+        startDate,
+        endDate,
+        badge: badge || `${name} Badge`,
+        banner: name.toLowerCase().includes("halloween") ? "horror" : "event",
+        difficulty: "medium",
+        requirements,
+        points,
+        status: "published",
+      });
+      setName("");
+      setBadge("");
+      await refresh();
+      setStatus("Seasonal challenge created.");
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Could not save seasonal challenge.");
+    }
+  }
+
+  async function togglePublished(event: DirectorSeasonalChallenge) {
+    await updateDirectorSeasonalChallenge(event.id, {
+      ...event,
+      startDate: event.start_date,
+      endDate: event.end_date,
+      status: event.status === "published" ? "draft" : "published",
+    });
+    await refresh();
+  }
+
+  async function archive(eventId: string) {
+    await archiveDirectorSeasonalChallenge(eventId);
+    await refresh();
+  }
+
+  return (
+    <section className="director-admin-card seasonal-admin-card">
+      <div className="director-card-heading">
+        <div>
+          <h2>Seasonal Challenges</h2>
+        </div>
+        <button className="secondary-button" onClick={refresh} type="button">Refresh</button>
+      </div>
+      {status ? <p className={status.includes("created") ? "success-message" : "error-message"}>{status}</p> : null}
+      <form className="director-search-form" onSubmit={submit}>
+        <label>
+          <span>Name</span>
+          <input onChange={(event) => setName(event.target.value)} placeholder="Halloween Horror Challenge" required value={name} />
+        </label>
+        <label>
+          <span>Start</span>
+          <input onChange={(event) => setStartDate(event.target.value)} required type="date" value={startDate} />
+        </label>
+        <label>
+          <span>End</span>
+          <input onChange={(event) => setEndDate(event.target.value)} required type="date" value={endDate} />
+        </label>
+        <label>
+          <span>Badge</span>
+          <input onChange={(event) => setBadge(event.target.value)} placeholder="Halloween Horror Hunter 2026" value={badge} />
+        </label>
+        <label>
+          <span>Points</span>
+          <input min={0} onChange={(event) => setPoints(Number(event.target.value || 0))} type="number" value={points} />
+        </label>
+        <label className="director-wide-field">
+          <span>Requirements JSON</span>
+          <textarea onChange={(event) => setRequirementsJson(event.target.value)} value={requirementsJson} />
+        </label>
+        <button className="primary-button" type="submit">Create Event</button>
+      </form>
+      <div className="seasonal-admin-list">
+        {events.map((event) => (
+          <article className="director-movie-row" key={event.id}>
+            <div>
+              <strong>{event.name}</strong>
+              <p>{event.start_date?.slice(0, 10)} to {event.end_date?.slice(0, 10)} / {event.status} / {event.points} pts</p>
+            </div>
+            <div className="director-row-actions">
+              <button className="secondary-button" onClick={() => togglePublished(event)} type="button">{event.status === "published" ? "Unpublish" : "Publish"}</button>
+              <button className="danger-button subtle" onClick={() => archive(event.id)} type="button">Archive</button>
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export function DirectorAdminDashboard({ onNavigate }: Pick<DirectorAdminProps, "onNavigate">) {
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
 
@@ -213,6 +331,7 @@ export function DirectorAdminDashboard({ onNavigate }: Pick<DirectorAdminProps, 
     <AdminShell onNavigate={onNavigate}>
       <div className="director-admin-dashboard">
         <DirectorProfileEditor />
+        <SeasonalChallengeManager />
         <section className="director-admin-card">
           <div className="director-card-heading">
             <div>

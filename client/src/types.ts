@@ -9,6 +9,7 @@ export type AppRoute =
   | "/tv/:tmdbId"
   | "/actor/:id"
   | "/collection/:id"
+  | "/challenges"
   | "/public"
   | "/roulette"
   | "/upcoming"
@@ -186,6 +187,50 @@ export interface CollectionChallengeBadge {
   category?: string;
   completionPercent?: number;
   earnedAt?: string;
+}
+
+export interface SeasonalChallengeRequirement {
+  type: "movies_watched" | "tv_episodes_watched" | "collection_progress" | "trivia_completed" | "easter_eggs_completed" | "challenge_completed";
+  label: string;
+  target: number;
+  progress: number;
+  completed: boolean;
+  genre?: string;
+  collectionSlug?: string;
+  challengeId?: string;
+}
+
+export interface SeasonalChallengeEvent {
+  id: string;
+  slug: string;
+  name: string;
+  description: string;
+  startDate: string;
+  endDate: string;
+  badge: string;
+  banner?: string;
+  difficulty: "easy" | "medium" | "hard" | "expert";
+  requirements: SeasonalChallengeRequirement[];
+  points: number;
+  status: "draft" | "published" | "archived";
+  dateStatus: "upcoming" | "active" | "ended";
+  userStatus: "not_started" | "in_progress" | "completed";
+  completedRequirements: number;
+  totalRequirements: number;
+  completionPercent: number;
+  daysRemaining: number;
+  earnedAt?: string;
+}
+
+export interface SeasonalChallengeFeed {
+  events: SeasonalChallengeEvent[];
+  sections: {
+    active: SeasonalChallengeEvent[];
+    endingSoon: SeasonalChallengeEvent[];
+    upcoming: SeasonalChallengeEvent[];
+    recentlyCompleted: SeasonalChallengeEvent[];
+    featured: SeasonalChallengeEvent | null;
+  };
 }
 
 export interface MediaCollection {
@@ -462,7 +507,11 @@ export type NotificationType =
   | "episode_released"
   | "streaming_available"
   | "provider_changed"
-  | "trailer_released";
+  | "trailer_released"
+  | "seasonal_challenge_started"
+  | "seasonal_challenge_ending"
+  | "seasonal_challenge_completed"
+  | "seasonal_badge_unlocked";
 
 export interface AppNotification {
   id: string;
@@ -470,7 +519,7 @@ export interface AppNotification {
   actorUserId?: string;
   actorDisplayName: string;
   type: NotificationType;
-  entityType: "playlist" | "title";
+  entityType: "playlist" | "title" | "seasonal_challenge";
   entityId?: string;
   entityPath?: string;
   title: string;
@@ -600,6 +649,12 @@ export interface PublicUserProfile {
   challenges?: {
     challengeCount: number;
     challengePoints: number;
+    featuredBadges: CollectionChallengeBadge[];
+    recentUnlocks: CollectionChallengeBadge[];
+  };
+  seasonalChallenges?: {
+    seasonalBadgeCount: number;
+    seasonalPoints: number;
     featuredBadges: CollectionChallengeBadge[];
     recentUnlocks: CollectionChallengeBadge[];
   };

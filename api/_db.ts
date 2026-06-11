@@ -902,6 +902,7 @@ export function mapPublicUserProfile(row: any) {
     stats: row.stats || undefined,
     achievements: row.achievement_summary || undefined,
     challenges: row.challenge_summary || undefined,
+    seasonalChallenges: row.seasonal_challenge_summary || undefined,
     publicPlaylists,
   };
 }

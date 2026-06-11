@@ -338,6 +338,49 @@ on conflict (id) do update set
   category = excluded.category,
   updated_at = now();
 
+create table if not exists seasonal_challenge_events (
+  id uuid primary key default gen_random_uuid(),
+  slug text not null unique,
+  name text not null,
+  description text not null default '',
+  start_date date not null,
+  end_date date not null,
+  badge text not null,
+  banner text,
+  difficulty text not null default 'medium',
+  requirements jsonb not null default '[]'::jsonb,
+  points integer not null default 0,
+  status text not null default 'draft' check (status in ('draft', 'published', 'archived')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists seasonal_challenge_events_status_dates_idx
+  on seasonal_challenge_events (status, start_date, end_date);
+
+create index if not exists seasonal_challenge_events_slug_idx
+  on seasonal_challenge_events (slug);
+
+create table if not exists user_seasonal_challenges (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  event_id uuid not null references seasonal_challenge_events(id) on delete cascade,
+  status text not null default 'in_progress' check (status in ('started', 'in_progress', 'completed')),
+  completed_requirements integer not null default 0,
+  total_requirements integer not null default 0,
+  completion_percentage integer not null default 0,
+  points_awarded integer not null default 0,
+  started_at timestamptz not null default now(),
+  completed_at timestamptz,
+  updated_at timestamptz not null default now()
+);
+
+create unique index if not exists user_seasonal_challenges_user_event_unique
+  on user_seasonal_challenges (user_id, event_id);
+
+create index if not exists user_seasonal_challenges_user_status_idx
+  on user_seasonal_challenges (user_id, status, updated_at desc);
+
 create table if not exists user_sessions (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references users(id) on delete cascade,
@@ -600,6 +643,10 @@ create index if not exists notifications_type_idx
 
 create index if not exists notifications_entity_idx
   on notifications (entity_type, entity_id);
+
+create unique index if not exists notifications_seasonal_challenge_unique
+  on notifications (recipient_user_id, type, entity_type, entity_id)
+  where entity_type = 'seasonal_challenge';
 
 create unique index if not exists notifications_release_event_recipient_unique
   on notifications (recipient_user_id, source_release_event_id)

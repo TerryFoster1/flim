@@ -3,7 +3,9 @@ import { ContinueWatchingRow } from "../components/ContinueWatchingRow";
 import { PlaylistGrid } from "../components/PlaylistGrid";
 import { landingPosterSeeds } from "../data/landingPosterSeeds";
 import { getCollections } from "../services/collectionService";
-import type { CollectionChallenge, CurrentUser, MediaCollection, Playlist } from "../types";
+import { getSeasonalChallenges } from "../services/seasonalChallengeService";
+import { SeasonalChallengeCard } from "./SeasonalChallenges";
+import type { CollectionChallenge, CurrentUser, MediaCollection, Playlist, SeasonalChallengeEvent } from "../types";
 
 interface PlaylistsProps {
   onNavigate: (path: string) => void;
@@ -207,6 +209,20 @@ function ChallengeDiscoveryShelf({ challenges, onNavigate }: { challenges: Colle
   );
 }
 
+function SeasonalChallengeShelf({ events, onNavigate }: { events: SeasonalChallengeEvent[]; onNavigate: (path: string) => void }) {
+  if (events.length === 0) return null;
+  return (
+    <section className="discovery-section">
+      <div className="discovery-section-heading">
+        <h2>Active Challenges</h2>
+      </div>
+      <div className="seasonal-challenge-grid compact">
+        {events.slice(0, 4).map((event) => <SeasonalChallengeCard event={event} key={event.id} onNavigate={onNavigate} />)}
+      </div>
+    </section>
+  );
+}
+
 function CuratorResults({ query, playlists, onNavigate }: { query: string; playlists: Playlist[]; onNavigate: (path: string) => void }) {
   const normalizedQuery = query.trim().toLowerCase();
   const groups = curatorGroups(playlists).filter((group) => {
@@ -248,6 +264,7 @@ function PublicDiscovery({
   onLoadMore,
   collections,
   challenges,
+  seasonalChallenges,
 }: {
   onNavigate: (path: string) => void;
   playlists: Playlist[];
@@ -257,6 +274,7 @@ function PublicDiscovery({
   onLoadMore: () => void;
   collections: MediaCollection[];
   challenges: CollectionChallenge[];
+  seasonalChallenges: SeasonalChallengeEvent[];
 }) {
   const normalizedQuery = query.trim().toLowerCase();
   const followedPlaylists = playlists.filter((playlist) => playlist.isFollowing);
@@ -285,6 +303,7 @@ function PublicDiscovery({
       <div className="discovery-grid">
         <CollectionDiscoveryShelf collections={collections.filter((collection) => collection.title.toLowerCase().includes(normalizedQuery) || collection.category?.toLowerCase().includes(normalizedQuery))} onNavigate={onNavigate} />
         <ChallengeDiscoveryShelf challenges={challenges.filter((challenge) => challenge.name.toLowerCase().includes(normalizedQuery) || challenge.description.toLowerCase().includes(normalizedQuery))} onNavigate={onNavigate} />
+        <SeasonalChallengeShelf events={seasonalChallenges.filter((event) => event.name.toLowerCase().includes(normalizedQuery) || event.description.toLowerCase().includes(normalizedQuery))} onNavigate={onNavigate} />
         <DiscoveryShelf title="Playlists" playlists={visibleSearchResults} onNavigate={onNavigate} emptyMessage="No matching playlists yet." />
         <CuratorResults query={query} playlists={playlists} onNavigate={onNavigate} />
         <DiscoveryShelf title="Titles Found in Playlists" playlists={titleMatchPlaylists} onNavigate={onNavigate} />
@@ -305,6 +324,7 @@ function PublicDiscovery({
   return (
     <div className="discovery-grid">
       <CollectionDiscoveryShelf collections={collections} onNavigate={onNavigate} />
+      <SeasonalChallengeShelf events={seasonalChallenges} onNavigate={onNavigate} />
       <ChallengeDiscoveryShelf challenges={challenges} onNavigate={onNavigate} />
       <DiscoveryShelf title="Followed Playlists" playlists={followedPlaylists} onNavigate={onNavigate} />
       <DiscoveryShelf title="Flim Picks" playlists={flimPicks} onNavigate={onNavigate} />
@@ -339,6 +359,7 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
   const [visibleCount, setVisibleCount] = useState(7);
   const [collections, setCollections] = useState<MediaCollection[]>([]);
   const [challenges, setChallenges] = useState<CollectionChallenge[]>([]);
+  const [seasonalChallenges, setSeasonalChallenges] = useState<SeasonalChallengeEvent[]>([]);
   const directorPlaylists = useMemo(
     () => playlists.filter(isDirectorPlaylist),
     [playlists],
@@ -374,17 +395,19 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
   useEffect(() => {
     if (view !== "public") return;
     let mounted = true;
-    getCollections()
-      .then((feed) => {
+    Promise.all([getCollections(), getSeasonalChallenges()])
+      .then(([feed, seasonalFeed]) => {
         if (mounted) {
           setCollections(feed.collections || []);
           setChallenges(feed.challenges || feed.challengeSections?.popular || []);
+          setSeasonalChallenges([...(seasonalFeed.sections.active || []), ...(seasonalFeed.sections.upcoming || [])]);
         }
       })
       .catch(() => {
         if (mounted) {
           setCollections([]);
           setChallenges([]);
+          setSeasonalChallenges([]);
         }
       });
     return () => {
@@ -508,6 +531,7 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
           onLoadMore={() => setVisibleCount((count) => count + 7)}
           collections={collections}
           challenges={challenges}
+          seasonalChallenges={seasonalChallenges}
         />
       ) : visiblePagePlaylists.length > 0 ? (
         <>

@@ -100,6 +100,9 @@ export function PublicProfile({ handle, onNavigate }: PublicProfileProps) {
   const challengeCount = profile.challenges?.challengeCount || 0;
   const challengePoints = profile.challenges?.challengePoints || 0;
   const challengeBadges = profile.challenges?.featuredBadges || [];
+  const seasonalBadgeCount = profile.seasonalChallenges?.seasonalBadgeCount || 0;
+  const seasonalPoints = profile.seasonalChallenges?.seasonalPoints || 0;
+  const seasonalBadges = profile.seasonalChallenges?.featuredBadges || [];
   const recentlyUpdated = [...publicPlaylists].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
   const mostFollowed = [...publicPlaylists].sort((a, b) => (b.followerCount || 0) - (a.followerCount || 0));
   const featuredPlaylists = mostFollowed.slice(0, 3);
@@ -136,6 +139,8 @@ export function PublicProfile({ handle, onNavigate }: PublicProfileProps) {
               <span><strong>{totalAchievementPoints}</strong> Points</span>
               <span><strong>{challengeCount}</strong> {challengeCount === 1 ? "Challenge" : "Challenges"}</span>
               <span><strong>{challengePoints}</strong> Challenge Points</span>
+              <span><strong>{seasonalBadgeCount}</strong> Seasonal {seasonalBadgeCount === 1 ? "Badge" : "Badges"}</span>
+              <span><strong>{seasonalPoints}</strong> Seasonal Points</span>
             </div>
             <div className="public-profile-actions">
               {profile.isOwnProfile ? (
@@ -166,6 +171,16 @@ export function PublicProfile({ handle, onNavigate }: PublicProfileProps) {
                   <span className="profile-badge profile-badge-epic" key={badge.id} title={badge.description}>
                     <strong>{badge.name}</strong>
                     <small>{badge.points || 0} challenge pts</small>
+                  </span>
+                ))}
+              </div>
+            ) : null}
+            {seasonalBadges.length > 0 ? (
+              <div className="profile-badge-row" aria-label="Featured seasonal badges">
+                {seasonalBadges.map((badge) => (
+                  <span className="profile-badge profile-badge-legendary" key={badge.id} title={badge.description}>
+                    <strong>{badge.badge || badge.name}</strong>
+                    <small>{badge.points || 0} seasonal pts</small>
                   </span>
                 ))}
               </div>

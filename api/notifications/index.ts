@@ -14,6 +14,8 @@ function mapNotification(row: any) {
     entityPath:
       row.entity_type === "playlist" && row.entity_id
         ? `/playlists/${row.entity_id}`
+        : row.entity_type === "seasonal_challenge"
+          ? "/challenges"
         : row.entity_type === "title" && row.title_tmdb_id
           ? `/${row.title_media_type === "tv" ? "tv" : "movies"}/${row.title_tmdb_id}`
           : undefined,
