@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { BrandMark } from "../components/BrandMark";
 import { ShareAssetButton } from "../components/ShareAssetButton";
-import { isTriviaGamesEnabled } from "../featureFlags";
 import { createFriendChallenge, getFriendChallengeHistory } from "../services/friendChallengeService";
+import { getSeasonalChallenges } from "../services/seasonalChallengeService";
 import { getMovieDetails, getTvDetails } from "../services/tmdbService";
 import { getTitleTrivia } from "../services/triviaService";
-import type { FriendChallengeHistoryAttempt, FriendTriviaChallenge, MediaType, MovieDetails, TriviaFeed, TriviaQuestion } from "../types";
+import type { FriendChallengeHistoryAttempt, FriendTriviaChallenge, MediaType, MovieDetails, SeasonalChallengeEvent, TriviaFeed, TriviaQuestion } from "../types";
 
 interface TriviaGamesProps {
   onNavigate: (path: string) => void;
@@ -22,13 +22,76 @@ interface GameCardDefinition {
   estimatedTime: string;
 }
 
-const futureSurfaces = [
-  "Title trivia",
-  "Playlist trivia",
-  "Genre challenges",
-  "Director's Cut challenges",
-  "Seasonal challenges",
-  "Sponsored challenges",
+const arcadeFeatureCards = [
+  {
+    title: "Title Trivia",
+    description: "Play source-grounded questions tied to movies and shows you already care about.",
+    meta: "Movie and TV packs",
+  },
+  {
+    title: "Playlist Trivia",
+    description: "Turn curated playlists into playable quizzes for friends and movie nights.",
+    meta: "Playlist-first games",
+  },
+  {
+    title: "Weekly Challenges",
+    description: "Fresh recurring challenges built around genres, franchises, and featured titles.",
+    meta: "New rounds often",
+  },
+  {
+    title: "Seasonal Events",
+    description: "Halloween horror, award season, summer blockbusters, and holiday movie events.",
+    meta: "Limited-time badges",
+  },
+  {
+    title: "Friend Challenges",
+    description: "Finish a trivia pack, share your score, and invite someone to beat it.",
+    meta: "Same questions, fair score",
+  },
+];
+
+const arcadeRewardCards = [
+  {
+    title: "Film Critters",
+    description: "Earn avatar cosmetics and playful identity rewards as Arcade grows.",
+    image: "/avatars/base/classic.png",
+  },
+  {
+    title: "Tickets",
+    description: "A future reward layer for challenge participation and movie-night rituals.",
+    image: "/avatars/skins/superhero.png",
+  },
+  {
+    title: "Concession Stand",
+    description: "A future home for cosmetics, profile themes, and event rewards.",
+    image: "/avatars/skins/dino.png",
+  },
+  {
+    title: "Partner Rewards",
+    description: "Prepared for tasteful movie and entertainment rewards later.",
+    image: "/avatars/skins/spacesuit.png",
+  },
+];
+
+const popularTriviaTitles: Array<{ title: string; mediaType: MediaType; tmdbId: number; description: string }> = [
+  {
+    title: "Back to the Future",
+    mediaType: "movie",
+    tmdbId: 105,
+    description: "Time machines, clock towers, and one very specific speed.",
+  },
+  {
+    title: "Star Wars",
+    mediaType: "movie",
+    tmdbId: 11,
+    description: "A fast entry point for galaxy-sized movie knowledge.",
+  },
+  {
+    title: "The Office",
+    mediaType: "tv",
+    tmdbId: 2316,
+    description: "Test what you remember from Scranton's favorite workplace.",
+  },
 ];
 
 const titleGameCards: GameCardDefinition[] = [
@@ -182,31 +245,185 @@ function FriendChallengeHistory({ onNavigate }: { onNavigate: (path: string) => 
   );
 }
 
-function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void }) {
-  return (
-    <section className="route-page trivia-games-page">
-      <div className="detail-copy">
-        <h1>Trivia & Games</h1>
-        <p>
-          Movie trivia, title challenges, and playlist games will live here once the feature flag is enabled.
-        </p>
-      </div>
+function FeaturedChallengeCard({ event, onNavigate }: { event: SeasonalChallengeEvent; onNavigate: (path: string) => void }) {
+  const status = event.dateStatus === "active"
+    ? event.daysRemaining === 1 ? "1 day remaining" : `${event.daysRemaining} days remaining`
+    : event.dateStatus === "upcoming"
+      ? "Scheduled event"
+      : "Completed event";
 
-      <div className="media-extension-card">
-        <h3>Coming Soon</h3>
-        <p>
-          This page is reserved for Flim's future game and challenge experiences. Nothing here is promoted on the
-          homepage, and no public challenges are launched by this route.
-        </p>
-        <div className="challenge-requirement-row" aria-label="Prepared game types">
-          {futureSurfaces.map((surface) => (
-            <span key={surface}>{surface}</span>
+  return (
+    <article className={`arcade-featured-challenge is-${event.dateStatus}`}>
+      <div className="arcade-challenge-badge" aria-hidden="true">{event.banner || event.badge}</div>
+      <div>
+        <span>{event.challengeType === "weekly" ? "Weekly Challenge" : event.challengeType === "special_event" ? "Special Event" : "Featured Challenge"}</span>
+        <h3>{event.name}</h3>
+        <p>{event.description}</p>
+        <div className="challenge-card-meta">
+          <strong>{event.points} pts</strong>
+          <span>{status}</span>
+          <span>{event.participantCount || 0} players</span>
+        </div>
+      </div>
+      <button className="primary-button compact" onClick={() => onNavigate(`/challenges/${event.slug}`)} type="button">
+        {event.dateStatus === "active" ? "Play Now" : "View Challenge"}
+      </button>
+    </article>
+  );
+}
+
+function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void }) {
+  const [notifyMessage, setNotifyMessage] = useState("");
+  const [featuredChallenges, setFeaturedChallenges] = useState<SeasonalChallengeEvent[]>([]);
+
+  useEffect(() => {
+    let mounted = true;
+    getSeasonalChallenges()
+      .then((feed) => {
+        if (!mounted) return;
+        const visible = [
+          feed.sections.featured,
+          ...feed.sections.active,
+          ...feed.sections.upcoming,
+        ].filter((event): event is SeasonalChallengeEvent => Boolean(event));
+        const unique = Array.from(new Map(visible.map((event) => [event.id, event])).values());
+        setFeaturedChallenges(unique.slice(0, 3));
+      })
+      .catch(() => {
+        if (mounted) setFeaturedChallenges([]);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  return (
+    <section className="route-page trivia-games-page arcade-preview-page">
+      <header className="arcade-preview-hero">
+        <div className="arcade-hero-copy">
+          <span>Flim Arcade</span>
+          <h1>Trivia & Games</h1>
+          <p>Test your movie knowledge, challenge friends, and discover new favorites through playable film and TV experiences.</p>
+          <div className="arcade-hero-actions">
+            <button className="primary-button" onClick={() => onNavigate("/discover")} type="button">
+              Find a Title
+            </button>
+            <button className="secondary-button" onClick={() => onNavigate("/challenges")} type="button">
+              View Challenges
+            </button>
+          </div>
+          {notifyMessage ? <small className="arcade-notify-message">{notifyMessage}</small> : null}
+        </div>
+        <div className="arcade-hero-art" aria-hidden="true">
+          <div className="arcade-ticket-card is-main">
+            <span>Trivia</span>
+            <strong>Classic Movie Round</strong>
+            <em>10 questions</em>
+          </div>
+          <div className="arcade-ticket-card is-left">
+            <span>Challenge</span>
+            <strong>Beat My Score</strong>
+            <em>No high score yet</em>
+          </div>
+          <div className="arcade-ticket-card is-right">
+            <span>Event</span>
+            <strong>Seasonal Play</strong>
+            <em>Badges and rewards</em>
+          </div>
+        </div>
+      </header>
+
+      {featuredChallenges.length > 0 ? (
+        <section className="title-games-section arcade-live-section">
+          <div className="actor-section-heading">
+            <h2>Featured Challenges</h2>
+            <span>Play now</span>
+          </div>
+          <div className="arcade-live-grid">
+            {featuredChallenges.map((event) => (
+              <FeaturedChallengeCard event={event} key={event.id} onNavigate={onNavigate} />
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      <section className="title-games-section arcade-live-section">
+        <div className="actor-section-heading">
+          <h2>Popular Trivia</h2>
+          <span>Title packs</span>
+        </div>
+        <div className="arcade-trivia-grid">
+          {popularTriviaTitles.map((title) => (
+            <article className="arcade-trivia-card" key={`${title.mediaType}-${title.tmdbId}`}>
+              <span>{title.mediaType === "tv" ? "TV Trivia" : "Movie Trivia"}</span>
+              <h3>{title.title}</h3>
+              <p>{title.description}</p>
+              <button
+                className="primary-button compact"
+                onClick={() => onNavigate(`/games/title/${title.mediaType}/${title.tmdbId}`)}
+                type="button"
+              >
+                Play Now
+              </button>
+            </article>
           ))}
         </div>
-        <button className="secondary-button" onClick={() => onNavigate("/playlists")} type="button">
-          Back to Playlists
+      </section>
+
+      <section className="title-games-section arcade-feature-section">
+        <div className="actor-section-heading">
+          <h2>Arcade Roadmap</h2>
+          <span>Next game modes</span>
+        </div>
+        <div className="arcade-feature-grid">
+          {arcadeFeatureCards.map((feature) => (
+            <article className="arcade-feature-card" key={feature.title}>
+              <span>{feature.meta}</span>
+              <h3>{feature.title}</h3>
+              <p>{feature.description}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="title-games-section arcade-reward-section">
+        <div className="actor-section-heading">
+          <h2>Future Rewards</h2>
+          <span>Built for playful progress</span>
+        </div>
+        <div className="arcade-reward-grid">
+          {arcadeRewardCards.map((reward) => (
+            <article className="arcade-reward-card" key={reward.title}>
+              <img
+                alt=""
+                src={reward.image}
+                onError={(event) => {
+                  event.currentTarget.style.display = "none";
+                }}
+              />
+              <div>
+                <h3>{reward.title}</h3>
+                <p>{reward.description}</p>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="title-games-section arcade-play-section">
+        <div className="actor-section-heading">
+          <h2>Start With a Title</h2>
+          <span>Trivia opens from title pages</span>
+        </div>
+        <p>
+          Open a movie or TV detail page and tap Trivia & Games to see title-specific game cards, score runs,
+          and friend challenge tools as packs become available.
+        </p>
+        <button className="secondary-button" onClick={() => setNotifyMessage("Arcade launch alerts are on the roadmap.")} type="button">
+          Notify Me
         </button>
-      </div>
+      </section>
+
       <FriendChallengeHistory onNavigate={onNavigate} />
     </section>
   );
@@ -375,7 +592,6 @@ function ClassicTriviaPanel({ mediaType, tmdbId, title }: { mediaType: MediaType
 function TitleGamesPage({ mediaType = "movie", tmdbId = 0, returnTo, onNavigate }: TriviaGamesProps) {
   const [title, setTitle] = useState<MovieDetails | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
-  const enabled = isTriviaGamesEnabled();
   const targetPath = Number.isFinite(tmdbId) && tmdbId > 0 ? gameTargetPath(mediaType, tmdbId) : "/playlists";
   const gamePath = `/games/title/${mediaType}/${tmdbId}`;
   const genres = useMemo(() => title?.genres?.filter(Boolean) || [], [title]);
@@ -475,29 +691,27 @@ function TitleGamesPage({ mediaType = "movie", tmdbId = 0, returnTo, onNavigate 
           <section className="title-games-section">
             <div className="actor-section-heading">
               <h2>Available Games & Challenges</h2>
-              <span>{enabled ? titleGameCards.length : "More modes soon"}</span>
+              <span>{titleGameCards.length} modes</span>
             </div>
             <div className="title-game-grid">
               {titleGameCards.map((game) => <GameCard key={game.id} game={game} disabled />)}
             </div>
           </section>
 
-          {enabled ? (
-            <section className="title-games-section">
-              <div className="actor-section-heading">
-                <h2>Recommended Games & Challenges</h2>
-                <span>{recommendationReason}</span>
-              </div>
-              <div className="challenge-discovery-row">
-                {recommendedGames.map((game) => (
-                  <article className="challenge-discovery-card" key={game}>
-                    <strong>{game}</strong>
-                    <small>{highScoreText()}</small>
-                  </article>
-                ))}
-              </div>
-            </section>
-          ) : null}
+          <section className="title-games-section">
+            <div className="actor-section-heading">
+              <h2>Recommended Games & Challenges</h2>
+              <span>{recommendationReason}</span>
+            </div>
+            <div className="challenge-discovery-row">
+              {recommendedGames.map((game) => (
+                <article className="challenge-discovery-card" key={game}>
+                  <strong>{game}</strong>
+                  <small>{highScoreText()}</small>
+                </article>
+              ))}
+            </div>
+          </section>
         </>
       ) : null}
     </section>

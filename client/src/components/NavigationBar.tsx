@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import type { CurrentUser, RouteAwareProps } from "../types";
 import { BrandMark } from "./BrandMark";
-import { isTriviaGamesEnabled } from "../featureFlags";
 import { getNotifications, markAllNotificationsRead, markNotificationRead } from "../services/notificationService";
 import type { AppNotification, NotificationFeed } from "../types";
 
@@ -16,7 +15,6 @@ export function NavigationBar({ currentUser, onNavigate, onLogout }: NavigationB
   const [isInstalled, setIsInstalled] = useState(false);
   const [notificationFeed, setNotificationFeed] = useState<NotificationFeed>({ unreadCount: 0, notifications: [] });
   const [notificationStatus, setNotificationStatus] = useState("");
-  const showTriviaGames = isTriviaGamesEnabled();
 
   useEffect(() => {
     const standalone =
@@ -185,7 +183,7 @@ export function NavigationBar({ currentUser, onNavigate, onLogout }: NavigationB
                 <button onClick={() => navigate(currentUser.profile?.handle ? `/@${currentUser.profile.handle}` : "/profile")} type="button">Profile</button>
                 <button onClick={() => navigate("/followed-titles")} type="button">My Followed Titles</button>
                 <button onClick={() => navigate("/upcoming")} type="button">Upcoming Releases</button>
-                {showTriviaGames ? <button onClick={() => navigate("/games")} type="button">Trivia & Games</button> : null}
+                <button onClick={() => navigate("/games")} type="button">Trivia & Games</button>
                 <button onClick={() => navigate("/settings")} type="button">Settings</button>
                 <button onClick={() => navigate("/settings")} type="button">Connect Plex</button>
               </>
@@ -195,7 +193,7 @@ export function NavigationBar({ currentUser, onNavigate, onLogout }: NavigationB
                 <button onClick={() => navigate("/signup")} type="button">Create Account</button>
                 <button onClick={() => navigate("/discover")} type="button">Discover</button>
                 <button onClick={() => navigate("/upcoming")} type="button">Upcoming Releases</button>
-                {showTriviaGames ? <button onClick={() => navigate("/games")} type="button">Trivia & Games</button> : null}
+                <button onClick={() => navigate("/games")} type="button">Trivia & Games</button>
               </>
             )}
             {currentUser && !isInstalled ? <button onClick={() => navigate("/settings")} type="button">Install Flim</button> : null}
