@@ -1,19 +1,25 @@
 import type { MediaType, MovieDetails, MovieSearchResult } from "../types";
 
-async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
+interface ApiRequestOptions extends RequestInit {
+  timeoutMs?: number;
+}
+
+async function apiRequest<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
   const controller = new AbortController();
-  const timeout = window.setTimeout(() => controller.abort(), 15000);
+  const timeoutMs = typeof options.timeoutMs === "number" ? options.timeoutMs : 15000;
+  const timeout = timeoutMs > 0 ? window.setTimeout(() => controller.abort(), timeoutMs) : null;
   const startedAt = performance.now();
   let response: Response;
+  const { timeoutMs: _timeoutMs, ...fetchOptions } = options;
 
   try {
     response = await fetch(path, {
       headers: {
         Accept: "application/json",
-        ...options.headers,
+        ...fetchOptions.headers,
       },
-      ...options,
-      signal: options.signal || controller.signal,
+      ...fetchOptions,
+      signal: fetchOptions.signal || controller.signal,
     });
   } catch (error) {
     const reason = error instanceof DOMException && error.name === "AbortError" ? "timeout" : "network";
@@ -25,7 +31,7 @@ async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T
     });
     throw error;
   } finally {
-    window.clearTimeout(timeout);
+    if (timeout) window.clearTimeout(timeout);
   }
 
   if (!response.ok) {
@@ -78,6 +84,7 @@ export async function searchMovies(query: string, mediaType: MediaSearchMode = "
 
 interface DetailRequestOptions {
   refreshMode?: "cache-first" | "source";
+  timeoutMs?: number;
 }
 
 function detailPath(tmdbId: number, mediaType: MediaType, options: DetailRequestOptions = {}) {
@@ -92,7 +99,10 @@ export async function getMovieDetails(tmdbId: number, options: DetailRequestOpti
     throw new Error("A valid movie ID is required.");
   }
 
-  return apiRequest<MovieDetails>(detailPath(tmdbId, "movie", options), options.refreshMode ? { cache: "no-store" } : undefined);
+  return apiRequest<MovieDetails>(detailPath(tmdbId, "movie", options), {
+    ...(options.refreshMode ? { cache: "no-store" as RequestCache } : {}),
+    timeoutMs: options.timeoutMs ?? 45000,
+  });
 }
 
 export async function getTvDetails(tmdbId: number, options: DetailRequestOptions = {}): Promise<MovieDetails> {
@@ -100,5 +110,8 @@ export async function getTvDetails(tmdbId: number, options: DetailRequestOptions
     throw new Error("A valid TV show ID is required.");
   }
 
-  return apiRequest<MovieDetails>(detailPath(tmdbId, "tv", options), options.refreshMode ? { cache: "no-store" } : undefined);
+  return apiRequest<MovieDetails>(detailPath(tmdbId, "tv", options), {
+    ...(options.refreshMode ? { cache: "no-store" as RequestCache } : {}),
+    timeoutMs: options.timeoutMs ?? 45000,
+  });
 }

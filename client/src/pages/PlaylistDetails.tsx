@@ -271,7 +271,7 @@ export function PlaylistDetails({ playlist, onNavigate, addToPlaylist, deletePla
                   <div className="playlist-cover poster-collage" aria-hidden="true">
                     {relatedPlaylist.movies.slice(0, 4).map((movie) => (
                       movie.posterUrl
-                        ? <img alt="" key={`${movie.mediaType || "movie"}-${movie.tmdbId}`} src={movie.posterUrl} />
+                        ? <img alt="" decoding="async" key={`${movie.mediaType || "movie"}-${movie.tmdbId}`} loading="lazy" src={movie.posterUrl} />
                         : <span key={`${movie.mediaType || "movie"}-${movie.tmdbId}`} />
                     ))}
                   </div>

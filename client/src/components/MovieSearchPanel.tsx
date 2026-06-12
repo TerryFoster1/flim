@@ -113,7 +113,7 @@ export function MovieSearchPanel({ playlists, addToPlaylist, onNavigate, variant
             {results.map((movie) => (
               <article className="search-result-card" key={resultKey(movie)}>
                 <button className="poster-card-button reset-button" onClick={() => onNavigate(movie.mediaType === "tv" ? `/tv/${movie.tmdbId}` : `/movies/${movie.tmdbId}`)} type="button">
-                  {movie.posterUrl ? <img className="poster-image" src={movie.posterUrl} alt={`${movie.title} poster`} /> : <div className="poster tone-blue" />}
+                  {movie.posterUrl ? <img className="poster-image" src={movie.posterUrl} alt={`${movie.title} poster`} loading="lazy" decoding="async" /> : <div className="poster tone-blue" />}
                 </button>
                 <div>
                   <h3>{movie.title}</h3>

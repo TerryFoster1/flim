@@ -22,7 +22,7 @@ export function PosterCard({ movie, index, itemCount, playlistId, onNavigate, on
   return (
     <article className="poster-card" tabIndex={0} aria-label={`${movie.title} poster card`}>
       <button className="poster-card-button reset-button" onClick={() => onNavigate?.(detailPath)} type="button">
-        {movie.posterUrl ? <img className="poster-image" src={movie.posterUrl} alt={`${movie.title} poster`} /> : <div className="poster tone-blue" />}
+        {movie.posterUrl ? <img className="poster-image" src={movie.posterUrl} alt={`${movie.title} poster`} loading="lazy" decoding="async" /> : <div className="poster tone-blue" />}
       </button>
       <div className="card-title">{movie.title}</div>
       <div className="card-meta">

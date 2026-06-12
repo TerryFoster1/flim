@@ -48,7 +48,8 @@ function chooseContentRating(ratings: ContentRating[] = [], countryCode = "") {
   )?.rating;
 }
 
-const detailRetryDelays = [0, 1500];
+const detailRetryDelays = [750, 1500];
+const detailSlowMessageMs = 7000;
 const DETAIL_CACHE_PREFIX = "flim:title-details:";
 const DETAIL_CACHE_TTL_MS = 1000 * 60 * 60 * 24 * 14;
 
@@ -96,7 +97,7 @@ function OptionalLoading({ label }: { label: string }) {
   return <section className="optional-section-fallback"><p>{label} is loading...</p></section>;
 }
 
-function DetailsSkeleton({ mediaType, retryCount }: { mediaType: MediaType; retryCount: number }) {
+function DetailsSkeleton({ mediaType, retryCount, isSlow }: { mediaType: MediaType; retryCount: number; isSlow?: boolean }) {
   return (
     <section className="route-page" aria-busy="true">
       <div className="movie-detail-hero movie-detail-skeleton">
@@ -113,6 +114,8 @@ function DetailsSkeleton({ mediaType, retryCount }: { mediaType: MediaType; retr
           <p className="helper-text">
             {retryCount > 0
               ? `Having trouble loading details. Trying again... (${retryCount}/2)`
+              : isSlow
+                ? "Details are taking longer than expected. Still loading..."
               : `Loading ${mediaType === "tv" ? "show" : "movie"} details...`}
           </p>
         </div>
@@ -135,8 +138,9 @@ function hasCoreTitleData(
 export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addToPlaylist, updateWatchStatus, onNavigate }: MovieDetailsPageProps) {
   const [movie, setMovie] = useState<MovieDetails | null>(null);
   const [streamingCountry, setStreamingCountry] = useState("");
-  const [status, setStatus] = useState<"idle" | "loading" | "retrying" | "error">("loading");
+  const [status, setStatus] = useState<"idle" | "loading" | "slow" | "retrying" | "error">("loading");
   const [retryCount, setRetryCount] = useState(0);
+  const [loadNonce, setLoadNonce] = useState(0);
   const requestedRefreshModeRef = useRef<"default" | "cache-first">("default");
   const sourcePlaylistId = useMemo(() => new URLSearchParams(window.location.search).get("playlist") || undefined, [mediaType, tmdbId]);
   const savedInstances = useMemo(() => playlists.flatMap((playlist) => playlist.movies.map((item) => ({ playlist, item }))).filter(({ item }) => item.tmdbId === tmdbId && (item.mediaType || "movie") === mediaType), [playlists, tmdbId, mediaType]);
@@ -159,12 +163,14 @@ export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addTo
     setMovie(null);
     setStatus("loading");
     setRetryCount(0);
+    setLoadNonce(0);
     requestedRefreshModeRef.current = "default";
   }, [detailsKey]);
 
   useEffect(() => {
     let mounted = true;
     let retryTimer: ReturnType<typeof setTimeout> | null = null;
+    let slowTimer: ReturnType<typeof setTimeout> | null = null;
     const wait = (delay: number) => new Promise<void>((resolve) => {
       retryTimer = setTimeout(resolve, delay);
     });
@@ -174,6 +180,18 @@ export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addTo
         setStatus("error");
         return;
       }
+      slowTimer = setTimeout(() => {
+        if (!mounted) return;
+        setStatus((current) => current === "loading" ? "slow" : current);
+        logDetailsLoad("title_details_slow_pending", {
+          tmdbId,
+          mediaType,
+          retryCount,
+          hasCoreData: false,
+          optionalSection: false,
+          pendingMs: detailSlowMessageMs,
+        });
+      }, detailSlowMessageMs);
       const cachedDetails = readCachedDetails(mediaType, tmdbId);
       if (cachedDetails) {
         setMovie(cachedDetails);
@@ -196,13 +214,17 @@ export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addTo
         try {
           const refreshMode = requestedRefreshModeRef.current === "cache-first" || attempt > 0 ? "cache-first" : undefined;
           const details = mediaType === "tv"
-            ? await getTvDetails(tmdbId, { refreshMode })
-            : await getMovieDetails(tmdbId, { refreshMode });
+            ? await getTvDetails(tmdbId, { refreshMode, timeoutMs: 45000 })
+            : await getMovieDetails(tmdbId, { refreshMode, timeoutMs: 45000 });
           if (!hasCoreTitleData(details, mediaType, tmdbId)) {
             throw new Error("Title details response was missing core title data.");
           }
           writeCachedDetails(mediaType, tmdbId, details);
           if (mounted) {
+            if (slowTimer) {
+              clearTimeout(slowTimer);
+              slowTimer = null;
+            }
             setMovie(details);
             setStatus("idle");
             setRetryCount(0);
@@ -250,6 +272,10 @@ export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addTo
         hasCoreData: Boolean(cachedDetails),
         optionalSection: false,
       });
+      if (slowTimer) {
+        clearTimeout(slowTimer);
+        slowTimer = null;
+      }
       if (mounted) setStatus(cachedDetails ? "idle" : "error");
     }
 
@@ -257,8 +283,9 @@ export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addTo
     return () => {
       mounted = false;
       if (retryTimer) clearTimeout(retryTimer);
+      if (slowTimer) clearTimeout(slowTimer);
     };
-  }, [tmdbId, mediaType]);
+  }, [tmdbId, mediaType, loadNonce]);
 
   useEffect(() => {
     let mounted = true;
@@ -274,8 +301,8 @@ export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addTo
     };
   }, []);
 
-  if (status === "loading" || status === "retrying" || (!normalizedMovie && status !== "error")) {
-    return <DetailsSkeleton mediaType={mediaType} retryCount={status === "retrying" ? retryCount : 0} />;
+  if (status === "loading" || status === "slow" || status === "retrying" || (!normalizedMovie && status !== "error")) {
+    return <DetailsSkeleton mediaType={mediaType} retryCount={status === "retrying" ? retryCount : 0} isSlow={status === "slow"} />;
   }
 
   if (!normalizedMovie) {
@@ -288,11 +315,15 @@ export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addTo
           logDetailsLoad("title_details_manual_refresh", {
             tmdbId,
             mediaType,
-            refreshMode: "hard-reload",
+            refreshMode: "cache-first",
             hasCoreData: false,
             optionalSection: false,
           });
-          window.location.reload();
+          requestedRefreshModeRef.current = "cache-first";
+          setMovie(null);
+          setStatus("loading");
+          setRetryCount(0);
+          setLoadNonce((current) => current + 1);
         }} type="button" aria-label="Refresh title details">Refresh Details</button>}
       />
     );

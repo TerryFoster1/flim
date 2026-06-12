@@ -59,7 +59,7 @@ function TitleRow({ titles, emptyMessage, onNavigate }: { titles: MovieSearchRes
       {titles.map((title) => (
         <article className="discovery-title-card" key={`${title.mediaType}-${title.tmdbId}`}>
           <button className="reset-button" onClick={() => onNavigate(titlePath(title))} type="button">
-            {title.posterUrl ? <img alt={`${title.title} poster`} src={title.posterUrl} /> : <span className="discovery-poster-placeholder" />}
+            {title.posterUrl ? <img alt={`${title.title} poster`} decoding="async" loading="lazy" src={title.posterUrl} /> : <span className="discovery-poster-placeholder" />}
             <strong>{title.title}</strong>
             <small>{title.releaseYear || "Year"} / {titleTypeLabel(title)}</small>
           </button>
@@ -76,7 +76,7 @@ function CollectionResultGrid({ collections, onNavigate }: { collections: Discov
     <div className="collection-discovery-row discovery-collection-results">
       {collections.map((collection) => (
         <button className="collection-discovery-card" key={collection.slug} onClick={() => onNavigate(`/collection/${collection.slug}`)} type="button">
-          {collection.posterUrl ? <img alt={`${collection.title} poster`} src={collection.posterUrl} /> : <span className="actor-credit-placeholder" />}
+          {collection.posterUrl ? <img alt={`${collection.title} poster`} decoding="async" loading="lazy" src={collection.posterUrl} /> : <span className="actor-credit-placeholder" />}
           <strong>{collection.title}</strong>
           <small>{collection.category || "Flim collection"} / {titleCountLabel(collection)}</small>
         </button>
@@ -251,7 +251,7 @@ export function Discover({ onNavigate }: DiscoverProps) {
               <div className="actor-result-grid">
                 {results.actors.map((actor) => (
                   <button className="actor-result-card" key={actor.tmdbId} onClick={() => onNavigate(`/actor/${actor.tmdbId}`)} type="button">
-                    {actor.profileUrl ? <img alt={`${actor.name} profile`} src={actor.profileUrl} /> : <span className="cast-avatar-fallback">{actor.name.slice(0, 1)}</span>}
+                    {actor.profileUrl ? <img alt={`${actor.name} profile`} decoding="async" loading="lazy" src={actor.profileUrl} /> : <span className="cast-avatar-fallback">{actor.name.slice(0, 1)}</span>}
                     <strong>{actor.name}</strong>
                     {actor.knownForDepartment ? <small>{actor.knownForDepartment}</small> : null}
                     {actor.knownFor?.length ? <span>{actor.knownFor.join(", ")}</span> : null}

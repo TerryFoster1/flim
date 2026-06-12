@@ -29,7 +29,7 @@ export function PlaylistCard({ playlist, large, onNavigate, hideLikes = false }:
         <div className="playlist-cover poster-collage">
           {coverMovies.length > 0 ? (
             coverMovies.map((movie) =>
-              movie.posterUrl ? <img alt="" key={`${movie.mediaType || "movie"}-${movie.tmdbId}`} src={movie.posterUrl} /> : <span key={`${movie.mediaType || "movie"}-${movie.tmdbId}`} />,
+              movie.posterUrl ? <img alt="" decoding="async" key={`${movie.mediaType || "movie"}-${movie.tmdbId}`} loading="lazy" src={movie.posterUrl} /> : <span key={`${movie.mediaType || "movie"}-${movie.tmdbId}`} />,
             )
           ) : (
             <>
