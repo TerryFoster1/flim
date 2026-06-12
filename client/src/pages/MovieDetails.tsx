@@ -137,7 +137,6 @@ export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addTo
   const [streamingCountry, setStreamingCountry] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "retrying" | "error">("loading");
   const [retryCount, setRetryCount] = useState(0);
-  const [loadVersion, setLoadVersion] = useState(0);
   const requestedRefreshModeRef = useRef<"default" | "cache-first">("default");
   const sourcePlaylistId = useMemo(() => new URLSearchParams(window.location.search).get("playlist") || undefined, [mediaType, tmdbId]);
   const savedInstances = useMemo(() => playlists.flatMap((playlist) => playlist.movies.map((item) => ({ playlist, item }))).filter(({ item }) => item.tmdbId === tmdbId && (item.mediaType || "movie") === mediaType), [playlists, tmdbId, mediaType]);
@@ -155,6 +154,13 @@ export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addTo
   }, [movie, mediaType, tmdbId]);
   const contentRating = chooseContentRating(normalizedMovie?.contentRatings, streamingCountry) || normalizedMovie?.contentRating;
   const detailsKey = `${mediaType}-${tmdbId}`;
+
+  useEffect(() => {
+    setMovie(null);
+    setStatus("loading");
+    setRetryCount(0);
+    requestedRefreshModeRef.current = "default";
+  }, [detailsKey]);
 
   useEffect(() => {
     let mounted = true;
@@ -252,7 +258,7 @@ export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addTo
       mounted = false;
       if (retryTimer) clearTimeout(retryTimer);
     };
-  }, [tmdbId, mediaType, loadVersion]);
+  }, [tmdbId, mediaType]);
 
   useEffect(() => {
     let mounted = true;
@@ -277,19 +283,16 @@ export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addTo
       <PageShell
         eyebrow={mediaType === "tv" ? "TV Show" : "Movie"}
         title="Details are taking longer than expected."
-        description="The title did not load after a couple of attempts. Try again without refreshing the browser."
+        description="The title did not load after a couple of attempts. Refresh the details from this page."
         action={<button className="primary-button" onClick={() => {
-          setMovie(null);
-          setStatus("loading");
           logDetailsLoad("title_details_manual_refresh", {
             tmdbId,
             mediaType,
-            refreshMode: "cache-first",
+            refreshMode: "hard-reload",
             hasCoreData: false,
             optionalSection: false,
           });
-          requestedRefreshModeRef.current = "cache-first";
-          setLoadVersion((current) => current + 1);
+          window.location.reload();
         }} type="button" aria-label="Refresh title details">Refresh Details</button>}
       />
     );

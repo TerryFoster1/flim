@@ -11,7 +11,8 @@
   "scripts": {
     "dev": "npm --workspace client run dev",
     "build": "npm --workspace client run build",
-    "lint": "npm --workspace client run build"
+    "lint": "npm --workspace client run build",
+    "verify:details-ui": "node scripts/verify-production-ui-click-path.mjs"
   },
   "dependencies": {
     "@types/web-push": "^3.6.4",

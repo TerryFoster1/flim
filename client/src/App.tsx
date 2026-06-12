@@ -308,6 +308,7 @@ export default function App() {
     "/s/:token": <SharedPlaylist token={routeState.sharedToken || ""} onNavigate={navigate} />,
     "/movies/:tmdbId": (
       <MovieDetailsPage
+        key={`movie-${routeState.tmdbId}`}
         mediaType="movie"
         tmdbId={Number(routeState.tmdbId)}
         playlists={ownedPlaylists}
@@ -318,6 +319,7 @@ export default function App() {
     ),
     "/tv/:tmdbId": (
       <MovieDetailsPage
+        key={`tv-${routeState.tmdbId}`}
         mediaType="tv"
         tmdbId={Number(routeState.tmdbId)}
         playlists={ownedPlaylists}
