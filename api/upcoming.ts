@@ -207,6 +207,7 @@ export default async function handler(request: any, response: any) {
         end as context
       from release_events re
       inner join media_items mi on mi.id = re.media_item_id
+      left join release_tracking rt on rt.media_item_id = mi.id
       where re.event_type in (
         'season_announced',
         'season_released',
