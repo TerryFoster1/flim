@@ -120,9 +120,21 @@ function background(data: ShareCardData) {
 function brand() {
   return `
     <g transform="translate(76 66)">
-      <rect x="0" y="0" width="72" height="72" rx="18" fill="#ffb84d" />
+      <defs>
+        <linearGradient id="flim-brand-lockup" x1="0" x2="1" y1="0" y2="0">
+          <stop offset="0%" stop-color="#ffd86f" />
+          <stop offset="45%" stop-color="#ff8a3d" />
+          <stop offset="100%" stop-color="#ff4f6d" />
+        </linearGradient>
+        <filter id="flim-brand-glow" x="-24%" y="-42%" width="152%" height="188%">
+          <feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#000000" flood-opacity="0.72" />
+          <feDropShadow dx="0" dy="0" stdDeviation="8" flood-color="#ff8a3d" flood-opacity="0.42" />
+        </filter>
+      </defs>
+      <rect x="0" y="0" width="72" height="72" rx="18" fill="url(#flim-brand-lockup)" filter="url(#flim-brand-glow)" />
       <text x="36" y="48" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="42" font-weight="900" fill="#130508">F</text>
-      <text x="92" y="49" font-family="Arial, Helvetica, sans-serif" font-size="40" font-weight="900" fill="#fff3db">Flim</text>
+      <text x="92" y="49" font-family="Arial, Helvetica, sans-serif" font-size="40" font-weight="900" fill="#000000" fill-opacity="0.78" stroke="#000000" stroke-opacity="0.78" stroke-width="5" paint-order="stroke">Flim</text>
+      <text x="92" y="49" font-family="Arial, Helvetica, sans-serif" font-size="40" font-weight="900" fill="url(#flim-brand-lockup)" filter="url(#flim-brand-glow)">Flim</text>
     </g>
   `;
 }
