@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { awardTickets } from "../_arcadeEconomy.js";
 import { evaluateAchievements, readAchievementState } from "../_achievements.js";
 import { checkRateLimit, db, ensureTriviaTables, errorStatus, getCurrentUser, readBody, sendJson } from "../_db.js";
 import { getCatalogMediaItem, mapCatalogDetails, upsertMediaItem } from "../_mediaCatalog.js";
@@ -993,6 +994,15 @@ async function handleHuntAction(request: any, response: any) {
       end
   `;
 
+  const ticketAward = shouldComplete
+    ? await awardTickets(sql, {
+      userId: user.id,
+      ruleKey: "easter_egg_found",
+      sourceType: "easter_egg",
+      sourceId: hunt.id,
+      metadata: { mediaType, tmdbId: Number(hunt.tmdb_id), action },
+    })
+    : null;
   const payload = await readHuntResponse(sql, user.id, Number(hunt.tmdb_id), mediaType);
   return sendJson(response, 200, {
     ok: true,
@@ -1004,6 +1014,7 @@ async function handleHuntAction(request: any, response: any) {
     unlockedAchievements: payload.unlockedAchievements,
     easterEggs: payload.hunts,
     questions: payload.questions,
+    ticketAward,
   });
 }
 
@@ -1057,6 +1068,13 @@ async function handleComplete(request: any, response: any) {
   }
 
   const mediaType = normalizeMediaType(item.media_type);
+  const ticketAward = await awardTickets(sql, {
+    userId: user.id,
+    ruleKey: itemType === "trivia" ? "trivia_completed" : "easter_egg_found",
+    sourceType: itemType,
+    sourceId: item.id,
+    metadata: { mediaType, tmdbId: Number(item.tmdb_id) },
+  });
   const [questions, hunts] = await Promise.all([
     readCachedTrivia(sql, Number(item.tmdb_id), mediaType, user.id),
     readCachedEasterEggs(sql, Number(item.tmdb_id), mediaType, user.id),
@@ -1073,6 +1091,7 @@ async function handleComplete(request: any, response: any) {
     progress: progressSummary(questions.length, completedTriviaCount, hunts.length, completedHuntCount),
     achievements: achievementState.achievements,
     unlockedAchievements,
+    ticketAward,
   });
 }
 

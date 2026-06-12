@@ -1,4 +1,5 @@
 import { ensureCollectionChallengeTables } from "./_challenges.js";
+import { awardTickets } from "./_arcadeEconomy.js";
 import { ensureNotificationsTable, ensureTriviaTables } from "./_db.js";
 
 type SeasonalStatus = "upcoming" | "active" | "ended";
@@ -560,6 +561,18 @@ async function mapEvent(sql: any, row: any, userId?: string) {
     `;
 
     if (userStatus === "completed") {
+      await awardTickets(sql, {
+        userId,
+        ruleKey: normalizeChallengeType(row.challenge_type) === "weekly" ? "weekly_challenge_completed" : "seasonal_challenge_completed",
+        sourceType: "seasonal_challenge",
+        sourceId: row.id,
+        metadata: {
+          slug: row.slug,
+          challengeType: normalizeChallengeType(row.challenge_type),
+          points: Number(row.points || 0),
+          badge: row.badge,
+        },
+      });
       await sql`
         insert into notifications (recipient_user_id, type, entity_type, entity_id, title, message)
         values (

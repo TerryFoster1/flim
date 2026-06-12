@@ -3,9 +3,10 @@ import { BrandMark } from "../components/BrandMark";
 import { ShareAssetButton } from "../components/ShareAssetButton";
 import { createFriendChallenge, getFriendChallengeHistory } from "../services/friendChallengeService";
 import { getSeasonalChallenges } from "../services/seasonalChallengeService";
+import { getTicketFeed } from "../services/ticketService";
 import { getMovieDetails, getTvDetails } from "../services/tmdbService";
 import { getTitleTrivia } from "../services/triviaService";
-import type { FriendChallengeHistoryAttempt, FriendTriviaChallenge, MediaType, MovieDetails, SeasonalChallengeEvent, TriviaFeed, TriviaQuestion } from "../types";
+import type { FriendChallengeHistoryAttempt, FriendTriviaChallenge, MediaType, MovieDetails, SeasonalChallengeEvent, TicketFeed, TriviaFeed, TriviaQuestion } from "../types";
 
 interface TriviaGamesProps {
   onNavigate: (path: string) => void;
@@ -272,6 +273,91 @@ function FeaturedChallengeCard({ event, onNavigate }: { event: SeasonalChallenge
   );
 }
 
+function TicketSummaryPanel() {
+  const [feed, setFeed] = useState<TicketFeed | null>(null);
+  const [status, setStatus] = useState<"loading" | "ready" | "signed_out" | "error">("loading");
+
+  useEffect(() => {
+    let mounted = true;
+    getTicketFeed()
+      .then((result) => {
+        if (!mounted) return;
+        setFeed(result);
+        setStatus("ready");
+      })
+      .catch((error) => {
+        if (!mounted) return;
+        setStatus(error instanceof Error && error.message.toLowerCase().includes("sign in") ? "signed_out" : "error");
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  if (status === "loading") {
+    return (
+      <section className="title-games-section ticket-summary-panel">
+        <p className="empty-state">Loading Tickets...</p>
+      </section>
+    );
+  }
+
+  if (status === "signed_out") {
+    return (
+      <section className="title-games-section ticket-summary-panel">
+        <div>
+          <span>Tickets</span>
+          <h2>Earn Tickets by playing Flim.</h2>
+          <p>Sign in to track ticket rewards from trivia, friend challenges, and seasonal events.</p>
+        </div>
+      </section>
+    );
+  }
+
+  if (status === "error" || !feed) return null;
+
+  return (
+    <section className="title-games-section ticket-summary-panel">
+      <div className="ticket-balance-card">
+        <span>Ticket Balance</span>
+        <strong>{feed.wallet.ticketBalance}</strong>
+        <small>{feed.wallet.lifetimeTicketsEarned} lifetime earned / never purchasable</small>
+      </div>
+      <div className="ticket-earning-card">
+        <div className="actor-section-heading">
+          <h2>How To Earn Tickets</h2>
+          <span>Earned only</span>
+        </div>
+        <div className="ticket-rule-list">
+          {feed.earningRules.slice(0, 5).map((rule) => (
+            <article key={rule.ruleKey}>
+              <strong>{rule.name}</strong>
+              <span>{rule.ticketAmount} Tickets</span>
+              <small>{rule.description}</small>
+            </article>
+          ))}
+        </div>
+      </div>
+      {feed.history.length > 0 ? (
+        <div className="ticket-history-card">
+          <div className="actor-section-heading">
+            <h2>Recent Earnings</h2>
+            <span>{feed.history.length}</span>
+          </div>
+          <div className="ticket-history-list">
+            {feed.history.slice(0, 5).map((transaction) => (
+              <article key={transaction.id}>
+                <strong>+{transaction.amount} Tickets</strong>
+                <span>{String(transaction.metadata?.ruleName || transaction.transactionType).replace(/_/g, " ")}</span>
+              </article>
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
 function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void }) {
   const [notifyMessage, setNotifyMessage] = useState("");
   const [featuredChallenges, setFeaturedChallenges] = useState<SeasonalChallengeEvent[]>([]);
@@ -332,6 +418,8 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
           </div>
         </div>
       </header>
+
+      <TicketSummaryPanel />
 
       {featuredChallenges.length > 0 ? (
         <section className="title-games-section arcade-live-section">
@@ -437,6 +525,7 @@ function ClassicTriviaPanel({ mediaType, tmdbId, title }: { mediaType: MediaType
   const [challengeUrl, setChallengeUrl] = useState("");
   const [challengeToken, setChallengeToken] = useState("");
   const [challengeStatus, setChallengeStatus] = useState("");
+  const [ticketStatus, setTicketStatus] = useState("");
   const questions = feed?.questions || [];
   const score = useMemo(() => scoreTrivia(questions, answers), [questions, answers]);
   const allAnswered = questions.length > 0 && questions.every((question) => answers[question.id]);
@@ -480,6 +569,8 @@ function ClassicTriviaPanel({ mediaType, tmdbId, title }: { mediaType: MediaType
       setChallengeUrl(url);
       setChallengeToken(result.challenge.token);
       setChallengeStatus("Challenge ready.");
+      const earned = (result.ticketAwards || []).filter((award) => award.awarded).reduce((sum, award) => sum + award.amount, 0);
+      setTicketStatus(earned > 0 ? `Earned ${earned} Tickets.` : "");
     } catch (error) {
       setChallengeStatus(error instanceof Error ? error.message : "Could not create challenge.");
     }
@@ -583,6 +674,7 @@ function ClassicTriviaPanel({ mediaType, tmdbId, title }: { mediaType: MediaType
             ) : null}
           </div>
           {challengeStatus ? <small>{challengeStatus}</small> : null}
+          {ticketStatus ? <small>{ticketStatus}</small> : null}
         </div>
       )}
     </section>

@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { getSeasonalChallengeHistory, getSeasonalChallenges, joinSeasonalChallenge } from "../services/seasonalChallengeService";
-import type { SeasonalChallengeEvent, SeasonalChallengeFeed, SeasonalChallengeHistoryItem } from "../types";
+import { getTicketFeed } from "../services/ticketService";
+import type { SeasonalChallengeEvent, SeasonalChallengeFeed, SeasonalChallengeHistoryItem, TicketFeed } from "../types";
 
 interface SeasonalChallengesProps {
   onNavigate: (path: string) => void;
@@ -75,6 +76,7 @@ export function SeasonalChallenges({ onNavigate }: SeasonalChallengesProps) {
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [joiningId, setJoiningId] = useState<string | null>(null);
   const [history, setHistory] = useState<SeasonalChallengeHistoryItem[]>([]);
+  const [tickets, setTickets] = useState<TicketFeed | null>(null);
   const [actionError, setActionError] = useState("");
 
   useEffect(() => {
@@ -93,6 +95,11 @@ export function SeasonalChallenges({ onNavigate }: SeasonalChallengesProps) {
     getSeasonalChallengeHistory()
       .then((items) => {
         if (active) setHistory(items);
+      })
+      .catch(() => undefined);
+    getTicketFeed(6)
+      .then((result) => {
+        if (active) setTickets(result);
       })
       .catch(() => undefined);
     return () => {
@@ -168,6 +175,21 @@ export function SeasonalChallenges({ onNavigate }: SeasonalChallengesProps) {
         </div>
       </div>
       {actionError ? <p className="error-message">{actionError}</p> : null}
+
+      {tickets ? (
+        <section className="challenge-ticket-strip">
+          <div>
+            <span>Ticket Balance</span>
+            <strong>{tickets.wallet.ticketBalance}</strong>
+          </div>
+          <p>Tickets are earned through trivia and challenge participation. They are not purchased.</p>
+          <div className="challenge-ticket-rules">
+            {tickets.earningRules.slice(0, 3).map((rule) => (
+              <span key={rule.ruleKey}>{rule.name}: {rule.ticketAmount}</span>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       {feed.sections.featured ? (
         <section className="seasonal-featured-section">

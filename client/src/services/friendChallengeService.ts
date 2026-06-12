@@ -1,4 +1,4 @@
-import type { FriendChallengeAttemptResult, FriendChallengeHistoryAttempt, FriendTriviaChallenge, MediaType } from "../types";
+import type { FriendChallengeAttemptResult, FriendChallengeHistoryAttempt, FriendTriviaChallenge, MediaType, TicketAward } from "../types";
 
 async function challengeRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
   const response = await fetch(path, {
@@ -23,7 +23,7 @@ export function createFriendChallenge(input: {
   questionIds: string[];
   answers: Record<string, string>;
 }) {
-  return challengeRequest<{ challenge: FriendTriviaChallenge; result: { score: number; correctCount: number; totalCount: number } }>("/api/friend-challenges", {
+  return challengeRequest<{ challenge: FriendTriviaChallenge; result: { score: number; correctCount: number; totalCount: number }; ticketAwards?: TicketAward[] }>("/api/friend-challenges", {
     method: "POST",
     body: JSON.stringify(input),
   });

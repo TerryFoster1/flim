@@ -1,4 +1,4 @@
-import type { CompanionAchievement, CompanionProgress, EasterEggHunt, MediaType, TriviaFeed, TriviaQuestion, TriviaReportReason } from "../types";
+import type { CompanionAchievement, CompanionProgress, EasterEggHunt, MediaType, TicketAward, TriviaFeed, TriviaQuestion, TriviaReportReason } from "../types";
 
 async function parseJson<T>(response: Response): Promise<T> {
   const payload = await response.json().catch(() => ({}));
@@ -49,6 +49,7 @@ export async function completeCompanionItem(itemType: "trivia" | "easter_egg", i
     progress: CompanionProgress;
     achievements: CompanionAchievement[];
     unlockedAchievements: CompanionAchievement[];
+    ticketAward?: TicketAward | null;
   }>(response);
 }
 
@@ -66,6 +67,7 @@ export async function updateEasterEggHunt(input: { huntId: string; action: "star
     progress: CompanionProgress;
     achievements: CompanionAchievement[];
     unlockedAchievements: CompanionAchievement[];
+    ticketAward?: TicketAward | null;
     easterEggs: EasterEggHunt[];
     questions: TriviaQuestion[];
   }>(response);

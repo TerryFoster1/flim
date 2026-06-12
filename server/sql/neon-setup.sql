@@ -2373,6 +2373,35 @@ create index if not exists arcade_transactions_type_created_idx
 create index if not exists arcade_transactions_source_idx
   on arcade_transactions (source_type, source_id);
 
+create table if not exists ticket_earning_rules (
+  id uuid primary key default gen_random_uuid(),
+  rule_key text not null unique,
+  name text not null,
+  description text not null default '',
+  ticket_amount integer not null check (ticket_amount >= 0),
+  trigger_type text not null,
+  status text not null default 'draft' check (status in ('draft', 'active', 'paused', 'archived')),
+  starts_at timestamptz,
+  ends_at timestamptz,
+  metadata jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists ticket_earning_rules_status_trigger_idx
+  on ticket_earning_rules (status, trigger_type);
+
+insert into ticket_earning_rules (rule_key, name, description, ticket_amount, trigger_type, status)
+values
+  ('trivia_completed', 'Trivia Completed', 'Complete a title trivia question.', 25, 'trivia', 'active'),
+  ('perfect_trivia_score', 'Perfect Score', 'Complete a trivia pack with every answer correct.', 100, 'trivia', 'active'),
+  ('easter_egg_found', 'Easter Egg Found', 'Complete an Easter Egg Hunt.', 25, 'trivia', 'active'),
+  ('friend_challenge_created', 'Friend Challenge Created', 'Create a friend challenge from a completed trivia pack.', 25, 'friend_challenge', 'active'),
+  ('friend_challenge_won', 'Friend Challenge Won', 'Beat a friend''s score on a shared trivia challenge.', 50, 'friend_challenge', 'active'),
+  ('weekly_challenge_completed', 'Weekly Challenge Completed', 'Complete an active weekly challenge.', 75, 'seasonal_challenge', 'active'),
+  ('seasonal_challenge_completed', 'Seasonal Challenge Completed', 'Complete an active seasonal or special event challenge.', 250, 'seasonal_challenge', 'active')
+on conflict (rule_key) do nothing;
+
 create table if not exists arcade_daily_token_grants (
   id uuid primary key default gen_random_uuid(),
   grant_key text not null unique,

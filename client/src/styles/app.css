@@ -5627,6 +5627,98 @@ textarea { min-height: 42px; resize: vertical; }
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 12px;
 }
+.ticket-summary-panel {
+  display: grid;
+  grid-template-columns: minmax(190px, .7fr) minmax(260px, 1.3fr);
+  gap: 14px;
+  align-items: stretch;
+}
+.ticket-summary-panel > div,
+.challenge-ticket-strip {
+  border: 1px solid rgba(255,184,77,.18);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 12% 0%, rgba(255,184,77,.16), transparent 12rem),
+    rgba(255,255,255,.045);
+  box-shadow: 0 18px 54px rgba(0,0,0,.22);
+}
+.ticket-summary-panel > div {
+  padding: 16px;
+}
+.ticket-balance-card {
+  display: grid;
+  align-content: center;
+  gap: 4px;
+}
+.ticket-balance-card span,
+.ticket-summary-panel .actor-section-heading span,
+.challenge-ticket-strip span {
+  color: var(--gold);
+  font-size: .76rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+.ticket-balance-card strong {
+  color: #fff;
+  font-size: clamp(3rem, 9vw, 5.5rem);
+  line-height: .9;
+}
+.ticket-balance-card small,
+.ticket-history-list span,
+.ticket-rule-list small,
+.challenge-ticket-strip p {
+  color: var(--muted);
+}
+.ticket-rule-list,
+.ticket-history-list {
+  display: grid;
+  gap: 8px;
+}
+.ticket-rule-list article,
+.ticket-history-list article {
+  display: grid;
+  gap: 3px;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 12px;
+  padding: 10px;
+  background: rgba(8,9,13,.38);
+}
+.ticket-rule-list article {
+  grid-template-columns: 1fr auto;
+}
+.ticket-rule-list small {
+  grid-column: 1 / -1;
+}
+.challenge-ticket-strip {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 14px;
+  align-items: center;
+  padding: 14px;
+}
+.challenge-ticket-strip strong {
+  display: block;
+  color: #fff;
+  font-size: clamp(2rem, 5vw, 3rem);
+  line-height: .95;
+}
+.challenge-ticket-strip p {
+  margin: 0;
+}
+.challenge-ticket-rules {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.challenge-ticket-rules span {
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 999px;
+  padding: 7px 10px;
+  background: rgba(255,255,255,.055);
+  color: rgba(255,255,255,.86);
+  text-transform: none;
+}
 .arcade-feature-card,
 .arcade-reward-card,
 .arcade-featured-challenge,
@@ -7903,6 +7995,13 @@ textarea { min-height: 42px; resize: vertical; }
   .arcade-preview-hero {
     grid-template-columns: 1fr;
     min-height: auto;
+  }
+  .ticket-summary-panel,
+  .challenge-ticket-strip {
+    grid-template-columns: 1fr;
+  }
+  .challenge-ticket-rules {
+    justify-content: flex-start;
   }
   .arcade-hero-art {
     min-height: 330px;

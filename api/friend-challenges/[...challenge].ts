@@ -1,4 +1,5 @@
 import { randomBytes } from "node:crypto";
+import { awardTickets } from "../_arcadeEconomy.js";
 import { checkRateLimit, db, ensureTriviaTables, errorStatus, getCurrentUser, readBody, sendJson } from "../_db.js";
 
 type MediaType = "movie" | "tv";
@@ -156,7 +157,26 @@ async function handleCreate(request: any, response: any, sql: any) {
     returning *
   `;
 
-  return sendJson(response, 201, { challenge: mapChallenge(challenge), result: score });
+  const ticketAwards = [
+    await awardTickets(sql, {
+      userId: user.id,
+      ruleKey: "friend_challenge_created",
+      sourceType: "friend_challenge",
+      sourceId: challenge.id,
+      metadata: { mediaType, tmdbId, score: score.score, correctCount: score.correctCount, totalCount: score.totalCount },
+    }),
+  ];
+  if (score.totalCount > 0 && score.correctCount === score.totalCount) {
+    ticketAwards.push(await awardTickets(sql, {
+      userId: user.id,
+      ruleKey: "perfect_trivia_score",
+      sourceType: "friend_challenge_perfect_score",
+      sourceId: challenge.id,
+      metadata: { mediaType, tmdbId, score: score.score, totalCount: score.totalCount },
+    }));
+  }
+
+  return sendJson(response, 201, { challenge: mapChallenge(challenge), result: score, ticketAwards });
 }
 
 async function readChallenge(sql: any, token: string) {
@@ -218,6 +238,16 @@ async function handleAttempt(request: any, response: any, sql: any, token: strin
     )
   `;
 
+  const ticketAward = user?.id && result === "won"
+    ? await awardTickets(sql, {
+      userId: user.id,
+      ruleKey: "friend_challenge_won",
+      sourceType: "friend_challenge_attempt",
+      sourceId: `${challenge.id}:${user.id}`,
+      metadata: { token, score: score.score, challengeScore, correctCount: score.correctCount, totalCount: score.totalCount },
+    })
+    : null;
+
   return sendJson(response, 200, {
     result,
     score: score.score,
@@ -226,6 +256,7 @@ async function handleAttempt(request: any, response: any, sql: any, token: strin
     challengeScore,
     difference: score.score - challengeScore,
     questions: pack,
+    ticketAward,
   });
 }
 

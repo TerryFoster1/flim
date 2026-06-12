@@ -1199,6 +1199,7 @@ export interface FriendChallengeAttemptResult {
   totalCount: number;
   challengeScore: number;
   difference: number;
+  ticketAward?: TicketAward | null;
   questions: Array<FriendChallengeQuestion & { answer: string; explanation: string }>;
 }
 
@@ -1226,6 +1227,55 @@ export interface MediaExtensions {
   videos: MediaVideoLink[];
   trivia: TriviaEntry[];
   notes: string;
+}
+
+export interface TicketWallet {
+  ticketBalance: number;
+  lifetimeTicketsEarned: number;
+  lifetimeTicketsSpent: number;
+  updatedAt?: string;
+}
+
+export interface TicketTransaction {
+  id: string;
+  direction: "credit" | "debit";
+  amount: number;
+  balanceBefore: number;
+  balanceAfter: number;
+  transactionType: string;
+  sourceType?: string;
+  sourceId?: string;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+}
+
+export interface TicketEarningRule {
+  ruleKey: string;
+  name: string;
+  description: string;
+  ticketAmount: number;
+  triggerType: string;
+  status: string;
+}
+
+export interface TicketAward {
+  awarded: boolean;
+  duplicate: boolean;
+  amount: number;
+  transactionId?: string;
+  wallet: TicketWallet;
+}
+
+export interface TicketFeed {
+  wallet: TicketWallet;
+  history: TicketTransaction[];
+  earningRules: TicketEarningRule[];
+  rules: {
+    ticketsAreEarned: boolean;
+    ticketsArePurchasable: boolean;
+    concessionStandEnabled: boolean;
+    rewardRedemptionsEnabled: boolean;
+  };
 }
 
 export interface TitleRatingSummary {

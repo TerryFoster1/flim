@@ -1,8 +1,8 @@
 # Arcade Economy Architecture
 
-This is a future-system foundation for a movie-theater-style Flim economy.
+This is the foundation for Flim's earned-ticket reward layer and future movie-theater-style economy.
 
-It does not launch a live economy. It does not implement payments, purchasable token packs, sweepstakes, real-world rewards, partner fulfillment, or public concession stand UI.
+It launches earned Ticket tracking only. It does not implement payments, purchasable token packs, sweepstakes, real-world rewards, partner fulfillment, or public concession stand UI.
 
 ## Product Model
 
@@ -18,8 +18,8 @@ Concession Stand
 
 The model intentionally uses familiar theater language:
 
-- Tokens are the access currency.
-- Tickets are the reward currency.
+- Tokens are a future access currency.
+- Tickets are the active earned reward currency.
 - The Concession Stand is the future reward catalog.
 
 ## Participation Rules
@@ -30,8 +30,10 @@ These rules are product constraints, not implementation details:
 - Daily Challenges are always free.
 - Seasonal Challenges are always free.
 - Users should always have meaningful free participation paths.
-- Tokens control access to future premium arcade games.
 - Tickets represent earned progress and rewards.
+- Tickets are not purchased.
+- Every Ticket credit must be traceable through the ledger.
+- Tokens may control access to future premium arcade games, but token purchases are not implemented.
 - No real-world rewards may appear until partner, legal, fulfillment, and fraud controls are ready.
 
 ## Feature Flag
@@ -42,7 +44,7 @@ Server flag:
 ENABLE_ARCADE_ECONOMY=false
 ```
 
-When disabled, `/api/arcade-economy` returns architecture/status only. It does not expose wallet balances, rewards, redemption actions, token purchases, or game access.
+Ticket balance and history are exposed through `/api/tickets` for signed-in users. The broader arcade economy/concession stand remains behind `ENABLE_ARCADE_ECONOMY=false`.
 
 ## Data Model
 
@@ -101,6 +103,24 @@ Audit fields:
 - `created_by`
 
 Duplicate protection comes from `idempotency_key`.
+
+### Ticket Earning Rules
+
+`ticket_earning_rules`
+
+Configures how users earn Tickets. Award calls reference a `rule_key`; they do not hardcode amounts.
+
+Initial active rules:
+
+- `trivia_completed`: 25 Tickets
+- `perfect_trivia_score`: 100 Tickets
+- `easter_egg_found`: 25 Tickets
+- `friend_challenge_created`: 25 Tickets
+- `friend_challenge_won`: 50 Tickets
+- `weekly_challenge_completed`: 75 Tickets
+- `seasonal_challenge_completed`: 250 Tickets
+
+Each rule can be paused, archived, scheduled, or changed without rewriting reward hooks.
 
 ### Daily Token Grants
 
@@ -219,18 +239,18 @@ Prepared endpoint:
 
 ```text
 GET /api/arcade-economy
+GET /api/tickets
 ```
 
 Current behavior:
 
-- flag off: returns disabled architecture status
-- flag on: can return authenticated wallet snapshot and active reward catalog
+- `/api/tickets`: returns authenticated Ticket balance, history, earning rules, and rules stating Tickets are earned and not purchasable
+- `/api/arcade-economy`: remains the future broader economy endpoint for reward catalog and concession stand readiness
 
 Not implemented:
 
 - token purchase
 - token consume mutation
-- ticket earn mutation
 - reward redemption mutation
 - partner fulfillment
 - payment processing
@@ -262,6 +282,7 @@ Before visible launch:
 
 ## Explicit Non-Goals For This Phase
 
+- No purchasable Tickets.
 - No purchasable tokens.
 - No payments.
 - No real-world rewards.
