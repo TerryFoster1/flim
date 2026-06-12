@@ -143,9 +143,9 @@ export function Discover({ onNavigate }: DiscoverProps) {
       <section className="discover-hero">
         <div>
           <h1>Discover</h1>
-          <p>Search playlists, curators, collections, movies, and TV shows.</p>
-          <button className="secondary-button discover-hero-link" onClick={() => onNavigate("/curators")} type="button">
-            Browse Curators
+          <p>Search playlists first, then collections, curators, movies, and TV shows.</p>
+          <button className="secondary-button discover-hero-link" onClick={() => onNavigate("/public")} type="button">
+            Browse Public Playlists
           </button>
         </div>
         <form className="discover-search-form" onSubmit={submit}>
@@ -188,6 +188,22 @@ export function Discover({ onNavigate }: DiscoverProps) {
 
           <section className="discovery-results-section">
             <div className="discovery-results-heading">
+              <h2>Collections</h2>
+              <span>{results.collections.length} found</span>
+            </div>
+            <CollectionResultGrid collections={results.collections} onNavigate={onNavigate} />
+          </section>
+
+          <section className="discovery-results-section">
+            <div className="discovery-results-heading">
+              <h2>Discovery Hubs</h2>
+              <span>{results.hubs.length} found</span>
+            </div>
+            <HubGrid hubs={results.hubs} onNavigate={onNavigate} />
+          </section>
+
+          <section className="discovery-results-section">
+            <div className="discovery-results-heading">
               <h2>Curators</h2>
               <span>{results.profiles.length} found</span>
             </div>
@@ -208,22 +224,6 @@ export function Discover({ onNavigate }: DiscoverProps) {
             ) : (
               <p className="empty-state">No matching curators yet.</p>
             )}
-          </section>
-
-          <section className="discovery-results-section">
-            <div className="discovery-results-heading">
-              <h2>Collections</h2>
-              <span>{results.collections.length} found</span>
-            </div>
-            <CollectionResultGrid collections={results.collections} onNavigate={onNavigate} />
-          </section>
-
-          <section className="discovery-results-section">
-            <div className="discovery-results-heading">
-              <h2>Discovery Hubs</h2>
-              <span>{results.hubs.length} found</span>
-            </div>
-            <HubGrid hubs={results.hubs} onNavigate={onNavigate} />
           </section>
 
           <section className="discovery-results-section">
@@ -285,7 +285,7 @@ export function Discover({ onNavigate }: DiscoverProps) {
           </section>
           <section className="discovery-empty-panel">
             <h2>Find what is worth watching.</h2>
-            <p>Start with a playlist, mood, genre, collection, title, or curator.</p>
+            <p>Start with a playlist, collection, mood, genre, title, or curator.</p>
           </section>
         </>
       )}
@@ -293,7 +293,7 @@ export function Discover({ onNavigate }: DiscoverProps) {
       {results && !hasResults ? (
         <section className="discovery-empty-panel">
           <h2>No matches yet.</h2>
-          <p>Try a broader search like anime, horror, sci-fi, Christmas, Marvel, Pixar, or a favorite curator.</p>
+          <p>Try a broader playlist theme like anime, horror, sci-fi, Christmas, Marvel, or Pixar.</p>
         </section>
       ) : null}
     </section>

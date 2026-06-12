@@ -186,6 +186,14 @@ export function DiscoveryHub({ kind, hubId, onNavigate }: DiscoveryHubProps) {
 
         <section className="discovery-results-section">
           <div className="discovery-results-heading">
+            <h2>Curators</h2>
+            <span>{hub.profiles.length} found</span>
+          </div>
+          <CuratorGrid profiles={hub.profiles} onNavigate={onNavigate} />
+        </section>
+
+        <section className="discovery-results-section">
+          <div className="discovery-results-heading">
             <h2>Movies</h2>
             <span>{movieTitles.length} found</span>
           </div>
@@ -198,14 +206,6 @@ export function DiscoveryHub({ kind, hubId, onNavigate }: DiscoveryHubProps) {
             <span>{tvTitles.length} found</span>
           </div>
           <TitleRow titles={tvTitles} emptyMessage="No matching TV shows yet." onNavigate={onNavigate} />
-        </section>
-
-        <section className="discovery-results-section">
-          <div className="discovery-results-heading">
-            <h2>Curators</h2>
-            <span>{hub.profiles.length} found</span>
-          </div>
-          <CuratorGrid profiles={hub.profiles} onNavigate={onNavigate} />
         </section>
 
         <HubLinks title="Browse Genres" hubs={hub.relatedHubs.genres} onNavigate={onNavigate} />
