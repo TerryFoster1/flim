@@ -246,6 +246,10 @@ export function PlaylistDetails({ playlist, onNavigate, addToPlaylist, deletePla
           </div>
         </div>
       ) : null}
+      <div className="playlist-title-list-heading">
+        <h2>Titles in this playlist</h2>
+        <p>{playlist.movies.length} {playlist.movies.length === 1 ? "title" : "titles"} curated here.</p>
+      </div>
       <MovieGrid
         movies={playlist.movies}
         emptyMessage={playlist.isSystem ? "This system playlist will fill automatically as Flim learns more from your activity." : "No titles in this playlist yet."}

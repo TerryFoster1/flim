@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { MovieGrid } from "../components/MovieGrid";
+import { PlaylistCoverArt } from "../components/PlaylistHero";
 import { SharePlaylistButton } from "../components/SharePlaylistButton";
 import { followPlaylist, getPublicPlaylistBySlug, likePlaylist, unfollowPlaylist, unlikePlaylist } from "../services/apiPlaylistStore";
 import type { CurrentUser, Playlist } from "../types";
@@ -165,19 +166,7 @@ export function PublicPlaylist({ publicSlug, onNavigate, currentUser, onFollowCh
             movie.posterUrl ? <img alt="" key={`${movie.tmdbId}-${index}`} src={movie.posterUrl} /> : <span key={`${movie.tmdbId}-${index}`} />,
           )}
         </div>
-        <div className="playlist-cover-xl public-cover-art" aria-label="Playlist cover">
-          {playlist.movies.slice(0, 4).map((movie) =>
-            movie.posterUrl ? <img alt="" key={movie.tmdbId} src={movie.posterUrl} /> : <div key={movie.tmdbId} />,
-          )}
-          {playlist.movies.length === 0 ? (
-            <>
-              <div />
-              <div />
-              <div />
-              <div />
-            </>
-          ) : null}
-        </div>
+        <PlaylistCoverArt playlist={playlist} className="public-cover-art" />
         <div className="playlist-copy public-playlist-copy">
           <h1>{playlist.name}</h1>
           {playlist.description ? <p>{playlist.description}</p> : null}
