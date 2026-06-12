@@ -21,11 +21,16 @@ function isSafeDestination(value: string) {
   }
 }
 
+function isUuid(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
 export default async function handler(request: any, response: any) {
   if (request.method !== "GET") return sendJson(response, 405, { error: "Method not allowed." });
 
   const linkId = ticketLinkId(request).trim();
   if (!linkId) return sendJson(response, 400, { error: "A valid ticket link is required." });
+  if (!isUuid(linkId)) return sendJson(response, 400, { error: "A valid ticket link is required." });
 
   try {
     const sql = db();
