@@ -5,7 +5,7 @@ import { ProviderLogo } from "../components/ProviderLogo";
 import { PushNotificationSettings } from "../components/PushNotificationSettings";
 import { avatarSkins, defaultAvatarKey, flimAvatars, getFlimAvatar } from "../avatarCatalog";
 import { getCurrentProfile, saveCurrentProfile } from "../services/profileService";
-import { watchProviders } from "../services/watchProviderService";
+import { normalizeStreamingRegion, supportedStreamingRegions, watchProviders } from "../services/watchProviderService";
 import type { CurrentUser, Playlist, UserProfile } from "../types";
 
 const emptyProfile: UserProfile = {
@@ -62,7 +62,7 @@ export function Settings({ currentUser, onNavigate, playlists = [] }: SettingsPr
     getCurrentProfile()
       .then((result) => {
         if (!isActive) return;
-        setProfile({ ...emptyProfile, ...result });
+        setProfile({ ...emptyProfile, ...result, streamingRegion: normalizeStreamingRegion(result.streamingRegion || result.countryCode || "CA") });
         setStatus("ready");
       })
       .catch(() => {
@@ -108,7 +108,7 @@ export function Settings({ currentUser, onNavigate, playlists = [] }: SettingsPr
 
     try {
       const saved = await saveCurrentProfile(profile);
-      setProfile({ ...emptyProfile, ...saved });
+      setProfile({ ...emptyProfile, ...saved, streamingRegion: normalizeStreamingRegion(saved.streamingRegion || saved.countryCode || "CA") });
       setStatus("saved");
       setMessage("Profile and streaming region saved.");
     } catch (error) {
@@ -144,8 +144,8 @@ export function Settings({ currentUser, onNavigate, playlists = [] }: SettingsPr
   return (
     <section className="route-page settings-page">
       <div className="page-heading">
-        <h1>Profile and streaming region</h1>
-        <p>Choose your Flim URL and set where you watch so provider results can become more accurate.</p>
+        <h1>Profile and streaming services</h1>
+        <p>Choose your Flim URL, region, and subscriptions so Where To Watch can prioritize what you already have.</p>
       </div>
 
       <section className="region-onboarding-card">
@@ -301,11 +301,17 @@ export function Settings({ currentUser, onNavigate, playlists = [] }: SettingsPr
 
         <section className="settings-panel">
           <div className="settings-panel-heading">
-            <h2>Location for availability</h2>
+            <h2>Preferred region</h2>
           </div>
           <label>
             Country
-            <select value={profile.countryCode} onChange={(event) => updateProfile("countryCode", event.target.value)}>
+            <select
+              value={profile.countryCode}
+              onChange={(event) => {
+                updateProfile("countryCode", event.target.value);
+                if (!profile.streamingRegion) updateProfile("streamingRegion", normalizeStreamingRegion(event.target.value));
+              }}
+            >
               {countries.map((country) => (
                 <option key={country.code || "empty"} value={country.code}>
                   {country.label}
@@ -334,12 +340,15 @@ export function Settings({ currentUser, onNavigate, playlists = [] }: SettingsPr
             />
           </label>
           <label>
-            Primary Streaming Region
-            <input
-              value={profile.streamingRegion}
+            Where To Watch Region
+            <select
+              value={normalizeStreamingRegion(profile.streamingRegion || profile.countryCode || "CA")}
               onChange={(event) => updateProfile("streamingRegion", event.target.value)}
-              placeholder="Canada"
-            />
+            >
+              {supportedStreamingRegions.map((region) => (
+                <option key={region.code} value={region.code}>{region.label}</option>
+              ))}
+            </select>
           </label>
           <p className="privacy-note">Your province/state, postal code, streaming region, and preferred services stay private. Public profiles can show country only if you opt in.</p>
           <label className="checkbox-row">
@@ -354,7 +363,7 @@ export function Settings({ currentUser, onNavigate, playlists = [] }: SettingsPr
 
         <section className="settings-panel">
           <div className="settings-panel-heading">
-            <h2>Your watch services</h2>
+            <h2>Preferred streaming services</h2>
           </div>
           <div className="provider-preference-grid">
             {streamingProviders.map((provider) => (

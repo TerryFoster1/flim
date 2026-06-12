@@ -645,8 +645,19 @@ export interface PushSubscriptionStatus {
   preferences: PushNotificationPreferences;
 }
 
-export type MovieNotificationSetting = "theaterRelease" | "streamingAvailability" | "trailerReleased";
-export type TvNotificationSetting = "newSeasonAnnounced" | "seasonReleaseDate" | "newEpisodeAvailable" | "streamingAvailability";
+export type MovieNotificationSetting =
+  | "theaterRelease"
+  | "streamingAvailability"
+  | "trailerReleased"
+  | "rentalAvailability"
+  | "purchaseAvailability"
+  | "providerChanged";
+export type TvNotificationSetting =
+  | "newSeasonAnnounced"
+  | "seasonReleaseDate"
+  | "newEpisodeAvailable"
+  | "streamingAvailability"
+  | "providerChanged";
 export type TitleNotificationSettings = Partial<Record<MovieNotificationSetting | TvNotificationSetting, boolean>>;
 
 export interface FollowedTitle {

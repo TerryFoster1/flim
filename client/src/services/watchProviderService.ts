@@ -78,6 +78,48 @@ export const watchProviders: WatchProvider[] = [
     searchUrlTemplate: "https://www.paramountplus.com/search/?query={title}",
     notes: "Availability varies by region.",
   },
+  {
+    id: "hulu",
+    name: "Hulu",
+    icon: "Hulu",
+    searchUrlTemplate: "https://www.hulu.com/search?q={title}",
+    notes: "Availability varies by region.",
+  },
+  {
+    id: "max",
+    name: "Max",
+    icon: "Max",
+    searchUrlTemplate: "https://www.max.com/search?q={title}",
+    notes: "Availability varies by region.",
+  },
+  {
+    id: "hoopla",
+    name: "Hoopla",
+    icon: "Hoopla",
+    searchUrlTemplate: "https://www.hoopladigital.com/search?q={title}&scope=everything&type=direct",
+    notes: "Availability varies by library and region.",
+  },
+  {
+    id: "cbc_gem",
+    name: "CBC Gem",
+    icon: "Gem",
+    searchUrlTemplate: "https://gem.cbc.ca/search?query={title}",
+    notes: "Availability varies by region.",
+  },
+  {
+    id: "google_tv",
+    name: "Google TV",
+    icon: "GTV",
+    searchUrlTemplate: "https://play.google.com/store/search?q={title}&c=movies",
+    notes: "Rental and purchase availability varies by region.",
+  },
+  {
+    id: "criterion",
+    name: "Criterion Channel",
+    icon: "Criterion",
+    searchUrlTemplate: "https://www.criterionchannel.com/search?q={title}",
+    notes: "Availability varies by region.",
+  },
 ];
 
 function encodeMovieTitle(title: string) {
@@ -137,8 +179,37 @@ interface ProviderAvailabilityApiResponse {
   notes: string;
 }
 
-function regionOrDefault(region?: string) {
-  return region?.trim().toUpperCase() || "CA";
+const regionAliases: Record<string, string> = {
+  "": "CA",
+  ca: "CA",
+  can: "CA",
+  canada: "CA",
+  us: "US",
+  usa: "US",
+  "united states": "US",
+  "united states of america": "US",
+  gb: "GB",
+  uk: "GB",
+  "united kingdom": "GB",
+  au: "AU",
+  australia: "AU",
+};
+
+export const supportedStreamingRegions = [
+  { code: "CA", label: "Canada" },
+  { code: "US", label: "United States" },
+  { code: "GB", label: "United Kingdom" },
+  { code: "AU", label: "Australia" },
+] as const;
+
+export function normalizeStreamingRegion(region?: string) {
+  const normalized = String(region || "").trim().toLowerCase();
+  return regionAliases[normalized] || normalized.toUpperCase() || "CA";
+}
+
+export function streamingRegionLabel(region?: string) {
+  const code = normalizeStreamingRegion(region);
+  return supportedStreamingRegions.find((item) => item.code === code)?.label || code;
 }
 
 function providerFromApi(link: ProviderAvailabilityApiLink): WatchProvider {
@@ -157,7 +228,7 @@ function providerFromApi(link: ProviderAvailabilityApiLink): WatchProvider {
 function buildProviderLinkUrl(link: ProviderAvailabilityApiLink, mediaType: MediaType, tmdbId: number, title: string) {
   const params = new URLSearchParams({
     mediaType,
-    region: regionOrDefault(link.region),
+    region: normalizeStreamingRegion(link.region),
     linkType: link.deepLink ? "exact" : "search_fallback",
   });
 
@@ -168,7 +239,7 @@ function buildProviderLinkUrl(link: ProviderAvailabilityApiLink, mediaType: Medi
 }
 
 export async function getProviderAvailabilityForTitle(movie: { title: string; tmdbId: number; mediaType?: MediaType }, streamingRegion?: string): Promise<MovieAvailability> {
-  const region = regionOrDefault(streamingRegion);
+  const region = normalizeStreamingRegion(streamingRegion);
   const mediaType = movie.mediaType || "movie";
   const params = new URLSearchParams({
     mediaType,

@@ -1,5 +1,7 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { hasTmdbApiKey, searchMovies, type MediaSearchMode } from "../services/tmdbService";
+import { getCurrentProfile } from "../services/profileService";
+import { getProviderAvailabilityForTitle, normalizeStreamingRegion } from "../services/watchProviderService";
 import type { MovieSearchResult, Playlist } from "../types";
 import { AddToPlaylistControl } from "./AddToPlaylistControl";
 
@@ -20,6 +22,10 @@ export function MovieSearchPanel({ playlists, addToPlaylist, onNavigate, variant
   const [message, setMessage] = useState("");
   const [addingKey, setAddingKey] = useState<string | null>(null);
   const [addedKeys, setAddedKeys] = useState<Set<string>>(() => new Set());
+  const [availableOnMyServices, setAvailableOnMyServices] = useState(false);
+  const [availabilityMatches, setAvailabilityMatches] = useState<Record<string, string[]>>({});
+  const [availabilityStatus, setAvailabilityStatus] = useState("");
+  const [profilePreferences, setProfilePreferences] = useState<{ providers: string[]; region: string }>({ providers: [], region: "CA" });
   const hasKey = hasTmdbApiKey();
   const targetPlaylists = fixedPlaylistId ? playlists.filter((playlist) => playlist.id === fixedPlaylistId) : playlists;
   const fixedPlaylist = fixedPlaylistId ? targetPlaylists[0] : null;
@@ -35,6 +41,55 @@ export function MovieSearchPanel({ playlists, addToPlaylist, onNavigate, variant
     );
   }
 
+  useEffect(() => {
+    let active = true;
+    getCurrentProfile()
+      .then((profile) => {
+        if (!active) return;
+        setProfilePreferences({
+          providers: profile.preferredProviders || [],
+          region: normalizeStreamingRegion(profile.streamingRegion || profile.countryCode || "CA"),
+        });
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  async function prioritizeAvailableResults(movies: MovieSearchResult[]) {
+    if (!availableOnMyServices) {
+      setAvailabilityMatches({});
+      return movies;
+    }
+
+    if (profilePreferences.providers.length === 0) {
+      setAvailabilityStatus("Choose your services in Settings to prioritize watchable results.");
+      return movies;
+    }
+
+    setAvailabilityStatus("Checking your services...");
+    const limited = movies.slice(0, 10);
+    const checked = await Promise.allSettled(
+      limited.map(async (movie) => {
+        const availability = await getProviderAvailabilityForTitle(movie, profilePreferences.region);
+        const matches = availability.links
+          .filter((link) => link.availabilityKnown && profilePreferences.providers.includes(link.provider.id))
+          .map((link) => link.provider.name);
+        return { key: resultKey(movie), matches };
+      }),
+    );
+    const matchMap: Record<string, string[]> = {};
+    checked.forEach((result) => {
+      if (result.status === "fulfilled" && result.value.matches.length > 0) {
+        matchMap[result.value.key] = result.value.matches;
+      }
+    });
+    setAvailabilityMatches(matchMap);
+    setAvailabilityStatus(Object.keys(matchMap).length ? "Titles on your services are shown first." : "No matches found on your selected services yet.");
+    return [...movies].sort((a, b) => Number(Boolean(matchMap[resultKey(b)])) - Number(Boolean(matchMap[resultKey(a)])));
+  }
+
   async function submitSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!hasKey) {
@@ -46,7 +101,8 @@ export function MovieSearchPanel({ playlists, addToPlaylist, onNavigate, variant
     setMessage("");
     try {
       const movies = await searchMovies(query, mediaType);
-      setResults(movies);
+      const prioritized = await prioritizeAvailableResults(movies);
+      setResults(prioritized);
       setStatus("done");
       setMessage(movies.length ? "" : "No titles found.");
     } catch {
@@ -101,9 +157,18 @@ export function MovieSearchPanel({ playlists, addToPlaylist, onNavigate, variant
             </button>
           ) : null}
         </div>
+        <label className="checkbox-row search-provider-filter">
+          <input
+            checked={availableOnMyServices}
+            onChange={(event) => setAvailableOnMyServices(event.target.checked)}
+            type="checkbox"
+          />
+          Available on my services
+        </label>
       </form>
       {!hasKey ? <p className="empty-state">Movie search is not configured yet.</p> : null}
       {message ? <p className="empty-state">{message}</p> : null}
+      {availabilityStatus ? <p className="helper-text">{availabilityStatus}</p> : null}
       {results.length > 0 ? (
         <div className="search-results-experience" aria-live="polite">
           <div className="search-results-heading">
@@ -120,6 +185,7 @@ export function MovieSearchPanel({ playlists, addToPlaylist, onNavigate, variant
                   <div className="card-meta">
                     <span>{movie.releaseYear || "Year"}</span>
                     <span>{movie.mediaType === "tv" ? "TV Show" : "Movie"}</span>
+                    {availabilityMatches[resultKey(movie)]?.length ? <span>On {availabilityMatches[resultKey(movie)].slice(0, 2).join(", ")}</span> : null}
                   </div>
                   <p>{movie.overview}</p>
                   <div className="button-row">
