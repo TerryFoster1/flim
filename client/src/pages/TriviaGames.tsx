@@ -235,7 +235,7 @@ function TitleGamesPage({ mediaType = "movie", tmdbId = 0, returnTo, onNavigate 
                   text="Share a Flim challenge card."
                   url={gamePath}
                   cardUrl={`/api/og/title/${mediaType}/${tmdbId}?card=game`}
-                  downloadName={`${title.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || `${mediaType}-${tmdbId}`}-challenge-card.svg`}
+                  downloadName={`${title.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || `${mediaType}-${tmdbId}`}-challenge-card.png`}
                 />
               </div>
             </div>

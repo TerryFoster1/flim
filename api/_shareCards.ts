@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import sharp from "sharp";
 
 export type ShareCardKind = "playlist" | "trailer" | "countdown" | "game" | "profile" | "title";
 
@@ -213,6 +214,61 @@ export function sendSvg(response: any, svg: string) {
   response.setHeader("Content-Type", "image/svg+xml; charset=utf-8");
   response.setHeader("Cache-Control", "public, s-maxage=86400, stale-while-revalidate=604800");
   response.end(svg);
+}
+
+async function fetchImageDataUri(url?: string) {
+  if (!url || !/^https?:\/\//i.test(url)) return url;
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 2200);
+
+  try {
+    const result = await fetch(url, { signal: controller.signal });
+    if (!result.ok) return undefined;
+    const contentType = result.headers.get("content-type") || "image/jpeg";
+    if (!contentType.startsWith("image/")) return undefined;
+    const buffer = Buffer.from(await result.arrayBuffer());
+    return `data:${contentType};base64,${buffer.toString("base64")}`;
+  } catch {
+    return undefined;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function embedRemoteArtwork(data: ShareCardData): Promise<ShareCardData> {
+  const [posterUrl, backdropUrl, avatarUrl, posters] = await Promise.all([
+    fetchImageDataUri(data.posterUrl),
+    fetchImageDataUri(data.backdropUrl),
+    fetchImageDataUri(data.avatarUrl),
+    Promise.all((data.posters || []).map(async (poster) => ({
+      ...poster,
+      url: await fetchImageDataUri(poster.url),
+    }))),
+  ]);
+
+  return {
+    ...data,
+    posterUrl,
+    backdropUrl,
+    avatarUrl,
+    posters,
+  };
+}
+
+export async function sendShareCard(response: any, data: ShareCardData | string) {
+  const svg = typeof data === "string" ? data : renderShareCard(await embedRemoteArtwork(data));
+
+  try {
+    const png = await sharp(Buffer.from(svg)).png().toBuffer();
+    response.statusCode = 200;
+    response.setHeader("Content-Type", "image/png");
+    response.setHeader("Cache-Control", "public, s-maxage=86400, stale-while-revalidate=604800");
+    response.end(png);
+  } catch (error) {
+    console.error("share_card_png_failed", error instanceof Error ? error.message : "Share card PNG failed.");
+    sendSvg(response, svg);
+  }
 }
 
 export async function getBuiltIndexHtml(request: any) {

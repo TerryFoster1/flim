@@ -1,13 +1,13 @@
 import { db, ensurePlaylistFollowsTable, ensurePlaylistLikesTable, ensureUserProfilesTable, mapPlaylist } from "../../_db.js";
 import { ensureDirectorSeed } from "../../_director.js";
-import { fallbackShareCard, renderShareCard, sendSvg } from "../../_shareCards.js";
+import { fallbackShareCard, sendShareCard, type ShareCardData } from "../../_shareCards.js";
 
-function renderCard(playlist: any, slug: string) {
+function playlistCardData(playlist: any, slug: string): ShareCardData {
   const mapped = mapPlaylist(playlist, playlist.movies || []);
   const creator = mapped.creatorDisplayName || (mapped.creatorHandle ? `@${mapped.creatorHandle}` : "Flim curator");
   const titleCount = mapped.movies.length;
   const followerCount = mapped.followerCount || 0;
-  return renderShareCard({
+  return {
     kind: "playlist",
     title: mapped.name,
     subtitle: `by ${creator}`,
@@ -16,7 +16,7 @@ function renderCard(playlist: any, slug: string) {
     urlLabel: `flim.ca/p/${slug}`,
     posters: mapped.movies.slice(0, 4).map((movie) => ({ url: movie.posterUrl, label: movie.title })),
     statLine: `${titleCount} ${titleCount === 1 ? "Title" : "Titles"} | ${followerCount} ${followerCount === 1 ? "Follower" : "Followers"}`,
-  });
+  };
 }
 
 export default async function handler(request: any, response: any) {
@@ -68,9 +68,9 @@ export default async function handler(request: any, response: any) {
       limit 1
     `;
 
-    sendSvg(response, rows[0] ? renderCard(rows[0], slug) : fallbackShareCard("playlist"));
+    await sendShareCard(response, rows[0] ? playlistCardData(rows[0], slug) : fallbackShareCard("playlist"));
   } catch (error) {
     console.error("playlist_og_failed", error instanceof Error ? error.message : "Playlist OG failed.");
-    sendSvg(response, fallbackShareCard("playlist"));
+    await sendShareCard(response, fallbackShareCard("playlist"));
   }
 }

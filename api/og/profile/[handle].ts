@@ -1,5 +1,5 @@
 import { db, ensureUserFollowsTable, ensureUserProfilesTable } from "../../_db.js";
-import { fallbackShareCard, renderShareCard, sendSvg } from "../../_shareCards.js";
+import { fallbackShareCard, sendShareCard } from "../../_shareCards.js";
 
 function profileHandle(request: any) {
   const value = request.query.handle;
@@ -55,13 +55,13 @@ export default async function handler(request: any, response: any) {
       limit 1
     `;
 
-    if (!rows[0]) return sendSvg(response, fallbackShareCard("profile"));
+    if (!rows[0]) return sendShareCard(response, fallbackShareCard("profile"));
 
     const profile = rows[0];
     const displayName = profile.display_name || `@${profile.handle}`;
     const playlists = Array.isArray(profile.featured_playlists) ? profile.featured_playlists : [];
 
-    return sendSvg(response, renderShareCard({
+    return sendShareCard(response, {
       kind: "profile",
       title: displayName,
       subtitle: `@${profile.handle}`,
@@ -72,9 +72,9 @@ export default async function handler(request: any, response: any) {
       statLine: `${profile.playlist_count || 0} Public ${(profile.playlist_count || 0) === 1 ? "Playlist" : "Playlists"} | ${profile.follower_count || 0} ${(profile.follower_count || 0) === 1 ? "Follower" : "Followers"}`,
       cta: "Follow Curator",
       urlLabel: `flim.ca/@${profile.handle}`,
-    }));
+    });
   } catch (error) {
     console.error("profile_og_failed", error instanceof Error ? error.message : "Profile OG failed.");
-    return sendSvg(response, fallbackShareCard("profile"));
+    return sendShareCard(response, fallbackShareCard("profile"));
   }
 }

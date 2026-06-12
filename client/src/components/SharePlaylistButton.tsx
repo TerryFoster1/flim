@@ -217,6 +217,9 @@ export function SharePlaylistButton({ playlist, label = "Share", iconOnly = fals
               </>
             ) : (
               <>
+            <div className="share-card-preview" aria-label={`${playlist.name} social preview card`}>
+              <img alt={`${playlist.name} Flim share card`} src={shareCardUrl} />
+            </div>
             <div className="share-playlist-preview">
               <div className="share-cover-art" aria-hidden="true">
                 {playlist.movies.slice(0, 4).map((movie) =>
@@ -257,7 +260,7 @@ export function SharePlaylistButton({ playlist, label = "Share", iconOnly = fals
               {qrCodeUrl ? <img alt={`QR code for ${playlist.name}`} src={qrCodeUrl} /> : <div className="qr-placeholder">Generating QR code...</div>}
             </div>
             <div className="share-actions secondary-share-actions">
-              <a className="secondary-button qr-download share-primary-action" download={`${playlist.publicSlug}-flim-share-card.svg`} href={shareCardUrl}>
+              <a className="secondary-button qr-download share-primary-action" download={`${playlist.publicSlug}-flim-share-card.png`} href={shareCardUrl}>
                 Download Card
               </a>
               {qrCodeUrl ? (

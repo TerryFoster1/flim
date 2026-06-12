@@ -1,6 +1,6 @@
 import { db, ensureFollowTitleTables } from "../../../_db.js";
 import { ensureMediaCatalogTables, getCatalogMediaItem, mapCatalogDetails } from "../../../_mediaCatalog.js";
-import { fallbackShareCard, renderShareCard, sendSvg, type ShareCardKind } from "../../../_shareCards.js";
+import { fallbackShareCard, sendShareCard, type ShareCardKind } from "../../../_shareCards.js";
 
 function mediaTypeFromRequest(request: any) {
   const value = Array.isArray(request.query.mediaType) ? request.query.mediaType[0] : request.query.mediaType;
@@ -50,7 +50,7 @@ export default async function handler(request: any, response: any) {
   const tmdbId = tmdbIdFromRequest(request);
   const card = cardKindFromRequest(request);
 
-  if (!Number.isFinite(tmdbId)) return sendSvg(response, fallbackShareCard(card));
+  if (!Number.isFinite(tmdbId)) return sendShareCard(response, fallbackShareCard(card));
 
   try {
     const sql = db();
@@ -99,9 +99,9 @@ export default async function handler(request: any, response: any) {
           : releaseText || "Official trailer",
     };
 
-    return sendSvg(response, renderShareCard(data));
+    return sendShareCard(response, data);
   } catch (error) {
     console.error("title_og_failed", error instanceof Error ? error.message : "Title OG failed.");
-    return sendSvg(response, fallbackShareCard(card));
+    return sendShareCard(response, fallbackShareCard(card));
   }
 }

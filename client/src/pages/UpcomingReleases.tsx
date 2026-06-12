@@ -143,7 +143,7 @@ function UpcomingReleaseCard({ item, playlists, addToPlaylist, onNavigate }: {
             text="Share a Flim release countdown card."
             url={`${titlePath(item)}?share=countdown`}
             cardUrl={`/api/og/title/${item.mediaType}/${item.tmdbId}?card=countdown`}
-            downloadName={`${cardSlug}-countdown-card.svg`}
+            downloadName={`${cardSlug}-countdown-card.png`}
           />
         </div>
         {item.availabilityKnown ? <WhereToWatch compact movie={movie} /> : <p className="watch-provider-empty">Streaming availability coming soon.</p>}

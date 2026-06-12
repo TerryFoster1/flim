@@ -178,7 +178,7 @@ export function MediaExtensions({ media, onNavigate }: MediaExtensionsProps) {
           text="Share a Flim trailer card."
           url={`${titlePath}?share=trailer`}
           cardUrl={`/api/og/title/${mediaType}/${media.tmdbId}?card=trailer`}
-          downloadName={`${titleLabel}-trailer-card.svg`}
+          downloadName={`${titleLabel}-trailer-card.png`}
         />
         <ShareAssetButton
           label="Share Trivia"
@@ -186,7 +186,7 @@ export function MediaExtensions({ media, onNavigate }: MediaExtensionsProps) {
           text="Share a Flim challenge card."
           url={`/games/title/${mediaType}/${media.tmdbId}`}
           cardUrl={`/api/og/title/${mediaType}/${media.tmdbId}?card=game`}
-          downloadName={`${titleLabel}-game-card.svg`}
+          downloadName={`${titleLabel}-game-card.png`}
         />
       </div>
 

@@ -172,7 +172,7 @@ export function PublicProfile({ handle, onNavigate }: PublicProfileProps) {
                 text="Share this curator profile on Flim."
                 url={`/@${profile.handle}`}
                 cardUrl={`/api/og/profile/${encodeURIComponent(profile.handle)}`}
-                downloadName={`${profile.handle}-flim-profile-card.svg`}
+                downloadName={`${profile.handle}-flim-profile-card.png`}
               />
             </div>
             {followMessage ? <p className="error-message">{followMessage}</p> : null}
