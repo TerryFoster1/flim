@@ -68,8 +68,8 @@ export function MovieSearchPanel({ playlists, addToPlaylist, onNavigate, variant
       return movies;
     }
 
-    setAvailabilityStatus("Checking your services...");
-    const limited = movies.slice(0, 10);
+    setAvailabilityStatus("Checking cached availability on your services...");
+    const limited = movies.slice(0, 20);
     const checked = await Promise.allSettled(
       limited.map(async (movie) => {
         const availability = await getProviderAvailabilityForTitle(movie, profilePreferences.region);
@@ -86,7 +86,7 @@ export function MovieSearchPanel({ playlists, addToPlaylist, onNavigate, variant
       }
     });
     setAvailabilityMatches(matchMap);
-    setAvailabilityStatus(Object.keys(matchMap).length ? "Titles on your services are shown first." : "No matches found on your selected services yet.");
+    setAvailabilityStatus(Object.keys(matchMap).length ? "Titles on your services are shown first." : "No cached matches found on your selected services yet. Showing all results.");
     return [...movies].sort((a, b) => Number(Boolean(matchMap[resultKey(b)])) - Number(Boolean(matchMap[resultKey(a)])));
   }
 

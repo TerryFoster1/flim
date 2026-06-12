@@ -1,5 +1,6 @@
 import { sendJson } from "../_db.js";
 import { db } from "../_db.js";
+import { ensureTicketAffiliateTables } from "../_commerceFoundation.js";
 import { getCatalogMediaItem, type CatalogMediaType } from "../_mediaCatalog.js";
 import {
   fetchAndCacheProviderAvailability,
@@ -37,6 +38,47 @@ async function markCatalogProviderChecked(mediaType: ProviderMediaType, tmdbId: 
   `;
 }
 
+async function getActiveTicketLinks(mediaType: ProviderMediaType, tmdbId: number, region: string) {
+  const sql = db();
+  await ensureTicketAffiliateTables(sql);
+  const rows = await sql`
+    select
+      tal.id,
+      coalesce(tp.provider_name, tta.provider_name, 'Tickets') as provider_name,
+      tal.region,
+      tal.city,
+      tal.theater_chain,
+      tta.available_from,
+      tta.showtime_date
+    from ticket_affiliate_links tal
+    left join title_ticket_availability tta on tta.id = tal.ticket_availability_id
+    left join ticket_providers tp on tp.id = tal.provider_id
+    inner join media_items mi on mi.id = tal.media_item_id
+    where mi.media_type = ${mediaType}
+      and mi.tmdb_id = ${tmdbId}
+      and tal.region = ${region}
+      and tal.active = true
+      and nullif(tal.destination_url, '') is not null
+      and coalesce(tta.status, 'available') not in ('inactive', 'unavailable')
+    order by
+      tta.showtime_date asc nulls last,
+      tal.updated_at desc
+    limit 6
+  `;
+
+  return rows.map((row: any) => ({
+    id: row.id,
+    providerName: row.provider_name,
+    region: row.region || region,
+    city: row.city || undefined,
+    theaterChain: row.theater_chain || undefined,
+    url: `/api/ticket-link/${row.id}`,
+    availableFrom: row.available_from ? new Date(row.available_from).toISOString() : undefined,
+    showtimeDate: row.showtime_date ? new Date(row.showtime_date).toISOString() : undefined,
+    label: row.provider_name ? `Find tickets on ${row.provider_name}` : "Find tickets",
+  }));
+}
+
 export default async function handler(request: any, response: any) {
   if (request.method !== "GET") return sendJson(response, 405, { error: "Method not allowed." });
 
@@ -52,6 +94,7 @@ export default async function handler(request: any, response: any) {
 
     const catalogTitle = await getCatalogTitle(mediaType, tmdbId);
     const title = catalogTitle || clientTitle;
+    const ticketLinks = await getActiveTicketLinks(mediaType, tmdbId, region).catch(() => []);
     const cachedLinks = await getCachedProviderAvailability(mediaType, tmdbId, region);
     if (cachedLinks.length > 0) {
       response.setHeader("X-Flim-Provider-Cache", "HIT");
@@ -63,6 +106,7 @@ export default async function handler(request: any, response: any) {
         availabilityKnown: true,
         sourceConfigured: hasProviderAvailabilitySource(),
         links: cachedLinks,
+        ticketLinks,
         notes: "Confirmed provider availability for this region.",
       });
     }
@@ -78,6 +122,7 @@ export default async function handler(request: any, response: any) {
         availabilityKnown: false,
         sourceConfigured: hasProviderAvailabilitySource(),
         links: [],
+        ticketLinks,
         notes: "Streaming availability coming soon.",
       });
     }
@@ -94,6 +139,7 @@ export default async function handler(request: any, response: any) {
         availabilityKnown: links.length > 0,
         sourceConfigured: true,
         links,
+        ticketLinks,
         notes: links.length
           ? "Confirmed provider availability for this region."
           : "Streaming availability coming soon.",
@@ -108,6 +154,7 @@ export default async function handler(request: any, response: any) {
       availabilityKnown: false,
       sourceConfigured: hasProviderAvailabilitySource(),
       links: [],
+      ticketLinks,
       notes: "Streaming availability coming soon.",
     });
   } catch (error) {

@@ -1,6 +1,12 @@
 import type { DiscoverySearchResults } from "../types";
 
-export async function searchDiscovery(query: string) {
+interface DiscoverySearchOptions {
+  availableOnMyServices?: boolean;
+  providers?: string[];
+  region?: string;
+}
+
+export async function searchDiscovery(query: string, options: DiscoverySearchOptions = {}) {
   const cleanQuery = query.trim();
   if (!cleanQuery) {
     return {
@@ -15,7 +21,12 @@ export async function searchDiscovery(query: string) {
     } satisfies DiscoverySearchResults;
   }
 
-  const response = await fetch(`/api/discovery/search?q=${encodeURIComponent(cleanQuery)}`, {
+  const params = new URLSearchParams({ q: cleanQuery });
+  if (options.availableOnMyServices) params.set("availableOnMyServices", "true");
+  if (options.region) params.set("region", options.region);
+  if (options.providers?.length) params.set("providers", options.providers.join(","));
+
+  const response = await fetch(`/api/discovery/search?${params.toString()}`, {
     headers: {
       Accept: "application/json",
     },

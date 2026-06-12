@@ -172,6 +172,16 @@ export function Discover({ onNavigate }: DiscoverProps) {
       return payload;
     }
 
+    if (payload.availabilityPrioritized && payload.availabilityMatches) {
+      setAvailabilityMatches(payload.availabilityMatches);
+      setAvailabilityStatus(
+        Object.keys(payload.availabilityMatches).length
+          ? "Titles with cached availability on your services are shown first."
+          : "No cached matches found on your selected services yet. Showing all results.",
+      );
+      return payload;
+    }
+
     setAvailabilityStatus("Checking title availability on your services...");
     const limited = (payload.titles || []).slice(0, 10);
     const checked = await Promise.allSettled(
@@ -190,7 +200,7 @@ export function Discover({ onNavigate }: DiscoverProps) {
       }
     });
     setAvailabilityMatches(matchMap);
-    setAvailabilityStatus(Object.keys(matchMap).length ? "Titles on your services are shown first." : "No title matches found on your selected services yet.");
+    setAvailabilityStatus(Object.keys(matchMap).length ? "Titles on your services are shown first." : "No title matches found on your selected services yet. Showing all results.");
     return {
       ...payload,
       titles: [...(payload.titles || [])].sort((a, b) => Number(Boolean(matchMap[titleKey(b)])) - Number(Boolean(matchMap[titleKey(a)]))),
@@ -206,7 +216,11 @@ export function Discover({ onNavigate }: DiscoverProps) {
     setStatus("loading");
     setMessage("");
     try {
-      setResults(await prioritizeAvailableTitles(await searchDiscovery(cleanQuery)));
+      setResults(await prioritizeAvailableTitles(await searchDiscovery(cleanQuery, {
+        availableOnMyServices,
+        providers: profilePreferences.providers,
+        region: profilePreferences.region,
+      })));
       setStatus("ready");
     } catch {
       setStatus("error");

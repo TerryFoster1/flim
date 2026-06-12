@@ -226,7 +226,7 @@ function UpcomingReleaseCard({ item, playlists, addToPlaylist, onNavigate, onFol
           <UpcomingFollowButton item={item} movie={movie} onChange={onFollowChange} />
           <AddToPlaylistControl movie={movie} playlists={playlists} addToPlaylist={addToPlaylist} />
         </div>
-        {item.availabilityKnown ? <WhereToWatch compact movie={movie} /> : <p className="watch-provider-empty">Streaming availability coming soon.</p>}
+        {item.availabilityKnown ? <WhereToWatch compact movie={movie} /> : <p className="watch-provider-empty">Notify me when available.</p>}
       </div>
     </article>
   );

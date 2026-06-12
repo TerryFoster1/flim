@@ -1,5 +1,5 @@
 import { providerLogoResolution } from "../data/providerAssets";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { WatchProvider } from "../types";
 
 interface ProviderLogoProps {
@@ -9,6 +9,11 @@ interface ProviderLogoProps {
 export function ProviderLogo({ provider }: ProviderLogoProps) {
   const [imageFailed, setImageFailed] = useState(false);
   const resolution = providerLogoResolution(provider);
+  const imageSource = resolution.asset?.src || provider.logoUrl || "";
+
+  useEffect(() => {
+    setImageFailed(false);
+  }, [imageSource]);
 
   if (resolution.asset && !imageFailed) {
     return <img className="provider-logo provider-logo-image" src={resolution.asset.src} alt={provider.name} loading="lazy" onError={() => setImageFailed(true)} />;

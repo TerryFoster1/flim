@@ -525,6 +525,18 @@ export interface WatchProviderLink {
   availabilityKnown: boolean;
 }
 
+export interface TicketAvailabilityLink {
+  id: string;
+  providerName: string;
+  region: string;
+  city?: string;
+  theaterChain?: string;
+  url: string;
+  availableFrom?: string;
+  showtimeDate?: string;
+  label: string;
+}
+
 export interface ProviderDeepLink {
   providerId: string;
   mediaType: MediaType;
@@ -555,6 +567,7 @@ export interface MovieAvailability {
   title: string;
   availabilityKnown: boolean;
   links: WatchProviderLink[];
+  ticketLinks?: TicketAvailabilityLink[];
   notes: string;
   regionPrompt?: string;
 }
@@ -1001,6 +1014,8 @@ export interface DiscoverySearchResults {
   collections: DiscoveryCollectionResult[];
   hubs: DiscoveryHubLink[];
   actors: ActorSummary[];
+  availabilityMatches?: Record<string, string[]>;
+  availabilityPrioritized?: boolean;
   titleSource: "empty" | "catalog" | "catalog_cache" | "cache" | "catalog_tmdb" | "tmdb";
 }
 

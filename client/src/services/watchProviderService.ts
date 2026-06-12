@@ -1,4 +1,4 @@
-import type { MediaType, MovieAvailability, ProviderAccessType, WatchProvider, WatchProviderLink } from "../types";
+import type { MediaType, MovieAvailability, ProviderAccessType, TicketAvailabilityLink, WatchProvider, WatchProviderLink } from "../types";
 
 export const watchProviders: WatchProvider[] = [
   {
@@ -176,6 +176,7 @@ interface ProviderAvailabilityApiResponse {
   availabilityKnown: boolean;
   sourceConfigured: boolean;
   links: ProviderAvailabilityApiLink[];
+  ticketLinks?: TicketAvailabilityLink[];
   notes: string;
 }
 
@@ -275,6 +276,7 @@ export async function getProviderAvailabilityForTitle(movie: { title: string; tm
     title: movie.title,
     availabilityKnown: payload.availabilityKnown,
     links,
+    ticketLinks: Array.isArray(payload.ticketLinks) ? payload.ticketLinks : [],
     notes: payload.notes || "Streaming availability coming soon.",
   };
 }

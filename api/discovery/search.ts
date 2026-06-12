@@ -5,6 +5,7 @@ import {
   mapCatalogSearchResult,
   upsertMediaItems,
 } from "../_mediaCatalog.js";
+import { ensureProviderAvailabilityTables } from "../_providers.js";
 import { ensureTmdbCacheTables, fetchTmdbPersonSearch, fetchTmdbSearch, normalizeMovieQuery } from "../_tmdb.js";
 
 const SEARCH_CACHE_DAYS = 7;
@@ -55,6 +56,18 @@ const curatedCollectionSearchSeeds = [
 
 function firstQueryValue(value: unknown) {
   return Array.isArray(value) ? String(value[0] || "") : String(value || "");
+}
+
+function normalizeRegion(value: unknown) {
+  return String(value || "").trim().toUpperCase() || "CA";
+}
+
+function preferredProvidersFromQuery(value: unknown) {
+  return firstQueryValue(value)
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .slice(0, 20);
 }
 
 function normalizeSearchText(value: string) {
@@ -498,11 +511,47 @@ async function searchActors(sql: any, query: string) {
   }
 }
 
+async function prioritizeTitlesByAvailability(sql: any, titles: any[], region: string, providerIds: string[]) {
+  if (!titles.length || providerIds.length === 0) {
+    return { titles, matches: {}, prioritized: false };
+  }
+
+  await ensureProviderAvailabilityTables(sql);
+  const wantedKeys = new Set(titles.map((title) => `${title.mediaType || "movie"}-${title.tmdbId}`));
+  const rows = await sql`
+    select
+      media_type,
+      tmdb_id,
+      array_agg(distinct provider_name order by provider_name) as provider_names
+    from title_availability
+    where region = ${region}
+      and expires_at > now()
+      and provider_id = any(${providerIds})
+    group by media_type, tmdb_id
+  `;
+  const matches: Record<string, string[]> = {};
+  for (const row of rows) {
+    const key = `${row.media_type || "movie"}-${row.tmdb_id}`;
+    if (wantedKeys.has(key)) {
+      matches[key] = Array.isArray(row.provider_names) ? row.provider_names.filter(Boolean) : [];
+    }
+  }
+
+  return {
+    titles: [...titles].sort((a, b) => Number(Boolean(matches[`${b.mediaType || "movie"}-${b.tmdbId}`])) - Number(Boolean(matches[`${a.mediaType || "movie"}-${a.tmdbId}`]))),
+    matches,
+    prioritized: true,
+  };
+}
+
 export default async function handler(request: any, response: any) {
   if (request.method !== "GET") return sendJson(response, 405, { error: "Method not allowed." });
 
   try {
     const query = firstQueryValue(request.query.q).trim();
+    const availableOnMyServices = firstQueryValue(request.query.availableOnMyServices) === "true";
+    const availabilityRegion = normalizeRegion(request.query.region);
+    const preferredProviders = preferredProvidersFromQuery(request.query.providers);
     if (!query) {
       return sendJson(response, 200, {
         query,
@@ -536,16 +585,24 @@ export default async function handler(request: any, response: any) {
       searchActors(sql, query),
     ]);
     const hubs = searchHubs(query);
+    const availability = availableOnMyServices
+      ? await prioritizeTitlesByAvailability(sql, titleResults.items, availabilityRegion, preferredProviders).catch((error) => {
+        console.error("discovery_availability_prioritization_failed", error instanceof Error ? error.message : "Availability prioritization failed.");
+        return { titles: titleResults.items, matches: {}, prioritized: false };
+      })
+      : { titles: titleResults.items, matches: {}, prioritized: false };
 
     response.setHeader("X-Flim-Discovery-Titles", titleResults.source);
     return sendJson(response, 200, {
       query,
-      titles: titleResults.items,
+      titles: availability.titles,
       playlists,
       profiles,
       collections,
       hubs,
       actors,
+      availabilityMatches: availability.matches,
+      availabilityPrioritized: availability.prioritized,
       titleSource: titleResults.source,
     });
   } catch (error) {
