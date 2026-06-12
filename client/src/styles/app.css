@@ -4452,6 +4452,34 @@ textarea { min-height: 42px; resize: vertical; }
   color: var(--muted);
   line-height: 1.35;
 }
+.upcoming-event-card em {
+  width: max-content;
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0 10px;
+  border: 1px solid rgba(255,184,77,.34);
+  background: rgba(255,184,77,.14);
+  color: #fff2d5;
+  font-style: normal;
+  font-size: .78rem;
+  font-weight: 900;
+}
+.release-date-change {
+  display: grid;
+  gap: 2px;
+  margin: 2px 0;
+  padding: 8px;
+  border-radius: 12px;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.1);
+}
+.release-date-change b {
+  color: var(--amber);
+  font-size: .72rem;
+  text-transform: uppercase;
+}
 .upcoming-release-card {
   min-width: 0;
   display: grid;
@@ -4533,6 +4561,10 @@ textarea { min-height: 42px; resize: vertical; }
 .upcoming-card-actions {
   display: grid;
   gap: 10px;
+}
+.upcoming-follow-action {
+  display: grid;
+  gap: 4px;
 }
 .upcoming-card-actions .add-playlists-panel {
   margin-top: 0;

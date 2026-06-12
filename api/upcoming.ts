@@ -56,6 +56,9 @@ function mapReleaseEvent(row: any) {
     body: row.body || undefined,
     title: row.title,
     posterUrl: row.poster_url || undefined,
+    releaseDate: row.release_date ? new Date(row.release_date).toISOString() : undefined,
+    oldValue: row.old_value ?? undefined,
+    newValue: row.new_value ?? undefined,
     context: row.context || undefined,
   };
 }
@@ -68,7 +71,8 @@ export default async function handler(request: any, response: any) {
     const mediaType = normalizeFilter(url.searchParams.get("type"));
     const windowFilter = normalizeWindow(url.searchParams.get("window"));
     const audience = normalizeAudience(url.searchParams.get("audience"));
-    const limit = Math.max(1, Math.min(48, Number(url.searchParams.get("limit")) || 24));
+    const limit = Math.max(10, Math.min(80, Number(url.searchParams.get("limit")) || 60));
+    const sectionLimit = Math.max(10, Math.min(24, Number(url.searchParams.get("sectionLimit")) || 10));
     const sql = db();
 
     await ensureMediaCatalogTables(sql);
@@ -192,6 +196,7 @@ export default async function handler(request: any, response: any) {
         re.tmdb_id,
         re.title as event_title,
         re.body,
+        rt.release_date,
         mi.title,
         mi.poster_url,
         case
@@ -204,11 +209,8 @@ export default async function handler(request: any, response: any) {
       inner join media_items mi on mi.id = re.media_item_id
       where re.event_type in (
         'season_announced',
-        'movie_released',
         'season_released',
-        'episode_released',
-        'trailer_released',
-        'streaming_available'
+        'title_status_changed'
       )
         and re.created_at >= now() - interval '60 days'
         and (${mediaType} = 'both' or re.media_type = ${mediaType})
@@ -226,8 +228,44 @@ export default async function handler(request: any, response: any) {
           )
         )
       order by re.created_at desc
-      limit 12
+      limit ${Math.max(sectionLimit, 24)}
     `;
+
+    const trailerEvents = await sql`
+      select
+        re.event_type,
+        re.created_at,
+        re.media_type,
+        re.tmdb_id,
+        re.title as event_title,
+        re.body,
+        rt.release_date,
+        mi.title,
+        mi.poster_url,
+        'A trailer or first look was detected by Release Intelligence.' as context
+      from release_events re
+      inner join media_items mi on mi.id = re.media_item_id
+      left join release_tracking rt on rt.media_item_id = mi.id
+      where re.event_type = 'trailer_released'
+        and re.created_at >= now() - interval '120 days'
+        and (${mediaType} = 'both' or re.media_type = ${mediaType})
+        and (
+          ${audience} = 'all'
+          or (
+            ${audience} = 'following'
+            and ${user?.id || null}::uuid is not null
+            and exists (
+              select 1
+              from followed_titles ft
+              where ft.media_item_id = mi.id
+                and ft.user_id = ${user?.id || null}::uuid
+            )
+          )
+        )
+      order by re.created_at desc
+      limit ${Math.max(sectionLimit, 24)}
+    `;
+
     const delayedEvents = await sql`
       select
         re.event_type,
@@ -236,11 +274,15 @@ export default async function handler(request: any, response: any) {
         re.tmdb_id,
         re.title as event_title,
         re.body,
+        re.old_value,
+        re.new_value,
+        rt.release_date,
         mi.title,
         mi.poster_url,
         'Release Intelligence detected a later date than the previous saved date.' as context
       from release_events re
       inner join media_items mi on mi.id = re.media_item_id
+      left join release_tracking rt on rt.media_item_id = mi.id
       where re.event_type in ('release_date_changed', 'season_release_changed')
         and re.created_at >= now() - interval '90 days'
         and (${mediaType} = 'both' or re.media_type = ${mediaType})
@@ -261,12 +303,13 @@ export default async function handler(request: any, response: any) {
         and (re.new_value #>> '{}') ~ '^\\d{4}-\\d{2}-\\d{2}'
         and (re.new_value #>> '{}')::date > (re.old_value #>> '{}')::date
       order by re.created_at desc
-      limit 12
+      limit ${Math.max(sectionLimit, 24)}
     `;
 
     const items = rows.map(mapUpcoming);
     const recentAnnouncements = announcedEvents.map(mapReleaseEvent);
     const recentDelays = delayedEvents.map(mapReleaseEvent);
+    const newTrailers = trailerEvents.map(mapReleaseEvent);
     const upcomingMovies = items.filter((item: any) => item.mediaType === "movie");
     const upcomingTv = items.filter((item: any) => item.mediaType === "tv");
     const streamingSoon = items.filter((item: any) => item.availabilityKnown);
@@ -280,13 +323,17 @@ export default async function handler(request: any, response: any) {
     return sendJson(response, 200, {
       items,
       sections: {
+        following: items.filter((item: any) => item.isFollowing),
+        comingSoon: items,
         upcomingMovies,
         upcomingTv,
         releasingThisMonth,
         streamingSoon,
         recentlyAnnounced: recentAnnouncements,
         recentlyDelayed: recentDelays,
+        newTrailers,
       },
+      sectionLimit,
       filters: { mediaType, window: windowFilter, audience },
       generatedAt: new Date().toISOString(),
     });

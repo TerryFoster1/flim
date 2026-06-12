@@ -4,6 +4,7 @@ export interface UpcomingReleaseFilters {
   type?: MediaType | "both";
   window?: "month" | "quarter" | "year" | "all";
   audience?: "all" | "following";
+  sectionLimit?: number;
 }
 
 export async function getUpcomingReleases(filters: UpcomingReleaseFilters = {}) {
@@ -11,6 +12,7 @@ export async function getUpcomingReleases(filters: UpcomingReleaseFilters = {}) 
   if (filters.type) params.set("type", filters.type);
   if (filters.window) params.set("window", filters.window);
   if (filters.audience) params.set("audience", filters.audience);
+  if (filters.sectionLimit) params.set("sectionLimit", String(filters.sectionLimit));
   const query = params.toString();
   const response = await fetch(`/api/upcoming${query ? `?${query}` : ""}`, {
     credentials: "same-origin",

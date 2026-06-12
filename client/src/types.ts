@@ -628,19 +628,26 @@ export interface UpcomingReleaseEvent {
   body?: string;
   title: string;
   posterUrl?: string;
+  releaseDate?: string;
+  oldValue?: unknown;
+  newValue?: unknown;
   context?: string;
 }
 
 export interface UpcomingReleaseFeed {
   items: UpcomingRelease[];
   sections: {
+    following?: UpcomingRelease[];
+    comingSoon?: UpcomingRelease[];
     upcomingMovies: UpcomingRelease[];
     upcomingTv: UpcomingRelease[];
     releasingThisMonth: UpcomingRelease[];
     streamingSoon: UpcomingRelease[];
     recentlyAnnounced: UpcomingReleaseEvent[];
     recentlyDelayed: UpcomingReleaseEvent[];
+    newTrailers?: UpcomingReleaseEvent[];
   };
+  sectionLimit?: number;
   filters: {
     mediaType: MediaType | "both";
     window: "month" | "quarter" | "year" | "all";
