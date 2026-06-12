@@ -1,6 +1,14 @@
 {
   "buildCommand": "npm run build",
   "outputDirectory": "client/dist",
+  "functions": {
+    "api/og/**/*.ts": {
+      "includeFiles": [
+        "node_modules/sharp/**/*",
+        "node_modules/@img/**/*"
+      ]
+    }
+  },
   "crons": [
     {
       "path": "/api/cron/release-check",
