@@ -585,6 +585,12 @@ create table if not exists seasonal_challenge_events (
   badge text not null,
   banner text,
   season_key text not null default 'general',
+  challenge_type text not null default 'seasonal',
+  is_featured boolean not null default false,
+  hero_image_url text,
+  question_count integer not null default 10,
+  target_media jsonb not null default '[]'::jsonb,
+  reward_metadata jsonb not null default '{}'::jsonb,
   is_active boolean not null default true,
   difficulty text not null default 'medium',
   requirements jsonb not null default '[]'::jsonb,
@@ -594,6 +600,14 @@ create table if not exists seasonal_challenge_events (
   updated_at timestamptz not null default now()
 );
 
+alter table seasonal_challenge_events
+  add column if not exists challenge_type text not null default 'seasonal',
+  add column if not exists is_featured boolean not null default false,
+  add column if not exists hero_image_url text,
+  add column if not exists question_count integer not null default 10,
+  add column if not exists target_media jsonb not null default '[]'::jsonb,
+  add column if not exists reward_metadata jsonb not null default '{}'::jsonb;
+
 create index if not exists seasonal_challenge_events_status_dates_idx
   on seasonal_challenge_events (status, start_date, end_date);
 
@@ -602,6 +616,9 @@ create index if not exists seasonal_challenge_events_active_window_idx
 
 create index if not exists seasonal_challenge_events_slug_idx
   on seasonal_challenge_events (slug);
+
+create index if not exists seasonal_challenge_events_type_window_idx
+  on seasonal_challenge_events (challenge_type, status, start_date, end_date);
 
 create table if not exists user_seasonal_challenges (
   id uuid primary key default gen_random_uuid(),
@@ -622,6 +639,28 @@ create unique index if not exists user_seasonal_challenges_user_event_unique
 
 create index if not exists user_seasonal_challenges_user_status_idx
   on user_seasonal_challenges (user_id, status, updated_at desc);
+
+create table if not exists seasonal_challenge_attempts (
+  id uuid primary key default gen_random_uuid(),
+  event_id uuid not null references seasonal_challenge_events(id) on delete cascade,
+  user_id uuid not null references users(id) on delete cascade,
+  score integer not null default 0,
+  correct_count integer not null default 0,
+  total_count integer not null default 0,
+  question_ids jsonb not null default '[]'::jsonb,
+  answers jsonb not null default '{}'::jsonb,
+  completed_at timestamptz not null default now(),
+  created_at timestamptz not null default now()
+);
+
+create index if not exists seasonal_challenge_attempts_event_score_idx
+  on seasonal_challenge_attempts (event_id, score desc, completed_at asc);
+
+create index if not exists seasonal_challenge_attempts_user_event_idx
+  on seasonal_challenge_attempts (user_id, event_id, completed_at desc);
+
+create index if not exists seasonal_challenge_attempts_completed_idx
+  on seasonal_challenge_attempts (completed_at desc);
 
 create table if not exists user_sessions (
   id uuid primary key default gen_random_uuid(),

@@ -1,4 +1,10 @@
-import type { SeasonalChallengeEvent, SeasonalChallengeFeed } from "../types";
+import type {
+  SeasonalChallengeAttemptResult,
+  SeasonalChallengeDetail,
+  SeasonalChallengeEvent,
+  SeasonalChallengeFeed,
+  SeasonalChallengeHistoryItem,
+} from "../types";
 
 async function seasonalRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
   const response = await fetch(path, {
@@ -26,6 +32,25 @@ export function getSeasonalChallenges() {
 export function joinSeasonalChallenge(eventId: string) {
   return seasonalRequest<{ event: SeasonalChallengeEvent }>("/api/seasonal-challenges", {
     method: "POST",
-    body: JSON.stringify({ eventId }),
+    body: JSON.stringify({ action: "join", eventId }),
   }).then((result) => result.event);
+}
+
+export function getSeasonalChallengeDetail(slug: string) {
+  return seasonalRequest<SeasonalChallengeDetail>(`/api/seasonal-challenges?slug=${encodeURIComponent(slug)}`);
+}
+
+export function submitSeasonalChallengeAttempt(input: {
+  eventId: string;
+  questionIds: string[];
+  answers: Record<string, string>;
+}) {
+  return seasonalRequest<SeasonalChallengeAttemptResult>("/api/seasonal-challenges", {
+    method: "POST",
+    body: JSON.stringify({ action: "submit", ...input }),
+  });
+}
+
+export function getSeasonalChallengeHistory() {
+  return seasonalRequest<{ history: SeasonalChallengeHistoryItem[] }>("/api/seasonal-challenges?history=1").then((result) => result.history);
 }

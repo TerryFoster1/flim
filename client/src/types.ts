@@ -18,6 +18,7 @@ export type AppRoute =
   | "/games/title/:mediaType/:tmdbId"
   | "/challenge/:token"
   | "/challenges"
+  | "/challenges/:slug"
   | "/progress"
   | "/hall-of-fame"
   | "/public"
@@ -58,6 +59,7 @@ export interface RouteState {
   gamesTmdbId?: string;
   returnTo?: string;
   challengeToken?: string;
+  seasonalChallengeSlug?: string;
   actorId?: string;
   collectionId?: string;
   discoveryKind?: "genre" | "decade" | "franchise";
@@ -227,6 +229,13 @@ export interface SeasonalChallengeEvent {
   isActive?: boolean;
   badge: string;
   banner?: string;
+  challengeType?: "weekly" | "monthly" | "seasonal" | "special_event";
+  isFeatured?: boolean;
+  heroImageUrl?: string;
+  questionCount?: number;
+  participantCount?: number;
+  topScore?: number;
+  personalBest?: number;
   difficulty: "easy" | "medium" | "hard" | "expert";
   requirements: SeasonalChallengeRequirement[];
   points: number;
@@ -238,6 +247,68 @@ export interface SeasonalChallengeEvent {
   completionPercent: number;
   daysRemaining: number;
   earnedAt?: string;
+}
+
+export interface SeasonalChallengeQuestion {
+  id: string;
+  tmdbId: number;
+  mediaType: MediaType;
+  question: string;
+  answer: string;
+  options: string[];
+  explanation: string;
+  difficulty: string;
+  spoilerLevel: string;
+}
+
+export interface SeasonalChallengeScore {
+  id: string;
+  rank?: number;
+  score: number;
+  correctCount: number;
+  totalCount: number;
+  completedAt: string;
+  displayName?: string;
+  handle?: string;
+}
+
+export interface SeasonalChallengeDetail {
+  event: SeasonalChallengeEvent;
+  questions: SeasonalChallengeQuestion[];
+  standings: {
+    topScores: SeasonalChallengeScore[];
+    recentParticipants: SeasonalChallengeScore[];
+    personalBest: SeasonalChallengeScore | null;
+  };
+  shareUrl: string;
+  shareCardUrl: string;
+}
+
+export interface SeasonalChallengeAttemptResult {
+  attempt: {
+    id: string;
+    score: number;
+    correctCount: number;
+    totalCount: number;
+    completedAt: string;
+    shareCardUrl: string;
+  };
+  standings: SeasonalChallengeDetail["standings"];
+}
+
+export interface SeasonalChallengeHistoryItem {
+  id: string;
+  challengeSlug: string;
+  challengeName: string;
+  badge: string;
+  banner?: string;
+  challengeType?: "weekly" | "monthly" | "seasonal" | "special_event";
+  score: number;
+  correctCount: number;
+  totalCount: number;
+  completedAt: string;
+  shareUrl: string;
+  shareCardUrl: string;
 }
 
 export interface SeasonalChallengeFeed {

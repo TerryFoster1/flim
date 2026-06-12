@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
-import { getSeasonalChallenges, joinSeasonalChallenge } from "../services/seasonalChallengeService";
-import type { SeasonalChallengeEvent, SeasonalChallengeFeed } from "../types";
+import { getSeasonalChallengeHistory, getSeasonalChallenges, joinSeasonalChallenge } from "../services/seasonalChallengeService";
+import type { SeasonalChallengeEvent, SeasonalChallengeFeed, SeasonalChallengeHistoryItem } from "../types";
 
 interface SeasonalChallengesProps {
   onNavigate: (path: string) => void;
@@ -12,6 +12,13 @@ function statusText(event: SeasonalChallengeEvent) {
   if (event.dateStatus === "active") return event.daysRemaining === 1 ? "1 day remaining" : `${event.daysRemaining} days remaining`;
   if (event.dateStatus === "upcoming") return "Coming soon";
   return "Event ended";
+}
+
+function challengeTypeLabel(type?: SeasonalChallengeEvent["challengeType"]) {
+  if (type === "weekly") return "Weekly Challenge";
+  if (type === "monthly") return "Monthly Challenge";
+  if (type === "special_event") return "Special Event";
+  return "Seasonal Challenge";
 }
 
 export function SeasonalChallengeCard({
@@ -29,10 +36,15 @@ export function SeasonalChallengeCard({
       <div className="seasonal-challenge-copy">
         <div className="challenge-card-topline">
           <span className="challenge-badge-mark">{event.badge}</span>
-          <span>{event.points} points</span>
+          <span>{challengeTypeLabel(event.challengeType)} - {event.points} points</span>
         </div>
         <h3>{event.name}</h3>
         <p>{event.description}</p>
+        <div className="challenge-card-meta">
+          <span>{event.participantCount || 0} participants</span>
+          <span>{event.topScore ? `Top score ${event.topScore}` : "No score yet"}</span>
+          {event.personalBest ? <span>Your best {event.personalBest}</span> : null}
+        </div>
         <div className="challenge-progress-track" aria-label={`${event.completionPercent}% complete`}>
           <span style={{ width: `${event.completionPercent}%` }} />
         </div>
@@ -48,8 +60,8 @@ export function SeasonalChallengeCard({
           ))}
         </div>
         {onNavigate ? (
-          <button className="secondary-button" onClick={() => onNavigate("/playlists")} type="button">
-            Find Playlists
+          <button className="secondary-button" onClick={() => onNavigate(`/challenges/${event.slug}`)} type="button">
+            View Challenge
           </button>
         ) : null}
         {children}
@@ -62,6 +74,7 @@ export function SeasonalChallenges({ onNavigate }: SeasonalChallengesProps) {
   const [feed, setFeed] = useState<SeasonalChallengeFeed | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [joiningId, setJoiningId] = useState<string | null>(null);
+  const [history, setHistory] = useState<SeasonalChallengeHistoryItem[]>([]);
   const [actionError, setActionError] = useState("");
 
   useEffect(() => {
@@ -77,6 +90,11 @@ export function SeasonalChallenges({ onNavigate }: SeasonalChallengesProps) {
         if (!active) return;
         setStatus("error");
       });
+    getSeasonalChallengeHistory()
+      .then((items) => {
+        if (active) setHistory(items);
+      })
+      .catch(() => undefined);
     return () => {
       active = false;
     };
@@ -132,13 +150,14 @@ export function SeasonalChallenges({ onNavigate }: SeasonalChallengesProps) {
   );
 
   const activeEvents = feed.sections.active;
+  const upcomingEvents = feed.sections.upcoming;
   const completed = feed.sections.recentlyCompleted;
 
   return (
     <section className="route-page seasonal-challenges-page">
       <div className="page-heading">
         <h1>Games & Trivia</h1>
-        <p>Limited-time movie goals, seasonal badges, trivia, and challenges when an event is active.</p>
+        <p>Weekly, seasonal, and special movie challenges built around shared trivia and watch goals.</p>
         <div className="collection-hero-actions">
           <button className="secondary-button hall-inline-link" onClick={() => onNavigate("/progress")} type="button">
             View Progress
@@ -167,6 +186,17 @@ export function SeasonalChallenges({ onNavigate }: SeasonalChallengesProps) {
         </section>
       ) : <p className="empty-state">No seasonal challenge is active right now.</p>}
 
+      {upcomingEvents.length > 0 ? (
+        <section className="discovery-section">
+          <div className="discovery-section-heading">
+            <h2>Upcoming Challenges</h2>
+          </div>
+          <div className="seasonal-challenge-grid">
+            {upcomingEvents.map((event) => <SeasonalChallengeCard event={event} key={event.id} onNavigate={onNavigate} />)}
+          </div>
+        </section>
+      ) : null}
+
       {completed.length > 0 ? (
         <section className="discovery-section">
           <div className="discovery-section-heading">
@@ -174,6 +204,23 @@ export function SeasonalChallenges({ onNavigate }: SeasonalChallengesProps) {
           </div>
           <div className="seasonal-challenge-grid">
             {completed.map((event) => <SeasonalChallengeCard event={event} key={event.id} />)}
+          </div>
+        </section>
+      ) : null}
+
+      {history.length > 0 ? (
+        <section className="discovery-section">
+          <div className="discovery-section-heading">
+            <h2>Your Challenge History</h2>
+          </div>
+          <div className="challenge-history-grid">
+            {history.slice(0, 6).map((item) => (
+              <button className="challenge-history-card" key={item.id} onClick={() => onNavigate(item.shareUrl)} type="button">
+                <span>{challengeTypeLabel(item.challengeType)}</span>
+                <strong>{item.challengeName}</strong>
+                <small>{item.score} points - {item.correctCount}/{item.totalCount} correct</small>
+              </button>
+            ))}
           </div>
         </section>
       ) : null}
