@@ -1,6 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import sharp from "sharp";
 
 export type ShareCardKind = "playlist" | "trailer" | "countdown" | "game" | "profile" | "title";
 
@@ -260,6 +259,7 @@ export async function sendShareCard(response: any, data: ShareCardData | string)
   const svg = typeof data === "string" ? data : renderShareCard(await embedRemoteArtwork(data));
 
   try {
+    const { default: sharp } = await import("sharp");
     const png = await sharp(Buffer.from(svg)).png().toBuffer();
     response.statusCode = 200;
     response.setHeader("Content-Type", "image/png");
