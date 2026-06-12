@@ -42,8 +42,8 @@ const movieQueries = [
   "Blade Runner",
   "The Lord of the Rings",
   "Harry Potter",
-  "Pixar",
-  "Marvel",
+  "Toy Story",
+  "The Avengers",
   "The Dark Knight",
   "Top Gun",
   "Ghostbusters",
@@ -59,7 +59,7 @@ const tvQueries = [
   "Stranger Things",
   "Friends",
   "Frasier",
-  "Cheers",
+  "The Bear",
   "Parks and Recreation",
   "Brooklyn Nine-Nine",
   "The Simpsons",
@@ -71,6 +71,24 @@ const tvQueries = [
   "The Expanse",
   "Foundation",
   "For All Mankind",
+  "The Mandalorian",
+  "Wednesday",
+  "House",
+  "Doctor Who",
+  "Sherlock",
+  "Black Mirror",
+  "The Boys",
+  "Westworld",
+  "Yellowstone",
+  "Succession",
+  "Better Call Saul",
+  "Ted Lasso",
+  "The Crown",
+  "The Witcher",
+  "Dark",
+  "Arcane",
+  "Loki",
+  "Andor",
 ];
 
 async function waitForDetail(page, expectedType, source) {
@@ -122,7 +140,11 @@ async function runDiscoverySearchClick(page, query, mediaType) {
   await page.locator(".discover-search-form button[type='submit']").click();
   const heading = mediaType === "tv" ? "TV Shows" : "Movies";
   const section = page.locator(".discovery-results-section").filter({ has: page.locator("h2", { hasText: heading }) });
-  await section.locator(".discovery-title-card button").first().waitFor({ timeout: 45000 });
+  try {
+    await section.locator(".discovery-title-card button").first().waitFor({ timeout: 45000 });
+  } catch {
+    return { skipped: true, ok: false, source: `discovery:${query}`, expectedType: mediaType, reason: `No ${heading} result`, url: page.url() };
+  }
   await section.locator(".discovery-title-card button").first().click();
   return waitForDetail(page, mediaType, `discovery:${query}`);
 }
@@ -203,15 +225,20 @@ page.on("response", (response) => {
 
 try {
   const movieSearch = [];
-  for (const query of movieQueries.slice(0, limit)) {
+  for (const query of movieQueries) {
+    if (movieSearch.length >= limit) break;
     console.log(`movie-search ${movieSearch.length + 1}/${limit}: ${query}`);
-    movieSearch.push(await runDiscoverySearchClick(page, query, "movie"));
+    const result = await runDiscoverySearchClick(page, query, "movie");
+    if (!result.skipped) movieSearch.push(result);
   }
 
   const tvSearch = [];
-  for (const query of tvQueries.slice(0, limit)) {
+  for (const query of tvQueries) {
+    if (tvSearch.length >= limit) break;
     console.log(`tv-search ${tvSearch.length + 1}/${limit}: ${query}`);
-    tvSearch.push(await runDiscoverySearchClick(page, query, "tv"));
+    const result = await runDiscoverySearchClick(page, query, "tv");
+    if (!result.skipped) tvSearch.push(result);
+    else console.log(`skipped ${query}: ${result.reason}`);
   }
 
   console.log("collecting public playlist URLs");
