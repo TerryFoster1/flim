@@ -1,6 +1,7 @@
 import { db, sendJson } from "../_db.js";
 import {
   findCatalogSearchResults,
+  getCatalogCast,
   getCatalogMediaItem,
   mapCatalogDetails,
   mapCatalogSearchResult,
@@ -20,6 +21,19 @@ function hasCoreTitlePayload(details: any, mediaType: "movie" | "tv", tmdbId: nu
   const title = typeof details?.title === "string" ? details.title.trim() : "";
   const type = details?.mediaType || details?.media_type || mediaType;
   return Number.isFinite(id) && id === tmdbId && type === mediaType && title.length > 0;
+}
+
+function castCount(details: any) {
+  return Array.isArray(details?.cast) ? details.cast.filter((member: any) => member?.tmdbId && member?.name).length : 0;
+}
+
+function hasUsefulCastPayload(details: any) {
+  return castCount(details) > 0;
+}
+
+function withCatalogCast(details: any, catalogCast: any[]) {
+  if (!details || hasUsefulCastPayload(details) || catalogCast.length === 0) return details;
+  return { ...details, cast: catalogCast, castVersion: details.castVersion || 1 };
 }
 
 function titleFailureReason(error: unknown) {
@@ -128,7 +142,8 @@ async function handleMovieDetails(tmdbId: number, response: any, forceRefresh = 
   const sql = db();
   await ensureTmdbCacheTables(sql);
   const catalogItem = await getCatalogMediaItem(sql, tmdbId, "movie");
-  const catalogDetails = catalogItem ? mapCatalogDetails(catalogItem) : null;
+  const catalogCast = catalogItem?.id ? await getCatalogCast(sql, catalogItem.id) : [];
+  const catalogDetails = withCatalogCast(catalogItem ? mapCatalogDetails(catalogItem) : null, catalogCast);
 
   const cached = forceRefresh ? [] : await sql`
       select response_json
@@ -148,17 +163,27 @@ async function handleMovieDetails(tmdbId: number, response: any, forceRefresh = 
     limit 1
   `;
 
-  if (hasCoreTitlePayload(cached[0]?.response_json, "movie", tmdbId)) {
+  if (hasCoreTitlePayload(cached[0]?.response_json, "movie", tmdbId) && hasUsefulCastPayload(cached[0]?.response_json)) {
     await upsertMediaItem(sql, cached[0].response_json);
     response.setHeader("X-Flim-Catalog", catalogItem ? "STALE" : "MISS");
     response.setHeader("X-Flim-Cache", "HIT");
-    return sendDetailsJson(response, 200, cached[0].response_json, startedAt, { tmdbId, mediaType: "movie", source: "fresh_cache" });
+    return sendDetailsJson(response, 200, cached[0].response_json, startedAt, { tmdbId, mediaType: "movie", source: "fresh_cache", castCount: castCount(cached[0].response_json), catalogCastCount: catalogCast.length });
   }
 
-  if (!forceRefresh && hasCoreTitlePayload(catalogDetails, "movie", tmdbId)) {
+  if (!forceRefresh && hasCoreTitlePayload(catalogDetails, "movie", tmdbId) && hasUsefulCastPayload(catalogDetails)) {
     response.setHeader("X-Flim-Catalog", "HIT");
     response.setHeader("X-Flim-Cache", "MISS");
-    return sendDetailsJson(response, 200, catalogDetails, startedAt, { tmdbId, mediaType: "movie", source: "catalog" });
+    return sendDetailsJson(response, 200, catalogDetails, startedAt, { tmdbId, mediaType: "movie", source: "catalog", castCount: castCount(catalogDetails), catalogCastCount: catalogCast.length });
+  }
+
+  if (hasCoreTitlePayload(cached[0]?.response_json, "movie", tmdbId) || hasCoreTitlePayload(catalogDetails, "movie", tmdbId)) {
+    logTitleDetailsIssue("title_details_cast_repair_fetch", {
+      tmdbId,
+      mediaType: "movie",
+      cachedCastCount: castCount(cached[0]?.response_json),
+      catalogCastCount: castCount(catalogDetails),
+      mediaPeopleCastCount: catalogCast.length,
+    });
   }
 
   let movie;
@@ -174,7 +199,7 @@ async function handleMovieDetails(tmdbId: number, response: any, forceRefresh = 
       });
       response.setHeader("X-Flim-Catalog", "FALLBACK");
       response.setHeader("X-Flim-Cache", "ERROR");
-      return sendDetailsJson(response, 200, catalogDetails, startedAt, { tmdbId, mediaType: "movie", source: "catalog_fallback" });
+      return sendDetailsJson(response, 200, catalogDetails, startedAt, { tmdbId, mediaType: "movie", source: "catalog_fallback", castCount: castCount(catalogDetails), catalogCastCount: catalogCast.length });
     }
     if (hasCoreTitlePayload(staleCached[0]?.response_json, "movie", tmdbId)) {
       logTitleDetailsIssue("title_details_stale_cache_fallback", {
@@ -185,7 +210,7 @@ async function handleMovieDetails(tmdbId: number, response: any, forceRefresh = 
       });
       response.setHeader("X-Flim-Catalog", catalogItem ? "STALE" : "MISS");
       response.setHeader("X-Flim-Cache", "STALE");
-      return sendDetailsJson(response, 200, staleCached[0].response_json, startedAt, { tmdbId, mediaType: "movie", source: "stale_cache" });
+      return sendDetailsJson(response, 200, withCatalogCast(staleCached[0].response_json, catalogCast), startedAt, { tmdbId, mediaType: "movie", source: "stale_cache", castCount: castCount(staleCached[0].response_json), catalogCastCount: catalogCast.length });
     }
     logTitleDetailsIssue("title_details_fetch_failed", {
       tmdbId,
@@ -209,7 +234,7 @@ async function handleMovieDetails(tmdbId: number, response: any, forceRefresh = 
 
   response.setHeader("X-Flim-Catalog", catalogItem ? "STALE" : "MISS");
   response.setHeader("X-Flim-Cache", "MISS");
-  return sendDetailsJson(response, 200, movie, startedAt, { tmdbId, mediaType: "movie", source: "tmdb" });
+  return sendDetailsJson(response, 200, movie, startedAt, { tmdbId, mediaType: "movie", source: "tmdb", castCount: castCount(movie), catalogCastCount: catalogCast.length });
 }
 
 async function handleTvDetails(tmdbId: number, response: any, forceRefresh = false) {
@@ -218,7 +243,8 @@ async function handleTvDetails(tmdbId: number, response: any, forceRefresh = fal
   const sql = db();
   await ensureTmdbCacheTables(sql);
   const catalogItem = await getCatalogMediaItem(sql, tmdbId, "tv");
-  const catalogDetails = catalogItem ? mapCatalogDetails(catalogItem) : null;
+  const catalogCast = catalogItem?.id ? await getCatalogCast(sql, catalogItem.id) : [];
+  const catalogDetails = withCatalogCast(catalogItem ? mapCatalogDetails(catalogItem) : null, catalogCast);
 
   const cached = forceRefresh ? [] : await sql`
     select response_json
@@ -238,17 +264,27 @@ async function handleTvDetails(tmdbId: number, response: any, forceRefresh = fal
     limit 1
   `;
 
-  if (hasCoreTitlePayload(cached[0]?.response_json, "tv", tmdbId)) {
+  if (hasCoreTitlePayload(cached[0]?.response_json, "tv", tmdbId) && hasUsefulCastPayload(cached[0]?.response_json)) {
     await upsertMediaItem(sql, cached[0].response_json);
     response.setHeader("X-Flim-Catalog", catalogItem ? "STALE" : "MISS");
     response.setHeader("X-Flim-Cache", "HIT");
-    return sendDetailsJson(response, 200, cached[0].response_json, startedAt, { tmdbId, mediaType: "tv", source: "fresh_cache" });
+    return sendDetailsJson(response, 200, cached[0].response_json, startedAt, { tmdbId, mediaType: "tv", source: "fresh_cache", castCount: castCount(cached[0].response_json), catalogCastCount: catalogCast.length });
   }
 
-  if (!forceRefresh && hasCoreTitlePayload(catalogDetails, "tv", tmdbId)) {
+  if (!forceRefresh && hasCoreTitlePayload(catalogDetails, "tv", tmdbId) && hasUsefulCastPayload(catalogDetails)) {
     response.setHeader("X-Flim-Catalog", "HIT");
     response.setHeader("X-Flim-Cache", "MISS");
-    return sendDetailsJson(response, 200, catalogDetails, startedAt, { tmdbId, mediaType: "tv", source: "catalog" });
+    return sendDetailsJson(response, 200, catalogDetails, startedAt, { tmdbId, mediaType: "tv", source: "catalog", castCount: castCount(catalogDetails), catalogCastCount: catalogCast.length });
+  }
+
+  if (hasCoreTitlePayload(cached[0]?.response_json, "tv", tmdbId) || hasCoreTitlePayload(catalogDetails, "tv", tmdbId)) {
+    logTitleDetailsIssue("title_details_cast_repair_fetch", {
+      tmdbId,
+      mediaType: "tv",
+      cachedCastCount: castCount(cached[0]?.response_json),
+      catalogCastCount: castCount(catalogDetails),
+      mediaPeopleCastCount: catalogCast.length,
+    });
   }
 
   let show;
@@ -264,7 +300,7 @@ async function handleTvDetails(tmdbId: number, response: any, forceRefresh = fal
       });
       response.setHeader("X-Flim-Catalog", "FALLBACK");
       response.setHeader("X-Flim-Cache", "ERROR");
-      return sendDetailsJson(response, 200, catalogDetails, startedAt, { tmdbId, mediaType: "tv", source: "catalog_fallback" });
+      return sendDetailsJson(response, 200, catalogDetails, startedAt, { tmdbId, mediaType: "tv", source: "catalog_fallback", castCount: castCount(catalogDetails), catalogCastCount: catalogCast.length });
     }
     if (hasCoreTitlePayload(staleCached[0]?.response_json, "tv", tmdbId)) {
       logTitleDetailsIssue("title_details_stale_cache_fallback", {
@@ -275,7 +311,7 @@ async function handleTvDetails(tmdbId: number, response: any, forceRefresh = fal
       });
       response.setHeader("X-Flim-Catalog", catalogItem ? "STALE" : "MISS");
       response.setHeader("X-Flim-Cache", "STALE");
-      return sendDetailsJson(response, 200, staleCached[0].response_json, startedAt, { tmdbId, mediaType: "tv", source: "stale_cache" });
+      return sendDetailsJson(response, 200, withCatalogCast(staleCached[0].response_json, catalogCast), startedAt, { tmdbId, mediaType: "tv", source: "stale_cache", castCount: castCount(staleCached[0].response_json), catalogCastCount: catalogCast.length });
     }
     logTitleDetailsIssue("title_details_fetch_failed", {
       tmdbId,
@@ -299,7 +335,7 @@ async function handleTvDetails(tmdbId: number, response: any, forceRefresh = fal
 
   response.setHeader("X-Flim-Catalog", catalogItem ? "STALE" : "MISS");
   response.setHeader("X-Flim-Cache", "MISS");
-  return sendDetailsJson(response, 200, show, startedAt, { tmdbId, mediaType: "tv", source: "tmdb" });
+  return sendDetailsJson(response, 200, show, startedAt, { tmdbId, mediaType: "tv", source: "tmdb", castCount: castCount(show), catalogCastCount: catalogCast.length });
 }
 
 export default async function handler(request: any, response: any) {

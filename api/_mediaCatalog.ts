@@ -388,6 +388,38 @@ export async function getCatalogMediaItem(sql: any, tmdbId: number, mediaType: C
   return rows[0] || null;
 }
 
+export async function getCatalogCast(sql: any, mediaItemId?: string) {
+  await ensureMediaCatalogTables(sql);
+  if (!mediaItemId) return [];
+
+  const rows = await sql`
+    select
+      p.tmdb_id,
+      p.name,
+      p.profile_url,
+      p.known_for_department,
+      mp.character_name,
+      mp.sort_order
+    from media_people mp
+    join people p on p.id = mp.person_id
+    where mp.media_item_id = ${mediaItemId}
+      and mp.role = 'cast'
+    order by mp.sort_order asc nulls last, p.popularity desc nulls last, p.name asc
+    limit 24
+  `;
+
+  return rows
+    .map((row: any) => ({
+      tmdbId: Number(row.tmdb_id),
+      name: row.name,
+      character: row.character_name || undefined,
+      profileUrl: row.profile_url || undefined,
+      order: typeof row.sort_order === "number" ? row.sort_order : undefined,
+      knownForDepartment: row.known_for_department || undefined,
+    }))
+    .filter((member: any) => Number.isFinite(member.tmdbId) && member.name);
+}
+
 function arrayFromJson(value: unknown) {
   return Array.isArray(value) ? value : [];
 }
