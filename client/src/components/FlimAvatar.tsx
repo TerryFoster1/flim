@@ -1,5 +1,4 @@
 import { getFlimAvatar } from "../avatarCatalog";
-import type { CSSProperties } from "react";
 
 interface FlimAvatarProps {
   avatarKey?: string;
@@ -16,13 +15,9 @@ export function FlimAvatar({ avatarKey, label = "Flim avatar", size = "md", fram
       className={`flim-avatar flim-avatar-${size} ${frame ? `flim-avatar-frame-${frame}` : ""}`}
       aria-label={`${label}: ${avatar.name}`}
       role="img"
-      style={{
-        "--avatar-a": avatar.colors[0],
-        "--avatar-b": avatar.colors[1],
-      } as CSSProperties}
       title={avatar.name}
     >
-      <span className={`flim-avatar-icon flim-avatar-icon-${avatar.icon}`} aria-hidden="true" />
+      <img src={avatar.imagePath} alt="" aria-hidden="true" loading="lazy" decoding="async" />
     </span>
   );
 }

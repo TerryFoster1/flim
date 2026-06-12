@@ -3,7 +3,7 @@ import { InstallFlimPrompt } from "../components/InstallFlimPrompt";
 import { FlimAvatar } from "../components/FlimAvatar";
 import { ProviderLogo } from "../components/ProviderLogo";
 import { PushNotificationSettings } from "../components/PushNotificationSettings";
-import { defaultAvatarKey, flimAvatars } from "../avatarCatalog";
+import { avatarSkins, defaultAvatarKey, flimAvatars, getFlimAvatar } from "../avatarCatalog";
 import { getCurrentProfile, saveCurrentProfile } from "../services/profileService";
 import { watchProviders } from "../services/watchProviderService";
 import type { CurrentUser, Playlist, UserProfile } from "../types";
@@ -54,6 +54,7 @@ export function Settings({ currentUser, onNavigate, playlists = [] }: SettingsPr
   const vanityUrl = useMemo(() => (profile.handle ? `https://www.flim.ca/@${profile.handle}` : "Choose a username to create your Flim URL."), [profile.handle]);
   const streamingProviders = useMemo(() => watchProviders.filter((provider) => provider.id !== "plex"), []);
   const publicOwnedPlaylists = useMemo(() => playlists.filter((playlist) => playlist.isOwner && playlist.visibility === "public" && !playlist.isSystem), [playlists]);
+  const selectedAvatar = useMemo(() => getFlimAvatar(profile.avatarKey), [profile.avatarKey]);
 
   useEffect(() => {
     let isActive = true;
@@ -206,11 +207,18 @@ export function Settings({ currentUser, onNavigate, playlists = [] }: SettingsPr
           <div className="avatar-picker">
             <div>
               <h3>Choose your avatar</h3>
-              <p>Your avatar is your Flim identity. Future skins, frames, and seasonal cosmetics can build on this.</p>
+              <p>Your avatar is your Flim identity. Costume skins and frames can build on this later.</p>
+            </div>
+            <div className="avatar-current-preview">
+              <FlimAvatar avatarKey={selectedAvatar.id} label={selectedAvatar.name} size="lg" />
+              <div>
+                <strong>{selectedAvatar.name}</strong>
+                <span>{selectedAvatar.theme}</span>
+              </div>
             </div>
             <div className="avatar-picker-grid">
               {flimAvatars.map((avatar) => {
-                const selected = (profile.avatarKey || defaultAvatarKey) === avatar.key;
+                const selected = selectedAvatar.id === avatar.id;
                 return (
                   <button
                     className={selected ? "avatar-option is-selected" : "avatar-option"}
@@ -224,6 +232,21 @@ export function Settings({ currentUser, onNavigate, playlists = [] }: SettingsPr
                   </button>
                 );
               })}
+            </div>
+            <div className="avatar-skin-preview" aria-label="Future avatar skins">
+              <div>
+                <h3>Future skins</h3>
+                <p>Costumes are locked for now. This structure is ready for future Concession Stand unlocks.</p>
+              </div>
+              <div className="avatar-skin-grid">
+                {avatarSkins.map((skin) => (
+                  <span className={`avatar-skin-chip avatar-skin-${skin.rarity}`} key={skin.id} title={`${skin.name} / ${skin.rarity}`}>
+                    <img src={skin.imagePath} alt="" loading="lazy" decoding="async" />
+                    <strong>{skin.name}</strong>
+                    <small>{skin.unlockType === "ticket" && skin.futureTicketCost ? `${skin.futureTicketCost} future tickets` : skin.unlockType}</small>
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
           <div className="profile-favorites-form">
