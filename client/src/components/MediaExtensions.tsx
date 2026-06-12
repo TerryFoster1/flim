@@ -192,8 +192,8 @@ export function MediaExtensions({ media, onNavigate }: MediaExtensionsProps) {
 
       {triviaOpen ? (
         <div className="trivia-panel">
-          {triviaStatus === "loading" ? <p className="empty-state">Checking cached trivia...</p> : null}
-          {triviaStatus === "error" ? <p className="empty-state">Trivia coming soon.</p> : null}
+          {triviaStatus === "loading" ? <p className="empty-state">Please wait while we load your trivia questions.</p> : null}
+          {triviaStatus === "error" ? <p className="empty-state">Trivia is still being prepared for this title. Try again soon.</p> : null}
           {triviaFeed ? (
             <div className="companion-progress-card">
               <div>
@@ -203,7 +203,7 @@ export function MediaExtensions({ media, onNavigate }: MediaExtensionsProps) {
             </div>
           ) : null}
           {triviaFeed && triviaFeed.questions.length === 0 && (triviaFeed.easterEggs || []).length === 0 ? (
-            <p className="empty-state">{triviaFeed.notes || "Trivia coming soon."}</p>
+            <p className="empty-state">{triviaFeed.notes || "Trivia is still being prepared for this title. Try again soon."}</p>
           ) : null}
           {triviaFeed ? (
             <div className="companion-mode-tabs" role="tablist" aria-label="Trivia and Easter Egg Hunts">

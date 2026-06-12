@@ -1005,7 +1005,7 @@ export interface TriviaQuestion {
   answer: string;
   options: string[];
   explanation: string;
-  difficulty: "easy" | "medium" | "hard";
+  difficulty: "easy" | "medium" | "hard" | "family_night" | "expert";
   spoilerLevel: "none" | "minor" | "major";
   sourceUrls: string[];
   sourceLabels: string[];
@@ -1026,7 +1026,7 @@ export interface EasterEggHunt {
   hint: string;
   answer: string;
   explanation: string;
-  difficulty: "easy" | "medium" | "hard";
+  difficulty: "easy" | "medium" | "hard" | "family_night" | "expert";
   spoilerLevel: "none" | "minor" | "major";
   sourceUrls: string[];
   sourceLabels: string[];

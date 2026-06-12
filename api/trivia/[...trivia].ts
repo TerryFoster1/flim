@@ -11,9 +11,11 @@ interface TriviaDraft {
   answer: string;
   options: string[];
   explanation: string;
-  difficulty: "easy" | "medium";
-  spoilerLevel: "none" | "minor";
+  difficulty: "easy" | "medium" | "hard" | "family_night" | "expert";
+  spoilerLevel: "none" | "minor" | "major";
   confidence: number;
+  sourceLabels?: string[];
+  sourceUrls?: string[];
 }
 
 interface EasterEggDraft {
@@ -30,8 +32,10 @@ interface EasterEggDraft {
 }
 
 const REPORT_THRESHOLD = 3;
+const TRIVIA_VERSION = "smart-trivia-v3";
 const SOURCE_LABELS = ["TMDb metadata"];
 const SOURCE_URLS = ["https://www.themoviedb.org/"];
+const SMART_SOURCE_LABELS = ["TMDb metadata", "Flim smart trivia rules"];
 const CURATED_SOURCE_LABELS = ["Flim curated companion prompt"];
 const CURATED_SOURCE_URLS = ["https://www.flim.ca/"];
 
@@ -68,102 +72,351 @@ function uniqueOptions(answer: string, distractors: string[]) {
   return shuffle([answer, ...cleanDistractors]);
 }
 
-function nearbyYears(year: string) {
-  const numeric = Number(year);
-  if (!Number.isFinite(numeric)) return ["1984", "1999", "2008"];
-  return [String(numeric - 1), String(numeric + 1), String(numeric + 3)];
+function normalizeTriviaText(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 }
 
-function runtimeBucket(minutes?: number) {
-  if (!minutes) return "";
-  if (minutes < 90) return "Under 90 minutes";
-  if (minutes <= 130) return "About 90 to 130 minutes";
-  return "Over 130 minutes";
+function compactTitle(value: unknown) {
+  return normalizeTriviaText(String(value || "")).replace(/\b(the|a|an)\b/g, "").replace(/\s+/g, " ").trim();
+}
+
+function titleMatches(details: any, ids: number[], names: string[]) {
+  const tmdbId = Number(details.tmdbId);
+  const title = compactTitle(details.title || details.name);
+  return ids.includes(tmdbId) || names.some((name) => title.includes(compactTitle(name)));
+}
+
+function draftQuestion(input: TriviaDraft): TriviaDraft {
+  return {
+    ...input,
+    sourceLabels: input.sourceLabels || SMART_SOURCE_LABELS,
+    sourceUrls: input.sourceUrls || SOURCE_URLS,
+  };
+}
+
+function curatedTrivia(details: any): TriviaDraft[] {
+  const mediaType = normalizeMediaType(details.mediaType);
+
+  if (mediaType === "movie" && titleMatches(details, [857], ["Saving Private Ryan"])) {
+    return [
+      draftQuestion({
+        question: "What historic World War II operation opens Saving Private Ryan?",
+        answer: "The D-Day landing at Omaha Beach",
+        options: uniqueOptions("The D-Day landing at Omaha Beach", ["The Battle of the Bulge", "Operation Market Garden", "The bombing of Pearl Harbor"]),
+        explanation: "The film begins with the Allied landing at Omaha Beach during the Normandy invasion.",
+        difficulty: "medium",
+        spoilerLevel: "minor",
+        confidence: 0.94,
+      }),
+      draftQuestion({
+        question: "Which actor plays Captain John H. Miller in Saving Private Ryan?",
+        answer: "Tom Hanks",
+        options: uniqueOptions("Tom Hanks", ["Matt Damon", "Tom Sizemore", "Edward Burns"]),
+        explanation: "Tom Hanks leads the film as Captain Miller, the officer assigned to find Private Ryan.",
+        difficulty: "easy",
+        spoilerLevel: "none",
+        confidence: 0.95,
+      }),
+      draftQuestion({
+        question: "Why is the squad sent to find Private James Francis Ryan?",
+        answer: "His brothers have been killed in the war",
+        options: uniqueOptions("His brothers have been killed in the war", ["He is carrying secret invasion plans", "He is the only medic left in his unit", "He witnessed an enemy surrender"]),
+        explanation: "The mission begins after the Army learns that Ryan's brothers have died in combat.",
+        difficulty: "medium",
+        spoilerLevel: "minor",
+        confidence: 0.92,
+      }),
+      draftQuestion({
+        question: "Who directed Saving Private Ryan?",
+        answer: "Steven Spielberg",
+        options: uniqueOptions("Steven Spielberg", ["Francis Ford Coppola", "Ridley Scott", "Oliver Stone"]),
+        explanation: "Steven Spielberg directed the film and helped define its intense, grounded war-movie style.",
+        difficulty: "easy",
+        spoilerLevel: "none",
+        confidence: 0.94,
+      }),
+    ];
+  }
+
+  if (mediaType === "movie" && titleMatches(details, [120, 121, 122], ["The Lord of the Rings"])) {
+    return [
+      draftQuestion({
+        question: "What item is Frodo tasked with carrying to Mordor?",
+        answer: "The One Ring",
+        options: uniqueOptions("The One Ring", ["The Arkenstone", "The Palantir", "The Evenstar"]),
+        explanation: "Frodo carries the One Ring, whose destruction becomes the central quest of the story.",
+        difficulty: "easy",
+        spoilerLevel: "minor",
+        confidence: 0.96,
+      }),
+      draftQuestion({
+        question: "Which realm is ruled by Galadriel in The Fellowship of the Ring?",
+        answer: "Lothlorien",
+        options: uniqueOptions("Lothlorien", ["Rohan", "Gondor", "Moria"]),
+        explanation: "Galadriel and Celeborn rule Lothlorien, where the Fellowship finds refuge.",
+        difficulty: "hard",
+        spoilerLevel: "minor",
+        confidence: 0.9,
+      }),
+      draftQuestion({
+        question: "Who directed The Lord of the Rings film trilogy?",
+        answer: "Peter Jackson",
+        options: uniqueOptions("Peter Jackson", ["Guillermo del Toro", "George Lucas", "James Cameron"]),
+        explanation: "Peter Jackson directed the film trilogy adapted from J.R.R. Tolkien's novels.",
+        difficulty: "easy",
+        spoilerLevel: "none",
+        confidence: 0.94,
+      }),
+      draftQuestion({
+        question: "What does Gollum call his 'precious'?",
+        answer: "The One Ring",
+        options: uniqueOptions("The One Ring", ["A mithril shirt", "A seeing stone", "A silver leaf brooch"]),
+        explanation: "Gollum's obsession with the One Ring is one of the saga's defining character threads.",
+        difficulty: "family_night",
+        spoilerLevel: "minor",
+        confidence: 0.92,
+      }),
+    ];
+  }
+
+  if (mediaType === "movie" && titleMatches(details, [105], ["Back to the Future"])) {
+    return [
+      draftQuestion({
+        question: "What speed must the DeLorean reach to travel through time?",
+        answer: "88 miles per hour",
+        options: uniqueOptions("88 miles per hour", ["55 miles per hour", "99 miles per hour", "121 miles per hour"]),
+        explanation: "Doc Brown's DeLorean time machine activates when it reaches 88 miles per hour.",
+        difficulty: "easy",
+        spoilerLevel: "minor",
+        confidence: 0.96,
+      }),
+      draftQuestion({
+        question: "What does Marty accidentally disrupt after traveling to 1955?",
+        answer: "His parents' first meeting",
+        options: uniqueOptions("His parents' first meeting", ["Doc Brown's college graduation", "The invention of television", "The opening of Hill Valley High"]),
+        explanation: "Marty interferes with the moment that was supposed to bring his parents together.",
+        difficulty: "medium",
+        spoilerLevel: "minor",
+        confidence: 0.94,
+      }),
+      draftQuestion({
+        question: "Who plays Marty McFly?",
+        answer: "Michael J. Fox",
+        options: uniqueOptions("Michael J. Fox", ["Christopher Lloyd", "Crispin Glover", "Thomas F. Wilson"]),
+        explanation: "Michael J. Fox stars as Marty McFly, the teenager pulled into Doc Brown's time-travel experiment.",
+        difficulty: "easy",
+        spoilerLevel: "none",
+        confidence: 0.95,
+      }),
+    ];
+  }
+
+  if (mediaType === "movie" && titleMatches(details, [11], ["Star Wars"])) {
+    return [
+      draftQuestion({
+        question: "What weapon does Obi-Wan Kenobi call 'an elegant weapon for a more civilized age'?",
+        answer: "A lightsaber",
+        options: uniqueOptions("A lightsaber", ["A blaster", "A thermal detonator", "A bowcaster"]),
+        explanation: "Obi-Wan uses the line while introducing Luke to his father's lightsaber.",
+        difficulty: "easy",
+        spoilerLevel: "minor",
+        confidence: 0.94,
+      }),
+      draftQuestion({
+        question: "What space station does the Rebel Alliance try to destroy?",
+        answer: "The Death Star",
+        options: uniqueOptions("The Death Star", ["Starkiller Base", "Cloud City", "The Executor"]),
+        explanation: "The Death Star is the Empire's planet-destroying battle station.",
+        difficulty: "easy",
+        spoilerLevel: "minor",
+        confidence: 0.96,
+      }),
+      draftQuestion({
+        question: "Who pilots the Millennium Falcon with Chewbacca?",
+        answer: "Han Solo",
+        options: uniqueOptions("Han Solo", ["Luke Skywalker", "Lando Calrissian", "Wedge Antilles"]),
+        explanation: "Han Solo and Chewbacca operate the Millennium Falcon when Luke and Obi-Wan hire them.",
+        difficulty: "family_night",
+        spoilerLevel: "none",
+        confidence: 0.94,
+      }),
+    ];
+  }
+
+  if (mediaType === "movie" && titleMatches(details, [329], ["Jurassic Park"])) {
+    return [
+      draftQuestion({
+        question: "What type of dinosaur breaks out during the storm and attacks the tour vehicles?",
+        answer: "Tyrannosaurus rex",
+        options: uniqueOptions("Tyrannosaurus rex", ["Velociraptor", "Brachiosaurus", "Triceratops"]),
+        explanation: "The T. rex breakout is one of the film's central suspense sequences.",
+        difficulty: "easy",
+        spoilerLevel: "minor",
+        confidence: 0.93,
+      }),
+      draftQuestion({
+        question: "What does Dennis Nedry use to hide dinosaur embryos?",
+        answer: "A fake shaving cream can",
+        options: uniqueOptions("A fake shaving cream can", ["A hollow amber cane", "A lunch box", "A camera case"]),
+        explanation: "The Barbasol can is a disguised container made to smuggle embryos out of the park.",
+        difficulty: "medium",
+        spoilerLevel: "minor",
+        confidence: 0.94,
+      }),
+      draftQuestion({
+        question: "Which actor plays Dr. Ian Malcolm?",
+        answer: "Jeff Goldblum",
+        options: uniqueOptions("Jeff Goldblum", ["Sam Neill", "Richard Attenborough", "Wayne Knight"]),
+        explanation: "Jeff Goldblum plays mathematician Ian Malcolm, whose chaos-theory warnings frame the park's risks.",
+        difficulty: "easy",
+        spoilerLevel: "none",
+        confidence: 0.95,
+      }),
+    ];
+  }
+
+  if (mediaType === "tv" && titleMatches(details, [125988], ["Silo"])) {
+    return [
+      draftQuestion({
+        question: "Where do the people of Silo live?",
+        answer: "In a giant underground structure",
+        options: uniqueOptions("In a giant underground structure", ["On a generation starship", "Inside a sealed island resort", "In a floating city"]),
+        explanation: "The series centers on a society living inside a massive underground silo.",
+        difficulty: "easy",
+        spoilerLevel: "none",
+        confidence: 0.94,
+      }),
+      draftQuestion({
+        question: "Which character becomes central to investigating the silo's secrets?",
+        answer: "Juliette Nichols",
+        options: uniqueOptions("Juliette Nichols", ["Allison Becker", "Martha Walker", "Bernard Holland"]),
+        explanation: "Juliette Nichols is pulled into the mystery surrounding the silo's rules and hidden history.",
+        difficulty: "medium",
+        spoilerLevel: "minor",
+        confidence: 0.9,
+      }),
+      draftQuestion({
+        question: "Silo is adapted from novels by which author?",
+        answer: "Hugh Howey",
+        options: uniqueOptions("Hugh Howey", ["Blake Crouch", "Andy Weir", "James S. A. Corey"]),
+        explanation: "The show is based on Hugh Howey's Silo series of novels.",
+        difficulty: "hard",
+        spoilerLevel: "none",
+        confidence: 0.88,
+      }),
+    ];
+  }
+
+  if (mediaType === "tv" && titleMatches(details, [106379], ["Fallout"])) {
+    return [
+      draftQuestion({
+        question: "What company is closely associated with the underground Vaults in Fallout?",
+        answer: "Vault-Tec",
+        options: uniqueOptions("Vault-Tec", ["RobCo", "Nuka-Cola", "West Tek"]),
+        explanation: "Vault-Tec is the company behind many of the Vaults that shape Fallout's world and experiments.",
+        difficulty: "medium",
+        spoilerLevel: "none",
+        confidence: 0.9,
+      }),
+      draftQuestion({
+        question: "What kind of underground community does Lucy come from?",
+        answer: "A Vault",
+        options: uniqueOptions("A Vault", ["A Citadel", "A Silo", "A bunker city called Zion"]),
+        explanation: "Lucy begins the story as a Vault dweller before entering the wasteland.",
+        difficulty: "easy",
+        spoilerLevel: "minor",
+        confidence: 0.92,
+      }),
+      draftQuestion({
+        question: "What visual style helps define Fallout's world?",
+        answer: "Retro-futuristic Americana",
+        options: uniqueOptions("Retro-futuristic Americana", ["Medieval fantasy realism", "Cyberpunk neon noir", "Victorian steampunk"]),
+        explanation: "Fallout mixes 1950s-inspired Americana with a devastated future wasteland.",
+        difficulty: "medium",
+        spoilerLevel: "none",
+        confidence: 0.9,
+      }),
+    ];
+  }
+
+  return [];
+}
+
+function castTrivia(details: any): TriviaDraft[] {
+  const title = details.title || "this title";
+  const cast = Array.isArray(details.cast)
+    ? details.cast.filter((member: any) => member?.name && member?.character).slice(0, 8)
+    : [];
+  if (cast.length < 4) return [];
+
+  const lead = cast[0];
+  const characterTarget = cast.find((member: any) => String(member.character).length <= 34) || cast[1];
+  return [
+    draftQuestion({
+      question: `Which actor plays ${lead.character} in ${title}?`,
+      answer: lead.name,
+      options: uniqueOptions(lead.name, cast.slice(1).map((member: any) => member.name)),
+      explanation: `${lead.name} is credited as ${lead.character} in ${title}.`,
+      difficulty: "easy",
+      spoilerLevel: "none",
+      confidence: 0.88,
+    }),
+    draftQuestion({
+      question: `Which character is played by ${characterTarget.name} in ${title}?`,
+      answer: characterTarget.character,
+      options: uniqueOptions(characterTarget.character, cast.filter((member: any) => member.name !== characterTarget.name).map((member: any) => member.character)),
+      explanation: `${characterTarget.name} is credited as ${characterTarget.character}.`,
+      difficulty: "medium",
+      spoilerLevel: "none",
+      confidence: 0.84,
+    }),
+  ];
+}
+
+function isHighQualityTriviaDraft(draft: TriviaDraft, title: string, seenQuestions: Set<string>, seenAnswers: Set<string>) {
+  const question = normalizeTriviaText(draft.question);
+  const answer = normalizeTriviaText(draft.answer);
+  const metadataPatterns = [
+    "what year",
+    "release year",
+    "which genre",
+    "runtime",
+    "how many seasons",
+    "how many episodes",
+    "content rating",
+    "associated with on flim",
+    "listed for",
+    "current show metadata",
+    "which story element is central",
+    "which setting best fits",
+  ];
+
+  if (draft.confidence < 0.74) return false;
+  if (!draft.question || !draft.answer || !draft.explanation) return false;
+  if (metadataPatterns.some((pattern) => question.includes(pattern))) return false;
+  if (answer === compactTitle(title) || answer.length < 2) return false;
+  if (!Array.isArray(draft.options) || draft.options.length < 4) return false;
+  if (!draft.options.includes(draft.answer)) return false;
+  if (new Set(draft.options.map((option) => normalizeTriviaText(option))).size < 4) return false;
+  if (seenQuestions.has(question) || seenAnswers.has(answer)) return false;
+  seenQuestions.add(question);
+  seenAnswers.add(answer);
+  return true;
 }
 
 function generateTrivia(details: any): TriviaDraft[] {
-  const drafts: TriviaDraft[] = [];
   const mediaType = normalizeMediaType(details.mediaType);
   const title = details.title || "this title";
-  const year = details.releaseYear || details.firstAirYear || details.releaseDate?.slice?.(0, 4);
-  const genres = Array.isArray(details.genres) ? details.genres.filter(Boolean) : [];
+  const seenQuestions = new Set<string>();
+  const seenAnswers = new Set<string>();
+  const drafts = [
+    ...curatedTrivia({ ...details, mediaType }),
+    ...castTrivia({ ...details, mediaType }),
+  ];
 
-  if (year) {
-    drafts.push({
-      question: `What year is ${title} associated with on Flim?`,
-      answer: year,
-      options: uniqueOptions(year, nearbyYears(year)),
-      explanation: `${title} is listed with ${year} in the title metadata.`,
-      difficulty: "easy",
-      spoilerLevel: "none",
-      confidence: 0.9,
-    });
-  }
-
-  if (genres.length > 0) {
-    drafts.push({
-      question: `Which genre is listed for ${title}?`,
-      answer: genres[0],
-      options: uniqueOptions(genres[0], ["Comedy", "Drama", "Horror", "Science Fiction", "Family"].filter((genre) => !genres.includes(genre))),
-      explanation: `${genres[0]} appears in the source metadata for ${title}.`,
-      difficulty: "easy",
-      spoilerLevel: "none",
-      confidence: 0.86,
-    });
-  }
-
-  if (mediaType === "movie" && details.runtimeMinutes) {
-    const answer = runtimeBucket(details.runtimeMinutes);
-    drafts.push({
-      question: `What is the approximate runtime range for ${title}?`,
-      answer,
-      options: uniqueOptions(answer, ["Under 90 minutes", "About 90 to 130 minutes", "Over 130 minutes"]),
-      explanation: `${title} is listed at ${details.runtimeMinutes} minutes.`,
-      difficulty: "medium",
-      spoilerLevel: "none",
-      confidence: 0.82,
-    });
-  }
-
-  if (mediaType === "tv" && details.seasonCount) {
-    const answer = `${details.seasonCount} ${details.seasonCount === 1 ? "season" : "seasons"}`;
-    drafts.push({
-      question: `How many seasons are listed for ${title}?`,
-      answer,
-      options: uniqueOptions(answer, ["1 season", "2 seasons", "5 seasons", "10 seasons"]),
-      explanation: `${title} has ${answer} in the current show metadata.`,
-      difficulty: "easy",
-      spoilerLevel: "none",
-      confidence: 0.84,
-    });
-  }
-
-  if (mediaType === "tv" && details.episodeCount) {
-    const answer = `${details.episodeCount} episodes`;
-    drafts.push({
-      question: `How many episodes are listed for ${title}?`,
-      answer,
-      options: uniqueOptions(answer, ["6 episodes", "10 episodes", "24 episodes", "100 episodes"]),
-      explanation: `${title} has ${answer} in the current show metadata.`,
-      difficulty: "medium",
-      spoilerLevel: "none",
-      confidence: 0.8,
-    });
-  }
-
-  if (details.contentRating) {
-    drafts.push({
-      question: `Which content rating is listed for ${title}?`,
-      answer: details.contentRating,
-      options: uniqueOptions(details.contentRating, ["G", "PG", "14A", "R", "TV-MA"]),
-      explanation: `${details.contentRating} is the preferred regional rating available in the metadata.`,
-      difficulty: "medium",
-      spoilerLevel: "none",
-      confidence: 0.78,
-    });
-  }
-
-  return drafts.filter((draft) => draft.options.length >= 3).slice(0, 6);
+  return drafts
+    .filter((draft) => isHighQualityTriviaDraft(draft, title, seenQuestions, seenAnswers))
+    .slice(0, 8);
 }
 
 function generateEasterEggHunts(details: any): EasterEggDraft[] {
@@ -277,6 +530,7 @@ async function readCachedTrivia(sql: any, tmdbId: number, mediaType: MediaType, 
       and media_type = ${mediaType}
       and status in ('approved', 'auto_generated')
       and report_count < ${REPORT_THRESHOLD}
+      and source_hash like ${`${TRIVIA_VERSION}:%`}
       and options ? answer
     order by confidence desc, created_at asc
     limit 8
@@ -365,20 +619,17 @@ async function loadTitleDetails(sql: any, tmdbId: number, mediaType: MediaType) 
 
 async function generateAndStoreTrivia(sql: any, tmdbId: number, mediaType: MediaType, userId?: string) {
   const details = await loadTitleDetails(sql, tmdbId, mediaType);
-  const sourceHash = hashSource({
-    mediaType,
-    tmdbId,
-    title: details.title,
-    releaseYear: details.releaseYear || details.firstAirYear,
-    runtimeMinutes: details.runtimeMinutes,
-    genres: details.genres || [],
-    seasonCount: details.seasonCount,
-    episodeCount: details.episodeCount,
-    contentRating: details.contentRating,
-  });
   const drafts = generateTrivia(details);
 
   for (const draft of drafts) {
+    const sourceHash = `${TRIVIA_VERSION}:${draft.difficulty}:${hashSource({
+      mediaType,
+      tmdbId,
+      title: details.title,
+      question: draft.question,
+      answer: draft.answer,
+      version: TRIVIA_VERSION,
+    })}`;
     await sql`
       insert into title_trivia (
         tmdb_id,
@@ -406,8 +657,8 @@ async function generateAndStoreTrivia(sql: any, tmdbId: number, mediaType: Media
         ${draft.explanation},
         ${draft.difficulty},
         ${draft.spoilerLevel},
-        ${JSON.stringify(SOURCE_URLS)}::jsonb,
-        ${JSON.stringify(SOURCE_LABELS)}::jsonb,
+        ${JSON.stringify(draft.sourceUrls || SOURCE_URLS)}::jsonb,
+        ${JSON.stringify(draft.sourceLabels || SMART_SOURCE_LABELS)}::jsonb,
         ${draft.confidence},
         'auto_generated',
         now()
@@ -571,6 +822,7 @@ async function handleGet(request: any, response: any) {
     const completedHuntCount = hunts.filter((hunt: any) => hunt.completed).length;
     const achievementState = await readAchievementState(sql, user?.id);
     response.setHeader("X-Flim-Trivia-Cache", source === "cache" ? "HIT" : "MISS");
+    response.setHeader("X-Flim-Trivia-Version", TRIVIA_VERSION);
     return sendJson(response, 200, {
       tmdbId,
       mediaType,
@@ -582,10 +834,17 @@ async function handleGet(request: any, response: any) {
       achievements: achievementState.achievements,
       unlockedAchievements: achievementState.unlocked,
       authenticated: Boolean(user),
-      notes: questions.length || hunts.length ? "Cached companion content grounded in title metadata and curated prompts." : "Trivia coming soon.",
+      notes: questions.length || hunts.length ? "Cached companion content grounded in title-specific trivia sources." : "Trivia is still being prepared for this title. Try again soon.",
     });
   } catch (error) {
+    console.warn("[trivia] feed generation failed", {
+      tmdbId,
+      mediaType,
+      version: TRIVIA_VERSION,
+      error: error instanceof Error ? error.message : "Unknown trivia generation error",
+    });
     response.setHeader("X-Flim-Trivia-Cache", "MISS");
+    response.setHeader("X-Flim-Trivia-Version", TRIVIA_VERSION);
     return sendJson(response, 200, {
       tmdbId,
       mediaType,
@@ -597,7 +856,7 @@ async function handleGet(request: any, response: any) {
       achievements: [],
       unlockedAchievements: [],
       authenticated: Boolean(user),
-      notes: "Trivia coming soon.",
+      notes: "Trivia is still being prepared for this title. Try again soon.",
       error: error instanceof Error ? error.message : "Trivia generation failed.",
     });
   }
