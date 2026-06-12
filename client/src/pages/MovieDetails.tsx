@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState, type CSSProperties } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { AddToPlaylistControl } from "../components/AddToPlaylistControl";
 import { FollowTitleControl } from "../components/FollowTitleControl";
 import { OptionalSectionBoundary } from "../components/OptionalSectionBoundary";
@@ -138,6 +138,7 @@ export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addTo
   const [status, setStatus] = useState<"idle" | "loading" | "retrying" | "error">("loading");
   const [retryCount, setRetryCount] = useState(0);
   const [loadVersion, setLoadVersion] = useState(0);
+  const requestedRefreshModeRef = useRef<"default" | "cache-first">("default");
   const sourcePlaylistId = useMemo(() => new URLSearchParams(window.location.search).get("playlist") || undefined, [mediaType, tmdbId]);
   const savedInstances = useMemo(() => playlists.flatMap((playlist) => playlist.movies.map((item) => ({ playlist, item }))).filter(({ item }) => item.tmdbId === tmdbId && (item.mediaType || "movie") === mediaType), [playlists, tmdbId, mediaType]);
   const watched = savedInstances.some(({ item }) => item.watchStatus === "watched");
@@ -187,9 +188,10 @@ export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addTo
       for (let attempt = 0; attempt <= detailRetryDelays.length; attempt += 1) {
         const startedAt = performance.now();
         try {
+          const refreshMode = requestedRefreshModeRef.current === "cache-first" || attempt > 0 ? "cache-first" : undefined;
           const details = mediaType === "tv"
-            ? await getTvDetails(tmdbId, { bypassCache: attempt > 0 })
-            : await getMovieDetails(tmdbId, { bypassCache: attempt > 0 });
+            ? await getTvDetails(tmdbId, { refreshMode })
+            : await getMovieDetails(tmdbId, { refreshMode });
           if (!hasCoreTitleData(details, mediaType, tmdbId)) {
             throw new Error("Title details response was missing core title data.");
           }
@@ -198,10 +200,12 @@ export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addTo
             setMovie(details);
             setStatus("idle");
             setRetryCount(0);
+            requestedRefreshModeRef.current = "default";
             logDetailsLoad("title_details_load_success", {
               tmdbId,
               mediaType,
               retryCount: attempt,
+              refreshMode: refreshMode || "default",
               durationMs: Math.round(performance.now() - startedAt),
               hasCoreData: true,
               optionalSection: false,
@@ -220,6 +224,7 @@ export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addTo
               tmdbId,
               mediaType,
               retryCount: nextRetryCount,
+              refreshMode: nextRetryCount > 0 ? "cache-first" : "default",
               reason: errorReason(error),
               hasCoreData: Boolean(cachedDetails),
               optionalSection: false,
@@ -276,6 +281,14 @@ export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addTo
         action={<button className="primary-button" onClick={() => {
           setMovie(null);
           setStatus("loading");
+          logDetailsLoad("title_details_manual_refresh", {
+            tmdbId,
+            mediaType,
+            refreshMode: "cache-first",
+            hasCoreData: false,
+            optionalSection: false,
+          });
+          requestedRefreshModeRef.current = "cache-first";
           setLoadVersion((current) => current + 1);
         }} type="button" aria-label="Refresh title details">Refresh Details</button>}
       />

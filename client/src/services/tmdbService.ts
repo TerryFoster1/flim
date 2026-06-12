@@ -77,12 +77,13 @@ export async function searchMovies(query: string, mediaType: MediaSearchMode = "
 }
 
 interface DetailRequestOptions {
-  bypassCache?: boolean;
+  refreshMode?: "cache-first" | "source";
 }
 
 function detailPath(tmdbId: number, mediaType: MediaType, options: DetailRequestOptions = {}) {
   const params = new URLSearchParams({ type: mediaType });
-  if (options.bypassCache) params.set("_retry", String(Date.now()));
+  if (options.refreshMode) params.set("refreshMode", options.refreshMode);
+  if (options.refreshMode) params.set("_ts", String(Date.now()));
   return `/api/movies/${tmdbId}?${params.toString()}`;
 }
 
@@ -91,7 +92,7 @@ export async function getMovieDetails(tmdbId: number, options: DetailRequestOpti
     throw new Error("A valid movie ID is required.");
   }
 
-  return apiRequest<MovieDetails>(detailPath(tmdbId, "movie", options), options.bypassCache ? { cache: "no-store" } : undefined);
+  return apiRequest<MovieDetails>(detailPath(tmdbId, "movie", options), options.refreshMode ? { cache: "no-store" } : undefined);
 }
 
 export async function getTvDetails(tmdbId: number, options: DetailRequestOptions = {}): Promise<MovieDetails> {
@@ -99,5 +100,5 @@ export async function getTvDetails(tmdbId: number, options: DetailRequestOptions
     throw new Error("A valid TV show ID is required.");
   }
 
-  return apiRequest<MovieDetails>(detailPath(tmdbId, "tv", options), options.bypassCache ? { cache: "no-store" } : undefined);
+  return apiRequest<MovieDetails>(detailPath(tmdbId, "tv", options), options.refreshMode ? { cache: "no-store" } : undefined);
 }

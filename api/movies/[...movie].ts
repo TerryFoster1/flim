@@ -309,7 +309,8 @@ export default async function handler(request: any, response: any) {
     const path = moviePath(request);
     if (path === "search") return handleSearch(request, response);
     const requestedType = Array.isArray(request.query.type) ? request.query.type[0] : request.query.type;
-    const forceRefresh = Boolean(request.query._retry || request.query.refresh);
+    const refreshMode = Array.isArray(request.query.refreshMode) ? request.query.refreshMode[0] : request.query.refreshMode;
+    const forceRefresh = refreshMode === "source" || request.query.refresh === "source";
     if (path.startsWith("tv/")) {
       const tmdbId = Number(path.split("/")[1]);
       if (!Number.isFinite(tmdbId)) return sendJson(response, 400, { error: "A valid TV show ID is required." });

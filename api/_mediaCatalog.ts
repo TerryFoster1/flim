@@ -398,9 +398,12 @@ export function mapCatalogSearchResult(row: any) {
     tmdbId: row.tmdb_id,
     mediaType: normalizeMediaType(row.media_type),
     title: row.title,
+    originalTitle: row.original_title || undefined,
+    releaseDate: row.release_date ? new Date(row.release_date).toISOString().slice(0, 10) : undefined,
     releaseYear: row.year || undefined,
     overview: row.overview || "No overview is available yet.",
     posterUrl: row.poster_url || undefined,
+    backdropUrl: row.backdrop_url || undefined,
     genreIds: Array.isArray(payload.genreIds) ? payload.genreIds : [],
   };
 }
@@ -411,6 +414,9 @@ export function mapCatalogDetails(row: any) {
     ...mapCatalogSearchResult(row),
     runtimeMinutes: row.runtime || undefined,
     genres: arrayFromJson(row.genres).filter(Boolean),
+    status: row.status || undefined,
+    popularity: row.popularity ? Number(row.popularity) : undefined,
+    language: row.language || undefined,
     seasonCount: payload.seasonCount || undefined,
     episodeCount: payload.episodeCount || undefined,
     seasons: Array.isArray(payload.seasons) ? payload.seasons : undefined,
