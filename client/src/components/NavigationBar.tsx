@@ -96,6 +96,51 @@ export function NavigationBar({ currentUser, onNavigate, onLogout }: NavigationB
 
   const unreadCount = notificationFeed.unreadCount;
 
+  const notificationPanel = isNotificationsOpen ? (
+    <>
+      <button
+        className="notification-sheet-backdrop"
+        aria-label="Close notifications"
+        onClick={() => setIsNotificationsOpen(false)}
+        type="button"
+      />
+      <div className="notification-panel" role="dialog" aria-modal="false" aria-label="Notifications">
+        <div className="notification-panel-header">
+          <div>
+            <h2>Activity</h2>
+            <p>{unreadCount > 0 ? `${unreadCount} unread` : "You're all caught up."}</p>
+          </div>
+          <div className="notification-panel-actions">
+            {unreadCount > 0 ? <button onClick={markAllRead} type="button">Mark all read</button> : null}
+            <button className="notification-close-button" aria-label="Close notifications" onClick={() => setIsNotificationsOpen(false)} type="button">Close</button>
+          </div>
+        </div>
+        {notificationStatus ? <p className="notification-status">{notificationStatus}</p> : null}
+        {notificationFeed.notifications.length === 0 ? (
+          <div className="notification-empty">
+            <strong>You're all caught up.</strong>
+            <span>No recent activity.</span>
+          </div>
+        ) : (
+          <div className="notification-list">
+            {notificationFeed.notifications.map((notification) => (
+              <button
+                className={notification.readAt ? "notification-item" : "notification-item is-unread"}
+                key={notification.id}
+                onClick={() => openNotification(notification)}
+                type="button"
+              >
+                <span>{notification.title || "Flim"}</span>
+                <p>{notification.message}</p>
+                <small>{formatNotificationTime(notification.createdAt)}</small>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </>
+  ) : null;
+
   return (
     <header className="topbar">
       <button className="top-brand reset-button" onClick={() => navigate("/")} type="button">
@@ -118,34 +163,7 @@ export function NavigationBar({ currentUser, onNavigate, onLogout }: NavigationB
               <span aria-hidden="true">Bell</span>
               {unreadCount > 0 ? <strong>{unreadCount > 9 ? "9+" : unreadCount}</strong> : null}
             </button>
-            {isNotificationsOpen ? (
-              <div className="notification-panel">
-                <div className="notification-panel-header">
-                  <div>
-                    <h2>Activity</h2>
-                  </div>
-                  {unreadCount > 0 ? <button onClick={markAllRead} type="button">Mark all read</button> : null}
-                </div>
-                {notificationStatus ? <p className="notification-status">{notificationStatus}</p> : null}
-                {notificationFeed.notifications.length === 0 ? (
-                  <p className="notification-empty">No notifications yet.</p>
-                ) : (
-                  <div className="notification-list">
-                    {notificationFeed.notifications.map((notification) => (
-                      <button
-                        className={notification.readAt ? "notification-item" : "notification-item is-unread"}
-                        key={notification.id}
-                        onClick={() => openNotification(notification)}
-                        type="button"
-                      >
-                        <span>{notification.message}</span>
-                        <small>{formatNotificationTime(notification.createdAt)}</small>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ) : null}
+            {notificationPanel}
           </div>
         ) : null}
         <button

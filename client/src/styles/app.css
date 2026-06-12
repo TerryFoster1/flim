@@ -320,11 +320,15 @@ button { color: inherit; font: inherit; }
   font-weight: 950;
   box-shadow: 0 8px 18px rgba(255, 79, 109, 0.3);
 }
+.notification-sheet-backdrop {
+  display: none;
+}
 .notification-panel {
   position: absolute;
   top: calc(100% + 12px);
   right: 0;
   width: min(88vw, 360px);
+  max-width: calc(100vw - 24px);
   display: grid;
   gap: 12px;
   padding: 14px;
@@ -333,18 +337,34 @@ button { color: inherit; font: inherit; }
   background: rgba(10, 11, 16, 0.97);
   backdrop-filter: blur(18px);
   box-shadow: 0 30px 90px rgba(0, 0, 0, 0.75);
+  z-index: 50;
 }
 .notification-panel-header {
   display: flex;
   align-items: start;
   justify-content: space-between;
   gap: 14px;
+  min-width: 0;
 }
 .notification-panel-header h2 {
   margin: 2px 0 0;
   font-size: 1.25rem;
 }
-.notification-panel-header button {
+.notification-panel-header p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: .82rem;
+  font-weight: 750;
+}
+.notification-panel-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.notification-panel-header button,
+.notification-close-button {
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.08);
@@ -355,6 +375,9 @@ button { color: inherit; font: inherit; }
   font-weight: 850;
   cursor: pointer;
 }
+.notification-close-button {
+  display: none;
+}
 .notification-list {
   display: grid;
   gap: 8px;
@@ -364,14 +387,16 @@ button { color: inherit; font: inherit; }
 .notification-item {
   width: 100%;
   display: grid;
-  gap: 5px;
+  gap: 6px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.07);
   color: var(--text);
   text-align: left;
-  padding: 12px;
+  padding: 13px;
   cursor: pointer;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .notification-item.is-unread {
   border-color: rgba(255, 184, 77, 0.42);
@@ -386,6 +411,13 @@ button { color: inherit; font: inherit; }
 .notification-item span {
   font-weight: 800;
   line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.notification-item p {
+  margin: 0;
+  color: #f4ede4;
+  line-height: 1.42;
+  overflow-wrap: anywhere;
 }
 .notification-item small,
 .notification-empty,
@@ -393,6 +425,94 @@ button { color: inherit; font: inherit; }
   margin: 0;
   color: var(--muted);
   line-height: 1.45;
+}
+.notification-empty {
+  display: grid;
+  gap: 5px;
+  min-height: 150px;
+  place-items: center;
+  text-align: center;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 16px;
+  padding: 22px;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255,184,77,.14), transparent 9rem),
+    rgba(255,255,255,.055);
+}
+.notification-empty strong {
+  color: #ffe7b8;
+  font-size: 1.02rem;
+}
+.notification-empty span {
+  color: var(--muted);
+}
+@media (max-width: 700px) {
+  .notification-menu {
+    position: static;
+  }
+  .notification-sheet-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 68;
+    display: block;
+    border: 0;
+    background: rgba(0,0,0,.54);
+    backdrop-filter: blur(4px);
+  }
+  .notification-panel {
+    position: fixed;
+    top: env(safe-area-inset-top, 0);
+    left: 0;
+    right: 0;
+    width: 100vw;
+    max-width: 100vw;
+    max-height: min(86vh, 720px);
+    z-index: 69;
+    gap: 14px;
+    padding: calc(14px + env(safe-area-inset-top, 0px)) 14px 16px;
+    border-top: 0;
+    border-left: 0;
+    border-right: 0;
+    border-radius: 0 0 24px 24px;
+    box-shadow: 0 28px 90px rgba(0,0,0,.82);
+    overflow: hidden;
+  }
+  .notification-panel-header {
+    align-items: center;
+  }
+  .notification-panel-actions {
+    flex: 0 0 auto;
+  }
+  .notification-panel-header button {
+    min-height: 40px;
+  }
+  .notification-close-button {
+    display: inline-flex;
+  }
+  .notification-list {
+    max-height: calc(min(86vh, 720px) - 112px);
+    padding-right: 2px;
+    overscroll-behavior: contain;
+  }
+  .notification-item {
+    min-height: 74px;
+    border-radius: 16px;
+    padding: 14px;
+  }
+}
+@media (max-width: 380px) {
+  .notification-panel {
+    padding-inline: 10px;
+    border-radius: 0 0 20px 20px;
+  }
+  .notification-panel-header {
+    display: grid;
+    gap: 10px;
+  }
+  .notification-panel-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
 }
 .ghost-button, .secondary-button, .primary-button, .playlist-copy button, .spin-button, .blind-button, .danger-button, .settings-icon-button {
   min-height: 42px;
