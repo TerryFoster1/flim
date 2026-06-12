@@ -1195,6 +1195,9 @@ export interface Playlist {
   followerCount?: number;
   isLiked?: boolean;
   likeCount?: number;
+  recommendationReason?: string;
+  sourceType?: string;
+  score?: number;
   createdAt: string;
   updatedAt: string;
   clonedFromId?: string;

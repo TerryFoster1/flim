@@ -42,6 +42,7 @@ export function PlaylistCard({ playlist, large, onNavigate, hideLikes = false }:
         </div>
         <h3>{playlist.name}</h3>
         {playlist.description ? <p>{playlist.description}</p> : null}
+        {playlist.recommendationReason ? <p className="recommendation-reason">{playlist.recommendationReason}</p> : null}
         <div className="card-meta">
           {playlist.visibility !== "public" ? <span>{playlist.visibility}</span> : null}
           <span>{titleCountLabel}</span>

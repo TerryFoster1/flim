@@ -5,6 +5,8 @@ import { PlaylistGrid } from "./PlaylistGrid";
 
 interface DiscoveryRecommendationShelfProps {
   onNavigate: (path: string) => void;
+  includeCurators?: boolean;
+  fallbackPlaylists?: RecommendedPlaylist[];
 }
 
 const INITIAL_VISIBLE = 6;
@@ -31,21 +33,25 @@ function CuratorRecommendationCard({ curator, onNavigate }: { curator: Recommend
   );
 }
 
-export function DiscoveryRecommendationShelf({ onNavigate }: DiscoveryRecommendationShelfProps) {
-  const [playlists, setPlaylists] = useState<RecommendedPlaylist[]>([]);
+export function DiscoveryRecommendationShelf({ onNavigate, includeCurators = true, fallbackPlaylists = [] }: DiscoveryRecommendationShelfProps) {
+  const [playlists, setPlaylists] = useState<RecommendedPlaylist[]>(fallbackPlaylists);
   const [curators, setCurators] = useState<RecommendedCurator[]>([]);
   const [visiblePlaylists, setVisiblePlaylists] = useState(INITIAL_VISIBLE);
   const [visibleCurators, setVisibleCurators] = useState(INITIAL_VISIBLE);
-  const [status, setStatus] = useState<"loading" | "ready" | "hidden">("loading");
+  const [status, setStatus] = useState<"loading" | "ready" | "hidden">(fallbackPlaylists.length ? "ready" : "loading");
 
   useEffect(() => {
     let mounted = true;
-    setStatus("loading");
+    setPlaylists(fallbackPlaylists);
+    setCurators([]);
+    setVisiblePlaylists(INITIAL_VISIBLE);
+    setVisibleCurators(INITIAL_VISIBLE);
+    setStatus(fallbackPlaylists.length ? "ready" : "loading");
     getRecommendations()
       .then((result) => {
         if (!mounted) return;
-        const nextPlaylists = result.playlistRecommendations || [];
-        const nextCurators = result.curatorRecommendations || [];
+        const nextPlaylists = (result.playlistRecommendations || []).length ? result.playlistRecommendations || [] : fallbackPlaylists;
+        const nextCurators = includeCurators ? result.curatorRecommendations || [] : [];
         setPlaylists(nextPlaylists);
         setCurators(nextCurators);
         setVisiblePlaylists(INITIAL_VISIBLE);
@@ -53,13 +59,13 @@ export function DiscoveryRecommendationShelf({ onNavigate }: DiscoveryRecommenda
         setStatus(nextPlaylists.length || nextCurators.length ? "ready" : "hidden");
       })
       .catch(() => {
-        if (mounted) setStatus("hidden");
+        if (mounted) setStatus(fallbackPlaylists.length ? "ready" : "hidden");
       });
 
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [fallbackPlaylists, includeCurators]);
 
   if (status !== "ready") return null;
 
@@ -84,7 +90,7 @@ export function DiscoveryRecommendationShelf({ onNavigate }: DiscoveryRecommenda
         </div>
       ) : null}
 
-      {visibleCuratorItems.length > 0 ? (
+      {includeCurators && visibleCuratorItems.length > 0 ? (
         <div className="discovery-section">
           <div className="discovery-section-heading">
             <h2>Recommended Curators</h2>

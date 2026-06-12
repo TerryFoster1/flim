@@ -28,6 +28,38 @@ function byFollowerCount(playlists: Playlist[]) {
   });
 }
 
+function playlistSignalScore(playlist: Playlist) {
+  return (playlist.followerCount || 0) * 4 + (playlist.likeCount || 0) * 3 + playlist.movies.length;
+}
+
+function byTrending(playlists: Playlist[]) {
+  return [...playlists].sort((a, b) => {
+    const scoreDelta = playlistSignalScore(b) - playlistSignalScore(a);
+    if (scoreDelta !== 0) return scoreDelta;
+    return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+  });
+}
+
+function recommendationReasonForPlaylist(playlist: Playlist) {
+  if (playlist.recommendationReason) return playlist.recommendationReason;
+  if (playlist.isFollowing) return "Because you follow this playlist.";
+  if (isDirectorPlaylist(playlist)) return "Because The Director recommends it.";
+  if ((playlist.followerCount || 0) > 0) return "Because Flim users are following this playlist.";
+  if ((playlist.likeCount || 0) > 0) return "Because Flim users liked this playlist.";
+  return playlist.movies[0]?.genres[0] ? `Because it curates ${playlist.movies[0].genres[0]} titles.` : "A public playlist discovery pick.";
+}
+
+function withRecommendationReasons(playlists: Playlist[]) {
+  return playlists.map((playlist) => ({
+    ...playlist,
+    recommendationReason: recommendationReasonForPlaylist(playlist),
+  }));
+}
+
+function excludePlaylists(playlists: Playlist[], excludedIds: Set<string>) {
+  return playlists.filter((playlist) => !excludedIds.has(playlist.id));
+}
+
 function isTemporaryVerificationPlaylist(playlist: Playlist) {
   const name = playlist.name.toLowerCase();
   return (
@@ -44,7 +76,7 @@ function DiscoveryShelf({ title, playlists, onNavigate }: { title: string; playl
       <div className="discovery-section-heading">
         <h2>{title}</h2>
       </div>
-      <PlaylistGrid onNavigate={onNavigate} playlists={playlists.slice(0, 8)} emptyMessage="Public playlists will appear here." />
+      <PlaylistGrid onNavigate={onNavigate} playlists={playlists.slice(0, 6)} emptyMessage="Public playlists will appear here." />
     </section>
   );
 }
@@ -54,6 +86,10 @@ export function PublicPlaylists({ onNavigate, playlists }: PublicPlaylistsProps)
   const flimPicks = publicPlaylists.filter(isDirectorPlaylist);
   const communityPlaylists = publicPlaylists.filter((playlist) => !isDirectorPlaylist(playlist));
   const followedPlaylists = byUpdated(publicPlaylists.filter((playlist) => playlist.isFollowing));
+  const recommendedPlaylists = withRecommendationReasons(byTrending(publicPlaylists));
+  const trendingPlaylists = byTrending(communityPlaylists);
+  const trendingPreviewIds = new Set(trendingPlaylists.slice(0, 6).map((playlist) => playlist.id));
+  const featuredPlaylists = byUpdated(excludePlaylists(communityPlaylists, trendingPreviewIds));
   const discoveryPlaylists = byFollowerCount(communityPlaylists);
 
   return (
@@ -70,9 +106,11 @@ export function PublicPlaylists({ onNavigate, playlists }: PublicPlaylistsProps)
       ) : null}
 
       <div className="discovery-grid">
-        <DiscoveryRecommendationShelf onNavigate={onNavigate} />
-        <DiscoveryShelf title="Followed Playlists" playlists={followedPlaylists} onNavigate={onNavigate} />
+        <DiscoveryRecommendationShelf fallbackPlaylists={recommendedPlaylists} includeCurators={false} onNavigate={onNavigate} />
+        <DiscoveryShelf title="Trending Playlists" playlists={trendingPlaylists} onNavigate={onNavigate} />
         <DiscoveryShelf title="Director's Cut" playlists={flimPicks} onNavigate={onNavigate} />
+        <DiscoveryShelf title="Featured Playlists" playlists={featuredPlaylists} onNavigate={onNavigate} />
+        <DiscoveryShelf title="Followed Playlists" playlists={followedPlaylists} onNavigate={onNavigate} />
         <DiscoveryShelf title="Public Playlists" playlists={discoveryPlaylists} onNavigate={onNavigate} />
       </div>
 
