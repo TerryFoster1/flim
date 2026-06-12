@@ -33,6 +33,18 @@ function logTitleDetailsIssue(event: string, details: Record<string, unknown>) {
   });
 }
 
+function sendDetailsJson(response: any, status: number, payload: any, startedAt: number, details: Record<string, unknown>) {
+  const durationMs = Date.now() - startedAt;
+  response.setHeader("X-Flim-Details-Duration-Ms", String(durationMs));
+  console.info("title_details_api_complete", {
+    durationMs,
+    cache: response.getHeader?.("X-Flim-Cache"),
+    catalog: response.getHeader?.("X-Flim-Catalog"),
+    ...details,
+  });
+  return sendJson(response, status, payload);
+}
+
 function moviePath(request: any) {
   const pathname = new URL(request.url || "", "https://www.flim.ca").pathname;
   const fromPath = pathname.split("/api/movies/").pop()?.split("?")[0];
@@ -111,6 +123,7 @@ async function handleSearch(request: any, response: any) {
 }
 
 async function handleMovieDetails(tmdbId: number, response: any, forceRefresh = false) {
+  const startedAt = Date.now();
   response.setHeader("X-Flim-Movie-Function", "ratings-v1");
   const sql = db();
   await ensureTmdbCacheTables(sql);
@@ -139,13 +152,13 @@ async function handleMovieDetails(tmdbId: number, response: any, forceRefresh = 
     await upsertMediaItem(sql, cached[0].response_json);
     response.setHeader("X-Flim-Catalog", catalogItem ? "STALE" : "MISS");
     response.setHeader("X-Flim-Cache", "HIT");
-    return sendJson(response, 200, cached[0].response_json);
+    return sendDetailsJson(response, 200, cached[0].response_json, startedAt, { tmdbId, mediaType: "movie", source: "fresh_cache" });
   }
 
   if (!forceRefresh && hasCoreTitlePayload(catalogDetails, "movie", tmdbId)) {
     response.setHeader("X-Flim-Catalog", "HIT");
     response.setHeader("X-Flim-Cache", "MISS");
-    return sendJson(response, 200, catalogDetails);
+    return sendDetailsJson(response, 200, catalogDetails, startedAt, { tmdbId, mediaType: "movie", source: "catalog" });
   }
 
   let movie;
@@ -161,7 +174,7 @@ async function handleMovieDetails(tmdbId: number, response: any, forceRefresh = 
       });
       response.setHeader("X-Flim-Catalog", "FALLBACK");
       response.setHeader("X-Flim-Cache", "ERROR");
-      return sendJson(response, 200, catalogDetails);
+      return sendDetailsJson(response, 200, catalogDetails, startedAt, { tmdbId, mediaType: "movie", source: "catalog_fallback" });
     }
     if (hasCoreTitlePayload(staleCached[0]?.response_json, "movie", tmdbId)) {
       logTitleDetailsIssue("title_details_stale_cache_fallback", {
@@ -172,7 +185,7 @@ async function handleMovieDetails(tmdbId: number, response: any, forceRefresh = 
       });
       response.setHeader("X-Flim-Catalog", catalogItem ? "STALE" : "MISS");
       response.setHeader("X-Flim-Cache", "STALE");
-      return sendJson(response, 200, staleCached[0].response_json);
+      return sendDetailsJson(response, 200, staleCached[0].response_json, startedAt, { tmdbId, mediaType: "movie", source: "stale_cache" });
     }
     logTitleDetailsIssue("title_details_fetch_failed", {
       tmdbId,
@@ -196,10 +209,11 @@ async function handleMovieDetails(tmdbId: number, response: any, forceRefresh = 
 
   response.setHeader("X-Flim-Catalog", catalogItem ? "STALE" : "MISS");
   response.setHeader("X-Flim-Cache", "MISS");
-  return sendJson(response, 200, movie);
+  return sendDetailsJson(response, 200, movie, startedAt, { tmdbId, mediaType: "movie", source: "tmdb" });
 }
 
 async function handleTvDetails(tmdbId: number, response: any, forceRefresh = false) {
+  const startedAt = Date.now();
   response.setHeader("X-Flim-Movie-Function", "ratings-v1");
   const sql = db();
   await ensureTmdbCacheTables(sql);
@@ -228,13 +242,13 @@ async function handleTvDetails(tmdbId: number, response: any, forceRefresh = fal
     await upsertMediaItem(sql, cached[0].response_json);
     response.setHeader("X-Flim-Catalog", catalogItem ? "STALE" : "MISS");
     response.setHeader("X-Flim-Cache", "HIT");
-    return sendJson(response, 200, cached[0].response_json);
+    return sendDetailsJson(response, 200, cached[0].response_json, startedAt, { tmdbId, mediaType: "tv", source: "fresh_cache" });
   }
 
   if (!forceRefresh && hasCoreTitlePayload(catalogDetails, "tv", tmdbId)) {
     response.setHeader("X-Flim-Catalog", "HIT");
     response.setHeader("X-Flim-Cache", "MISS");
-    return sendJson(response, 200, catalogDetails);
+    return sendDetailsJson(response, 200, catalogDetails, startedAt, { tmdbId, mediaType: "tv", source: "catalog" });
   }
 
   let show;
@@ -250,7 +264,7 @@ async function handleTvDetails(tmdbId: number, response: any, forceRefresh = fal
       });
       response.setHeader("X-Flim-Catalog", "FALLBACK");
       response.setHeader("X-Flim-Cache", "ERROR");
-      return sendJson(response, 200, catalogDetails);
+      return sendDetailsJson(response, 200, catalogDetails, startedAt, { tmdbId, mediaType: "tv", source: "catalog_fallback" });
     }
     if (hasCoreTitlePayload(staleCached[0]?.response_json, "tv", tmdbId)) {
       logTitleDetailsIssue("title_details_stale_cache_fallback", {
@@ -261,7 +275,7 @@ async function handleTvDetails(tmdbId: number, response: any, forceRefresh = fal
       });
       response.setHeader("X-Flim-Catalog", catalogItem ? "STALE" : "MISS");
       response.setHeader("X-Flim-Cache", "STALE");
-      return sendJson(response, 200, staleCached[0].response_json);
+      return sendDetailsJson(response, 200, staleCached[0].response_json, startedAt, { tmdbId, mediaType: "tv", source: "stale_cache" });
     }
     logTitleDetailsIssue("title_details_fetch_failed", {
       tmdbId,
@@ -285,7 +299,7 @@ async function handleTvDetails(tmdbId: number, response: any, forceRefresh = fal
 
   response.setHeader("X-Flim-Catalog", catalogItem ? "STALE" : "MISS");
   response.setHeader("X-Flim-Cache", "MISS");
-  return sendJson(response, 200, show);
+  return sendDetailsJson(response, 200, show, startedAt, { tmdbId, mediaType: "tv", source: "tmdb" });
 }
 
 export default async function handler(request: any, response: any) {

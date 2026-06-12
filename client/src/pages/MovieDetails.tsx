@@ -49,6 +49,8 @@ function chooseContentRating(ratings: ContentRating[] = [], countryCode = "") {
 }
 
 const detailRetryDelays = [0, 1500];
+const DETAIL_CACHE_PREFIX = "flim:title-details:";
+const DETAIL_CACHE_TTL_MS = 1000 * 60 * 60 * 24 * 14;
 
 function errorReason(error: unknown) {
   return error instanceof Error ? error.message : "Unknown title details error.";
@@ -59,6 +61,35 @@ function logDetailsLoad(event: string, details: Record<string, unknown>) {
     route: typeof window !== "undefined" ? `${window.location.pathname}${window.location.search}` : "",
     ...details,
   });
+}
+
+function detailCacheKey(mediaType: MediaType, tmdbId: number) {
+  return `${DETAIL_CACHE_PREFIX}${mediaType}:${tmdbId}`;
+}
+
+function readCachedDetails(mediaType: MediaType, tmdbId: number) {
+  if (typeof window === "undefined" || !Number.isFinite(tmdbId)) return null;
+  try {
+    const raw = window.sessionStorage.getItem(detailCacheKey(mediaType, tmdbId));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { cachedAt?: number; details?: MovieDetails };
+    if (!parsed.cachedAt || Date.now() - parsed.cachedAt > DETAIL_CACHE_TTL_MS) {
+      window.sessionStorage.removeItem(detailCacheKey(mediaType, tmdbId));
+      return null;
+    }
+    return hasCoreTitleData(parsed.details, mediaType, tmdbId) ? parsed.details || null : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeCachedDetails(mediaType: MediaType, tmdbId: number, details: MovieDetails) {
+  if (typeof window === "undefined" || !hasCoreTitleData(details, mediaType, tmdbId)) return;
+  try {
+    window.sessionStorage.setItem(detailCacheKey(mediaType, tmdbId), JSON.stringify({ cachedAt: Date.now(), details }));
+  } catch {
+    // Best effort only; network/server cache remains the source of truth.
+  }
 }
 
 function OptionalLoading({ label }: { label: string }) {
@@ -90,7 +121,11 @@ function DetailsSkeleton({ mediaType, retryCount }: { mediaType: MediaType; retr
   );
 }
 
-function hasCoreTitleData(details: MovieDetails | null | undefined, expectedType: MediaType, expectedTmdbId: number) {
+function hasCoreTitleData(
+  details: MovieDetails | null | undefined,
+  expectedType: MediaType,
+  expectedTmdbId: number,
+): details is MovieDetails & { tmdbId: number; title: string; mediaType: MediaType } {
   const id = Number(details?.tmdbId);
   const type = details?.mediaType || expectedType;
   const title = typeof details?.title === "string" ? details.title.trim() : "";
@@ -100,7 +135,7 @@ function hasCoreTitleData(details: MovieDetails | null | undefined, expectedType
 export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addToPlaylist, updateWatchStatus, onNavigate }: MovieDetailsPageProps) {
   const [movie, setMovie] = useState<MovieDetails | null>(null);
   const [streamingCountry, setStreamingCountry] = useState("");
-  const [status, setStatus] = useState<"idle" | "loading" | "retrying" | "error">("idle");
+  const [status, setStatus] = useState<"idle" | "loading" | "retrying" | "error">("loading");
   const [retryCount, setRetryCount] = useState(0);
   const [loadVersion, setLoadVersion] = useState(0);
   const sourcePlaylistId = useMemo(() => new URLSearchParams(window.location.search).get("playlist") || undefined, [mediaType, tmdbId]);
@@ -108,7 +143,7 @@ export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addTo
   const watched = savedInstances.some(({ item }) => item.watchStatus === "watched");
   const allSavedInstancesWatched = savedInstances.length > 0 && savedInstances.every(({ item }) => item.watchStatus === "watched");
   const normalizedMovie = useMemo(() => {
-    if (!movie) return null;
+    if (!hasCoreTitleData(movie, mediaType, tmdbId)) return null;
     return {
       ...movie,
       mediaType: movie.mediaType || mediaType,
@@ -116,7 +151,7 @@ export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addTo
       genres: Array.isArray(movie.genres) ? movie.genres.filter(Boolean) : [],
       contentRatings: Array.isArray(movie.contentRatings) ? movie.contentRatings : [],
     };
-  }, [movie, mediaType]);
+  }, [movie, mediaType, tmdbId]);
   const contentRating = chooseContentRating(normalizedMovie?.contentRatings, streamingCountry) || normalizedMovie?.contentRating;
   const detailsKey = `${mediaType}-${tmdbId}`;
 
@@ -132,12 +167,25 @@ export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addTo
         setStatus("error");
         return;
       }
-      setMovie(null);
-      setStatus("loading");
+      const cachedDetails = readCachedDetails(mediaType, tmdbId);
+      if (cachedDetails) {
+        setMovie(cachedDetails);
+        setStatus("idle");
+        logDetailsLoad("title_details_client_cache_hit", {
+          tmdbId,
+          mediaType,
+          hasCoreData: true,
+          optionalSection: false,
+        });
+      } else {
+        setMovie(null);
+        setStatus("loading");
+      }
       setRetryCount(0);
 
       let finalError: unknown = null;
       for (let attempt = 0; attempt <= detailRetryDelays.length; attempt += 1) {
+        const startedAt = performance.now();
         try {
           const details = mediaType === "tv"
             ? await getTvDetails(tmdbId, { bypassCache: attempt > 0 })
@@ -145,10 +193,19 @@ export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addTo
           if (!hasCoreTitleData(details, mediaType, tmdbId)) {
             throw new Error("Title details response was missing core title data.");
           }
+          writeCachedDetails(mediaType, tmdbId, details);
           if (mounted) {
             setMovie(details);
             setStatus("idle");
             setRetryCount(0);
+            logDetailsLoad("title_details_load_success", {
+              tmdbId,
+              mediaType,
+              retryCount: attempt,
+              durationMs: Math.round(performance.now() - startedAt),
+              hasCoreData: true,
+              optionalSection: false,
+            });
           }
           return;
         } catch (error) {
@@ -157,16 +214,17 @@ export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addTo
 
           if (attempt < detailRetryDelays.length) {
             const nextRetryCount = attempt + 1;
-            setStatus("retrying");
+            if (!cachedDetails) setStatus("retrying");
             setRetryCount(nextRetryCount);
             logDetailsLoad("title_details_retrying", {
               tmdbId,
               mediaType,
               retryCount: nextRetryCount,
               reason: errorReason(error),
-              hasCoreData: false,
+              hasCoreData: Boolean(cachedDetails),
               optionalSection: false,
               retryDelayMs: detailRetryDelays[attempt],
+              durationMs: Math.round(performance.now() - startedAt),
             });
             await wait(detailRetryDelays[attempt]);
           }
@@ -178,10 +236,10 @@ export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addTo
         mediaType,
         retryCount: detailRetryDelays.length,
         reason: errorReason(finalError),
-        hasCoreData: false,
+        hasCoreData: Boolean(cachedDetails),
         optionalSection: false,
       });
-      if (mounted) setStatus("error");
+      if (mounted) setStatus(cachedDetails ? "idle" : "error");
     }
 
     loadMovie();
@@ -205,7 +263,7 @@ export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addTo
     };
   }, []);
 
-  if (status === "loading" || status === "retrying") {
+  if (status === "loading" || status === "retrying" || (!normalizedMovie && status !== "error")) {
     return <DetailsSkeleton mediaType={mediaType} retryCount={status === "retrying" ? retryCount : 0} />;
   }
 
@@ -312,13 +370,15 @@ export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addTo
             </Suspense>
           </OptionalSectionBoundary>
           {onNavigate ? (
-            <RecommendationShelf
-              title="You May Also Like"
-              mediaType={normalizedMovie.mediaType || mediaType}
-              tmdbId={normalizedMovie.tmdbId}
-              onNavigate={onNavigate}
-              limit={8}
-            />
+            <OptionalSectionBoundary key={`recommendations-${detailsKey}`} label="Recommendations">
+              <RecommendationShelf
+                title="You May Also Like"
+                mediaType={normalizedMovie.mediaType || mediaType}
+                tmdbId={normalizedMovie.tmdbId}
+                onNavigate={onNavigate}
+                limit={8}
+              />
+            </OptionalSectionBoundary>
           ) : null}
         </div>
       </div>

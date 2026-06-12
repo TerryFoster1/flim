@@ -3,6 +3,7 @@ import type { MediaType, MovieDetails, MovieSearchResult } from "../types";
 async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), 15000);
+  const startedAt = performance.now();
   let response: Response;
 
   try {
@@ -19,6 +20,7 @@ async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T
     console.warn("tmdb_client_request_failed", {
       path,
       reason,
+      durationMs: Math.round(performance.now() - startedAt),
       message: error instanceof Error ? error.message : "Movie request failed.",
     });
     throw error;
@@ -31,16 +33,28 @@ async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T
     console.warn("tmdb_client_response_failed", {
       path,
       status: response.status,
+      durationMs: Math.round(performance.now() - startedAt),
       reason: payload?.error || response.statusText || "Movie request failed.",
     });
     throw new Error(payload?.error || "Movie request failed.");
   }
 
   try {
-    return await response.json() as T;
+    const payload = await response.json() as T;
+    if (path.startsWith("/api/movies/")) {
+      console.info("tmdb_client_request_complete", {
+        path,
+        status: response.status,
+        durationMs: Math.round(performance.now() - startedAt),
+        cache: response.headers.get("X-Flim-Cache"),
+        catalog: response.headers.get("X-Flim-Catalog"),
+      });
+    }
+    return payload;
   } catch (error) {
     console.warn("tmdb_client_parse_failed", {
       path,
+      durationMs: Math.round(performance.now() - startedAt),
       message: error instanceof Error ? error.message : "Movie response could not be parsed.",
     });
     throw error;
