@@ -59,6 +59,11 @@ export function MovieSearchPanel({ playlists, addToPlaylist, onNavigate, variant
     if (!fixedPlaylistId) return;
 
     const key = resultKey(movie);
+    if (alreadyInFixedPlaylist(movie)) {
+      setMessage(`${movie.title} is already in this playlist.`);
+      return;
+    }
+
     setAddingKey(key);
     setMessage("");
     try {
@@ -130,8 +135,8 @@ export function MovieSearchPanel({ playlists, addToPlaylist, onNavigate, variant
                       >
                         {alreadyInFixedPlaylist(movie)
                           ? fixedPlaylist?.movies.some((item) => item.tmdbId === movie.tmdbId && (item.mediaType || "movie") === (movie.mediaType || "movie"))
-                            ? "Already Added"
-                            : "Added"
+                            ? "✓ Already Added"
+                            : "✓ Added"
                           : addingKey === resultKey(movie)
                             ? "Adding..."
                             : "Add Title"}

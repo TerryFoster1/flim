@@ -178,14 +178,18 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  async function refreshPlaylists() {
+  async function refreshPlaylists(options: { background?: boolean } = {}) {
     try {
-      setDataStatus("loading");
+      if (!options.background) {
+        setDataStatus("loading");
+      }
       setPlaylists(await getPlaylists());
       setDataMessage("");
       setDataStatus("ready");
     } catch {
-      setDataStatus("error");
+      if (!options.background) {
+        setDataStatus("error");
+      }
       setDataMessage("Could not load playlists right now. Please try again shortly.");
     }
   }
@@ -198,7 +202,7 @@ export default function App() {
 
   async function addToPlaylist(playlistId: string, movie: MovieSearchResult | MovieDetails) {
     await addMovieToPlaylist(playlistId, movie);
-    await refreshPlaylists();
+    await refreshPlaylists({ background: true });
   }
 
   async function removeFromPlaylist(playlistId: string, tmdbId: number, mediaType = "movie") {
