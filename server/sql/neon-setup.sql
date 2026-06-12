@@ -1740,17 +1740,37 @@ create index if not exists provider_availability_cache_expires_at_idx
 
 create table if not exists provider_clicks (
   id uuid primary key default gen_random_uuid(),
+  user_id uuid references users(id) on delete set null,
   provider_id text not null,
+  provider_partner_link_id uuid,
   media_type text not null
     check (media_type in ('movie', 'tv')),
   tmdb_id integer not null,
   region text not null default 'CA',
   link_type text not null default 'search_fallback',
   destination_url text not null,
+  affiliate_url text,
+  monetization_source text not null default 'provider_link',
+  conversion_opportunity boolean not null default false,
   referrer text,
   user_agent text,
   clicked_at timestamptz not null default now()
 );
+
+alter table provider_clicks
+  add column if not exists user_id uuid references users(id) on delete set null;
+
+alter table provider_clicks
+  add column if not exists provider_partner_link_id uuid;
+
+alter table provider_clicks
+  add column if not exists affiliate_url text;
+
+alter table provider_clicks
+  add column if not exists monetization_source text not null default 'provider_link';
+
+alter table provider_clicks
+  add column if not exists conversion_opportunity boolean not null default false;
 
 create index if not exists provider_clicks_provider_clicked_idx
   on provider_clicks (provider_id, clicked_at desc);
@@ -1758,16 +1778,27 @@ create index if not exists provider_clicks_provider_clicked_idx
 create index if not exists provider_clicks_media_clicked_idx
   on provider_clicks (media_type, tmdb_id, clicked_at desc);
 
+create index if not exists provider_clicks_user_clicked_idx
+  on provider_clicks (user_id, clicked_at desc)
+  where user_id is not null;
+
+create index if not exists provider_clicks_conversion_idx
+  on provider_clicks (conversion_opportunity, clicked_at desc);
+
 create table if not exists provider_partner_links (
   id uuid primary key default gen_random_uuid(),
   provider_id text not null,
   region text not null default 'CA',
   destination_url text not null,
   affiliate_url text,
+  link_type text,
   active boolean not null default false,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table provider_partner_links
+  add column if not exists link_type text;
 
 create index if not exists provider_partner_links_provider_region_idx
   on provider_partner_links (provider_id, region, active);
@@ -1846,20 +1877,78 @@ create table if not exists ticket_clicks (
   media_item_id uuid references media_items(id) on delete set null,
   provider_id uuid references ticket_providers(id) on delete set null,
   ticket_affiliate_link_id uuid references ticket_affiliate_links(id) on delete set null,
+  user_id uuid references users(id) on delete set null,
   region text not null default 'CA',
   city text,
   theater_chain text,
   destination_url text not null,
+  affiliate_url text,
+  monetization_source text not null default 'ticket_link',
+  conversion_opportunity boolean not null default false,
   referrer text,
   user_agent text,
   clicked_at timestamptz not null default now()
 );
+
+alter table ticket_clicks
+  add column if not exists user_id uuid references users(id) on delete set null;
+
+alter table ticket_clicks
+  add column if not exists affiliate_url text;
+
+alter table ticket_clicks
+  add column if not exists monetization_source text not null default 'ticket_link';
+
+alter table ticket_clicks
+  add column if not exists conversion_opportunity boolean not null default false;
 
 create index if not exists ticket_clicks_media_clicked_idx
   on ticket_clicks (media_item_id, clicked_at desc);
 
 create index if not exists ticket_clicks_provider_clicked_idx
   on ticket_clicks (provider_id, clicked_at desc);
+
+create index if not exists ticket_clicks_user_clicked_idx
+  on ticket_clicks (user_id, clicked_at desc)
+  where user_id is not null;
+
+create index if not exists ticket_clicks_conversion_idx
+  on ticket_clicks (conversion_opportunity, clicked_at desc);
+
+create table if not exists pro_plan_definitions (
+  id uuid primary key default gen_random_uuid(),
+  plan_key text not null unique,
+  name text not null,
+  description text,
+  status text not null default 'draft',
+  monthly_price_cents integer,
+  yearly_price_cents integer,
+  feature_flags jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists pro_plan_definitions_status_idx
+  on pro_plan_definitions (status);
+
+create table if not exists user_pro_access (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  plan_key text not null,
+  status text not null default 'inactive',
+  source text not null default 'manual',
+  started_at timestamptz,
+  expires_at timestamptz,
+  metadata jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create unique index if not exists user_pro_access_user_plan_unique
+  on user_pro_access (user_id, plan_key);
+
+create index if not exists user_pro_access_user_status_idx
+  on user_pro_access (user_id, status);
 
 create or replace view provider_availability as
 select

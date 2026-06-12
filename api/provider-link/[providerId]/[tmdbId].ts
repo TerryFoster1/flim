@@ -1,4 +1,5 @@
-import { db, sendJson } from "../../_db.js";
+import { db, getCurrentUser, sendJson } from "../../_db.js";
+import { ensureProviderAvailabilityTables } from "../../_providers.js";
 
 type ProviderMediaType = "movie" | "tv";
 
@@ -49,25 +50,6 @@ function isSafeDestination(value: string) {
   }
 }
 
-async function ensureAffiliateTables(sql: any) {
-  await sql`
-    create table if not exists provider_clicks (
-      id uuid primary key default gen_random_uuid(),
-      provider_id text not null,
-      media_type text not null check (media_type in ('movie', 'tv')),
-      tmdb_id integer not null,
-      region text not null default 'CA',
-      link_type text not null default 'search_fallback',
-      destination_url text not null,
-      referrer text,
-      user_agent text,
-      clicked_at timestamptz not null default now()
-    )
-  `;
-  await sql`create index if not exists provider_clicks_provider_clicked_idx on provider_clicks (provider_id, clicked_at desc)`;
-  await sql`create index if not exists provider_clicks_media_clicked_idx on provider_clicks (media_type, tmdb_id, clicked_at desc)`;
-}
-
 export default async function handler(request: any, response: any) {
   if (request.method !== "GET") return sendJson(response, 405, { error: "Method not allowed." });
 
@@ -84,7 +66,8 @@ export default async function handler(request: any, response: any) {
 
   try {
     const sql = db();
-    await ensureAffiliateTables(sql);
+    await ensureProviderAvailabilityTables(sql);
+    const user = await getCurrentUser(sql, request).catch(() => null);
 
     const rows = await sql`
       select coalesce(deep_link, search_fallback_url) as destination_url
@@ -103,31 +86,59 @@ export default async function handler(request: any, response: any) {
       return sendJson(response, 404, { error: "Provider destination is not available yet." });
     }
 
+    const partnerRows = await sql`
+      select id, affiliate_url
+      from provider_partner_links
+      where provider_id = ${providerId}
+        and region = ${region}
+        and active = true
+        and nullif(affiliate_url, '') is not null
+        and (link_type is null or link_type = ${linkType})
+        and (destination_url = ${destination} or destination_url = '*')
+      order by
+        case when destination_url = ${destination} then 0 else 1 end,
+        updated_at desc
+      limit 1
+    `;
+    const affiliateUrl = String(partnerRows[0]?.affiliate_url || "");
+    const hasAffiliateDestination = isSafeDestination(affiliateUrl);
+    const finalDestination = hasAffiliateDestination ? affiliateUrl : destination;
+
     await sql`
       insert into provider_clicks (
+        user_id,
         provider_id,
+        provider_partner_link_id,
         media_type,
         tmdb_id,
         region,
         link_type,
         destination_url,
+        affiliate_url,
+        monetization_source,
+        conversion_opportunity,
         referrer,
         user_agent
       )
       values (
+        ${user?.id || null},
         ${providerId},
+        ${partnerRows[0]?.id || null},
         ${mediaType},
         ${tmdbId},
         ${region},
         ${linkType},
-        ${destination},
+        ${finalDestination},
+        ${hasAffiliateDestination ? affiliateUrl : null},
+        ${hasAffiliateDestination ? "affiliate" : "provider_link"},
+        ${hasAffiliateDestination},
         ${String(request.headers.referer || request.headers.referrer || "").slice(0, 512) || null},
         ${String(request.headers["user-agent"] || "").slice(0, 512) || null}
       )
     `;
 
     response.statusCode = 302;
-    response.setHeader("Location", destination);
+    response.setHeader("Location", finalDestination);
     response.setHeader("Cache-Control", "no-store");
     response.end();
   } catch (error) {

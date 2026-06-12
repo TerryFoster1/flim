@@ -202,12 +202,17 @@ export async function ensureProviderAvailabilityTables(sql: any) {
   await runSchemaStatement(sql`
     create table if not exists provider_clicks (
       id uuid primary key default gen_random_uuid(),
+      user_id uuid references users(id) on delete set null,
       provider_id text not null,
+      provider_partner_link_id uuid,
       media_type text not null check (media_type in ('movie', 'tv')),
       tmdb_id integer not null,
       region text not null default 'CA',
       link_type text not null default 'search_fallback',
       destination_url text not null,
+      affiliate_url text,
+      monetization_source text not null default 'provider_link',
+      conversion_opportunity boolean not null default false,
       referrer text,
       user_agent text,
       clicked_at timestamptz not null default now()
@@ -220,6 +225,7 @@ export async function ensureProviderAvailabilityTables(sql: any) {
       region text not null default 'CA',
       destination_url text not null,
       affiliate_url text,
+      link_type text,
       active boolean not null default false,
       created_at timestamptz not null default now(),
       updated_at timestamptz not null default now()
@@ -256,8 +262,16 @@ export async function ensureProviderAvailabilityTables(sql: any) {
   await runSchemaStatement(sql`create unique index if not exists provider_region_provider_region_unique on provider_region (provider_id, region)`);
   await runSchemaStatement(sql`create unique index if not exists provider_availability_cache_media_region_unique on provider_availability_cache (media_type, tmdb_id, region, source)`);
   await runSchemaStatement(sql`create index if not exists provider_availability_cache_expires_at_idx on provider_availability_cache (expires_at)`);
+  await runSchemaStatement(sql`alter table provider_clicks add column if not exists user_id uuid references users(id) on delete set null`);
+  await runSchemaStatement(sql`alter table provider_clicks add column if not exists provider_partner_link_id uuid`);
+  await runSchemaStatement(sql`alter table provider_clicks add column if not exists affiliate_url text`);
+  await runSchemaStatement(sql`alter table provider_clicks add column if not exists monetization_source text not null default 'provider_link'`);
+  await runSchemaStatement(sql`alter table provider_clicks add column if not exists conversion_opportunity boolean not null default false`);
+  await runSchemaStatement(sql`alter table provider_partner_links add column if not exists link_type text`);
   await runSchemaStatement(sql`create index if not exists provider_clicks_provider_clicked_idx on provider_clicks (provider_id, clicked_at desc)`);
   await runSchemaStatement(sql`create index if not exists provider_clicks_media_clicked_idx on provider_clicks (media_type, tmdb_id, clicked_at desc)`);
+  await runSchemaStatement(sql`create index if not exists provider_clicks_user_clicked_idx on provider_clicks (user_id, clicked_at desc) where user_id is not null`);
+  await runSchemaStatement(sql`create index if not exists provider_clicks_conversion_idx on provider_clicks (conversion_opportunity, clicked_at desc)`);
   await runSchemaStatement(sql`create index if not exists provider_partner_links_provider_region_idx on provider_partner_links (provider_id, region, active)`);
   await runSchemaStatement(sql`create index if not exists affiliate_mappings_provider_region_idx on affiliate_mappings (provider_id, region, active)`);
   await runSchemaStatement(sql`

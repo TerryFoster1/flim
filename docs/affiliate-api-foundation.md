@@ -20,14 +20,22 @@ Current behavior:
 - Provider buttons use `/api/provider-link/:providerId/:tmdbId` with `mediaType`, `region`, `linkType`, and `title` query parameters.
 - The provider-link route resolves the cached `provider_links` destination.
 - If no cached destination exists, the route uses a conservative search fallback for known providers.
-- The route records a `provider_clicks` row, then redirects.
-- No affiliate IDs are injected yet.
+- If an active HTTPS-safe `provider_partner_links` row exists, the route redirects to that affiliate URL.
+- Without an active partner row, the route redirects to the normal provider destination.
+- The route records a `provider_clicks` row with conversion-opportunity metadata, then redirects.
+- No affiliate IDs are injected unless an explicit active partner URL has been configured.
 
 ## Tables
 
 - `provider_clicks`: click analytics for provider outbound redirects.
 - `provider_partner_links`: future partner/affiliate destination overrides.
 - `affiliate_mappings`: future provider-specific affiliate parameters or mapping rules.
+- `ticket_providers`: future ticket partner metadata.
+- `title_ticket_availability`: real per-title ticket availability by region/city/theater.
+- `ticket_affiliate_links`: future ticket redirect destinations.
+- `ticket_clicks`: ticket outbound click analytics.
+- `pro_plan_definitions`: draft-only future Pro plan definitions.
+- `user_pro_access`: future user access state for Pro features.
 
 All tables are idempotently added in `server/sql/neon-setup.sql`. Runtime provider table setup also creates them when provider availability routes initialize.
 
@@ -59,8 +67,20 @@ Future public APIs should reuse Flim's existing access concepts:
 ## Not Implemented Yet
 
 - Affiliate partnerships
-- Affiliate code injection
+- Automatic affiliate code injection
+- Ticket CTAs
+- Payment checkout
+- Subscription billing
 - Public API keys
 - Developer portal
 - API billing
 - Public data export products
+
+## Monetization Guardrails
+
+- Core discovery stays free.
+- Provider and ticket monetization must be invisible until a user chooses an outbound action.
+- No fake provider availability.
+- No fake ticket links.
+- No native ads or sponsored placements in this phase.
+- Future Pro features should enhance power-user workflows, not gate basic playlists, discovery, tracking, Where To Watch, or release intelligence.
