@@ -1572,6 +1572,69 @@ create unique index if not exists user_easter_egg_progress_user_hunt_unique
 create index if not exists user_easter_egg_progress_user_title_idx
   on user_easter_egg_progress (user_id, media_type, tmdb_id);
 
+create table if not exists friend_trivia_challenges (
+  id uuid primary key default gen_random_uuid(),
+  token text not null unique,
+  challenger_user_id uuid references users(id) on delete set null,
+  challenger_name text not null default 'A Flim player',
+  media_type text not null
+    check (media_type in ('movie', 'tv')),
+  tmdb_id integer not null,
+  title text not null,
+  score integer not null default 0,
+  correct_count integer not null default 0,
+  total_count integer not null default 0,
+  question_pack jsonb not null default '[]'::jsonb,
+  answer_key jsonb not null default '{}'::jsonb,
+  status text not null default 'active'
+    check (status in ('active', 'archived')),
+  completed_at timestamptz not null default now(),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table friend_trivia_challenges
+  add column if not exists answer_key jsonb not null default '{}'::jsonb;
+
+alter table friend_trivia_challenges
+  add column if not exists correct_count integer not null default 0;
+
+alter table friend_trivia_challenges
+  add column if not exists total_count integer not null default 0;
+
+alter table friend_trivia_challenges
+  add column if not exists status text not null default 'active';
+
+create unique index if not exists friend_trivia_challenges_token_unique
+  on friend_trivia_challenges (token);
+
+create index if not exists friend_trivia_challenges_user_created_idx
+  on friend_trivia_challenges (challenger_user_id, created_at desc);
+
+create index if not exists friend_trivia_challenges_title_idx
+  on friend_trivia_challenges (media_type, tmdb_id, created_at desc);
+
+create table if not exists friend_trivia_attempts (
+  id uuid primary key default gen_random_uuid(),
+  challenge_id uuid not null references friend_trivia_challenges(id) on delete cascade,
+  user_id uuid references users(id) on delete set null,
+  player_name text not null default 'Friend',
+  score integer not null default 0,
+  correct_count integer not null default 0,
+  total_count integer not null default 0,
+  result text not null
+    check (result in ('won', 'lost', 'tie')),
+  answers jsonb not null default '{}'::jsonb,
+  completed_at timestamptz not null default now(),
+  created_at timestamptz not null default now()
+);
+
+create index if not exists friend_trivia_attempts_challenge_score_idx
+  on friend_trivia_attempts (challenge_id, score desc, completed_at desc);
+
+create index if not exists friend_trivia_attempts_user_created_idx
+  on friend_trivia_attempts (user_id, created_at desc);
+
 create table if not exists achievements (
   id text primary key,
   name text not null,

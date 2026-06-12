@@ -2,8 +2,10 @@ import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { BrandMark } from "../components/BrandMark";
 import { ShareAssetButton } from "../components/ShareAssetButton";
 import { isTriviaGamesEnabled } from "../featureFlags";
+import { createFriendChallenge, getFriendChallengeHistory } from "../services/friendChallengeService";
 import { getMovieDetails, getTvDetails } from "../services/tmdbService";
-import type { MediaType, MovieDetails } from "../types";
+import { getTitleTrivia } from "../services/triviaService";
+import type { FriendChallengeHistoryAttempt, FriendTriviaChallenge, MediaType, MovieDetails, TriviaFeed, TriviaQuestion } from "../types";
 
 interface TriviaGamesProps {
   onNavigate: (path: string) => void;
@@ -96,6 +98,15 @@ function highScoreText() {
   return "No high score yet";
 }
 
+function scoreTrivia(questions: TriviaQuestion[], answers: Record<string, string>) {
+  const correctCount = questions.reduce((count, question) => count + (answers[question.id] === question.answer ? 1 : 0), 0);
+  return {
+    correctCount,
+    totalCount: questions.length,
+    score: correctCount * 100,
+  };
+}
+
 function GameCard({ game, disabled }: { game: GameCardDefinition; disabled: boolean }) {
   return (
     <article className="title-game-card">
@@ -111,6 +122,63 @@ function GameCard({ game, disabled }: { game: GameCardDefinition; disabled: bool
         </button>
       </div>
     </article>
+  );
+}
+
+function FriendChallengeHistory({ onNavigate }: { onNavigate: (path: string) => void }) {
+  const [created, setCreated] = useState<FriendTriviaChallenge[]>([]);
+  const [attempts, setAttempts] = useState<FriendChallengeHistoryAttempt[]>([]);
+  const [status, setStatus] = useState<"loading" | "ready" | "signed_out" | "error">("loading");
+
+  useEffect(() => {
+    let mounted = true;
+    getFriendChallengeHistory()
+      .then((feed) => {
+        if (!mounted) return;
+        setCreated(feed.created);
+        setAttempts(feed.attempts);
+        setStatus("ready");
+      })
+      .catch((error) => {
+        if (!mounted) return;
+        setStatus(error instanceof Error && error.message.includes("Sign in") ? "signed_out" : "error");
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  if (status === "loading") return <p className="empty-state">Loading your challenge history...</p>;
+  if (status === "signed_out") return null;
+  if (status === "error") return <p className="empty-state">Challenge history is unavailable right now.</p>;
+  if (created.length === 0 && attempts.length === 0) return null;
+
+  const won = attempts.filter((attempt) => attempt.result === "won");
+  const lost = attempts.filter((attempt) => attempt.result === "lost");
+
+  return (
+    <section className="title-games-section friend-challenge-history">
+      <div className="actor-section-heading">
+        <h2>Challenge History</h2>
+        <span>{created.length + attempts.length}</span>
+      </div>
+      <div className="challenge-history-grid">
+        {created.slice(0, 4).map((challenge) => (
+          <button className="challenge-history-card" key={challenge.token} onClick={() => onNavigate(challenge.shareUrl)} type="button">
+            <span>Active Challenge</span>
+            <strong>{challenge.title}</strong>
+            <small>Beat {challenge.score} / {challenge.attempts} attempts</small>
+          </button>
+        ))}
+        {[...won, ...lost, ...attempts.filter((attempt) => attempt.result === "tie")].slice(0, 4).map((attempt) => (
+          <button className={`challenge-history-card is-${attempt.result}`} key={attempt.id} onClick={() => onNavigate(attempt.shareUrl)} type="button">
+            <span>{attempt.result === "won" ? "Won" : attempt.result === "lost" ? "Lost" : "Tie"}</span>
+            <strong>{attempt.title}</strong>
+            <small>{attempt.score} vs {attempt.challengeScore}</small>
+          </button>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -139,6 +207,167 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
           Back to Playlists
         </button>
       </div>
+      <FriendChallengeHistory onNavigate={onNavigate} />
+    </section>
+  );
+}
+
+function ClassicTriviaPanel({ mediaType, tmdbId, title }: { mediaType: MediaType; tmdbId: number; title: string }) {
+  const [feed, setFeed] = useState<TriviaFeed | null>(null);
+  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [completed, setCompleted] = useState(false);
+  const [challengeUrl, setChallengeUrl] = useState("");
+  const [challengeToken, setChallengeToken] = useState("");
+  const [challengeStatus, setChallengeStatus] = useState("");
+  const questions = feed?.questions || [];
+  const score = useMemo(() => scoreTrivia(questions, answers), [questions, answers]);
+  const allAnswered = questions.length > 0 && questions.every((question) => answers[question.id]);
+
+  useEffect(() => {
+    let mounted = true;
+    setStatus("loading");
+    setFeed(null);
+    setAnswers({});
+    setCompleted(false);
+    setChallengeUrl("");
+    setChallengeToken("");
+    setChallengeStatus("");
+    getTitleTrivia({ mediaType, tmdbId })
+      .then((result) => {
+        if (!mounted) return;
+        setFeed(result);
+        setStatus("ready");
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setStatus("error");
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [mediaType, tmdbId]);
+
+  async function handleCreateChallenge() {
+    if (!allAnswered || !feed) return;
+    setChallengeStatus("Creating challenge...");
+    try {
+      const result = await createFriendChallenge({
+        mediaType,
+        tmdbId,
+        title,
+        questionIds: questions.map((question) => question.id),
+        answers,
+      });
+      const url = `${window.location.origin}${result.challenge.shareUrl}`;
+      setChallengeUrl(url);
+      setChallengeToken(result.challenge.token);
+      setChallengeStatus("Challenge ready.");
+    } catch (error) {
+      setChallengeStatus(error instanceof Error ? error.message : "Could not create challenge.");
+    }
+  }
+
+  async function copyChallengeLink() {
+    if (!challengeUrl) return;
+    await navigator.clipboard?.writeText(challengeUrl).catch(() => undefined);
+    setChallengeStatus("Challenge link copied.");
+  }
+
+  async function shareChallenge() {
+    if (!challengeUrl) return copyChallengeLink();
+    const text = `I scored ${score.score} on ${title} trivia. Can you beat it?`;
+    if (navigator.share) {
+      await navigator.share({ title: `${title} Trivia Challenge`, text, url: challengeUrl }).catch(() => undefined);
+      return;
+    }
+    return copyChallengeLink();
+  }
+
+  if (status === "loading") {
+    return (
+      <section className="title-games-section">
+        <p className="empty-state">Please wait while we load your trivia questions.</p>
+      </section>
+    );
+  }
+
+  if (status === "error" || questions.length === 0) {
+    return (
+      <section className="title-games-section">
+        <h2>Classic Trivia</h2>
+        <p className="empty-state">Trivia is still being prepared for this title. Try again soon.</p>
+      </section>
+    );
+  }
+
+  return (
+    <section className="title-games-section classic-trivia-play">
+      <div className="actor-section-heading">
+        <h2>Classic Trivia</h2>
+        <span>{questions.length} questions</span>
+      </div>
+      <div className="trivia-score-strip">
+        <strong>{completed ? `${score.score} points` : "Beat my score mode"}</strong>
+        <span>{completed ? `${score.correctCount} / ${score.totalCount} correct` : "Answer the same cached pack your friends will play."}</span>
+      </div>
+      <div className="classic-trivia-list">
+        {questions.map((question, index) => (
+          <article className="classic-trivia-question" key={question.id}>
+            <span>Question {index + 1}</span>
+            <h3>{question.question}</h3>
+            <div className="classic-trivia-options">
+              {question.options.map((option) => {
+                const selected = answers[question.id] === option;
+                const isCorrect = completed && option === question.answer;
+                const isWrong = completed && selected && option !== question.answer;
+                return (
+                  <button
+                    className={`${selected ? "is-selected" : ""} ${isCorrect ? "is-correct" : ""} ${isWrong ? "is-wrong" : ""}`}
+                    disabled={completed}
+                    key={option}
+                    onClick={() => setAnswers((current) => ({ ...current, [question.id]: option }))}
+                    type="button"
+                  >
+                    {option}
+                  </button>
+                );
+              })}
+            </div>
+            {completed ? <p>{question.explanation}</p> : null}
+          </article>
+        ))}
+      </div>
+      {!completed ? (
+        <button className="primary-button" disabled={!allAnswered} onClick={() => setCompleted(true)} type="button">
+          Finish Trivia
+        </button>
+      ) : (
+        <div className="friend-challenge-card">
+          <span>Friend Challenge</span>
+          <h3>Beat my score of {score.score}</h3>
+          <p>Share this exact question set. Friends will play the same questions in the same order.</p>
+          <div className="share-inline-row">
+            <button className="primary-button compact" onClick={handleCreateChallenge} type="button">
+              {challengeUrl ? "Challenge Created" : "Create Challenge"}
+            </button>
+            {challengeUrl ? <button className="secondary-button compact" onClick={shareChallenge} type="button">Share</button> : null}
+            {challengeUrl ? <button className="secondary-button compact" onClick={copyChallengeLink} type="button">Copy Link</button> : null}
+            {challengeToken ? (
+              <ShareAssetButton
+                className="secondary-button compact"
+                label="Share Card"
+                title={`${title} Trivia Challenge`}
+                text={`Share your ${title} trivia score challenge.`}
+                url={`/challenge/${challengeToken}`}
+                cardUrl={`/api/og/challenge/${challengeToken}`}
+                downloadName={`${title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "trivia"}-challenge-card.png`}
+              />
+            ) : null}
+          </div>
+          {challengeStatus ? <small>{challengeStatus}</small> : null}
+        </div>
+      )}
     </section>
   );
 }
@@ -241,39 +470,34 @@ function TitleGamesPage({ mediaType = "movie", tmdbId = 0, returnTo, onNavigate 
             </div>
           </section>
 
-          {!enabled ? (
-            <section className="title-games-coming-soon">
-              <h2>Trivia & Games are coming soon for this title.</h2>
-              <p>Game cards, scores, and recommended challenges are feature-gated until launch.</p>
-            </section>
-          ) : (
-            <>
-              <section className="title-games-section">
-                <div className="actor-section-heading">
-                  <h2>Available Games & Challenges</h2>
-                  <span>{titleGameCards.length}</span>
-                </div>
-                <div className="title-game-grid">
-                  {titleGameCards.map((game) => <GameCard key={game.id} game={game} disabled />)}
-                </div>
-              </section>
+          <ClassicTriviaPanel mediaType={mediaType} tmdbId={tmdbId} title={title.title} />
 
-              <section className="title-games-section">
-                <div className="actor-section-heading">
-                  <h2>Recommended Games & Challenges</h2>
-                  <span>{recommendationReason}</span>
-                </div>
-                <div className="challenge-discovery-row">
-                  {recommendedGames.map((game) => (
-                    <article className="challenge-discovery-card" key={game}>
-                      <strong>{game}</strong>
-                      <small>{highScoreText()}</small>
-                    </article>
-                  ))}
-                </div>
-              </section>
-            </>
-          )}
+          <section className="title-games-section">
+            <div className="actor-section-heading">
+              <h2>Available Games & Challenges</h2>
+              <span>{enabled ? titleGameCards.length : "More modes soon"}</span>
+            </div>
+            <div className="title-game-grid">
+              {titleGameCards.map((game) => <GameCard key={game.id} game={game} disabled />)}
+            </div>
+          </section>
+
+          {enabled ? (
+            <section className="title-games-section">
+              <div className="actor-section-heading">
+                <h2>Recommended Games & Challenges</h2>
+                <span>{recommendationReason}</span>
+              </div>
+              <div className="challenge-discovery-row">
+                {recommendedGames.map((game) => (
+                  <article className="challenge-discovery-card" key={game}>
+                    <strong>{game}</strong>
+                    <small>{highScoreText()}</small>
+                  </article>
+                ))}
+              </div>
+            </section>
+          ) : null}
         </>
       ) : null}
     </section>

@@ -16,6 +16,7 @@ export type AppRoute =
   | "/franchise/:id"
   | "/games"
   | "/games/title/:mediaType/:tmdbId"
+  | "/challenge/:token"
   | "/challenges"
   | "/progress"
   | "/hall-of-fame"
@@ -56,6 +57,7 @@ export interface RouteState {
   gamesMediaType?: MediaType;
   gamesTmdbId?: string;
   returnTo?: string;
+  challengeToken?: string;
   actorId?: string;
   collectionId?: string;
   discoveryKind?: "genre" | "decade" | "franchise";
@@ -1079,6 +1081,59 @@ export interface TriviaFeed {
   unlockedAchievements?: CompanionAchievement[];
   authenticated?: boolean;
   notes: string;
+}
+
+export interface FriendChallengeQuestion {
+  id: string;
+  question: string;
+  options: string[];
+  explanation?: string;
+  difficulty?: string;
+  answer?: string;
+}
+
+export interface FriendTriviaChallenge {
+  id: string;
+  token: string;
+  mediaType: MediaType;
+  tmdbId: number;
+  title: string;
+  challengerName: string;
+  score: number;
+  correctCount: number;
+  totalCount: number;
+  questions: FriendChallengeQuestion[];
+  attempts: number;
+  bestFriendScore: number;
+  createdAt: string;
+  completedAt: string;
+  shareUrl: string;
+}
+
+export interface FriendChallengeAttemptResult {
+  result: "won" | "lost" | "tie";
+  score: number;
+  correctCount: number;
+  totalCount: number;
+  challengeScore: number;
+  difference: number;
+  questions: Array<FriendChallengeQuestion & { answer: string; explanation: string }>;
+}
+
+export interface FriendChallengeHistoryAttempt {
+  id: string;
+  token: string;
+  title: string;
+  mediaType: MediaType;
+  tmdbId: number;
+  challengerName: string;
+  score: number;
+  challengeScore: number;
+  correctCount: number;
+  totalCount: number;
+  result: "won" | "lost" | "tie";
+  completedAt: string;
+  shareUrl: string;
 }
 
 export interface MediaExtensions {

@@ -18,6 +18,7 @@ import {
 import { MovieDetailsPage } from "./pages/MovieDetails";
 import { ActorDetailsPage } from "./pages/ActorDetails";
 import { CollectionDetailsPage } from "./pages/CollectionDetails";
+import { FriendChallenge } from "./pages/FriendChallenge";
 import { TriviaGames } from "./pages/TriviaGames";
 import { HallOfFame } from "./pages/HallOfFame";
 import { Progress } from "./pages/Progress";
@@ -76,6 +77,7 @@ function routeFromPath(pathname = window.location.pathname): RouteState {
       returnTo: new URLSearchParams(window.location.search).get("returnTo") || undefined,
     };
   }
+  if (pathname.startsWith("/challenge/")) return { route: "/challenge/:token", challengeToken: pathname.split("/")[2] };
   if (pathname === "/games" || pathname === "/trivia-games") return { route: "/games" };
   if (pathname === "/challenges") return { route: "/challenges" };
   if (pathname === "/progress") return { route: "/progress" };
@@ -336,6 +338,7 @@ export default function App() {
     "/franchise/:id": <DiscoveryHub kind="franchise" hubId={routeState.discoveryId || ""} onNavigate={navigate} />,
     "/games": <TriviaGames onNavigate={navigate} />,
     "/games/title/:mediaType/:tmdbId": <TriviaGames mediaType={routeState.gamesMediaType || "movie"} tmdbId={Number(routeState.gamesTmdbId)} returnTo={routeState.returnTo} onNavigate={navigate} />,
+    "/challenge/:token": <FriendChallenge token={routeState.challengeToken || ""} onNavigate={navigate} />,
     "/challenges": <SeasonalChallenges onNavigate={navigate} />,
     "/progress": <Progress onNavigate={navigate} />,
     "/hall-of-fame": <HallOfFame onNavigate={navigate} />,
