@@ -228,9 +228,9 @@ function leftPanel() {
 }
 
 export function renderShareCard(data: ShareCardData) {
-  const title = truncate(data.title || "Flim", 42);
-  const subtitle = truncate(data.subtitle || "", 64);
-  const description = truncate(data.description || "", 92);
+  const title = truncate(data.title || "Flim", 30);
+  const subtitle = truncate(data.subtitle || "", 46);
+  const description = truncate(data.description || "", 58);
   const posters = (data.posters || []).slice(0, 4);
   const primaryPoster = data.posterUrl || posters[0]?.url;
 
@@ -266,11 +266,11 @@ export function renderShareCard(data: ShareCardData) {
   ${brand()}
   ${badge}
   <g transform="translate(76 254)">
-    ${data.eyebrow ? svgText(truncate(data.eyebrow, 40), 0, -50, 24, 900, "#ffcf8a") : ""}
-    ${svgText(title, 0, 0, 70, 900, "#ffffff")}
-    ${subtitle ? svgText(subtitle, 0, 58, 31, 800, "#ffd79b") : ""}
-    ${data.statLine ? svgText(truncate(data.statLine, 68), 0, 114, 28, 800, "#f6e8d9") : ""}
-    ${description ? svgText(description, 0, data.statLine ? 164 : 122, 25, 400, "#d9d1c7") : ""}
+    ${data.eyebrow && !data.badge ? svgText(truncate(data.eyebrow, 34), 0, -48, 23, 900, "#ffcf8a") : ""}
+    ${svgText(title, 0, 0, 58, 900, "#ffffff")}
+    ${subtitle ? svgText(subtitle, 0, 56, 29, 800, "#ffd79b") : ""}
+    ${data.statLine ? svgText(truncate(data.statLine, 48), 0, 108, 26, 800, "#f6e8d9") : ""}
+    ${description ? svgText(description, 0, data.statLine ? 154 : 116, 23, 400, "#d9d1c7") : ""}
   </g>
   ${cta(data)}
 </svg>`;
