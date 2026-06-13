@@ -3,10 +3,10 @@
   "outputDirectory": "client/dist",
   "functions": {
     "api/og/*.ts": {
-      "includeFiles": "node_modules/{sharp,@img}/**/*"
+      "includeFiles": "{node_modules/{sharp,@img}/**/*,api/assets/**/*}"
     },
     "api/og/**/*.ts": {
-      "includeFiles": "node_modules/{sharp,@img}/**/*"
+      "includeFiles": "{node_modules/{sharp,@img}/**/*,api/assets/**/*}"
     }
   },
   "crons": [
