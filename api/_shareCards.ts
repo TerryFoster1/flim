@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import opentype from "opentype.js";
 
 export type ShareCardKind = "playlist" | "trailer" | "countdown" | "game" | "profile" | "title" | "collection";
 
@@ -61,34 +62,53 @@ export function absoluteUrl(path: string, request?: any) {
   return `${protocol}://${host}${path.startsWith("/") ? path : `/${path}`}`;
 }
 
-let embeddedFontCss: string | null = null;
+let regularFont: opentype.Font | null = null;
+let boldFont: opentype.Font | null = null;
 
-function fontDataUri(fileName: string) {
-  const candidates = [
+function fontFilePath(fileName: string) {
+  return [
     join(process.cwd(), "api", "assets", fileName),
     join(process.cwd(), "assets", fileName),
-  ];
-  const found = candidates.find((candidate) => existsSync(candidate));
-  if (!found) return "";
-  return `data:font/truetype;base64,${readFileSync(found).toString("base64")}`;
+  ].find((candidate) => existsSync(candidate));
 }
 
-function shareCardFontCss() {
-  if (embeddedFontCss !== null) return embeddedFontCss;
-  const regular = fontDataUri("NotoSans-Regular.ttf");
-  const bold = fontDataUri("NotoSans-Bold.ttf");
-  embeddedFontCss = regular && bold ? `
-    <style>
-      @font-face { font-family: 'FlimCard'; src: url('${regular}') format('truetype'); font-weight: 400 600; }
-      @font-face { font-family: 'FlimCard'; src: url('${bold}') format('truetype'); font-weight: 700 900; }
-      text { font-family: 'FlimCard', sans-serif; }
-    </style>
-  ` : "";
-  return embeddedFontCss;
+function parseFont(fileName: string) {
+  const found = fontFilePath(fileName);
+  if (!found) return null;
+  const buffer = readFileSync(found);
+  const arrayBuffer = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+  return opentype.parse(arrayBuffer);
 }
 
-function svgText(value: string, x: number, y: number, size: number, weight = 800, fill = "#ffffff") {
-  return `<text x="${x}" y="${y}" font-family="FlimCard, sans-serif" font-size="${size}" font-weight="${weight}" fill="${fill}">${escapeXml(value)}</text>`;
+function fontForWeight(weight: number) {
+  if (weight >= 700) {
+    if (!boldFont) boldFont = parseFont("NotoSans-Bold.ttf");
+    return boldFont;
+  }
+  if (!regularFont) regularFont = parseFont("NotoSans-Regular.ttf");
+  return regularFont;
+}
+
+function svgText(
+  value: string,
+  x: number,
+  y: number,
+  size: number,
+  weight = 800,
+  fill = "#ffffff",
+  options: { anchor?: "start" | "middle"; stroke?: string; strokeWidth?: number; opacity?: number; filter?: string } = {},
+) {
+  const clean = String(value || "");
+  const font = fontForWeight(weight);
+  if (!font) {
+    return `<text x="${x}" y="${y}" font-family="FlimCard, sans-serif" font-size="${size}" font-weight="${weight}" fill="${fill}">${escapeXml(clean)}</text>`;
+  }
+  const drawX = options.anchor === "middle" ? x - font.getAdvanceWidth(clean, size) / 2 : x;
+  const path = font.getPath(clean, drawX, y, size).toPathData(2);
+  const stroke = options.stroke ? ` stroke="${options.stroke}" stroke-width="${options.strokeWidth || 1}" paint-order="stroke"` : "";
+  const opacity = typeof options.opacity === "number" ? ` opacity="${options.opacity}"` : "";
+  const filter = options.filter ? ` filter="${options.filter}"` : "";
+  return `<path d="${path}" fill="${fill}"${stroke}${opacity}${filter} />`;
 }
 
 function posterTile(url: string | undefined, x: number, y: number, width: number, height: number, rotate = 0, id = "poster") {
@@ -111,7 +131,7 @@ function posterTile(url: string | undefined, x: number, y: number, width: number
 
 function avatar(url: string | undefined, x: number, y: number) {
   if (!url) {
-    return `<circle cx="${x + 72}" cy="${y + 72}" r="72" fill="#ffb84d" opacity="0.94" /><text x="${x + 72}" y="${y + 95}" text-anchor="middle" font-family="FlimCard, sans-serif" font-size="70" font-weight="900" fill="#110509">F</text>`;
+    return `<circle cx="${x + 72}" cy="${y + 72}" r="72" fill="#ffb84d" opacity="0.94" />${svgText("F", x + 72, y + 95, 70, 900, "#110509", { anchor: "middle" })}`;
   }
   return `
     <clipPath id="avatar-clip"><circle cx="${x + 72}" cy="${y + 72}" r="72" /></clipPath>
@@ -164,9 +184,9 @@ function brand() {
         </filter>
       </defs>
       <rect x="0" y="0" width="72" height="72" rx="18" fill="url(#flim-brand-lockup)" filter="url(#flim-brand-glow)" />
-      <text x="36" y="48" text-anchor="middle" font-family="FlimCard, sans-serif" font-size="42" font-weight="900" fill="#130508">F</text>
-      <text x="92" y="49" font-family="FlimCard, sans-serif" font-size="40" font-weight="900" fill="#000000" fill-opacity="0.78" stroke="#000000" stroke-opacity="0.78" stroke-width="5" paint-order="stroke">Flim</text>
-      <text x="92" y="49" font-family="FlimCard, sans-serif" font-size="40" font-weight="900" fill="url(#flim-brand-lockup)" filter="url(#flim-brand-glow)">Flim</text>
+      ${svgText("F", 36, 48, 42, 900, "#130508", { anchor: "middle" })}
+      ${svgText("Flim", 92, 49, 40, 900, "#000000", { stroke: "#000000", strokeWidth: 5, opacity: 0.78 })}
+      ${svgText("Flim", 92, 49, 40, 900, "url(#flim-brand-lockup)", { filter: "url(#flim-brand-glow)" })}
     </g>
   `;
 }
@@ -176,8 +196,8 @@ function cta(data: ShareCardData) {
   return `
     <g transform="translate(76 520)">
       <rect x="0" y="0" width="300" height="58" rx="29" fill="#ffb84d" />
-      <text x="150" y="38" text-anchor="middle" font-family="FlimCard, sans-serif" font-size="24" font-weight="900" fill="#130508">${escapeXml(ctaText)}</text>
-      ${data.urlLabel ? `<text x="328" y="38" font-family="FlimCard, sans-serif" font-size="22" fill="#d9d1c7">${escapeXml(data.urlLabel)}</text>` : ""}
+      ${svgText(ctaText, 150, 38, 24, 900, "#130508", { anchor: "middle" })}
+      ${data.urlLabel ? svgText(data.urlLabel, 328, 38, 22, 400, "#d9d1c7") : ""}
     </g>
   `;
 }
@@ -214,13 +234,12 @@ export function renderShareCard(data: ShareCardData) {
         ? posterTile(primaryPoster, 840, 128, 224, 336, 4, "single")
         : posterTile(primaryPoster, 805, 96, 250, 374, 3, "single");
 
-  const gameAccent = data.kind === "game" ? `<text x="805" y="510" font-family="FlimCard, sans-serif" font-size="86" font-weight="900" fill="#ffb84d" opacity="0.92">?</text>` : "";
+  const gameAccent = data.kind === "game" ? svgText("?", 805, 510, 86, 900, "#ffb84d", { opacity: 0.92 }) : "";
   const playAccent = data.kind === "trailer" ? `<circle cx="930" cy="284" r="58" fill="#ff4f6d" opacity="0.94" /><polygon points="912,250 912,318 972,284" fill="#fff8eb" />` : "";
-  const badge = data.badge ? `<rect x="76" y="164" width="${Math.min(520, 32 + data.badge.length * 15)}" height="42" rx="21" fill="rgba(255,184,77,0.18)" stroke="rgba(255,184,77,0.42)" /><text x="96" y="192" font-family="FlimCard, sans-serif" font-size="22" font-weight="900" fill="#ffd28d">${escapeXml(truncate(data.badge, 34))}</text>` : "";
+  const badge = data.badge ? `<rect x="76" y="164" width="${Math.min(520, 32 + data.badge.length * 15)}" height="42" rx="21" fill="rgba(255,184,77,0.18)" stroke="rgba(255,184,77,0.42)" />${svgText(truncate(data.badge, 34), 96, 192, 22, 900, "#ffd28d")}` : "";
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
-  ${shareCardFontCss()}
   ${background(data)}
   ${artwork}
   ${playAccent}
@@ -233,7 +252,7 @@ export function renderShareCard(data: ShareCardData) {
     ${svgText(title, 0, 0, 70, 900, "#ffffff")}
     ${subtitle ? svgText(subtitle, 0, 58, 31, 800, "#ffd79b") : ""}
     ${data.statLine ? svgText(truncate(data.statLine, 68), 0, 114, 28, 800, "#f6e8d9") : ""}
-    ${description ? `<text x="0" y="${data.statLine ? 164 : 122}" font-family="FlimCard, sans-serif" font-size="25" fill="#d9d1c7">${escapeXml(description)}</text>` : ""}
+    ${description ? svgText(description, 0, data.statLine ? 164 : 122, 25, 400, "#d9d1c7") : ""}
   </g>
   ${cta(data)}
 </svg>`;
