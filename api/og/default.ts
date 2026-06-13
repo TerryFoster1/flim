@@ -10,11 +10,9 @@ export default async function handler(request: any, response: any) {
   return sendShareCard(response, {
     kind: "title",
     title: "Flim",
-    subtitle: "Movie and TV discovery",
-    eyebrow: "What are we watching tonight?",
+    subtitle: "What are we watching tonight?",
     description: "Create, share, and discover movie and TV playlists.",
     cta: "Open Flim",
     urlLabel: "flim.ca",
-    badge: "Watch, Track & Discover",
   });
 }
