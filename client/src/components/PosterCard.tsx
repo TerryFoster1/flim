@@ -3,18 +3,14 @@ import { WatchStatusBadge } from "./WatchStatusBadge";
 
 interface PosterCardProps {
   movie: PlaylistMovie;
-  index?: number;
-  itemCount?: number;
   playlistId?: string;
   onNavigate?: (path: string) => void;
   onRemove?: (playlistId: string, tmdbId: number, mediaType?: string) => void | Promise<void>;
-  onReorder?: (index: number, direction: -1 | 1) => void | Promise<void>;
   onWatchStatusChange?: (playlistId: string, tmdbId: number, watchStatus: WatchStatus, mediaType?: string) => void | Promise<void>;
 }
 
-export function PosterCard({ movie, index, itemCount, playlistId, onNavigate, onRemove, onReorder, onWatchStatusChange }: PosterCardProps) {
+export function PosterCard({ movie, playlistId, onNavigate, onRemove, onWatchStatusChange }: PosterCardProps) {
   const watched = movie.watchStatus === "watched";
-  const canReorder = typeof index === "number" && typeof itemCount === "number" && Boolean(onReorder);
   const mediaType = movie.mediaType === "tv" ? "tv" : "movie";
   const genres = Array.isArray(movie.genres) ? movie.genres : [];
   const detailPath = `${mediaType === "tv" ? "/tv" : "/movies"}/${movie.tmdbId}${playlistId ? `?playlist=${encodeURIComponent(playlistId)}` : ""}`;
@@ -27,7 +23,6 @@ export function PosterCard({ movie, index, itemCount, playlistId, onNavigate, on
       <div className="card-title">{movie.title}</div>
       <div className="card-meta">
         <span>{movie.releaseYear || "Year"}</span>
-        <span className="media-type-badge">{mediaType === "tv" ? "TV Show" : "Movie"}</span>
         {movie.runtimeMinutes ? <span>{movie.runtimeMinutes} min</span> : null}
         {movie.seasonCount ? <span>{movie.seasonCount} season{movie.seasonCount === 1 ? "" : "s"}</span> : null}
         {genres.slice(0, 2).map((genre) => (
@@ -38,16 +33,6 @@ export function PosterCard({ movie, index, itemCount, playlistId, onNavigate, on
       <WatchStatusBadge label={watched ? "Watched" : "Not watched"} />
       {playlistId ? (
         <div className="card-actions">
-          {canReorder ? (
-            <div className="reorder-actions" aria-label={`Reorder ${movie.title}`}>
-              <button disabled={index === 0} onClick={() => onReorder?.(index, -1)} type="button">
-                Up
-              </button>
-              <button disabled={index === itemCount - 1} onClick={() => onReorder?.(index, 1)} type="button">
-                Down
-              </button>
-            </div>
-          ) : null}
           <button
             className={watched ? "watched-toggle is-watched" : "watched-toggle"}
             onClick={() => onWatchStatusChange?.(playlistId, movie.tmdbId, watched ? "not_watched" : "watched", mediaType)}

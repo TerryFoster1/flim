@@ -67,7 +67,6 @@ export function SharedPlaylist({ token, onNavigate }: SharedPlaylistProps) {
       deletePlaylist={async () => undefined}
       updatePlaylist={async () => undefined}
       removeMovie={removeFromPlaylist}
-      reorderMovies={async () => undefined}
       updateWatchStatus={async (_playlistId: string, _tmdbId: number, _watchStatus: WatchStatus) => undefined}
     />
   );

@@ -10,7 +10,6 @@ import {
   createPlaylist,
   deletePlaylist,
   getPlaylists,
-  reorderPlaylistMovies,
   removeMovieFromPlaylist,
   toggleWatchedStatus,
   updatePlaylist,
@@ -221,11 +220,6 @@ export default function App() {
     await refreshPlaylists();
   }
 
-  async function reorderMovies(playlistId: string, movieIds: string[]) {
-    await reorderPlaylistMovies(playlistId, movieIds);
-    await refreshPlaylists();
-  }
-
   async function deleteRemotePlaylist(playlistId: string) {
     await deletePlaylist(playlistId);
     await refreshPlaylists();
@@ -303,7 +297,6 @@ export default function App() {
         updatePlaylist={updateRemotePlaylist}
         createSharedLink={createRemoteSharedLink}
         removeMovie={removeFromPlaylist}
-        reorderMovies={reorderMovies}
         updateWatchStatus={updateWatchStatus}
         relatedPlaylists={displayPlaylists}
       />
