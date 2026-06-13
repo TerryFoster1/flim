@@ -6,7 +6,7 @@ import {
   upsertMediaItems,
 } from "../_mediaCatalog.js";
 import { ensureProviderAvailabilityTables } from "../_providers.js";
-import { ensureTmdbCacheTables, fetchTmdbPersonSearch, fetchTmdbSearch, normalizeMovieQuery } from "../_tmdb.js";
+import { ensureTmdbCacheTables, fetchTmdbPersonDetails, fetchTmdbPersonSearch, fetchTmdbSearch, normalizeMovieQuery } from "../_tmdb.js";
 
 const SEARCH_CACHE_DAYS = 7;
 const MAX_TITLE_RESULTS = 12;
@@ -25,6 +25,12 @@ const discoveryHubs = [
   { kind: "genre", key: "action", title: "Action", description: "Action, adventure, heroes, and spectacle.", terms: ["action", "adventure"] },
   { kind: "genre", key: "family", title: "Family", description: "Family movie nights and animated favorites.", terms: ["family", "kids", "animation"] },
   { kind: "genre", key: "drama", title: "Drama", description: "Character-driven movies and prestige TV.", terms: ["drama"] },
+  { kind: "genre", key: "anime", title: "Anime", description: "Anime films, series, and Japanese animation gateways.", terms: ["anime", "japanese animation"] },
+  { kind: "genre", key: "christmas", title: "Christmas Movies", description: "Holiday movies, cozy rewatches, and family seasonal picks.", terms: ["christmas", "holiday movies", "holiday"] },
+  { kind: "genre", key: "time-travel", title: "Time Travel", description: "Time loops, alternate timelines, paradoxes, and future shocks.", terms: ["time travel", "time loop", "time machine"] },
+  { kind: "genre", key: "tornado-movies", title: "Tornado Movies", description: "Storm chasers, disaster movies, and extreme weather spectacle.", terms: ["tornado", "twister", "storm chaser", "storm"] },
+  { kind: "genre", key: "shark-movies", title: "Shark Movies", description: "Sharks, ocean survival, creature features, and summer scares.", terms: ["shark", "sharks", "creature feature"] },
+  { kind: "genre", key: "a24-horror", title: "A24 Horror", description: "Elevated horror, dread, and modern cult favorites.", terms: ["a24 horror", "a24", "elevated horror"] },
   { kind: "decade", key: "1970s", title: "1970s", description: "Browse movies and TV from the 1970s.", terms: ["1970s", "70s", "seventies"] },
   { kind: "decade", key: "1980s", title: "1980s", description: "Browse movies and TV from the 1980s.", terms: ["1980s", "80s", "eighties"] },
   { kind: "decade", key: "1990s", title: "1990s", description: "Browse movies and TV from the 1990s.", terms: ["1990s", "90s", "nineties"] },
@@ -54,6 +60,106 @@ const curatedCollectionSearchSeeds = [
   { slug: "toy-story", title: "Toy Story Collection", category: "Pixar", keywords: ["pixar", "animation", "family", "kids"] },
 ];
 
+const broadTitleSearchSeeds: Array<{
+  triggers: string[];
+  titles: Array<{ query: string; mediaType?: "movie" | "tv" }>;
+}> = [
+  {
+    triggers: ["tornado", "twister", "storm chaser", "storm movies"],
+    titles: [
+      { query: "Twister", mediaType: "movie" },
+      { query: "Twisters", mediaType: "movie" },
+      { query: "Into the Storm", mediaType: "movie" },
+      { query: "The Day After Tomorrow", mediaType: "movie" },
+      { query: "Storm Chasers", mediaType: "tv" },
+    ],
+  },
+  {
+    triggers: ["movies like twister", "like twister", "twister"],
+    titles: [
+      { query: "Twisters", mediaType: "movie" },
+      { query: "Into the Storm", mediaType: "movie" },
+      { query: "The Day After Tomorrow", mediaType: "movie" },
+      { query: "Dante's Peak", mediaType: "movie" },
+      { query: "Volcano", mediaType: "movie" },
+    ],
+  },
+  {
+    triggers: ["90s action", "nineties action", "1990s action"],
+    titles: [
+      { query: "Terminator 2: Judgment Day", mediaType: "movie" },
+      { query: "Speed", mediaType: "movie" },
+      { query: "True Lies", mediaType: "movie" },
+      { query: "The Matrix", mediaType: "movie" },
+      { query: "Mission: Impossible", mediaType: "movie" },
+      { query: "The Rock", mediaType: "movie" },
+      { query: "Face/Off", mediaType: "movie" },
+      { query: "Die Hard with a Vengeance", mediaType: "movie" },
+    ],
+  },
+  {
+    triggers: ["christmas", "holiday movies", "holiday"],
+    titles: [
+      { query: "Home Alone", mediaType: "movie" },
+      { query: "Elf", mediaType: "movie" },
+      { query: "It's a Wonderful Life", mediaType: "movie" },
+      { query: "National Lampoon's Christmas Vacation", mediaType: "movie" },
+      { query: "The Muppet Christmas Carol", mediaType: "movie" },
+      { query: "A Christmas Story", mediaType: "movie" },
+      { query: "The Polar Express", mediaType: "movie" },
+    ],
+  },
+  {
+    triggers: ["a24 horror", "a24 scary", "elevated horror"],
+    titles: [
+      { query: "Hereditary", mediaType: "movie" },
+      { query: "Midsommar", mediaType: "movie" },
+      { query: "The Witch", mediaType: "movie" },
+      { query: "Talk to Me", mediaType: "movie" },
+      { query: "X", mediaType: "movie" },
+      { query: "Pearl", mediaType: "movie" },
+      { query: "The Lighthouse", mediaType: "movie" },
+      { query: "Green Room", mediaType: "movie" },
+    ],
+  },
+  {
+    triggers: ["time travel", "time loop", "time machine"],
+    titles: [
+      { query: "Back to the Future", mediaType: "movie" },
+      { query: "Looper", mediaType: "movie" },
+      { query: "12 Monkeys", mediaType: "movie" },
+      { query: "Edge of Tomorrow", mediaType: "movie" },
+      { query: "The Terminator", mediaType: "movie" },
+      { query: "About Time", mediaType: "movie" },
+      { query: "Primer", mediaType: "movie" },
+      { query: "Source Code", mediaType: "movie" },
+    ],
+  },
+  {
+    triggers: ["anime", "japanese animation"],
+    titles: [
+      { query: "Spirited Away", mediaType: "movie" },
+      { query: "Akira", mediaType: "movie" },
+      { query: "Your Name.", mediaType: "movie" },
+      { query: "Princess Mononoke", mediaType: "movie" },
+      { query: "Ghost in the Shell", mediaType: "movie" },
+      { query: "Demon Slayer: Kimetsu no Yaiba - The Movie: Mugen Train", mediaType: "movie" },
+      { query: "Cowboy Bebop", mediaType: "tv" },
+    ],
+  },
+  {
+    triggers: ["shark", "sharks"],
+    titles: [
+      { query: "Jaws", mediaType: "movie" },
+      { query: "The Shallows", mediaType: "movie" },
+      { query: "Deep Blue Sea", mediaType: "movie" },
+      { query: "The Meg", mediaType: "movie" },
+      { query: "Open Water", mediaType: "movie" },
+      { query: "47 Meters Down", mediaType: "movie" },
+    ],
+  },
+];
+
 function firstQueryValue(value: unknown) {
   return Array.isArray(value) ? String(value[0] || "") : String(value || "");
 }
@@ -76,7 +182,11 @@ function normalizeSearchText(value: string) {
 
 function expandedSearchTerms(query: string) {
   const normalized = normalizeSearchText(query);
-  const terms = new Set([normalized]);
+  const stripped = normalized
+    .replace(/\b(movies?|films?|tv|shows?|series|watch|best|top|like|similar to|about)\b/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const terms = new Set([normalized, stripped].filter(Boolean));
   if (normalized.includes("sci fi") || normalized.includes("scifi")) {
     terms.add("sci-fi");
     terms.add("science fiction");
@@ -98,6 +208,33 @@ function expandedSearchTerms(query: string) {
     terms.add("apocalypse");
     terms.add("end of the world");
   }
+  if (normalized.includes("tornado") || normalized.includes("twister")) {
+    terms.add("tornado");
+    terms.add("twister");
+    terms.add("storm");
+    terms.add("disaster");
+  }
+  if (normalized.includes("shark")) {
+    terms.add("shark");
+    terms.add("sharks");
+    terms.add("creature feature");
+  }
+  if (normalized.includes("a24") && normalized.includes("horror")) {
+    terms.add("a24");
+    terms.add("a24 horror");
+    terms.add("horror");
+    terms.add("elevated horror");
+  }
+  if (normalized.includes("time travel")) {
+    terms.add("time travel");
+    terms.add("time loop");
+    terms.add("time machine");
+  }
+  if (normalized.includes("90s") || normalized.includes("1990s") || normalized.includes("nineties")) {
+    terms.add("1990s");
+    terms.add("90s");
+    terms.add("nineties");
+  }
   if (normalized.includes("anime")) {
     terms.add("animation");
     terms.add("japanese animation");
@@ -115,7 +252,7 @@ function searchPatterns(query: string) {
 
 function collectionSearchTerms(query: string) {
   const normalized = normalizeSearchText(query);
-  const terms = new Set([normalized]);
+  const terms = new Set(expandedSearchTerms(query));
   if (normalized.includes("sci fi") || normalized.includes("scifi")) {
     terms.add("sci-fi");
     terms.add("science fiction");
@@ -126,6 +263,35 @@ function collectionSearchTerms(query: string) {
   }
   if (normalized.includes("marvel")) terms.add("mcu");
   return [...terms].filter(Boolean);
+}
+
+function titleMatchesSeed(title: string, query: string) {
+  const normalizedTitle = normalizeSearchText(title);
+  const normalizedQuery = normalizeSearchText(query);
+  return normalizedTitle === normalizedQuery || normalizedTitle.includes(normalizedQuery) || normalizedQuery.includes(normalizedTitle);
+}
+
+function matchingTitleSeeds(query: string) {
+  const terms = expandedSearchTerms(query);
+  const normalized = normalizeSearchText(query);
+  const seen = new Set<string>();
+  const matches: Array<{ query: string; mediaType?: "movie" | "tv" }> = [];
+
+  for (const seed of broadTitleSearchSeeds) {
+    const hit = seed.triggers.some((trigger) => {
+      const normalizedTrigger = normalizeSearchText(trigger);
+      return normalized.includes(normalizedTrigger) || terms.some((term) => term.includes(normalizedTrigger) || normalizedTrigger.includes(term));
+    });
+    if (!hit) continue;
+    for (const title of seed.titles) {
+      const key = `${title.mediaType || "movie"}:${title.query.toLowerCase()}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      matches.push(title);
+    }
+  }
+
+  return matches.slice(0, 12);
 }
 
 function searchHubs(query: string) {
@@ -213,6 +379,53 @@ async function searchTitles(sql: any, query: string) {
       items: catalogResults.slice(0, MAX_TITLE_RESULTS),
       source: "catalog",
     };
+  }
+}
+
+async function searchBroadSeedTitles(sql: any, query: string) {
+  const seeds = matchingTitleSeeds(query);
+  if (seeds.length === 0) return [];
+
+  const settled = await Promise.allSettled(
+    seeds.map(async (seed) => {
+      const results = await fetchTmdbSearch(seed.query, seed.mediaType || "movie");
+      const exact = results.find((result: any) => titleMatchesSeed(result.title || "", seed.query));
+      return exact || results[0] || null;
+    }),
+  );
+
+  const items = settled
+    .map((result) => result.status === "fulfilled" ? result.value : null)
+    .filter(Boolean);
+  if (items.length > 0) await upsertMediaItems(sql, items as any[]);
+  return items;
+}
+
+async function titleResultsForPerson(sql: any, actors: any[], query: string) {
+  const normalized = normalizeSearchText(query);
+  const actor = actors.find((item) => normalizeSearchText(item.name || "") === normalized);
+  if (!actor?.tmdbId) return [];
+
+  try {
+    const details = await fetchTmdbPersonDetails(Number(actor.tmdbId));
+    const credits = [...(details.movieCredits || []), ...(details.tvCredits || [])]
+      .sort((a: any, b: any) => Number(b.popularity || 0) - Number(a.popularity || 0))
+      .slice(0, 10)
+      .map((credit: any) => ({
+        tmdbId: credit.tmdbId,
+        mediaType: credit.mediaType || "movie",
+        title: credit.title,
+        releaseYear: credit.releaseYear,
+        overview: "",
+        posterUrl: credit.posterUrl,
+        genreIds: [],
+        popularity: credit.popularity,
+      }));
+    if (credits.length > 0) await upsertMediaItems(sql, credits);
+    return credits;
+  } catch (error) {
+    console.error("discovery_person_credit_titles_failed", error instanceof Error ? error.message : "Person credit search failed.");
+    return [];
   }
 }
 
@@ -498,10 +711,13 @@ async function searchActors(sql: any, query: string) {
     const freshActors = await fetchTmdbPersonSearch(query);
     const seen = new Set<string>();
     return [...catalogActors, ...freshActors]
+      .sort((a, b) => Number(b.popularity || 0) - Number(a.popularity || 0))
       .filter((actor) => {
         const key = String(actor.tmdbId);
-        if (!actor.tmdbId || seen.has(key)) return false;
+        const nameKey = normalizeSearchText(actor.name || "");
+        if (!actor.tmdbId || seen.has(key) || seen.has(`name:${nameKey}`)) return false;
         seen.add(key);
+        if (nameKey) seen.add(`name:${nameKey}`);
         return true;
       })
       .slice(0, MAX_ACTOR_RESULTS);
@@ -577,20 +793,23 @@ export default async function handler(request: any, response: any) {
     });
 
     const user = await getCurrentUser(sql, request);
-    const [titleResults, playlists, profiles, collections, actors] = await Promise.all([
+    const [titleResults, seedTitles, playlists, profiles, collections, actors] = await Promise.all([
       searchTitles(sql, query),
+      searchBroadSeedTitles(sql, query),
       searchPublicPlaylists(sql, query, user?.id),
       searchProfiles(sql, query),
       searchCollections(sql, query),
       searchActors(sql, query),
     ]);
+    const personTitles = actors.length > 0 ? await titleResultsForPerson(sql, actors, query) : [];
+    const mergedTitles = mergeTitleResults(seedTitles, mergeTitleResults(personTitles, titleResults.items));
     const hubs = searchHubs(query);
     const availability = availableOnMyServices
-      ? await prioritizeTitlesByAvailability(sql, titleResults.items, availabilityRegion, preferredProviders).catch((error) => {
+      ? await prioritizeTitlesByAvailability(sql, mergedTitles, availabilityRegion, preferredProviders).catch((error) => {
         console.error("discovery_availability_prioritization_failed", error instanceof Error ? error.message : "Availability prioritization failed.");
-        return { titles: titleResults.items, matches: {}, prioritized: false };
+        return { titles: mergedTitles, matches: {}, prioritized: false };
       })
-      : { titles: titleResults.items, matches: {}, prioritized: false };
+      : { titles: mergedTitles, matches: {}, prioritized: false };
 
     response.setHeader("X-Flim-Discovery-Titles", titleResults.source);
     return sendJson(response, 200, {

@@ -349,7 +349,7 @@ export function Discover({ onNavigate }: DiscoverProps) {
             {results.actors.length > 0 ? (
               <div className="actor-result-grid">
                 {results.actors.map((actor) => (
-                  <button className="actor-result-card" key={actor.tmdbId} onClick={() => onNavigate(`/actor/${actor.tmdbId}`)} type="button">
+                  <button className="actor-result-card" key={actor.tmdbId} onClick={() => onNavigate(`/person/${actor.tmdbId}`)} type="button">
                     {actor.profileUrl ? <img alt={`${actor.name} profile`} decoding="async" loading="lazy" src={actor.profileUrl} /> : <span className="cast-avatar-fallback">{actor.name.slice(0, 1)}</span>}
                     <strong>{actor.name}</strong>
                     {actor.knownForDepartment ? <small>{actor.knownForDepartment}</small> : null}
