@@ -89,6 +89,24 @@ function fontForWeight(weight: number) {
   return regularFont;
 }
 
+function glyphAdvance(font: opentype.Font, value: string, size: number) {
+  return Array.from(value).reduce((total, character) => {
+    const glyph = font.charToGlyph(character);
+    return total + ((glyph.advanceWidth || font.unitsPerEm * 0.5) / font.unitsPerEm) * size;
+  }, 0);
+}
+
+function glyphPathData(font: opentype.Font, value: string, x: number, y: number, size: number) {
+  let cursor = x;
+  const paths: string[] = [];
+  for (const character of Array.from(value)) {
+    const glyph = font.charToGlyph(character);
+    paths.push(glyph.getPath(cursor, y, size).toPathData(2));
+    cursor += ((glyph.advanceWidth || font.unitsPerEm * 0.5) / font.unitsPerEm) * size;
+  }
+  return paths.join(" ");
+}
+
 function svgText(
   value: string,
   x: number,
@@ -103,8 +121,8 @@ function svgText(
   if (!font) {
     return `<text x="${x}" y="${y}" font-family="FlimCard, sans-serif" font-size="${size}" font-weight="${weight}" fill="${fill}">${escapeXml(clean)}</text>`;
   }
-  const drawX = options.anchor === "middle" ? x - font.getAdvanceWidth(clean, size) / 2 : x;
-  const path = font.getPath(clean, drawX, y, size).toPathData(2);
+  const drawX = options.anchor === "middle" ? x - glyphAdvance(font, clean, size) / 2 : x;
+  const path = glyphPathData(font, clean, drawX, y, size);
   const stroke = options.stroke ? ` stroke="${options.stroke}" stroke-width="${options.strokeWidth || 1}" paint-order="stroke"` : "";
   const opacity = typeof options.opacity === "number" ? ` opacity="${options.opacity}"` : "";
   const filter = options.filter ? ` filter="${options.filter}"` : "";
