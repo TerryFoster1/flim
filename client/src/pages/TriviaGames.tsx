@@ -5,8 +5,8 @@ import { createFriendChallenge, getFriendChallengeHistory } from "../services/fr
 import { getSeasonalChallenges } from "../services/seasonalChallengeService";
 import { getTicketFeed } from "../services/ticketService";
 import { getMovieDetails, getTvDetails } from "../services/tmdbService";
-import { getTitleTrivia } from "../services/triviaService";
-import type { FriendChallengeHistoryAttempt, FriendTriviaChallenge, MediaType, MovieDetails, SeasonalChallengeEvent, TicketFeed, TriviaFeed, TriviaQuestion } from "../types";
+import { completeCompanionItem, getTitleTrivia } from "../services/triviaService";
+import type { CompanionAchievement, FriendChallengeHistoryAttempt, FriendTriviaChallenge, MediaType, MovieDetails, SeasonalChallengeEvent, TicketAward, TicketFeed, TriviaFeed, TriviaQuestion } from "../types";
 
 interface TriviaGamesProps {
   onNavigate: (path: string) => void;
@@ -196,6 +196,34 @@ function scoreTrivia(questions: TriviaQuestion[], answers: Record<string, string
     totalCount: questions.length,
     score: correctCount * 100,
   };
+}
+
+function resultState(correctCount: number, totalCount: number) {
+  if (totalCount > 0 && correctCount === totalCount) return "perfect";
+  const percent = totalCount > 0 ? correctCount / totalCount : 0;
+  if (percent >= 0.75) return "strong";
+  if (percent >= 0.45) return "complete";
+  return "low";
+}
+
+function resultHeadline(correctCount: number, totalCount: number) {
+  const state = resultState(correctCount, totalCount);
+  if (state === "perfect") return "Perfect Score!";
+  if (state === "strong") return "Movie Buff";
+  if (state === "complete") return "Challenge Complete";
+  return "Try again?";
+}
+
+function resultCritterLine(correctCount: number, totalCount: number) {
+  const state = resultState(correctCount, totalCount);
+  if (state === "perfect") return "Holy popcorn! You nailed it.";
+  if (state === "strong") return "You are ready for the big screen.";
+  if (state === "complete") return "Nice run. A replay could push you higher.";
+  return "Every movie buff starts somewhere. Run it back.";
+}
+
+function ticketTotal(awards: TicketAward[]) {
+  return awards.filter((award) => award.awarded).reduce((sum, award) => sum + award.amount, 0);
 }
 
 function GameCard({ game, disabled }: { game: GameCardDefinition; disabled: boolean }) {
@@ -594,6 +622,9 @@ function ClassicTriviaPanel({ mediaType, tmdbId, title }: { mediaType: MediaType
   const [challengeToken, setChallengeToken] = useState("");
   const [challengeStatus, setChallengeStatus] = useState("");
   const [ticketStatus, setTicketStatus] = useState("");
+  const [completionStatus, setCompletionStatus] = useState("");
+  const [completionAwards, setCompletionAwards] = useState<TicketAward[]>([]);
+  const [completionAchievements, setCompletionAchievements] = useState<CompanionAchievement[]>([]);
   const questions = feed?.questions || [];
   const isBuildingPack = feed?.generationStatus === "missing" || feed?.generationStatus === "queued" || feed?.generationStatus === "generating";
   const score = useMemo(() => scoreTrivia(questions, answers), [questions, answers]);
@@ -608,6 +639,9 @@ function ClassicTriviaPanel({ mediaType, tmdbId, title }: { mediaType: MediaType
     setChallengeUrl("");
     setChallengeToken("");
     setChallengeStatus("");
+    setCompletionStatus("");
+    setCompletionAwards([]);
+    setCompletionAchievements([]);
     getTitleTrivia({ mediaType, tmdbId })
       .then((result) => {
         if (!mounted) return;
@@ -664,6 +698,35 @@ function ClassicTriviaPanel({ mediaType, tmdbId, title }: { mediaType: MediaType
     }
     return copyChallengeLink();
   }
+  async function finishTrivia() {
+    if (!allAnswered || completed) return;
+    setCompleted(true);
+    setCompletionStatus("Saving your trivia run...");
+    setCompletionAwards([]);
+    setCompletionAchievements([]);
+
+    const correctQuestions = questions.filter((question) => answers[question.id] === question.answer && !question.completed);
+    if (!correctQuestions.length) {
+      setCompletionStatus(score.correctCount > 0 ? "Score saved locally." : "Run complete. Try again to climb higher.");
+      return;
+    }
+
+    const results = await Promise.allSettled(correctQuestions.map((question) => completeCompanionItem("trivia", question.id)));
+    const fulfilled = results.filter((result): result is PromiseFulfilledResult<Awaited<ReturnType<typeof completeCompanionItem>>> => result.status === "fulfilled");
+    const awards = fulfilled.map((result) => result.value.ticketAward).filter((award): award is TicketAward => Boolean(award));
+    const achievements = fulfilled.flatMap((result) => result.value.unlockedAchievements || []);
+    const uniqueAchievements = Array.from(new Map(achievements.map((achievement) => [achievement.id, achievement])).values());
+    setCompletionAwards(awards);
+    setCompletionAchievements(uniqueAchievements);
+
+    if (fulfilled.length === 0) {
+      setCompletionStatus("Score complete. Sign in to save Tickets and badges.");
+      return;
+    }
+
+    const earnedTickets = ticketTotal(awards);
+    setCompletionStatus(earnedTickets > 0 || uniqueAchievements.length > 0 ? "Rewards saved." : "Progress saved.");
+  }
 
   if (status === "loading") {
     return (
@@ -687,6 +750,19 @@ function ClassicTriviaPanel({ mediaType, tmdbId, title }: { mediaType: MediaType
       </section>
     );
   }
+
+  const earnedTickets = ticketTotal(completionAwards);
+  const resultKind = resultState(score.correctCount, score.totalCount);
+  const resultQuery = new URLSearchParams({
+    result: "trivia",
+    score: String(score.score),
+    correct: String(score.correctCount),
+    total: String(score.totalCount),
+    tickets: String(earnedTickets),
+    state: resultKind,
+  });
+  const resultShareUrl = `/games/title/${mediaType}/${tmdbId}?${resultQuery.toString()}`;
+  const resultCardUrl = `/api/og/trivia-result/${mediaType}/${tmdbId}?score=${score.score}&correct=${score.correctCount}&total=${score.totalCount}&tickets=${earnedTickets}&state=${resultKind}`;
 
   return (
     <section className="title-games-section classic-trivia-play">
@@ -726,24 +802,69 @@ function ClassicTriviaPanel({ mediaType, tmdbId, title }: { mediaType: MediaType
         ))}
       </div>
       {!completed ? (
-        <button className="primary-button" disabled={!allAnswered} onClick={() => setCompleted(true)} type="button">
+        <button className="primary-button" disabled={!allAnswered} onClick={finishTrivia} type="button">
           Finish Trivia
         </button>
       ) : (
-        <div className="friend-challenge-card">
-          <span>Friend Challenge</span>
-          <h3>Beat my score of {score.score}</h3>
-          <p>Share this exact question set. Friends will play the same questions in the same order.</p>
-          <div className="share-inline-row">
-            <button className="primary-button compact" onClick={handleCreateChallenge} type="button">
-              {challengeUrl ? "Challenge Created" : "Create Challenge"}
+        <div className={`trivia-completion-card is-${resultKind}`}>
+          <div className="trivia-completion-burst" aria-hidden="true">
+            <span />
+            <span />
+            <span />
+            <span />
+          </div>
+          <div className="trivia-completion-hero-row">
+            <img alt="" src="/avatars/base/classic.png" />
+            <div>
+              <span>Trivia Complete</span>
+              <h3>{resultHeadline(score.correctCount, score.totalCount)}</h3>
+              <p>{resultCritterLine(score.correctCount, score.totalCount)}</p>
+            </div>
+          </div>
+          <div className="trivia-result-stat-grid">
+            <div>
+              <span>Score</span>
+              <strong>{score.correctCount}/{score.totalCount}</strong>
+              <small>{score.score} points</small>
+            </div>
+            <div className="is-reward">
+              <span>Reward</span>
+              <strong>{earnedTickets > 0 ? `+${earnedTickets}` : "+0"}</strong>
+              <small>{earnedTickets > 0 ? "Tickets earned" : completionStatus || "Sign in to save Tickets"}</small>
+            </div>
+            <div>
+              <span>Accuracy</span>
+              <strong>{score.totalCount ? `${Math.round((score.correctCount / score.totalCount) * 100)}%` : "0%"}</strong>
+              <small>{completionStatus || "Run complete"}</small>
+            </div>
+          </div>
+          {completionAchievements.length ? (
+            <div className="trivia-achievement-strip" aria-label="Unlocked achievements">
+              {completionAchievements.slice(0, 3).map((achievement) => (
+                <span key={achievement.id}>{achievement.badgeIcon || "Badge"} {achievement.name}</span>
+              ))}
+            </div>
+          ) : null}
+          <div className="share-inline-row trivia-result-actions">
+            <ShareAssetButton
+              className="primary-button compact"
+              label="Share Result"
+              title={`${title} Trivia Result`}
+              text={`I scored ${score.correctCount}/${score.totalCount} on ${title} Trivia. Can you beat my score?`}
+              url={resultShareUrl}
+              cardUrl={resultCardUrl}
+              downloadName={`${title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "trivia"}-${score.score}-result-card.png`}
+            />
+            <button className="secondary-button compact" onClick={handleCreateChallenge} type="button">
+              {challengeUrl ? "Challenge Created" : "Challenge Friends"}
             </button>
-            {challengeUrl ? <button className="secondary-button compact" onClick={shareChallenge} type="button">Share</button> : null}
+            <button className="secondary-button compact" onClick={loadTriviaPack} type="button">Play Again</button>
+            {challengeUrl ? <button className="secondary-button compact" onClick={shareChallenge} type="button">Share Challenge</button> : null}
             {challengeUrl ? <button className="secondary-button compact" onClick={copyChallengeLink} type="button">Copy Link</button> : null}
             {challengeToken ? (
               <ShareAssetButton
                 className="secondary-button compact"
-                label="Share Card"
+                label="Challenge Card"
                 title={`${title} Trivia Challenge`}
                 text={`Share your ${title} trivia score challenge.`}
                 url={`/challenge/${challengeToken}`}

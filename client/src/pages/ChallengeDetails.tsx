@@ -33,6 +33,22 @@ function scoreTrivia(questions: SeasonalChallengeQuestion[], answers: Record<str
   };
 }
 
+function challengeResultState(correctCount: number, totalCount: number) {
+  if (totalCount > 0 && correctCount === totalCount) return "perfect";
+  const percent = totalCount > 0 ? correctCount / totalCount : 0;
+  if (percent >= 0.75) return "strong";
+  if (percent >= 0.45) return "complete";
+  return "low";
+}
+
+function challengeResultHeadline(correctCount: number, totalCount: number) {
+  const state = challengeResultState(correctCount, totalCount);
+  if (state === "perfect") return "Perfect Score!";
+  if (state === "strong") return "Movie Buff";
+  if (state === "complete") return "Challenge Complete";
+  return "Try again?";
+}
+
 function StandingRow({ score }: { score: SeasonalChallengeScore }) {
   return (
     <li>
@@ -99,7 +115,7 @@ export function ChallengeDetails({ slug, onNavigate }: ChallengeDetailsProps) {
         answers,
       });
       setCompleted(true);
-      setResultCardUrl(result.attempt.shareCardUrl);
+      setResultCardUrl(`/api/og/seasonal-challenge/${detail.event.slug}?score=${result.attempt.score}&correct=${result.attempt.correctCount}&total=${result.attempt.totalCount}&reward=${detail.event.points}&state=${challengeResultState(result.attempt.correctCount, result.attempt.totalCount)}`);
       setDetail({ ...detail, standings: result.standings });
       setActionMessage(`Score saved: ${result.attempt.score} points.`);
     } catch (error) {
@@ -214,15 +230,34 @@ export function ChallengeDetails({ slug, onNavigate }: ChallengeDetailsProps) {
                   {submitting ? "Saving Score..." : "Finish Challenge"}
                 </button>
               ) : resultCardUrl ? (
-                <ShareAssetButton
-                  className="primary-button compact"
-                  label="Share Result"
-                  title={`${event.name} Result`}
-                  text={`I scored ${score.score} in ${event.name}. Can you beat me?`}
-                  url={detail.shareUrl}
-                  cardUrl={resultCardUrl}
-                  downloadName={`${event.slug}-${score.score}-result-card.png`}
-                />
+                <div className={`trivia-completion-card is-${challengeResultState(score.correctCount, score.totalCount)}`}>
+                  <div className="trivia-completion-burst" aria-hidden="true">
+                    <span />
+                    <span />
+                    <span />
+                    <span />
+                  </div>
+                  <div className="trivia-completion-hero-row">
+                    <img alt="" src="/avatars/base/star.png" />
+                    <div>
+                      <span>{challengeTypeLabel(event.challengeType)} Complete</span>
+                      <h3>{challengeResultHeadline(score.correctCount, score.totalCount)}</h3>
+                      <p>{score.correctCount}/{score.totalCount} correct - {score.score} points - +{event.points} challenge points</p>
+                    </div>
+                  </div>
+                  <div className="share-inline-row trivia-result-actions">
+                    <ShareAssetButton
+                      className="primary-button compact"
+                      label="Share Result"
+                      title={`${event.name} Result`}
+                      text={`I scored ${score.score} in ${event.name}. Can you beat me?`}
+                      url={detail.shareUrl}
+                      cardUrl={resultCardUrl}
+                      downloadName={`${event.slug}-${score.score}-result-card.png`}
+                    />
+                    <button className="secondary-button compact" onClick={() => onNavigate("/challenges")} type="button">Back to Challenges</button>
+                  </div>
+                </div>
               ) : null}
             </>
           )}
