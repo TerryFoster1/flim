@@ -50,7 +50,7 @@ export default async function handler(request: any, response: any) {
     await ensureFollowTitleTables(sql);
     const catalogItem = await getCatalogMediaItem(sql, tmdbId, mediaType);
     const details = catalogItem ? mapCatalogDetails(catalogItem) : null;
-    const title = details?.title || (mediaType === "tv" ? "TV Trivia" : "Movie Trivia");
+    const title = details?.title || (mediaType === "tv" ? "TV" : "Movie");
     const label = resultLabel(correct, total, state);
     const data: ShareCardData = {
       kind: "game",

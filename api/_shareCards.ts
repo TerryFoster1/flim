@@ -234,6 +234,7 @@ export function renderShareCard(data: ShareCardData) {
   const title = truncate(data.title || "Flim", 30);
   const subtitle = truncate(data.subtitle || "", 46);
   const description = truncate(data.description || "", 58);
+  const burstLabel = (data.resultLabel || "Trivia Result").replace("Perfect Score!", "Perfect").replace("New Personal Best", "Personal Best");
   const posters = (data.posters || []).slice(0, 4);
   const primaryPoster = data.posterUrl || posters[0]?.url;
 
@@ -263,7 +264,7 @@ export function renderShareCard(data: ShareCardData) {
       <circle cx="216" cy="190" r="154" fill="rgba(255,184,77,0.16)" stroke="rgba(255,216,111,0.42)" stroke-width="4" />
       <circle cx="216" cy="190" r="120" fill="rgba(255,79,109,0.18)" stroke="rgba(255,255,255,0.16)" stroke-width="2" />
       <path d="M216 12 L237 78 L306 52 L278 119 L348 142 L277 161 L318 224 L249 198 L216 262 L183 198 L114 224 L155 161 L84 142 L154 119 L126 52 L195 78 Z" fill="rgba(255,184,77,0.22)" />
-      ${svgText(truncate(data.resultLabel || "Trivia Result", 22), 216, 114, 26, 900, "#ffd28d", { anchor: "middle" })}
+      ${svgText(truncate(burstLabel, 16), 216, 112, 24, 900, "#ffd28d", { anchor: "middle" })}
       ${svgText(truncate(data.scoreLine, 16), 216, 188, 68, 900, "#ffffff", { anchor: "middle", stroke: "#16060b", strokeWidth: 4 })}
       ${data.rewardLine ? svgText(truncate(data.rewardLine, 26), 216, 242, 28, 900, "#ffcf8a", { anchor: "middle" }) : ""}
       <rect x="62" y="292" width="308" height="54" rx="27" fill="rgba(7,6,9,0.58)" stroke="rgba(255,255,255,0.16)" />
