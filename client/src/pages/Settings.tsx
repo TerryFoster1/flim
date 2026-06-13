@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type CSSProperties, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { InstallFlimPrompt } from "../components/InstallFlimPrompt";
 import { FlimAvatar } from "../components/FlimAvatar";
 import { ProviderLogo } from "../components/ProviderLogo";
@@ -189,7 +189,6 @@ export function Settings({ currentUser, onNavigate, playlists = [] }: SettingsPr
               <FlimAvatar avatarKey={selectedAvatar.id} label={selectedAvatar.name} size="lg" />
               <div>
                 <strong>{selectedAvatar.name}</strong>
-                <span>{selectedAvatar.theme}</span>
               </div>
             </div>
             <div className="avatar-picker-grid">
@@ -204,7 +203,6 @@ export function Settings({ currentUser, onNavigate, playlists = [] }: SettingsPr
                   >
                     <FlimAvatar avatarKey={avatar.key} label={avatar.name} size="md" />
                     <strong>{avatar.name}</strong>
-                    <span>{avatar.theme}</span>
                   </button>
                 );
               })}
@@ -215,24 +213,15 @@ export function Settings({ currentUser, onNavigate, playlists = [] }: SettingsPr
                 <p>Play trivia, challenges, and events to unlock exclusive Film Critter skins.</p>
               </div>
               <div className="avatar-skin-grid" aria-label="Locked Film Critter skins">
-                {avatarSkins.map((skin) => {
-                  const skinStyle = {
-                    "--skin-face-width": skin.facePlacement.width,
-                    "--skin-face-top": skin.facePlacement.top,
-                    "--skin-face-left": skin.facePlacement.left,
-                  } as CSSProperties;
-
-                  return (
-                    <span className={`avatar-skin-chip avatar-skin-${skin.rarity} is-locked`} key={skin.id} title={`${skin.name} skin locked`}>
-                      <span className="avatar-skin-art" style={skinStyle} aria-hidden="true">
-                        <img className="avatar-skin-base-face" src={selectedAvatar.imagePath} alt="" loading="lazy" decoding="async" />
-                        <img className="avatar-skin-costume" src={skin.imagePath} alt="" loading="lazy" decoding="async" />
-                        <span className="avatar-skin-lock" />
-                      </span>
-                      <strong>{skin.name}</strong>
+                {avatarSkins.map((skin) => (
+                  <span className={`avatar-skin-chip avatar-skin-${skin.rarity} is-locked`} key={skin.id} title={`${skin.name} skin locked`}>
+                    <span className="avatar-skin-art" aria-hidden="true">
+                      <img className="avatar-skin-costume" src={skin.imagePath} alt="" loading="lazy" decoding="async" />
+                      <span className="avatar-skin-lock" />
                     </span>
-                  );
-                })}
+                    <strong>{skin.name}</strong>
+                  </span>
+                ))}
               </div>
             </div>
           </div>

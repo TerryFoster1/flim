@@ -7363,9 +7363,6 @@ textarea { min-height: 42px; resize: vertical; }
   gap: 4px;
 }
 
-.avatar-current-preview span {
-  color: var(--muted);
-}
 
 .avatar-option {
   border: 1px solid rgba(255, 255, 255, 0.11);
@@ -7381,11 +7378,6 @@ textarea { min-height: 42px; resize: vertical; }
   text-align: center;
 }
 
-.avatar-option span:not(.flim-avatar) {
-  color: var(--muted);
-  font-size: 0.78rem;
-  line-height: 1.25;
-}
 
 .avatar-option.is-selected {
   border-color: rgba(255, 191, 52, 0.72);
@@ -7425,8 +7417,8 @@ textarea { min-height: 42px; resize: vertical; }
 
 .avatar-skin-art {
   background:
-    radial-gradient(circle at 50% 32%, rgba(255, 255, 255, 0.18), transparent 42%),
-    linear-gradient(145deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.035));
+    radial-gradient(circle at 50% 38%, rgba(236, 242, 255, 0.32), rgba(140, 158, 184, 0.14) 42%, transparent 66%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.055));
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 22px;
   display: grid;
@@ -7437,16 +7429,6 @@ textarea { min-height: 42px; resize: vertical; }
   width: 92px;
 }
 
-.avatar-skin-base-face {
-  height: auto;
-  left: var(--skin-face-left, 50%);
-  opacity: 0.82;
-  position: absolute;
-  top: var(--skin-face-top, 38%);
-  transform: translate(-50%, -50%);
-  width: var(--skin-face-width, 56%);
-  z-index: 1;
-}
 
 .avatar-skin-costume {
   height: 100%;
@@ -7454,7 +7436,7 @@ textarea { min-height: 42px; resize: vertical; }
   object-fit: contain;
   position: absolute;
   width: 100%;
-  z-index: 2;
+  z-index: 1;
 }
 
 .avatar-skin-lock {
