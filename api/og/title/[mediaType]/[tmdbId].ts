@@ -76,7 +76,9 @@ export default async function handler(request: any, response: any) {
         ? "Official Trailer"
         : card === "game"
           ? "Trivia & Games"
-          : releaseText || (mediaType === "tv" ? "TV Release" : "Movie Release"),
+          : card === "title"
+            ? "Watch, Track & Discover"
+            : releaseText || (mediaType === "tv" ? "TV Release" : "Movie Release"),
       eyebrow: card === "trailer"
         ? "Watch Trailer"
         : card === "game"
@@ -87,7 +89,7 @@ export default async function handler(request: any, response: any) {
         : card === "trailer"
           ? "Watch the trailer and track this title on Flim."
           : details?.overview || "Track this release on Flim.",
-      cta: card === "game" ? "Play on Flim" : card === "trailer" ? "Watch on Flim" : "Track on Flim",
+      cta: card === "game" ? "Play on Flim" : card === "trailer" ? "Watch Trailer" : "Open on Flim",
       urlLabel: card === "game" ? `flim.ca/games/title/${mediaType}/${tmdbId}` : `flim.ca/${mediaType === "tv" ? "tv" : "movies"}/${tmdbId}`,
       posterUrl: details?.posterUrl || catalogItem?.poster_url,
       backdropUrl: catalogItem?.backdrop_url,
