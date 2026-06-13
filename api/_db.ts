@@ -681,6 +681,34 @@ export async function ensureTriviaTables(sql: any) {
   await sql`create unique index if not exists title_trivia_media_source_question_unique on title_trivia (media_type, tmdb_id, source_hash, question)`;
 
   await sql`
+    create table if not exists trivia_generation_jobs (
+      id uuid primary key default gen_random_uuid(),
+      tmdb_id integer not null,
+      media_type text not null check (media_type in ('movie', 'tv')),
+      language text not null default 'en',
+      version text not null,
+      status text not null default 'queued',
+      interest_source text not null default 'unknown',
+      requested_count integer not null default 40,
+      question_count integer not null default 0,
+      error text,
+      created_at timestamptz not null default now(),
+      updated_at timestamptz not null default now()
+    )
+  `;
+  await sql`alter table trivia_generation_jobs add column if not exists language text not null default 'en'`;
+  await sql`alter table trivia_generation_jobs add column if not exists version text not null default 'movie-fan-v4'`;
+  await sql`alter table trivia_generation_jobs add column if not exists interest_source text not null default 'unknown'`;
+  await sql`alter table trivia_generation_jobs add column if not exists requested_count integer not null default 40`;
+  await sql`alter table trivia_generation_jobs add column if not exists question_count integer not null default 0`;
+  await sql`alter table trivia_generation_jobs add column if not exists error text`;
+  await sql`
+    create unique index if not exists trivia_generation_jobs_title_version_unique
+    on trivia_generation_jobs (media_type, tmdb_id, language, version)
+  `;
+  await sql`create index if not exists trivia_generation_jobs_status_idx on trivia_generation_jobs (status, updated_at desc)`;
+
+  await sql`
     create table if not exists title_trivia_reports (
       id uuid primary key default gen_random_uuid(),
       trivia_id uuid not null references title_trivia(id) on delete cascade,

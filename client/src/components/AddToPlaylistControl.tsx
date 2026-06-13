@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { MovieDetails, MovieSearchResult, Playlist } from "../types";
+import { enqueueTitleTrivia } from "../services/triviaService";
 
 interface AddToPlaylistControlProps {
   movie: MovieSearchResult | MovieDetails;
@@ -43,6 +44,7 @@ export function AddToPlaylistControl({ movie, playlists, addToPlaylist, currentP
     setMessage("");
     try {
       await addToPlaylist(playlistId, movie);
+      enqueueTitleTrivia({ mediaType: movie.mediaType || "movie", tmdbId: movie.tmdbId, source: "playlist_add" });
       setMessage(`Added to ${playlist?.name || "playlist"}.`);
       setLocallyAddedIds((current) => [...new Set([...current, playlistId])]);
     } catch {

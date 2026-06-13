@@ -33,10 +33,12 @@ interface EasterEggDraft {
 }
 
 const REPORT_THRESHOLD = 3;
-const TRIVIA_VERSION = "smart-trivia-v3";
+const TRIVIA_VERSION = "movie-fan-v4";
+const TRIVIA_TARGET_COUNT = 40;
+const TRIVIA_MIN_READY_COUNT = 20;
 const SOURCE_LABELS = ["TMDb metadata"];
 const SOURCE_URLS = ["https://www.themoviedb.org/"];
-const SMART_SOURCE_LABELS = ["TMDb metadata", "Flim smart trivia rules"];
+const SMART_SOURCE_LABELS = ["Flim movie-fan trivia rules"];
 const CURATED_SOURCE_LABELS = ["Flim curated companion prompt"];
 const CURATED_SOURCE_URLS = ["https://www.flim.ca/"];
 
@@ -95,8 +97,168 @@ function draftQuestion(input: TriviaDraft): TriviaDraft {
   };
 }
 
+type FanTriviaSeed = [
+  question: string,
+  answer: string,
+  distractors: string[],
+  explanation: string,
+  difficulty?: TriviaDraft["difficulty"],
+  spoilerLevel?: TriviaDraft["spoilerLevel"],
+];
+
+function fanQuestion([question, answer, distractors, explanation, difficulty = "medium", spoilerLevel = "minor"]: FanTriviaSeed): TriviaDraft {
+  return draftQuestion({
+    question,
+    answer,
+    options: uniqueOptions(answer, distractors),
+    explanation,
+    difficulty,
+    spoilerLevel,
+    confidence: 0.9,
+    sourceLabels: CURATED_SOURCE_LABELS,
+    sourceUrls: CURATED_SOURCE_URLS,
+  });
+}
+
+function fanPack(seeds: FanTriviaSeed[]) {
+  return seeds.map(fanQuestion);
+}
+
+function curatedFanTrivia(details: any): TriviaDraft[] {
+  const mediaType = normalizeMediaType(details.mediaType);
+
+  if (mediaType === "movie" && titleMatches(details, [865], ["The Running Man"])) {
+    return fanPack([
+      ["What crime is Ben Richards framed for before he is forced into the game?", "Massacring civilians during a food riot", ["Stealing government secrets", "Assassinating a network executive", "Blowing up a prison transport"], "Ben is turned into a public villain through edited footage that blames him for refusing an order.", "easy"],
+      ["What kind of show is The Running Man inside the movie's world?", "A violent televised game show", ["A courtroom reality series", "A police recruitment show", "A celebrity survival documentary"], "The story satirizes a future where executions and propaganda are packaged as prime-time entertainment.", "easy"],
+      ["Who is Damon Killian in the story?", "The host and producer controlling the game", ["Ben's prison commander", "A resistance radio operator", "The captain of the stalkers"], "Killian runs the broadcast, manipulates the audience, and decides how contestants are presented.", "easy"],
+      ["What is the main goal for contestants sent into the game zone?", "Survive long enough to escape the hunters", ["Collect hidden cash boxes", "Rescue hostages from each arena", "Capture Damon Killian live on air"], "Contestants are thrown into a lethal arena and hunted by celebrity killers called stalkers.", "easy"],
+      ["What are the celebrity killers in the game called?", "Stalkers", ["Judges", "Runners", "Wardens"], "The hunters are branded entertainers with signature weapons and theatrical personas.", "easy"],
+      ["Which stalker uses a chainsaw as his signature weapon?", "Buzzsaw", ["Subzero", "Fireball", "Dynamo"], "Buzzsaw attacks with a motorized cutting weapon, making his fights feel like a slasher-show spectacle.", "medium"],
+      ["Which stalker uses opera music and electricity during his attacks?", "Dynamo", ["Fireball", "Buzzsaw", "Captain Freedom"], "Dynamo is staged as a flamboyant performer whose attacks combine music, lights, and electrical weapons.", "medium"],
+      ["Which stalker attacks with flamethrower-like firepower?", "Fireball", ["Subzero", "Dynamo", "Buzzsaw"], "Fireball's arena persona is built around heat, fire, and industrial pursuit.", "medium"],
+      ["How does the network manipulate public opinion about Ben?", "By broadcasting edited footage and fake narratives", ["By erasing his name from all records", "By letting contestants vote on his guilt", "By staging a public trial in the arena"], "The film's satire depends on the network rewriting reality for ratings and control.", "medium"],
+      ["What resistance figure helps expose the truth behind the broadcasts?", "Mic", ["Damon Killian", "Captain Freedom", "Subzero"], "Mic is tied to the underground resistance that fights the network's propaganda machine.", "medium"],
+      ["Why does Amber become important to Ben's story?", "She discovers the broadcast deception and is pulled into the game", ["She owns the game zone", "She trains the stalkers", "She designed Ben's tracking collar"], "Amber starts closer to the system but becomes a witness to the truth the network wants buried.", "medium"],
+      ["What does Captain Freedom represent in the show-business world of the movie?", "An old champion turned network icon", ["A rebel pilot", "A prison warden", "A computer hacker"], "Captain Freedom is treated like a legendary performer from the show's violent past.", "medium"],
+      ["What larger theme does the movie attack most directly?", "Media propaganda as mass entertainment", ["Time travel paradoxes", "Corporate space colonization", "Small-town political corruption"], "The Running Man is a dystopian satire about ratings, spectacle, and manufactured truth.", "hard"],
+      ["How are the stalkers presented to the audience?", "Like superstar performers with signature brands", ["As anonymous prison guards", "As randomly selected citizens", "As hidden assassins nobody sees"], "The show turns killers into celebrities, complete with costumes, entrances, and audience loyalty.", "hard"],
+      ["What does Ben refuse to do in the opening setup?", "Fire on unarmed civilians", ["Throw a game for money", "Arrest Amber", "Join the resistance broadcast"], "His refusal becomes the moral event the regime edits into a lie.", "hard"],
+      ["What is the audience encouraged to believe about the game?", "That the deaths are justice and entertainment", ["That contestants are actors", "That nobody is really harmed", "That winners always join the government"], "The broadcast frames state violence as a fair, thrilling contest.", "hard"],
+      ["What turns the final act against Killian's control?", "The truth reaches the public through the broadcast system", ["The stalkers vote to quit", "The government cancels the show", "A computer predicts the ratings will fall"], "The same media machinery used to lie becomes the route for exposing the lie.", "expert", "major"],
+      ["What makes Ben different from the image the network sells?", "He is principled and protective rather than a murderer", ["He is secretly a stalker", "He is a wealthy executive", "He wants to host the show"], "The film contrasts Ben's real choices with the villainous identity created for viewers.", "expert"],
+      ["Why is The Running Man often remembered as more than a simple action movie?", "It mixes action with a satire of media, celebrity, and authoritarian control", ["It avoids social commentary entirely", "It is mostly a courtroom mystery", "It focuses on realistic sports strategy"], "Its most durable ideas are about entertainment culture and how images can control reality.", "expert"],
+      ["What does the game zone function as in the story?", "A controlled arena for punishment, ratings, and propaganda", ["A neutral sports field", "A secret medical lab", "A training academy for police"], "The zone is where the state, the network, and the audience's appetite for spectacle meet.", "expert"],
+    ]);
+  }
+
+  if (mediaType === "movie" && titleMatches(details, [218], ["The Terminator"])) {
+    return fanPack([
+      ["What is the Terminator sent back in time to do?", "Kill Sarah Connor", ["Protect John Connor", "Stop a police investigation", "Destroy Cyberdyne's offices"], "The machine's mission is to erase the future resistance leader by killing his mother.", "easy"],
+      ["Who is sent back to protect Sarah Connor?", "Kyle Reese", ["Dr. Silberman", "Miles Dyson", "Ginger Ventura"], "Kyle Reese is the human soldier sent from the future to keep Sarah alive.", "easy"],
+      ["What future war drives the plot of The Terminator?", "A war between humans and machines", ["A war between rival planets", "A civil war among police forces", "A war between vampire clans"], "The nightmare future is dominated by Skynet's machines and the human resistance.", "easy"],
+      ["What does the Terminator initially use to find Sarah?", "A phone book listing Sarah Connors", ["A tracking chip in her jacket", "A police facial scan", "A radio signal from Kyle Reese"], "The machine works through the phone book, killing women with the same name.", "easy"],
+      ["Where does Sarah first realize she is being hunted in public?", "A nightclub called Tech Noir", ["A hospital cafeteria", "A courthouse lobby", "A subway station"], "Tech Noir becomes the first major confrontation between Sarah, Kyle, and the Terminator.", "medium"],
+      ["What phrase does Kyle use to warn Sarah about the machine?", "It will not stop", ["It can be reasoned with", "It only hunts at night", "It forgets faces quickly"], "Kyle explains the Terminator as relentless, emotionless, and impossible to bargain with.", "medium"],
+      ["What company name becomes important to the franchise's machine future?", "Cyberdyne Systems", ["Tyrell Corporation", "Omni Consumer Products", "Weyland-Yutani"], "Cyberdyne is tied to the technological path that eventually leads to Skynet.", "medium"],
+      ["What is Sarah Connor's role before the events transform her?", "A waitress living an ordinary life", ["A police detective", "A robotics engineer", "A military commander"], "The film begins with Sarah as an everyday person before she is pulled into a future war.", "easy"],
+      ["What makes the Terminator frightening beyond its strength?", "It looks human but has no human empathy", ["It can control dreams", "It can become invisible", "It only attacks with magic"], "The horror comes from a machine wearing a human shape while behaving with total mechanical purpose.", "medium"],
+      ["What future leader is connected to Sarah's survival?", "John Connor", ["Danny Dyson", "Peter Silberman", "Traxler"], "Sarah's future son is the resistance leader Skynet is trying to prevent.", "medium"],
+      ["How does Kyle describe the future he comes from?", "A devastated world ruled by machines", ["A peaceful colony on Mars", "A flooded Earth controlled by pirates", "A utopia protected by robots"], "Kyle's memories show a post-apocalyptic war where humans hide and fight machines.", "medium"],
+      ["Why is the police station sequence so memorable?", "The Terminator attacks a supposedly safe place", ["Sarah becomes a police captain", "Kyle is proven to be a robot", "Skynet sends an army through"], "The scene breaks the idea that institutions can protect Sarah from the machine.", "hard"],
+      ["What object is left behind that hints at the future technology loop?", "A damaged Terminator part", ["Kyle's dog tags", "Sarah's apron", "A police radio"], "The remains of the machine become part of the franchise's causal loop around future technology.", "hard", "major"],
+      ["What does Sarah record near the end of the story?", "Messages for her future son", ["A confession for the police", "A commercial for Cyberdyne", "Instructions for building Skynet"], "Sarah begins preparing John for the danger she now knows is coming.", "hard"],
+      ["What is the film's central time-travel paradox?", "The future sends back the events that help create itself", ["Sarah remembers events from a past life", "The Terminator ages backward", "Skynet changes planets every loop"], "Kyle's mission and the machine's remains both feed into the future they came from.", "expert", "major"],
+      ["Why does the Terminator repair itself after damage?", "To preserve its human disguise and keep hunting", ["To become friendly to Sarah", "To recharge from mirrors", "To communicate with Skynet"], "Its self-repair scenes emphasize that the human exterior is only camouflage.", "hard"],
+      ["What genre blend helps define The Terminator?", "Science fiction, action, and slasher-like pursuit", ["Musical comedy and courtroom drama", "Western romance and sports drama", "Fantasy quest and pirate adventure"], "The movie works like a relentless chase horror film inside a time-travel action story.", "expert"],
+      ["What makes Sarah Connor's arc important?", "She changes from ordinary survivor into someone preparing for war", ["She becomes mayor overnight", "She joins Skynet", "She forgets the entire event"], "Sarah's transformation is one of the film's biggest character engines.", "expert"],
+      ["Why is Kyle's photograph of Sarah meaningful?", "It closes an emotional loop between past and future", ["It proves he is a machine", "It identifies the wrong Sarah", "It starts a police conspiracy"], "The photo connects Kyle's future devotion to the Sarah he meets in the past.", "expert", "major"],
+      ["What does the final road scene suggest about Sarah's future?", "She is heading toward the storm she now knows is coming", ["She is escaping the timeline permanently", "The machines have already won", "The story was a television show"], "The approaching storm mirrors Sarah's knowledge that the future war is still ahead.", "hard"],
+    ]);
+  }
+
+  if (mediaType === "movie" && titleMatches(details, [329], ["Jurassic Park"])) {
+    return fanPack([
+      ["What kind of dinosaur first gives the visitors a sense of wonder in Jurassic Park?", "A Brachiosaurus", ["A Velociraptor", "A Dilophosaurus", "A Stegosaurus"], "The Brachiosaurus reveal is the park's first grand promise of living dinosaurs.", "easy"],
+      ["What does Dennis Nedry use to hide stolen dinosaur embryos?", "A fake shaving cream can", ["A hollow camera lens", "A lunch box", "A dinosaur egg shell"], "The Barbasol can is a disguised container for embryo theft.", "easy"],
+      ["What dinosaur breaks out during the storm and attacks the tour vehicles?", "Tyrannosaurus rex", ["Velociraptor", "Triceratops", "Gallimimus"], "The T. rex paddock failure creates the film's central survival sequence.", "easy"],
+      ["What warning does Ian Malcolm repeatedly give about the park?", "The scientists cannot control life", ["The island is too cold", "The dinosaurs are too small", "The tour cars are too fast"], "Malcolm's chaos-theory perspective argues that the park's control systems are an illusion.", "medium"],
+      ["What insect preserved in amber helps explain the dinosaur cloning process?", "A mosquito", ["A beetle", "A dragonfly", "A wasp"], "The park's science story begins with dinosaur blood recovered from mosquitoes trapped in amber.", "easy"],
+      ["Which dinosaur kills Nedry after his escape goes wrong?", "Dilophosaurus", ["Compsognathus", "Tyrannosaurus rex", "Brachiosaurus"], "Nedry encounters the frilled, venom-spitting Dilophosaurus after crashing in the storm.", "medium"],
+      ["What do the velociraptors demonstrate in the opening scene?", "They are intelligent and dangerous pack hunters", ["They are harmless herbivores", "They can fly short distances", "They only hunt in daylight"], "The raptor transfer establishes the animals as strategic predators before the tour begins.", "medium"],
+      ["Why does the park use frog DNA in the dinosaur cloning process?", "To fill gaps in the recovered genetic code", ["To make dinosaurs smaller", "To stop dinosaurs from eating meat", "To make every dinosaur glow"], "Frog DNA is used as a patch, and that choice has major consequences.", "medium"],
+      ["What unexpected ability allows the dinosaurs to reproduce?", "Some change sex because of the frog DNA", ["They clone themselves in the lab", "They lay eggs without embryos", "The computers print new dinosaurs"], "Grant discovers eggs, revealing that life has found a way despite the park's controls.", "hard", "major"],
+      ["What does Hammond believe will make Jurassic Park worthwhile?", "Sharing living dinosaurs with the world", ["Selling weapons to governments", "Building a secret prison", "Creating a dinosaur racing league"], "Hammond sees the park as a wondrous attraction, even as its dangers become undeniable.", "medium"],
+      ["What do Lex and Tim hide under during the T. rex attack?", "A tour vehicle", ["A kitchen counter", "A helicopter", "A lab table"], "The crushed vehicle sequence turns the park tour into a survival nightmare.", "easy"],
+      ["What environment makes the raptor kitchen scene so tense?", "A room full of reflective metal surfaces and hiding spaces", ["A brightly lit football field", "A frozen cave", "A crowded hotel lobby"], "The kitchen gives the children narrow cover while the raptors search methodically.", "hard"],
+      ["What does Grant use to distract the T. rex during the road attack?", "A flare", ["A radio transmitter", "A dinosaur egg", "A camera flash"], "The flare creates motion and light that draw the T. rex away.", "medium"],
+      ["What does the sick Triceratops scene reveal about the park?", "Even peaceful encounters hide unresolved problems", ["The dinosaurs are mechanical", "The tour has already ended", "Grant dislikes herbivores"], "The awe of touching a living dinosaur is paired with the mystery of why it is ill.", "hard"],
+      ["What is the park's biggest human failure?", "Believing complex living systems can be fully controlled", ["Forgetting to sell enough shirts", "Making the island too quiet", "Hiring too many paleontologists"], "The disaster is not just a technical failure; it is a failure of humility.", "expert"],
+      ["What line of thinking does Ian Malcolm bring to the story?", "Chaos theory", ["Deep-sea geology", "Criminal profiling", "Dream analysis"], "Malcolm frames the park as a fragile system where small failures can cascade.", "medium"],
+      ["Why is the final T. rex appearance in the visitor center ironic?", "The feared predator saves the survivors from the raptors", ["The dinosaur apologizes", "The park opens successfully", "Nedry returns with the embryos"], "The animal that symbolized disaster becomes the reason the main group escapes.", "expert", "major"],
+      ["What does the banner falling in the visitor center emphasize?", "The park's dream has collapsed", ["The park is opening early", "The dinosaurs are fake", "The island is underwater"], "The celebratory branding literally falls as the fantasy of control ends.", "expert"],
+      ["What makes Jurassic Park's dinosaurs feel like characters rather than props?", "Each major species has distinct behavior and story function", ["They all act identically", "They never interact with people", "They are only shown on computer screens"], "The film gives different dinosaurs different moods: wonder, terror, curiosity, and threat.", "expert"],
+      ["What lesson does Grant learn through protecting Lex and Tim?", "His view of children changes during the survival journey", ["He decides dinosaurs are harmless", "He wants to run the park", "He learns computer hacking"], "Grant's protective role with the kids quietly reshapes his character.", "hard"],
+    ]);
+  }
+
+  if (mediaType === "movie" && titleMatches(details, [105], ["Back to the Future"])) {
+    return fanPack([
+      ["What speed must the DeLorean reach to travel through time?", "88 miles per hour", ["55 miles per hour", "99 miles per hour", "121 miles per hour"], "Doc Brown's time machine activates when the DeLorean reaches 88 miles per hour.", "easy"],
+      ["What does Marty accidentally disrupt in 1955?", "His parents' first meeting", ["Doc's high-school graduation", "The invention of television", "The town clock dedication"], "Marty interferes with the event that was supposed to bring Lorraine and George together.", "easy"],
+      ["What powers the DeLorean's first successful time jump?", "Plutonium", ["Gasoline alone", "Lightning", "Solar panels"], "At the start of the film, Doc uses stolen plutonium to generate the energy needed.", "medium"],
+      ["What later source of energy becomes Marty's way home?", "A lightning strike at the clock tower", ["A nuclear test", "A power plant meltdown", "A bolt from a police taser"], "The clock tower lightning strike gives Doc and Marty a predictable burst of energy.", "easy"],
+      ["What is the name of Marty's band?", "The Pinheads", ["The Starlighters", "The Flux Tones", "The Lone Pines"], "Marty auditions at school with his band, The Pinheads.", "medium"],
+      ["What town is the story centered around?", "Hill Valley", ["Twin Pines", "Kingston Falls", "Castle Rock"], "Hill Valley's town square becomes the movie's past-and-present playground.", "easy"],
+      ["What invention does Doc Brown use to make time travel possible?", "The flux capacitor", ["The arc reactor", "The sonic screwdriver", "The neuralizer"], "Doc calls the flux capacitor the invention that makes time travel work.", "easy"],
+      ["What happens to the mall name after Marty changes the past?", "Twin Pines Mall becomes Lone Pine Mall", ["Lone Pine Mall becomes Twin Pines Mall", "Hill Valley Mall becomes Clock Tower Mall", "The mall disappears entirely"], "Marty runs over one of Peabody's pine trees in 1955, changing the name in 1985.", "medium", "major"],
+      ["What event does Lorraine mistakenly believe explains Marty's arrival?", "Her father hitting him with a car", ["A science experiment at school", "A skateboard accident downtown", "A lightning strike"], "Lorraine's family finds Marty after her father hits him instead of hitting George.", "medium"],
+      ["What school dance becomes essential to restoring Marty's future?", "The Enchantment Under the Sea dance", ["The Hill Valley Harvest Ball", "The Clock Tower Benefit", "The Goldie Wilson Gala"], "George and Lorraine need to kiss at the dance for Marty's family future to survive.", "easy"],
+      ["What begins happening to Marty in the photograph?", "He and his siblings start disappearing", ["The photo catches fire", "Doc appears in the picture", "The DeLorean replaces his family"], "The photo gives a visual countdown for Marty's fading future.", "medium"],
+      ["What does George need to do to change his own future?", "Stand up to Biff", ["Become mayor overnight", "Invent time travel", "Leave Hill Valley forever"], "George's courage against Biff changes both the romance and his adult life.", "medium"],
+      ["What does Marty perform at the school dance?", "A rock-and-roll guitar solo", ["A magic act", "A stand-up comedy routine", "A classical piano piece"], "Marty's performance pushes 1955 music into something the crowd is not quite ready for.", "medium"],
+      ["Why does Doc initially struggle to believe Marty's story?", "The time-machine idea sounds impossible even to him in 1955", ["He has never met Marty in any timeline", "He hates all science fiction", "He already sold the DeLorean"], "Marty has to prove he is from the future to a younger Doc who has only imagined the idea.", "hard"],
+      ["What item helps Marty prove he knows the future?", "A flyer about the clock tower lightning strike", ["A sports almanac", "A map of Mars", "A newspaper about a dinosaur park"], "The flyer gives Doc the exact date and time of the lightning strike.", "medium"],
+      ["What is Biff's role in both timelines?", "A bully whose power changes depending on George's confidence", ["A secret scientist", "A time-travel police officer", "A musician in Marty's band"], "Biff's status shifts when George finally stops being intimidated by him.", "hard"],
+      ["What makes the clock tower climax so suspenseful?", "Timing the DeLorean run with the lightning strike", ["Finding plutonium under the stage", "Winning a school election", "Escaping dinosaurs downtown"], "Doc and Marty have only one precise moment to channel the lightning into the DeLorean.", "hard"],
+      ["What emotional problem drives Marty's mission beyond simply getting home?", "Making sure his parents fall in love", ["Winning the school battle of the bands", "Becoming rich in 1955", "Stopping Doc from teaching science"], "Marty's existence depends on restoring a relationship he accidentally damaged.", "hard"],
+      ["What does the improved 1985 reveal about George?", "He has become confident and successful", ["He has become a police chief", "He has vanished", "He owns the mall"], "George's changed past creates a more confident adult life and family dynamic.", "expert", "major"],
+      ["Why is Back to the Future's time travel especially playful?", "Small personal actions reshape jokes, names, and family history", ["The rules never affect anyone", "The movie avoids paradoxes", "The past is shown as identical to the present"], "The film makes time travel feel personal by turning tiny changes into visible future consequences.", "expert"],
+    ]);
+  }
+
+  if (mediaType === "movie" && titleMatches(details, [525], ["The Blues Brothers", "Blues Brothers"])) {
+    return fanPack([
+      ["What mission drives Jake and Elwood through The Blues Brothers?", "Raise money to save the orphanage", ["Win a national talent contest", "Buy a radio station", "Open a new nightclub"], "Their chaotic journey begins as an attempt to save the Catholic orphanage where they grew up.", "easy"],
+      ["What kind of group do Jake and Elwood try to reunite?", "Their old rhythm and blues band", ["A baseball team", "A police choir", "A circus troupe"], "The brothers have to bring the band back together for a benefit performance.", "easy"],
+      ["What car becomes central to their escape-filled journey?", "A former police car", ["A stolen limousine", "A taxi cab", "A hearse"], "The Bluesmobile is an ex-police car that survives absurd chases and stunts.", "easy"],
+      ["Who repeatedly pursues the brothers across the movie?", "Police, angry musicians, and other enemies they upset", ["Only one private detective", "A group of aliens", "A rival time traveler"], "The comedy escalates as nearly every group they cross joins the chase.", "medium"],
+      ["What Chicago institution gives the movie much of its musical identity?", "Blues and soul performance culture", ["Silent film studios", "Country rodeo circuits", "Opera conservatories"], "The movie is built around blues, soul, gospel, and R&B performances.", "medium"],
+      ["What phrase describes the brothers' sense of purpose?", "They are on a mission from God", ["They are running for mayor", "They are undercover astronauts", "They are chasing a treasure map"], "The brothers frame the orphanage rescue as a sacred mission despite their chaos.", "easy"],
+      ["What happens at the country-western bar?", "The band has to adapt its set for the crowd", ["Jake joins the rodeo", "Elwood buys the venue", "The police arrest every customer"], "The scene plays with genre clashes as the blues band faces a country audience.", "medium"],
+      ["Why is the mall chase so memorable?", "The Bluesmobile drives through stores inside a shopping mall", ["The band performs on a roof", "A dinosaur crashes through the food court", "The car turns into a boat"], "The sequence turns ordinary retail space into a massive slapstick car chase.", "medium"],
+      ["What does the film use celebrity musician appearances for?", "To turn the road trip into a living jukebox of American music", ["To explain time travel rules", "To introduce superheroes", "To announce a sports league"], "The cameos are musical set pieces that celebrate the traditions the brothers love.", "hard"],
+      ["What kind of comedy style defines many of the action scenes?", "Deadpan absurd escalation", ["Quiet drawing-room farce", "Animated fantasy only", "Mockumentary interviews"], "The brothers stay strangely calm while the destruction around them keeps getting bigger.", "hard"],
+      ["What does Jake need after leaving prison?", "A plan to pay the orphanage tax bill", ["A new passport", "A college degree", "A spaceship ticket"], "Jake's release leads straight into the brothers' urgent money-raising mission.", "easy"],
+      ["Why do so many people want revenge on Jake and Elwood?", "They break promises, dodge consequences, and cause chaos everywhere", ["They steal dinosaur embryos", "They cancel a national holiday", "They hack a television network"], "The comedy comes from old grudges and new disasters piling up behind them.", "medium"],
+      ["What makes the brothers visually iconic?", "Black suits, hats, and sunglasses", ["Bright capes and helmets", "Western dusters and spurs", "Lab coats and goggles"], "Their uniform-like look is part of the film's instantly recognizable identity.", "easy"],
+      ["How does the movie treat Chicago?", "As a musical playground full of roads, clubs, churches, and chaos", ["As a tiny fantasy village", "As a distant alien planet", "As a quiet seaside town"], "Chicago is not just a backdrop; the city's music and streets shape the film.", "hard"],
+      ["What is the benefit concert meant to accomplish?", "Collect enough money to save the orphanage", ["Fund a police museum", "Buy new instruments for a rival band", "Launch a television network"], "The big show is the brothers' last chance to raise the money they need.", "easy"],
+      ["What role does gospel music play early in the story?", "It inspires the brothers' mission", ["It solves a murder", "It opens a courtroom trial", "It powers a time machine"], "The church sequence turns the orphanage problem into a calling for Jake.", "medium"],
+      ["What makes The Blues Brothers unusual as a musical comedy?", "It combines real music showcases with huge action set pieces", ["It has no songs", "It never leaves one room", "It is animated entirely by hand"], "The movie is both a concert celebration and a broad destructive chase comedy.", "expert"],
+      ["What does Elwood's calm personality add to the chaos?", "A deadpan contrast to the mayhem around him", ["A constant panic reaction", "A villain's monologue", "A sports-announcer voiceover"], "Elwood often treats impossible danger as if it is completely normal.", "hard"],
+      ["Why do the brothers' performances matter to the plot?", "Music is how they gather allies and raise the money", ["Music reveals hidden treasure coordinates", "Music stops robots from attacking", "Music lets them change the weather"], "The story's solution is not just escape; it is getting the band playing again.", "hard"],
+      ["What is the movie ultimately celebrating beneath the destruction?", "American blues, soul, and rhythm-and-blues traditions", ["Corporate television ratings", "Medieval court politics", "Silent horror cinema"], "The chaos is wrapped around a deep affection for the music and performers at its center.", "expert"],
+    ]);
+  }
+
+  return [];
+}
+
 function curatedTrivia(details: any): TriviaDraft[] {
   const mediaType = normalizeMediaType(details.mediaType);
+  const fanTrivia = curatedFanTrivia(details);
+  if (fanTrivia.length > 0) return fanTrivia;
 
   if (mediaType === "movie" && titleMatches(details, [857], ["Saving Private Ryan"])) {
     return [
@@ -110,12 +272,12 @@ function curatedTrivia(details: any): TriviaDraft[] {
         confidence: 0.94,
       }),
       draftQuestion({
-        question: "Which actor plays Captain John H. Miller in Saving Private Ryan?",
-        answer: "Tom Hanks",
-        options: uniqueOptions("Tom Hanks", ["Matt Damon", "Tom Sizemore", "Edward Burns"]),
-        explanation: "Tom Hanks leads the film as Captain Miller, the officer assigned to find Private Ryan.",
-        difficulty: "easy",
-        spoilerLevel: "none",
+        question: "What kind of mission is Captain Miller assigned after the Normandy landing?",
+        answer: "Find and bring home Private Ryan",
+        options: uniqueOptions("Find and bring home Private Ryan", ["Capture a German radio tower", "Recover stolen invasion maps", "Escort a general to Paris"]),
+        explanation: "The squad is sent behind enemy lines to locate Ryan and remove him from combat.",
+        difficulty: "medium",
+        spoilerLevel: "minor",
         confidence: 0.95,
       }),
       draftQuestion({
@@ -128,12 +290,12 @@ function curatedTrivia(details: any): TriviaDraft[] {
         confidence: 0.92,
       }),
       draftQuestion({
-        question: "Who directed Saving Private Ryan?",
-        answer: "Steven Spielberg",
-        options: uniqueOptions("Steven Spielberg", ["Francis Ford Coppola", "Ridley Scott", "Oliver Stone"]),
-        explanation: "Steven Spielberg directed the film and helped define its intense, grounded war-movie style.",
-        difficulty: "easy",
-        spoilerLevel: "none",
+        question: "What moral question follows the squad through the mission?",
+        answer: "Whether one soldier is worth risking many lives",
+        options: uniqueOptions("Whether one soldier is worth risking many lives", ["Whether the invasion should be delayed", "Whether Miller should become a general", "Whether Ryan knows secret codes"]),
+        explanation: "The soldiers repeatedly wrestle with the cost and purpose of saving Ryan.",
+        difficulty: "hard",
+        spoilerLevel: "minor",
         confidence: 0.94,
       }),
     ];
@@ -160,12 +322,12 @@ function curatedTrivia(details: any): TriviaDraft[] {
         confidence: 0.9,
       }),
       draftQuestion({
-        question: "Who directed The Lord of the Rings film trilogy?",
-        answer: "Peter Jackson",
-        options: uniqueOptions("Peter Jackson", ["Guillermo del Toro", "George Lucas", "James Cameron"]),
-        explanation: "Peter Jackson directed the film trilogy adapted from J.R.R. Tolkien's novels.",
-        difficulty: "easy",
-        spoilerLevel: "none",
+        question: "Why is the Fellowship formed?",
+        answer: "To help carry the Ring toward its destruction",
+        options: uniqueOptions("To help carry the Ring toward its destruction", ["To crown a new king immediately", "To reclaim the Lonely Mountain", "To build a new city in Mordor"]),
+        explanation: "The Fellowship unites different peoples around the dangerous task of destroying the Ring.",
+        difficulty: "medium",
+        spoilerLevel: "minor",
         confidence: 0.94,
       }),
       draftQuestion({
@@ -201,12 +363,12 @@ function curatedTrivia(details: any): TriviaDraft[] {
         confidence: 0.94,
       }),
       draftQuestion({
-        question: "Who plays Marty McFly?",
-        answer: "Michael J. Fox",
-        options: uniqueOptions("Michael J. Fox", ["Christopher Lloyd", "Crispin Glover", "Thomas F. Wilson"]),
-        explanation: "Michael J. Fox stars as Marty McFly, the teenager pulled into Doc Brown's time-travel experiment.",
+        question: "What does Marty need his parents to do at the school dance?",
+        answer: "Kiss and fall in love",
+        options: uniqueOptions("Kiss and fall in love", ["Win the talent show", "Steal the DeLorean", "Stop Doc from inventing time travel"]),
+        explanation: "Marty's future depends on George and Lorraine reconnecting at the dance.",
         difficulty: "easy",
-        spoilerLevel: "none",
+        spoilerLevel: "minor",
         confidence: 0.95,
       }),
     ];
@@ -265,11 +427,11 @@ function curatedTrivia(details: any): TriviaDraft[] {
         confidence: 0.94,
       }),
       draftQuestion({
-        question: "Which actor plays Dr. Ian Malcolm?",
-        answer: "Jeff Goldblum",
-        options: uniqueOptions("Jeff Goldblum", ["Sam Neill", "Richard Attenborough", "Wayne Knight"]),
-        explanation: "Jeff Goldblum plays mathematician Ian Malcolm, whose chaos-theory warnings frame the park's risks.",
-        difficulty: "easy",
+        question: "What theory shapes Ian Malcolm's warnings about the park?",
+        answer: "Chaos theory",
+        options: uniqueOptions("Chaos theory", ["String theory", "Game theory", "Plate tectonics"]),
+        explanation: "Malcolm warns that complex living systems will not behave according to the park's neat control plans.",
+        difficulty: "medium",
         spoilerLevel: "none",
         confidence: 0.95,
       }),
@@ -343,37 +505,6 @@ function curatedTrivia(details: any): TriviaDraft[] {
   return [];
 }
 
-function castTrivia(details: any): TriviaDraft[] {
-  const title = details.title || "this title";
-  const cast = Array.isArray(details.cast)
-    ? details.cast.filter((member: any) => member?.name && member?.character).slice(0, 8)
-    : [];
-  if (cast.length < 4) return [];
-
-  const lead = cast[0];
-  const characterTarget = cast.find((member: any) => String(member.character).length <= 34) || cast[1];
-  return [
-    draftQuestion({
-      question: `Which actor plays ${lead.character} in ${title}?`,
-      answer: lead.name,
-      options: uniqueOptions(lead.name, cast.slice(1).map((member: any) => member.name)),
-      explanation: `${lead.name} is credited as ${lead.character} in ${title}.`,
-      difficulty: "easy",
-      spoilerLevel: "none",
-      confidence: 0.88,
-    }),
-    draftQuestion({
-      question: `Which character is played by ${characterTarget.name} in ${title}?`,
-      answer: characterTarget.character,
-      options: uniqueOptions(characterTarget.character, cast.filter((member: any) => member.name !== characterTarget.name).map((member: any) => member.character)),
-      explanation: `${characterTarget.name} is credited as ${characterTarget.character}.`,
-      difficulty: "medium",
-      spoilerLevel: "none",
-      confidence: 0.84,
-    }),
-  ];
-}
-
 function isHighQualityTriviaDraft(draft: TriviaDraft, title: string, seenQuestions: Set<string>, seenAnswers: Set<string>) {
   const question = normalizeTriviaText(draft.question);
   const answer = normalizeTriviaText(draft.answer);
@@ -390,6 +521,13 @@ function isHighQualityTriviaDraft(draft: TriviaDraft, title: string, seenQuestio
     "current show metadata",
     "which story element is central",
     "which setting best fits",
+    "which actor plays",
+    "who plays",
+    "which character is played",
+    "who directed",
+    "which director",
+    "which performer",
+    "is credited as",
   ];
 
   if (draft.confidence < 0.74) return false;
@@ -412,12 +550,11 @@ function generateTrivia(details: any): TriviaDraft[] {
   const seenAnswers = new Set<string>();
   const drafts = [
     ...curatedTrivia({ ...details, mediaType }),
-    ...castTrivia({ ...details, mediaType }),
   ];
 
   return drafts
     .filter((draft) => isHighQualityTriviaDraft(draft, title, seenQuestions, seenAnswers))
-    .slice(0, 8);
+    .slice(0, TRIVIA_TARGET_COUNT);
 }
 
 function generateEasterEggHunts(details: any): EasterEggDraft[] {
@@ -534,7 +671,7 @@ async function readCachedTrivia(sql: any, tmdbId: number, mediaType: MediaType, 
       and source_hash like ${`${TRIVIA_VERSION}:%`}
       and options ? answer
     order by confidence desc, created_at asc
-    limit 8
+    limit ${TRIVIA_TARGET_COUNT}
   `;
   return rows.map((row: any) => mapTrivia(row, completedIds));
 }
@@ -681,6 +818,82 @@ async function generateAndStoreTrivia(sql: any, tmdbId: number, mediaType: Media
   return readCachedTrivia(sql, tmdbId, mediaType, userId);
 }
 
+async function updateTriviaJob(sql: any, tmdbId: number, mediaType: MediaType, status: "queued" | "generating" | "ready" | "failed", input: { interestSource?: string; questionCount?: number; error?: string | null } = {}) {
+  await sql`
+    insert into trivia_generation_jobs (
+      tmdb_id,
+      media_type,
+      language,
+      version,
+      status,
+      interest_source,
+      requested_count,
+      question_count,
+      error,
+      updated_at
+    )
+    values (
+      ${tmdbId},
+      ${mediaType},
+      'en',
+      ${TRIVIA_VERSION},
+      ${status},
+      ${input.interestSource || "unknown"},
+      ${TRIVIA_TARGET_COUNT},
+      ${input.questionCount || 0},
+      ${input.error || null},
+      now()
+    )
+    on conflict (media_type, tmdb_id, language, version)
+    do update set
+      status = excluded.status,
+      interest_source = case when trivia_generation_jobs.interest_source = 'unknown' then excluded.interest_source else trivia_generation_jobs.interest_source end,
+      requested_count = excluded.requested_count,
+      question_count = greatest(trivia_generation_jobs.question_count, excluded.question_count),
+      error = excluded.error,
+      updated_at = now()
+  `;
+}
+
+async function readTriviaJob(sql: any, tmdbId: number, mediaType: MediaType) {
+  const rows = await sql`
+    select status, question_count, error, updated_at
+    from trivia_generation_jobs
+    where tmdb_id = ${tmdbId}
+      and media_type = ${mediaType}
+      and language = 'en'
+      and version = ${TRIVIA_VERSION}
+    limit 1
+  `;
+  return rows[0] || null;
+}
+
+async function ensureTriviaPack(sql: any, tmdbId: number, mediaType: MediaType, input: { userId?: string; interestSource?: string } = {}) {
+  const existing = await readCachedTrivia(sql, tmdbId, mediaType, input.userId);
+  if (existing.length >= TRIVIA_MIN_READY_COUNT) {
+    await updateTriviaJob(sql, tmdbId, mediaType, "ready", { interestSource: input.interestSource, questionCount: existing.length, error: null });
+    return existing;
+  }
+
+  await updateTriviaJob(sql, tmdbId, mediaType, "generating", { interestSource: input.interestSource, questionCount: existing.length, error: null });
+  try {
+    const generated = await generateAndStoreTrivia(sql, tmdbId, mediaType, input.userId);
+    await updateTriviaJob(sql, tmdbId, mediaType, generated.length >= TRIVIA_MIN_READY_COUNT ? "ready" : "failed", {
+      interestSource: input.interestSource,
+      questionCount: generated.length,
+      error: generated.length >= TRIVIA_MIN_READY_COUNT ? null : "Not enough sourced movie-fan trivia is available for this title yet.",
+    });
+    return generated;
+  } catch (error) {
+    await updateTriviaJob(sql, tmdbId, mediaType, "failed", {
+      interestSource: input.interestSource,
+      questionCount: existing.length,
+      error: error instanceof Error ? error.message : "Trivia generation failed.",
+    });
+    throw error;
+  }
+}
+
 async function generateAndStoreEasterEggs(sql: any, tmdbId: number, mediaType: MediaType, details?: any, userId?: string) {
   const titleDetails = details || await loadTitleDetails(sql, tmdbId, mediaType);
   const sourceHash = hashSource({
@@ -810,14 +1023,16 @@ async function handleGet(request: any, response: any) {
 
   let questions = await readCachedTrivia(sql, tmdbId, mediaType, user?.id);
   let hunts = await readCachedEasterEggs(sql, tmdbId, mediaType, user?.id);
-  let source: "cache" | "tmdb_metadata" | "none" = questions.length || hunts.length ? "cache" : "none";
+  let job = await readTriviaJob(sql, tmdbId, mediaType);
+  let source: "cache" | "curated_pack" | "none" = questions.length >= TRIVIA_MIN_READY_COUNT || hunts.length ? "cache" : "none";
 
   try {
-    if (questions.length === 0 || hunts.length === 0) {
+    if (questions.length < TRIVIA_MIN_READY_COUNT || hunts.length === 0) {
       const details = await loadTitleDetails(sql, tmdbId, mediaType);
-      if (questions.length === 0) questions = await generateAndStoreTrivia(sql, tmdbId, mediaType, user?.id);
+      if (questions.length < TRIVIA_MIN_READY_COUNT) questions = await ensureTriviaPack(sql, tmdbId, mediaType, { userId: user?.id, interestSource: "trivia_page" });
       if (hunts.length === 0) hunts = await generateAndStoreEasterEggs(sql, tmdbId, mediaType, details, user?.id);
-      source = questions.length || hunts.length ? "tmdb_metadata" : "none";
+      job = await readTriviaJob(sql, tmdbId, mediaType);
+      source = questions.length >= TRIVIA_MIN_READY_COUNT || hunts.length ? "curated_pack" : "none";
     }
     const completedTriviaCount = questions.filter((question: any) => question.completed).length;
     const completedHuntCount = hunts.filter((hunt: any) => hunt.completed).length;
@@ -829,13 +1044,14 @@ async function handleGet(request: any, response: any) {
       mediaType,
       availabilityKnown: questions.length > 0 || hunts.length > 0,
       source,
+      generationStatus: questions.length >= TRIVIA_MIN_READY_COUNT ? "ready" : job?.status || "missing",
       questions,
       easterEggs: hunts,
       progress: progressSummary(questions.length, completedTriviaCount, hunts.length, completedHuntCount),
       achievements: achievementState.achievements,
       unlockedAchievements: achievementState.unlocked,
       authenticated: Boolean(user),
-      notes: questions.length || hunts.length ? "Cached companion content grounded in title-specific trivia sources." : "Trivia is still being prepared for this title. Try again soon.",
+      notes: questions.length >= TRIVIA_MIN_READY_COUNT || hunts.length ? "Cached movie-fan companion content for this title." : "Building your trivia pack. Try again shortly.",
     });
   } catch (error) {
     console.warn("[trivia] feed generation failed", {
@@ -851,6 +1067,7 @@ async function handleGet(request: any, response: any) {
       mediaType,
       availabilityKnown: false,
       source: "none",
+      generationStatus: "failed",
       questions: [],
       easterEggs: [],
       progress: progressSummary(0, 0, 0, 0),
@@ -922,6 +1139,44 @@ async function handleReport(request: any, response: any) {
   `;
 
   return sendJson(response, 200, { ok: true, reportCount: Number(rows[0]?.report_count || 0), status: rows[0]?.status || "unknown" });
+}
+
+async function handleInterest(request: any, response: any) {
+  const body = await readBody(request);
+  const mediaType = normalizeMediaType(body.mediaType);
+  const tmdbId = Number(body.tmdbId);
+  const interestSource = String(body.source || "unknown").slice(0, 80);
+  if (!Number.isFinite(tmdbId)) return sendJson(response, 400, { error: "A valid tmdbId is required." });
+
+  const sql = db();
+  await ensureTmdbCacheTables(sql);
+  await ensureTriviaTables(sql);
+  const user = await getCurrentUser(sql, request);
+  await checkRateLimit(sql, request, "trivia:interest", user?.id, user ? 180 : 60, 60);
+
+  const cached = await readCachedTrivia(sql, tmdbId, mediaType, user?.id);
+  if (cached.length >= TRIVIA_MIN_READY_COUNT) {
+    await updateTriviaJob(sql, tmdbId, mediaType, "ready", { interestSource, questionCount: cached.length, error: null });
+    return sendJson(response, 202, { ok: true, generationStatus: "ready", questionCount: cached.length });
+  }
+
+  await updateTriviaJob(sql, tmdbId, mediaType, "queued", { interestSource, questionCount: cached.length, error: null });
+
+  try {
+    const questions = await ensureTriviaPack(sql, tmdbId, mediaType, { userId: user?.id, interestSource });
+    return sendJson(response, 202, {
+      ok: true,
+      generationStatus: questions.length >= TRIVIA_MIN_READY_COUNT ? "ready" : "failed",
+      questionCount: questions.length,
+    });
+  } catch (error) {
+    return sendJson(response, 202, {
+      ok: false,
+      generationStatus: "failed",
+      questionCount: cached.length,
+      error: error instanceof Error ? error.message : "Trivia generation failed.",
+    });
+  }
 }
 
 async function handleHuntAction(request: any, response: any) {
@@ -1099,6 +1354,7 @@ export default async function handler(request: any, response: any) {
   try {
     const path = triviaPath(request);
     if (request.method === "GET") return handleGet(request, response);
+    if (request.method === "POST" && path === "interest") return handleInterest(request, response);
     if (request.method === "POST" && path === "hunt") return handleHuntAction(request, response);
     if (request.method === "POST" && path === "complete") return handleComplete(request, response);
     if (request.method === "POST" && path === "report") return handleReport(request, response);

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { followTitle, getFollowedTitleStatus, unfollowTitle } from "../services/followedTitleService";
+import { enqueueTitleTrivia } from "../services/triviaService";
 import { browserSupportsPush, enablePushNotifications, getPushSubscriptionStatus } from "../services/pushNotificationService";
 import type { FollowedTitle, MovieDetails, TitleNotificationSettings } from "../types";
 
@@ -91,6 +92,7 @@ export function FollowTitleControl({ movie }: FollowTitleControlProps) {
     setMessage("");
     try {
       const result = await followTitle(movie, settings);
+      enqueueTitleTrivia({ mediaType: movie.mediaType || "movie", tmdbId: movie.tmdbId, source: "follow" });
       setFollowedTitle(result.followedTitle);
       setSettings(result.followedTitle?.notificationSettings || settings);
       setMessage("Following title.");

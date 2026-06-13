@@ -592,10 +592,11 @@ function ClassicTriviaPanel({ mediaType, tmdbId, title }: { mediaType: MediaType
   const [challengeStatus, setChallengeStatus] = useState("");
   const [ticketStatus, setTicketStatus] = useState("");
   const questions = feed?.questions || [];
+  const isBuildingPack = feed?.generationStatus === "missing" || feed?.generationStatus === "queued" || feed?.generationStatus === "generating";
   const score = useMemo(() => scoreTrivia(questions, answers), [questions, answers]);
   const allAnswered = questions.length > 0 && questions.every((question) => answers[question.id]);
 
-  useEffect(() => {
+  function loadTriviaPack() {
     let mounted = true;
     setStatus("loading");
     setFeed(null);
@@ -617,6 +618,10 @@ function ClassicTriviaPanel({ mediaType, tmdbId, title }: { mediaType: MediaType
     return () => {
       mounted = false;
     };
+  }
+
+  useEffect(() => {
+    return loadTriviaPack();
   }, [mediaType, tmdbId]);
 
   async function handleCreateChallenge() {
@@ -669,7 +674,13 @@ function ClassicTriviaPanel({ mediaType, tmdbId, title }: { mediaType: MediaType
     return (
       <section className="title-games-section">
         <h2>Classic Trivia</h2>
-        <p className="empty-state">No trivia pack is available for this title yet.</p>
+        <p className="empty-state">
+          {isBuildingPack ? "Building your trivia pack..." : "This title does not have enough movie-fan trivia yet."}
+        </p>
+        <p className="helper-text">{feed?.notes || "We do not fall back to cast-table or metadata questions."}</p>
+        <button className="secondary-button compact" onClick={loadTriviaPack} type="button">
+          Retry Trivia Pack
+        </button>
       </section>
     );
   }

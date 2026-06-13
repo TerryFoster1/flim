@@ -1170,7 +1170,8 @@ export interface TriviaFeed {
   tmdbId: number;
   mediaType: MediaType;
   availabilityKnown: boolean;
-  source: "cache" | "tmdb_metadata" | "none";
+  source: "cache" | "curated_pack" | "none";
+  generationStatus?: "missing" | "queued" | "generating" | "ready" | "failed";
   questions: TriviaQuestion[];
   easterEggs?: EasterEggHunt[];
   progress?: CompanionProgress;

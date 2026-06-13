@@ -18,6 +18,17 @@ export async function getTitleTrivia(input: { mediaType?: MediaType; tmdbId: num
   return parseJson<TriviaFeed>(response);
 }
 
+export function enqueueTitleTrivia(input: { mediaType?: MediaType; tmdbId: number; source: "search" | "details" | "playlist_add" | "follow" | "trivia_page" }) {
+  const mediaType = input.mediaType || "movie";
+  if (!Number.isFinite(input.tmdbId)) return;
+  fetch("/api/trivia/interest", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ mediaType, tmdbId: input.tmdbId, source: input.source }),
+    keepalive: true,
+  }).catch(() => undefined);
+}
+
 export async function reportTriviaQuestion(triviaId: string, reason: TriviaReportReason) {
   const response = await fetch("/api/trivia/report", {
     method: "POST",

@@ -4,6 +4,7 @@ import { InstallFlimPrompt } from "./components/InstallFlimPrompt";
 import { NavigationBar } from "./components/NavigationBar";
 import { NowPlayingTicketIcon } from "./components/RouletteAssets";
 import { getSession, logout as logoutSession } from "./services/authService";
+import { enqueueTitleTrivia } from "./services/triviaService";
 import {
   addMovieToPlaylist,
   createSharedPlaylistLink,
@@ -207,6 +208,7 @@ export default function App() {
 
   async function addToPlaylist(playlistId: string, movie: MovieSearchResult | MovieDetails) {
     await addMovieToPlaylist(playlistId, movie);
+    enqueueTitleTrivia({ mediaType: movie.mediaType || "movie", tmdbId: movie.tmdbId, source: "playlist_add" });
     await refreshPlaylists({ background: true });
   }
 

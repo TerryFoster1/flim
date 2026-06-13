@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { hasTmdbApiKey, searchMovies, type MediaSearchMode } from "../services/tmdbService";
 import { getCurrentProfile } from "../services/profileService";
+import { enqueueTitleTrivia } from "../services/triviaService";
 import { getProviderAvailabilityForTitle, normalizeStreamingRegion } from "../services/watchProviderService";
 import type { MovieSearchResult, Playlist } from "../types";
 import { AddToPlaylistControl } from "./AddToPlaylistControl";
@@ -32,6 +33,22 @@ export function MovieSearchPanel({ playlists, addToPlaylist, onNavigate, variant
 
   function resultKey(movie: MovieSearchResult) {
     return `${movie.mediaType || "movie"}-${movie.tmdbId}`;
+  }
+
+  function normalizedSearchText(value: string) {
+    return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  }
+
+  function enqueueTriviaForSearchInterest(movies: MovieSearchResult[]) {
+    const normalizedQuery = normalizedSearchText(query);
+    if (!normalizedQuery) return;
+    const highConfidenceMatches = movies
+      .filter((movie, index) => {
+        const title = normalizedSearchText(movie.title);
+        return index === 0 || title === normalizedQuery || title.includes(normalizedQuery) || normalizedQuery.includes(title);
+      })
+      .slice(0, 3);
+    highConfidenceMatches.forEach((movie) => enqueueTitleTrivia({ mediaType: movie.mediaType || "movie", tmdbId: movie.tmdbId, source: "search" }));
   }
 
   function alreadyInFixedPlaylist(movie: MovieSearchResult) {
@@ -101,6 +118,7 @@ export function MovieSearchPanel({ playlists, addToPlaylist, onNavigate, variant
     setMessage("");
     try {
       const movies = await searchMovies(query, mediaType);
+      enqueueTriviaForSearchInterest(movies);
       const prioritized = await prioritizeAvailableResults(movies);
       setResults(prioritized);
       setStatus("done");
@@ -124,6 +142,7 @@ export function MovieSearchPanel({ playlists, addToPlaylist, onNavigate, variant
     setMessage("");
     try {
       await addToPlaylist(fixedPlaylistId, movie);
+      enqueueTitleTrivia({ mediaType: movie.mediaType || "movie", tmdbId: movie.tmdbId, source: "playlist_add" });
       setAddedKeys((current) => new Set(current).add(key));
       setMessage(`${movie.title} added.`);
       onMovieAdded?.();

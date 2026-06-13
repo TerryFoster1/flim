@@ -7,6 +7,7 @@ import { RecommendationShelf } from "../components/RecommendationShelf";
 import { WatchStatusBadge } from "../components/WatchStatusBadge";
 import { getCurrentProfile } from "../services/profileService";
 import { getMovieDetails, getTvDetails, hasTmdbApiKey } from "../services/tmdbService";
+import { enqueueTitleTrivia } from "../services/triviaService";
 import type { ContentRating } from "../types";
 import type { MediaType, MovieDetails, Playlist, WatchStatus } from "../types";
 
@@ -286,6 +287,12 @@ export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addTo
       if (slowTimer) clearTimeout(slowTimer);
     };
   }, [tmdbId, mediaType, loadNonce]);
+
+  useEffect(() => {
+    if (Number.isFinite(tmdbId)) {
+      enqueueTitleTrivia({ mediaType, tmdbId, source: "details" });
+    }
+  }, [mediaType, tmdbId]);
 
   useEffect(() => {
     let mounted = true;
