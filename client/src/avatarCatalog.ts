@@ -19,6 +19,11 @@ export interface AvatarSkin {
   futureTicketCost: number | null;
   rarity: AvatarRarity;
   defaultUnlocked: boolean;
+  facePlacement: {
+    width: string;
+    top: string;
+    left: string;
+  };
 }
 
 export interface AvatarCombination {
@@ -46,14 +51,14 @@ export const baseAvatars: BaseAvatar[] = [
 ];
 
 export const avatarSkins: AvatarSkin[] = [
-  { id: "dino", name: "Dino Costume", imagePath: "/avatars/skins/dino.png", unlockType: "ticket", futureTicketCost: 800, rarity: "rare", defaultUnlocked: false },
-  { id: "spacesuit", name: "Spacesuit", imagePath: "/avatars/skins/spacesuit.png", unlockType: "ticket", futureTicketCost: 650, rarity: "uncommon", defaultUnlocked: false },
-  { id: "robot", name: "Robot Costume", imagePath: "/avatars/skins/robot.png", unlockType: "ticket", futureTicketCost: 700, rarity: "rare", defaultUnlocked: false },
-  { id: "ghost", name: "Ghost Sheet", imagePath: "/avatars/skins/ghost.png", unlockType: "seasonal", futureTicketCost: 500, rarity: "uncommon", defaultUnlocked: false },
-  { id: "pirate", name: "Pirate", imagePath: "/avatars/skins/pirate.png", unlockType: "ticket", futureTicketCost: 550, rarity: "uncommon", defaultUnlocked: false },
-  { id: "wizard", name: "Wizard", imagePath: "/avatars/skins/wizard.png", unlockType: "achievement", futureTicketCost: null, rarity: "epic", defaultUnlocked: false },
-  { id: "ninja", name: "Ninja", imagePath: "/avatars/skins/ninja.png", unlockType: "ticket", futureTicketCost: 600, rarity: "rare", defaultUnlocked: false },
-  { id: "superhero", name: "Superhero", imagePath: "/avatars/skins/superhero.png", unlockType: "limited", futureTicketCost: 900, rarity: "epic", defaultUnlocked: false },
+  { id: "rex", name: "Rex", imagePath: "/avatars/skins/rex.png", unlockType: "ticket", futureTicketCost: 800, rarity: "rare", defaultUnlocked: false, facePlacement: { width: "60%", top: "37%", left: "45%" } },
+  { id: "spaceman", name: "Spaceman", imagePath: "/avatars/skins/spaceman.png", unlockType: "ticket", futureTicketCost: 650, rarity: "uncommon", defaultUnlocked: false, facePlacement: { width: "58%", top: "36%", left: "48%" } },
+  { id: "gearbox", name: "Gearbox", imagePath: "/avatars/skins/gearbox.png", unlockType: "ticket", futureTicketCost: 700, rarity: "rare", defaultUnlocked: false, facePlacement: { width: "57%", top: "35%", left: "49%" } },
+  { id: "spook", name: "Spook", imagePath: "/avatars/skins/spook.png", unlockType: "seasonal", futureTicketCost: 500, rarity: "uncommon", defaultUnlocked: false, facePlacement: { width: "52%", top: "36%", left: "48%" } },
+  { id: "peg-leg", name: "Peg Leg", imagePath: "/avatars/skins/peg-leg.png", unlockType: "ticket", futureTicketCost: 550, rarity: "uncommon", defaultUnlocked: false, facePlacement: { width: "55%", top: "38%", left: "48%" } },
+  { id: "hocus", name: "Hocus", imagePath: "/avatars/skins/hocus.png", unlockType: "achievement", futureTicketCost: null, rarity: "epic", defaultUnlocked: false, facePlacement: { width: "56%", top: "39%", left: "49%" } },
+  { id: "ninjin", name: "Ninjin", imagePath: "/avatars/skins/ninjin.png", unlockType: "ticket", futureTicketCost: 600, rarity: "rare", defaultUnlocked: false, facePlacement: { width: "56%", top: "37%", left: "49%" } },
+  { id: "magnifico", name: "Magnifico", imagePath: "/avatars/skins/magnifico.png", unlockType: "limited", futureTicketCost: 900, rarity: "epic", defaultUnlocked: false, facePlacement: { width: "58%", top: "40%", left: "49%" } },
 ];
 
 export const avatarCombinations: AvatarCombination[] = [];

@@ -7396,7 +7396,7 @@ textarea { min-height: 42px; resize: vertical; }
 .avatar-skin-grid {
   display: grid;
   gap: 10px;
-  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
 }
 
 .avatar-skin-chip {
@@ -7405,59 +7405,91 @@ textarea { min-height: 42px; resize: vertical; }
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.045);
   display: grid;
-  gap: 5px;
+  gap: 9px;
   justify-items: center;
-  min-height: 132px;
-  padding: 10px;
+  min-height: 146px;
+  padding: 10px 8px;
   text-align: center;
-}
-
-.avatar-skin-chip img {
-  width: 60px;
-  height: 60px;
-  object-fit: contain;
-  opacity: 0.82;
 }
 
 .avatar-skin-chip.is-locked {
   opacity: 0.9;
 }
 
-.avatar-skin-locked-preview {
-  align-items: center;
+.avatar-skin-art {
   background:
-    radial-gradient(circle at 50% 32%, rgba(255, 255, 255, 0.14), transparent 34%),
-    linear-gradient(145deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.025));
+    radial-gradient(circle at 50% 32%, rgba(255, 255, 255, 0.18), transparent 42%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.035));
   border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 18px;
+  border-radius: 22px;
   display: grid;
-  height: 68px;
+  height: 92px;
   justify-items: center;
   overflow: hidden;
   position: relative;
-  width: 68px;
+  width: 92px;
 }
 
-.avatar-skin-locked-preview::before {
-  background: rgba(255, 255, 255, 0.16);
-  border-radius: 999px 999px 20px 20px;
-  content: "";
-  height: 58px;
-  width: 42px;
-}
-
-.avatar-skin-locked-preview span {
+.avatar-skin-base-face {
+  height: auto;
+  left: var(--skin-face-left, 50%);
+  opacity: 0.82;
   position: absolute;
-  inset: auto 0 7px;
-  color: rgba(255, 255, 255, 0.78);
-  font-size: 0.63rem;
-  font-weight: 900;
-  text-transform: uppercase;
+  top: var(--skin-face-top, 38%);
+  transform: translate(-50%, -50%);
+  width: var(--skin-face-width, 56%);
+  z-index: 1;
 }
 
-.avatar-skin-chip small {
-  color: var(--muted);
-  font-size: 0.72rem;
+.avatar-skin-costume {
+  height: 100%;
+  inset: 0;
+  object-fit: contain;
+  position: absolute;
+  width: 100%;
+  z-index: 2;
+}
+
+.avatar-skin-lock {
+  background: rgba(5, 9, 17, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.3);
+  height: 22px;
+  position: absolute;
+  right: 6px;
+  top: 6px;
+  width: 22px;
+  z-index: 3;
+}
+
+.avatar-skin-lock::before {
+  border: 2px solid rgba(255, 255, 255, 0.88);
+  border-bottom: 0;
+  border-radius: 999px 999px 0 0;
+  content: "";
+  height: 7px;
+  left: 6px;
+  position: absolute;
+  top: 4px;
+  width: 8px;
+}
+
+.avatar-skin-lock::after {
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 3px;
+  content: "";
+  height: 8px;
+  left: 6px;
+  position: absolute;
+  top: 10px;
+  width: 10px;
+}
+
+.avatar-skin-chip strong {
+  color: var(--text);
+  font-size: 0.88rem;
+  line-height: 1.2;
 }
 
 .public-profile-page {

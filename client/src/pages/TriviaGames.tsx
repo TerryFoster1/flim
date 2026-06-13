@@ -60,17 +60,17 @@ const arcadeRewardCards = [
   {
     title: "Tickets",
     description: "Earned through play and challenge participation. Never purchased.",
-    image: "/avatars/skins/superhero.png",
+    image: "/avatars/skins/magnifico.png",
   },
   {
     title: "Concession Stand",
     description: "A home for cosmetics, profile themes, and event rewards as Arcade grows.",
-    image: "/avatars/skins/dino.png",
+    image: "/avatars/skins/rex.png",
   },
   {
     title: "Partner Rewards",
     description: "Reserved for tasteful entertainment rewards that fit the Flim experience.",
-    image: "/avatars/skins/spacesuit.png",
+    image: "/avatars/skins/spaceman.png",
   },
 ];
 

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type CSSProperties, type FormEvent } from "react";
 import { InstallFlimPrompt } from "../components/InstallFlimPrompt";
 import { FlimAvatar } from "../components/FlimAvatar";
 import { ProviderLogo } from "../components/ProviderLogo";
@@ -212,18 +212,27 @@ export function Settings({ currentUser, onNavigate, playlists = [] }: SettingsPr
             <div className="avatar-skin-preview" aria-label="Avatar skins">
               <div>
                 <h3>Skins</h3>
-                <p>Locked costumes can be unlocked later.</p>
+                <p>Play trivia, challenges, and events to unlock exclusive Film Critter skins.</p>
               </div>
-              <div className="avatar-skin-grid">
-                {avatarSkins.map((skin) => (
-                  <span className={`avatar-skin-chip avatar-skin-${skin.rarity} is-locked`} key={skin.id} title={`${skin.name} / ${skin.rarity}`}>
-                    <span className="avatar-skin-locked-preview" aria-hidden="true">
-                      <span>Locked</span>
+              <div className="avatar-skin-grid" aria-label="Locked Film Critter skins">
+                {avatarSkins.map((skin) => {
+                  const skinStyle = {
+                    "--skin-face-width": skin.facePlacement.width,
+                    "--skin-face-top": skin.facePlacement.top,
+                    "--skin-face-left": skin.facePlacement.left,
+                  } as CSSProperties;
+
+                  return (
+                    <span className={`avatar-skin-chip avatar-skin-${skin.rarity} is-locked`} key={skin.id} title={`${skin.name} skin locked`}>
+                      <span className="avatar-skin-art" style={skinStyle} aria-hidden="true">
+                        <img className="avatar-skin-base-face" src={selectedAvatar.imagePath} alt="" loading="lazy" decoding="async" />
+                        <img className="avatar-skin-costume" src={skin.imagePath} alt="" loading="lazy" decoding="async" />
+                        <span className="avatar-skin-lock" />
+                      </span>
+                      <strong>{skin.name}</strong>
                     </span>
-                    <strong>{skin.name}</strong>
-                    <small>Unlockable</small>
-                  </span>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </div>
