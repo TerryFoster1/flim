@@ -429,20 +429,23 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
           {notifyMessage ? <small className="arcade-notify-message">{notifyMessage}</small> : null}
         </div>
         <div className="arcade-hero-art" aria-hidden="true">
-          <div className="arcade-ticket-card is-main">
-            <span>Trivia</span>
-            <strong>Classic Movie Round</strong>
-            <em>Play now</em>
-          </div>
-          <div className="arcade-ticket-card is-left">
-            <span>Challenge</span>
-            <strong>Beat My Score</strong>
-            <em>No high score yet</em>
-          </div>
-          <div className="arcade-ticket-card is-right">
-            <span>Event</span>
-            <strong>Seasonal Play</strong>
-            <em>Badges and rewards</em>
+          <div className="arcade-play-menu">
+            <span>Play Menu</span>
+            <strong>Choose a round</strong>
+            <div className="arcade-play-menu-list">
+              <div>
+                <b>Classic Trivia</b>
+                <small>Movie fan questions</small>
+              </div>
+              <div>
+                <b>Friend Challenge</b>
+                <small>Share a score to beat</small>
+              </div>
+              <div>
+                <b>Seasonal Event</b>
+                <small>Limited-time challenges</small>
+              </div>
+            </div>
           </div>
         </div>
       </header>

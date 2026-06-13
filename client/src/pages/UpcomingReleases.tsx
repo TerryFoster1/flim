@@ -124,11 +124,6 @@ function eventLabel(type: string) {
   return labels[type] || "Release Update";
 }
 
-function releaseTypeLabel(item: UpcomingRelease) {
-  if (item.mediaType === "tv") return item.seasonCount ? `Season ${item.seasonCount}` : "TV Season";
-  return "Movie";
-}
-
 function eventReason(item: UpcomingRelease) {
   if (item.latestEventType) return `${eventLabel(item.latestEventType)}: ${item.latestEventBody || item.latestEventTitle || "Release Intelligence detected an update."}`;
   if (item.releaseContext) return item.releaseContext;
@@ -208,7 +203,6 @@ function UpcomingReleaseCard({ item, playlists, addToPlaylist, onNavigate, onFol
       </button>
       <div className="upcoming-release-copy">
         <div className="card-meta">
-          <span className="media-type-badge">{releaseTypeLabel(item)}</span>
           {item.isFollowing ? <span>Following</span> : null}
           {item.availabilityKnown ? <span>{item.providerNames?.slice(0, 2).join(", ") || "Streaming info saved"}</span> : null}
         </div>
