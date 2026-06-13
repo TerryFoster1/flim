@@ -27,49 +27,49 @@ const arcadeFeatureCards = [
   {
     title: "Title Trivia",
     description: "Play source-grounded questions tied to movies and shows you already care about.",
-    meta: "Movie and TV packs",
+    meta: "Playable now",
   },
   {
     title: "Playlist Trivia",
-    description: "Turn curated playlists into playable quizzes for friends and movie nights.",
-    meta: "Playlist-first games",
-  },
-  {
-    title: "Weekly Challenges",
-    description: "Fresh recurring challenges built around genres, franchises, and featured titles.",
-    meta: "New rounds often",
-  },
-  {
-    title: "Seasonal Events",
-    description: "Halloween horror, award season, summer blockbusters, and holiday movie events.",
-    meta: "Limited-time badges",
+    description: "Turn curated playlists into game-night rounds built from the titles inside them.",
+    meta: "Playlist mode",
   },
   {
     title: "Friend Challenges",
     description: "Finish a trivia pack, share your score, and invite someone to beat it.",
-    meta: "Same questions, fair score",
+    meta: "Score challenges",
+  },
+  {
+    title: "Weekly Challenges",
+    description: "Fresh recurring challenges built around genres, franchises, and featured titles.",
+    meta: "Event rounds",
+  },
+  {
+    title: "Seasonal Events",
+    description: "Halloween horror, award season, summer blockbusters, and holiday movie events.",
+    meta: "Limited-time play",
   },
 ];
 
 const arcadeRewardCards = [
   {
     title: "Film Critters",
-    description: "Earn avatar cosmetics and playful identity rewards as Arcade grows.",
+    description: "Avatar identity for players, collectors, and movie-night regulars.",
     image: "/avatars/base/classic.png",
   },
   {
     title: "Tickets",
-    description: "A future reward layer for challenge participation and movie-night rituals.",
+    description: "Earned through play and challenge participation. Never purchased.",
     image: "/avatars/skins/superhero.png",
   },
   {
     title: "Concession Stand",
-    description: "A future home for cosmetics, profile themes, and event rewards.",
+    description: "A home for cosmetics, profile themes, and event rewards as Arcade grows.",
     image: "/avatars/skins/dino.png",
   },
   {
     title: "Partner Rewards",
-    description: "Prepared for tasteful movie and entertainment rewards later.",
+    description: "Reserved for tasteful entertainment rewards that fit the Flim experience.",
     image: "/avatars/skins/spacesuit.png",
   },
 ];
@@ -93,6 +93,33 @@ const popularTriviaTitles: Array<{ title: string; mediaType: MediaType; tmdbId: 
     tmdbId: 2316,
     description: "Test what you remember from Scranton's favorite workplace.",
   },
+];
+
+const playlistTriviaCards = [
+  {
+    title: "Director's Cut Trivia",
+    description: "Playlist-based rounds that turn curated collections into movie-night quizzes.",
+    action: "Browse Playlists",
+    path: "/playlists",
+  },
+  {
+    title: "Franchise Night",
+    description: "Build a round from connected titles, sequels, and shared movie universes.",
+    action: "Explore Discovery",
+    path: "/discover",
+  },
+  {
+    title: "Your Watchlist Round",
+    description: "A personal trivia night based on the titles you already saved.",
+    action: "My Playlists",
+    path: "/playlists",
+  },
+];
+
+const genreChallengeCards = [
+  { title: "Sci-Fi Speed Round", path: "/genre/scifi", reason: "Because genre rounds start with discovery hubs" },
+  { title: "Horror Night", path: "/genre/horror", reason: "Built for spooky-season and horror playlists" },
+  { title: "Time Travel Trivia", path: "/discover?query=time%20travel", reason: "Great for franchise and theme nights" },
 ];
 
 const titleGameCards: GameCardDefinition[] = [
@@ -370,8 +397,9 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
         const visible = [
           feed.sections.featured,
           ...feed.sections.active,
-          ...feed.sections.upcoming,
-        ].filter((event): event is SeasonalChallengeEvent => Boolean(event));
+        ].filter((event): event is SeasonalChallengeEvent => {
+          return Boolean(event) && (event as SeasonalChallengeEvent).dateStatus === "active";
+        });
         const unique = Array.from(new Map(visible.map((event) => [event.id, event])).values());
         setFeaturedChallenges(unique.slice(0, 3));
       })
@@ -391,8 +419,8 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
           <h1>Trivia & Games</h1>
           <p>Test your movie knowledge, challenge friends, and discover new favorites through playable film and TV experiences.</p>
           <div className="arcade-hero-actions">
-            <button className="primary-button" onClick={() => onNavigate("/discover")} type="button">
-              Find a Title
+            <button className="primary-button" onClick={() => onNavigate("/games/title/movie/105")} type="button">
+              Play Back to the Future
             </button>
             <button className="secondary-button" onClick={() => onNavigate("/challenges")} type="button">
               View Challenges
@@ -404,7 +432,7 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
           <div className="arcade-ticket-card is-main">
             <span>Trivia</span>
             <strong>Classic Movie Round</strong>
-            <em>10 questions</em>
+            <em>Play now</em>
           </div>
           <div className="arcade-ticket-card is-left">
             <span>Challenge</span>
@@ -437,8 +465,8 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
 
       <section className="title-games-section arcade-live-section">
         <div className="actor-section-heading">
-          <h2>Popular Trivia</h2>
-          <span>Title packs</span>
+          <h2>Popular Movie Trivia</h2>
+          <span>Playable title packs</span>
         </div>
         <div className="arcade-trivia-grid">
           {popularTriviaTitles.map((title) => (
@@ -460,8 +488,45 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
 
       <section className="title-games-section arcade-feature-section">
         <div className="actor-section-heading">
-          <h2>Arcade Roadmap</h2>
-          <span>Next game modes</span>
+          <h2>Playlist Trivia</h2>
+          <span>Playlist-first games</span>
+        </div>
+        <div className="arcade-trivia-grid">
+          {playlistTriviaCards.map((card) => (
+            <article className="arcade-trivia-card" key={card.title}>
+              <span>Playlist Mode</span>
+              <h3>{card.title}</h3>
+              <p>{card.description}</p>
+              <button className="secondary-button compact" onClick={() => onNavigate(card.path)} type="button">
+                {card.action}
+              </button>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="title-games-section arcade-feature-section">
+        <div className="actor-section-heading">
+          <h2>Genre Challenges</h2>
+          <span>Discover a round</span>
+        </div>
+        <div className="challenge-discovery-row">
+          {genreChallengeCards.map((card) => (
+            <article className="challenge-discovery-card" key={card.title}>
+              <strong>{card.title}</strong>
+              <small>{card.reason}</small>
+              <button className="secondary-button compact" onClick={() => onNavigate(card.path)} type="button">
+                Explore
+              </button>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="title-games-section arcade-feature-section">
+        <div className="actor-section-heading">
+          <h2>Game Modes</h2>
+          <span>Arcade experiences</span>
         </div>
         <div className="arcade-feature-grid">
           {arcadeFeatureCards.map((feature) => (
@@ -476,7 +541,7 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
 
       <section className="title-games-section arcade-reward-section">
         <div className="actor-section-heading">
-          <h2>Future Rewards</h2>
+          <h2>Rewards</h2>
           <span>Built for playful progress</span>
         </div>
         <div className="arcade-reward-grid">
@@ -501,14 +566,14 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
       <section className="title-games-section arcade-play-section">
         <div className="actor-section-heading">
           <h2>Start With a Title</h2>
-          <span>Trivia opens from title pages</span>
+          <span>Play title trivia</span>
         </div>
         <p>
-          Open a movie or TV detail page and tap Trivia & Games to see title-specific game cards, score runs,
-          and friend challenge tools as packs become available.
+          Open a movie or TV detail page and tap Trivia & Games, or jump into a featured title here.
+          Trivia packs are cached per title and friend challenges reuse the same question set for fair score runs.
         </p>
-        <button className="secondary-button" onClick={() => setNotifyMessage("Arcade launch alerts are on the roadmap.")} type="button">
-          Notify Me
+        <button className="secondary-button" onClick={() => setNotifyMessage("Arcade updates will appear here as new rounds open.")} type="button">
+          Keep Me Posted
         </button>
       </section>
 
@@ -604,7 +669,7 @@ function ClassicTriviaPanel({ mediaType, tmdbId, title }: { mediaType: MediaType
     return (
       <section className="title-games-section">
         <h2>Classic Trivia</h2>
-        <p className="empty-state">Trivia is still being prepared for this title. Try again soon.</p>
+        <p className="empty-state">No trivia pack is available for this title yet.</p>
       </section>
     );
   }
