@@ -62,7 +62,7 @@ export function absoluteUrl(path: string, request?: any) {
 }
 
 function svgText(value: string, x: number, y: number, size: number, weight = 800, fill = "#ffffff") {
-  return `<text x="${x}" y="${y}" font-family="Arial, Helvetica, sans-serif" font-size="${size}" font-weight="${weight}" fill="${fill}">${escapeXml(value)}</text>`;
+  return `<text x="${x}" y="${y}" font-family="DejaVu Sans, Liberation Sans, sans-serif" font-size="${size}" font-weight="${weight}" fill="${fill}">${escapeXml(value)}</text>`;
 }
 
 function posterTile(url: string | undefined, x: number, y: number, width: number, height: number, rotate = 0, id = "poster") {
@@ -85,7 +85,7 @@ function posterTile(url: string | undefined, x: number, y: number, width: number
 
 function avatar(url: string | undefined, x: number, y: number) {
   if (!url) {
-    return `<circle cx="${x + 72}" cy="${y + 72}" r="72" fill="#ffb84d" opacity="0.94" /><text x="${x + 72}" y="${y + 95}" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="70" font-weight="900" fill="#110509">F</text>`;
+    return `<circle cx="${x + 72}" cy="${y + 72}" r="72" fill="#ffb84d" opacity="0.94" /><text x="${x + 72}" y="${y + 95}" text-anchor="middle" font-family="DejaVu Sans, Liberation Sans, sans-serif" font-size="70" font-weight="900" fill="#110509">F</text>`;
   }
   return `
     <clipPath id="avatar-clip"><circle cx="${x + 72}" cy="${y + 72}" r="72" /></clipPath>
@@ -138,9 +138,9 @@ function brand() {
         </filter>
       </defs>
       <rect x="0" y="0" width="72" height="72" rx="18" fill="url(#flim-brand-lockup)" filter="url(#flim-brand-glow)" />
-      <text x="36" y="48" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="42" font-weight="900" fill="#130508">F</text>
-      <text x="92" y="49" font-family="Arial, Helvetica, sans-serif" font-size="40" font-weight="900" fill="#000000" fill-opacity="0.78" stroke="#000000" stroke-opacity="0.78" stroke-width="5" paint-order="stroke">Flim</text>
-      <text x="92" y="49" font-family="Arial, Helvetica, sans-serif" font-size="40" font-weight="900" fill="url(#flim-brand-lockup)" filter="url(#flim-brand-glow)">Flim</text>
+      <text x="36" y="48" text-anchor="middle" font-family="DejaVu Sans, Liberation Sans, sans-serif" font-size="42" font-weight="900" fill="#130508">F</text>
+      <text x="92" y="49" font-family="DejaVu Sans, Liberation Sans, sans-serif" font-size="40" font-weight="900" fill="#000000" fill-opacity="0.78" stroke="#000000" stroke-opacity="0.78" stroke-width="5" paint-order="stroke">Flim</text>
+      <text x="92" y="49" font-family="DejaVu Sans, Liberation Sans, sans-serif" font-size="40" font-weight="900" fill="url(#flim-brand-lockup)" filter="url(#flim-brand-glow)">Flim</text>
     </g>
   `;
 }
@@ -150,8 +150,8 @@ function cta(data: ShareCardData) {
   return `
     <g transform="translate(76 520)">
       <rect x="0" y="0" width="300" height="58" rx="29" fill="#ffb84d" />
-      <text x="150" y="38" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="900" fill="#130508">${escapeXml(ctaText)}</text>
-      ${data.urlLabel ? `<text x="328" y="38" font-family="Arial, Helvetica, sans-serif" font-size="22" fill="#d9d1c7">${escapeXml(data.urlLabel)}</text>` : ""}
+      <text x="150" y="38" text-anchor="middle" font-family="DejaVu Sans, Liberation Sans, sans-serif" font-size="24" font-weight="900" fill="#130508">${escapeXml(ctaText)}</text>
+      ${data.urlLabel ? `<text x="328" y="38" font-family="DejaVu Sans, Liberation Sans, sans-serif" font-size="22" fill="#d9d1c7">${escapeXml(data.urlLabel)}</text>` : ""}
     </g>
   `;
 }
@@ -188,9 +188,9 @@ export function renderShareCard(data: ShareCardData) {
         ? posterTile(primaryPoster, 840, 128, 224, 336, 4, "single")
         : posterTile(primaryPoster, 805, 96, 250, 374, 3, "single");
 
-  const gameAccent = data.kind === "game" ? `<text x="805" y="510" font-family="Arial, Helvetica, sans-serif" font-size="86" font-weight="900" fill="#ffb84d" opacity="0.92">?</text>` : "";
+  const gameAccent = data.kind === "game" ? `<text x="805" y="510" font-family="DejaVu Sans, Liberation Sans, sans-serif" font-size="86" font-weight="900" fill="#ffb84d" opacity="0.92">?</text>` : "";
   const playAccent = data.kind === "trailer" ? `<circle cx="930" cy="284" r="58" fill="#ff4f6d" opacity="0.94" /><polygon points="912,250 912,318 972,284" fill="#fff8eb" />` : "";
-  const badge = data.badge ? `<rect x="76" y="164" width="${Math.min(520, 32 + data.badge.length * 15)}" height="42" rx="21" fill="rgba(255,184,77,0.18)" stroke="rgba(255,184,77,0.42)" /><text x="96" y="192" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="900" fill="#ffd28d">${escapeXml(truncate(data.badge, 34))}</text>` : "";
+  const badge = data.badge ? `<rect x="76" y="164" width="${Math.min(520, 32 + data.badge.length * 15)}" height="42" rx="21" fill="rgba(255,184,77,0.18)" stroke="rgba(255,184,77,0.42)" /><text x="96" y="192" font-family="DejaVu Sans, Liberation Sans, sans-serif" font-size="22" font-weight="900" fill="#ffd28d">${escapeXml(truncate(data.badge, 34))}</text>` : "";
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
@@ -206,7 +206,7 @@ export function renderShareCard(data: ShareCardData) {
     ${svgText(title, 0, 0, 70, 900, "#ffffff")}
     ${subtitle ? svgText(subtitle, 0, 58, 31, 800, "#ffd79b") : ""}
     ${data.statLine ? svgText(truncate(data.statLine, 68), 0, 114, 28, 800, "#f6e8d9") : ""}
-    ${description ? `<text x="0" y="${data.statLine ? 164 : 122}" font-family="Arial, Helvetica, sans-serif" font-size="25" fill="#d9d1c7">${escapeXml(description)}</text>` : ""}
+    ${description ? `<text x="0" y="${data.statLine ? 164 : 122}" font-family="DejaVu Sans, Liberation Sans, sans-serif" font-size="25" fill="#d9d1c7">${escapeXml(description)}</text>` : ""}
   </g>
   ${cta(data)}
 </svg>`;
