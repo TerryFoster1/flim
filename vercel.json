@@ -2,6 +2,9 @@
   "buildCommand": "npm run build",
   "outputDirectory": "client/dist",
   "functions": {
+    "api/og/*.ts": {
+      "includeFiles": "node_modules/{sharp,@img}/**/*"
+    },
     "api/og/**/*.ts": {
       "includeFiles": "node_modules/{sharp,@img}/**/*"
     }
