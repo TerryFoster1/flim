@@ -30,7 +30,7 @@ const defaultProfile = {
   displayName: "",
   handle: "",
   bio: "",
-  avatarKey: "director",
+  avatarKey: "classic",
   avatarCustomization: {},
   countryCode: "",
   region: "",
@@ -43,6 +43,18 @@ const defaultProfile = {
 
 const exportSchemaVersion = "2026-06-01-neon-hardening";
 const allowedAvatarKeys = new Set([
+  "classic",
+  "one-eye",
+  "lashes",
+  "buck-tooth",
+  "cool-dude",
+  "long-hair",
+  "sleepy",
+  "nerd",
+  "spot",
+  "mohawk",
+  "star",
+  "ziggy",
   "director",
   "popcorn",
   "astronaut",
@@ -72,7 +84,7 @@ function cleanProfileInput(body: any) {
     ? body.featuredPlaylistIds.map((id: unknown) => String(id)).filter(Boolean).slice(0, 3)
     : [];
 
-  const avatarKey = String(body.avatarKey || "director").trim().toLowerCase();
+  const avatarKey = String(body.avatarKey || "classic").trim().toLowerCase();
 
   return {
     displayName: String(body.displayName || "").trim().slice(0, 80),
@@ -86,7 +98,7 @@ function cleanProfileInput(body: any) {
       ? body.preferredProviders.map((provider: unknown) => String(provider)).filter(Boolean).slice(0, 20)
       : [],
     showCountryPublicly: Boolean(body.showCountryPublicly),
-    avatarKey: allowedAvatarKeys.has(avatarKey) ? avatarKey : "director",
+    avatarKey: allowedAvatarKeys.has(avatarKey) ? avatarKey : "classic",
     avatarCustomization: typeof body.avatarCustomization === "object" && body.avatarCustomization ? body.avatarCustomization : {},
     profileImageUrl: cleanImageUrl(body.profileImageUrl),
     heroImageUrl: cleanImageUrl(body.heroImageUrl),

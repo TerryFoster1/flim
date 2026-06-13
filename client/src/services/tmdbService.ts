@@ -90,7 +90,7 @@ interface DetailRequestOptions {
 function detailPath(tmdbId: number, mediaType: MediaType, options: DetailRequestOptions = {}) {
   const params = new URLSearchParams({ type: mediaType });
   if (options.refreshMode) params.set("refreshMode", options.refreshMode);
-  if (options.refreshMode) params.set("_ts", String(Date.now()));
+  params.set("_ts", String(Date.now()));
   return `/api/movies/${tmdbId}?${params.toString()}`;
 }
 

@@ -21,9 +21,29 @@ function isMobileLike() {
   return window.matchMedia("(max-width: 760px)").matches || /android|iphone|ipad|ipod/i.test(window.navigator.userAgent);
 }
 
+const installDismissedKey = "flim:install-dismissed-at";
+const installDismissedMs = 1000 * 60 * 60 * 24 * 14;
+
+function wasDismissedRecently() {
+  try {
+    const dismissedAt = Number(window.localStorage.getItem(installDismissedKey) || 0);
+    return dismissedAt > 0 && Date.now() - dismissedAt < installDismissedMs;
+  } catch {
+    return false;
+  }
+}
+
+function rememberDismissal() {
+  try {
+    window.localStorage.setItem(installDismissedKey, String(Date.now()));
+  } catch {
+    // Dismissal persistence is best effort only.
+  }
+}
+
 export function InstallFlimPrompt({ mode = "floating" }: InstallFlimPromptProps) {
   const [installEvent, setInstallEvent] = useState<BeforeInstallPromptEvent | null>(null);
-  const [dismissed, setDismissed] = useState(false);
+  const [dismissed, setDismissed] = useState(() => wasDismissedRecently());
   const [installed, setInstalled] = useState(false);
   const [message, setMessage] = useState("");
   const ios = useMemo(isIos, []);
@@ -40,6 +60,7 @@ export function InstallFlimPrompt({ mode = "floating" }: InstallFlimPromptProps)
     function onInstalled() {
       setInstalled(true);
       setMessage("Flim is installed.");
+      rememberDismissal();
     }
 
     window.addEventListener("beforeinstallprompt", onBeforeInstallPrompt);
@@ -60,10 +81,15 @@ export function InstallFlimPrompt({ mode = "floating" }: InstallFlimPromptProps)
     const choice = await installEvent.userChoice;
     setInstallEvent(null);
     setMessage(choice.outcome === "accepted" ? "Flim is installing." : "Install dismissed.");
+    if (choice.outcome === "dismissed") {
+      rememberDismissal();
+      setDismissed(true);
+    }
   }
 
-  if (installed && mode === "floating") return null;
-  if (dismissed && mode === "floating") return null;
+  if (installed) return null;
+  if (dismissed) return null;
+  if (!installEvent && !ios) return null;
   if (!mobile && !installEvent && mode === "floating") return null;
 
   return (
@@ -89,7 +115,10 @@ export function InstallFlimPrompt({ mode = "floating" }: InstallFlimPromptProps)
           </button>
         ) : null}
         {mode === "floating" ? (
-          <button className="secondary-button" onClick={() => setDismissed(true)} type="button">
+          <button className="secondary-button" onClick={() => {
+            rememberDismissal();
+            setDismissed(true);
+          }} type="button">
             Not Now
           </button>
         ) : null}

@@ -9,12 +9,43 @@ import {
 } from "../services/pushNotificationService";
 import type { PushNotificationPreferences, PushSubscriptionStatus } from "../types";
 
-const categoryOptions: Array<{ key: keyof PushNotificationPreferences; label: string }> = [
-  { key: "movies", label: "Movies" },
-  { key: "tvShows", label: "TV Shows" },
-  { key: "streamingAvailability", label: "Streaming Availability" },
-  { key: "trailers", label: "Trailers" },
-  { key: "releaseDates", label: "Release Dates" },
+const categoryGroups: Array<{
+  title: string;
+  options: Array<{ key?: keyof PushNotificationPreferences; label: string; disabled?: boolean }>;
+}> = [
+  {
+    title: "Social",
+    options: [
+      { label: "Someone follows me", disabled: true },
+      { label: "Someone follows one of my playlists", disabled: true },
+      { label: "Someone likes or saves one of my playlists", disabled: true },
+    ],
+  },
+  {
+    title: "Release Tracking",
+    options: [
+      { key: "releaseDates", label: "A tracked title is released or gets delayed" },
+      { key: "trailers", label: "A tracked title gets a new trailer" },
+      { key: "streamingAvailability", label: "A tracked title becomes available to stream, rent, or buy" },
+      { key: "movies", label: "Movie alerts for tracked movies" },
+      { key: "tvShows", label: "Season and episode alerts for tracked shows" },
+    ],
+  },
+  {
+    title: "Challenges",
+    options: [
+      { label: "New weekly challenge", disabled: true },
+      { label: "New seasonal challenge", disabled: true },
+      { label: "Someone beats my trivia score", disabled: true },
+      { label: "I unlock a reward", disabled: true },
+    ],
+  },
+  {
+    title: "System",
+    options: [
+      { label: "Important account updates only", disabled: true },
+    ],
+  },
 ];
 
 export function PushNotificationSettings() {
@@ -116,16 +147,22 @@ export function PushNotificationSettings() {
       </div>
       {status ? (
         <div className="push-category-grid" aria-label="Push notification categories">
-          {categoryOptions.map((option) => (
-            <label className="follow-title-option" key={option.key}>
-              <input
-                checked={Boolean(status.preferences[option.key])}
-                disabled={state === "saving"}
-                onChange={() => toggleCategory(option.key)}
-                type="checkbox"
-              />
-              <span>{option.label}</span>
-            </label>
+          {categoryGroups.map((group) => (
+            <div className="push-category-group" key={group.title}>
+              <h3>{group.title}</h3>
+              {group.options.map((option) => (
+                <label className={option.disabled ? "follow-title-option is-disabled" : "follow-title-option"} key={`${group.title}-${option.label}`}>
+                  <input
+                    checked={option.key ? Boolean(status.preferences[option.key]) : false}
+                    disabled={state === "saving" || option.disabled || !option.key}
+                    onChange={() => option.key ? toggleCategory(option.key) : undefined}
+                    type="checkbox"
+                  />
+                  <span>{option.label}</span>
+                  {option.disabled ? <small>In-app only for now</small> : null}
+                </label>
+              ))}
+            </div>
           ))}
         </div>
       ) : null}

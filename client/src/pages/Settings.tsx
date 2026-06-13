@@ -117,11 +117,6 @@ export function Settings({ currentUser, onNavigate, playlists = [] }: SettingsPr
     }
   }
 
-  function saveRegionOnly() {
-    const form = document.querySelector<HTMLFormElement>(".settings-profile-form");
-    form?.requestSubmit();
-  }
-
   if (!currentUser) {
     return (
       <section className="route-page settings-page">
@@ -147,25 +142,6 @@ export function Settings({ currentUser, onNavigate, playlists = [] }: SettingsPr
         <h1>Profile and streaming services</h1>
         <p>Choose your Flim URL, region, and subscriptions so Where To Watch can prioritize what you already have.</p>
       </div>
-
-      <section className="region-onboarding-card">
-        <div>
-          <h2>Make Where to Watch trustworthy</h2>
-          <p>
-            Streaming availability changes by country. Set your region so Flim does not tell you a movie is available
-            somewhere you cannot actually watch it.
-          </p>
-          <small>Flim uses your region to show more accurate streaming availability. We do not need your full address.</small>
-        </div>
-        <div className="button-row">
-          <button className="primary-button" onClick={saveRegionOnly} type="button">
-            Save Region
-          </button>
-          <button className="secondary-button" onClick={() => setMessage("You can set your streaming region later.")} type="button">
-            Skip for now
-          </button>
-        </div>
-      </section>
 
       <form className="settings-profile-form" onSubmit={saveProfile}>
         <section className="settings-panel">
@@ -204,10 +180,10 @@ export function Settings({ currentUser, onNavigate, playlists = [] }: SettingsPr
               placeholder="Movie lists, family picks, and weekend watch ideas."
             />
           </label>
-          <div className="avatar-picker">
+            <div className="avatar-picker">
             <div>
               <h3>Choose your avatar</h3>
-              <p>Your avatar is your Flim identity. Costume skins and frames can build on this later.</p>
+              <p>Your avatar is your Flim identity.</p>
             </div>
             <div className="avatar-current-preview">
               <FlimAvatar avatarKey={selectedAvatar.id} label={selectedAvatar.name} size="lg" />
@@ -233,17 +209,19 @@ export function Settings({ currentUser, onNavigate, playlists = [] }: SettingsPr
                 );
               })}
             </div>
-            <div className="avatar-skin-preview" aria-label="Future avatar skins">
+            <div className="avatar-skin-preview" aria-label="Avatar skins">
               <div>
-                <h3>Future skins</h3>
-                <p>Costumes are locked for now. This structure is ready for future Concession Stand unlocks.</p>
+                <h3>Skins</h3>
+                <p>Locked costumes can be unlocked later.</p>
               </div>
               <div className="avatar-skin-grid">
                 {avatarSkins.map((skin) => (
-                  <span className={`avatar-skin-chip avatar-skin-${skin.rarity}`} key={skin.id} title={`${skin.name} / ${skin.rarity}`}>
-                    <img src={skin.imagePath} alt="" loading="lazy" decoding="async" />
+                  <span className={`avatar-skin-chip avatar-skin-${skin.rarity} is-locked`} key={skin.id} title={`${skin.name} / ${skin.rarity}`}>
+                    <span className="avatar-skin-locked-preview" aria-hidden="true">
+                      <span>Locked</span>
+                    </span>
                     <strong>{skin.name}</strong>
-                    <small>{skin.unlockType === "ticket" && skin.futureTicketCost ? `${skin.futureTicketCost} future tickets` : skin.unlockType}</small>
+                    <small>Unlockable</small>
                   </span>
                 ))}
               </div>
@@ -299,9 +277,10 @@ export function Settings({ currentUser, onNavigate, playlists = [] }: SettingsPr
           ) : null}
         </section>
 
-        <section className="settings-panel">
+        <section className="settings-panel where-you-watch-panel">
           <div className="settings-panel-heading">
-            <h2>Preferred region</h2>
+            <h2>Where You Watch</h2>
+            <p>Region, services, and library connections live together here.</p>
           </div>
           <label>
             Country
@@ -359,12 +338,9 @@ export function Settings({ currentUser, onNavigate, playlists = [] }: SettingsPr
             />
             Show my country on my public profile
           </label>
-        </section>
 
-        <section className="settings-panel">
-          <div className="settings-panel-heading">
-            <h2>Preferred streaming services</h2>
-          </div>
+          <div className="settings-subsection">
+            <h3>Streaming services</h3>
           <div className="provider-preference-grid">
             {streamingProviders.map((provider) => (
               <button
@@ -379,13 +355,14 @@ export function Settings({ currentUser, onNavigate, playlists = [] }: SettingsPr
             ))}
           </div>
           <p className="helper-text">Choose the services you use most so Flim can personalize watch options as availability improves.</p>
-        </section>
 
-        <section className="settings-integration-card">
-          <div className="settings-integration-copy">
-            <h2>Connect Plex</h2>
+          </div>
+
+          <div className="settings-integration-card">
+            <div className="settings-integration-copy">
+            <h3>Plex connection</h3>
             <p>
-              Link your Plex library so Flim can know what you already own and prioritize Plex when choosing what to watch.
+              Plex library linking is not connected yet. Flim will only show this as available after real authentication exists.
             </p>
           </div>
           <div className="settings-integration-actions">
@@ -393,6 +370,7 @@ export function Settings({ currentUser, onNavigate, playlists = [] }: SettingsPr
             <button className="secondary-button" disabled type="button">
               Coming Soon
             </button>
+          </div>
           </div>
         </section>
 
