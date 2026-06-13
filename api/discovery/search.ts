@@ -2,6 +2,7 @@ import { checkRateLimit, db, ensurePlaylistFollowsTable, ensurePlaylistLikesTabl
 import { ensureDirectorSeed } from "../_director.js";
 import {
   findCatalogSearchResults,
+  getCatalogMediaItem,
   mapCatalogSearchResult,
   upsertMediaItems,
 } from "../_mediaCatalog.js";
@@ -62,100 +63,114 @@ const curatedCollectionSearchSeeds = [
 
 const broadTitleSearchSeeds: Array<{
   triggers: string[];
-  titles: Array<{ query: string; mediaType?: "movie" | "tv" }>;
+  titles: Array<{ tmdbId: number; mediaType: "movie" | "tv"; title: string; releaseYear?: string; overview?: string }>;
 }> = [
+  {
+    triggers: ["tom cruise"],
+    titles: [
+      { tmdbId: 744, mediaType: "movie", title: "Top Gun", releaseYear: "1986" },
+      { tmdbId: 361743, mediaType: "movie", title: "Top Gun: Maverick", releaseYear: "2022" },
+      { tmdbId: 954, mediaType: "movie", title: "Mission: Impossible", releaseYear: "1996" },
+      { tmdbId: 380, mediaType: "movie", title: "Rain Man", releaseYear: "1988" },
+      { tmdbId: 137113, mediaType: "movie", title: "Edge of Tomorrow", releaseYear: "2014" },
+      { tmdbId: 180, mediaType: "movie", title: "Minority Report", releaseYear: "2002" },
+      { tmdbId: 9390, mediaType: "movie", title: "Jerry Maguire", releaseYear: "1996" },
+      { tmdbId: 1538, mediaType: "movie", title: "Collateral", releaseYear: "2004" },
+      { tmdbId: 881, mediaType: "movie", title: "A Few Good Men", releaseYear: "1992" },
+      { tmdbId: 2604, mediaType: "movie", title: "Born on the Fourth of July", releaseYear: "1989" },
+    ],
+  },
   {
     triggers: ["tornado", "twister", "storm chaser", "storm movies"],
     titles: [
-      { query: "Twister", mediaType: "movie" },
-      { query: "Twisters", mediaType: "movie" },
-      { query: "Into the Storm", mediaType: "movie" },
-      { query: "The Day After Tomorrow", mediaType: "movie" },
-      { query: "Storm Chasers", mediaType: "tv" },
+      { tmdbId: 664, mediaType: "movie", title: "Twister", releaseYear: "1996" },
+      { tmdbId: 718821, mediaType: "movie", title: "Twisters", releaseYear: "2024" },
+      { tmdbId: 216282, mediaType: "movie", title: "Into the Storm", releaseYear: "2014" },
+      { tmdbId: 435, mediaType: "movie", title: "The Day After Tomorrow", releaseYear: "2004" },
+      { tmdbId: 33232, mediaType: "tv", title: "Storm Chasers", releaseYear: "2007" },
     ],
   },
   {
     triggers: ["movies like twister", "like twister", "twister"],
     titles: [
-      { query: "Twisters", mediaType: "movie" },
-      { query: "Into the Storm", mediaType: "movie" },
-      { query: "The Day After Tomorrow", mediaType: "movie" },
-      { query: "Dante's Peak", mediaType: "movie" },
-      { query: "Volcano", mediaType: "movie" },
+      { tmdbId: 718821, mediaType: "movie", title: "Twisters", releaseYear: "2024" },
+      { tmdbId: 216282, mediaType: "movie", title: "Into the Storm", releaseYear: "2014" },
+      { tmdbId: 435, mediaType: "movie", title: "The Day After Tomorrow", releaseYear: "2004" },
+      { tmdbId: 9619, mediaType: "movie", title: "Dante's Peak", releaseYear: "1997" },
+      { tmdbId: 10357, mediaType: "movie", title: "Volcano", releaseYear: "1997" },
     ],
   },
   {
     triggers: ["90s action", "nineties action", "1990s action"],
     titles: [
-      { query: "Terminator 2: Judgment Day", mediaType: "movie" },
-      { query: "Speed", mediaType: "movie" },
-      { query: "True Lies", mediaType: "movie" },
-      { query: "The Matrix", mediaType: "movie" },
-      { query: "Mission: Impossible", mediaType: "movie" },
-      { query: "The Rock", mediaType: "movie" },
-      { query: "Face/Off", mediaType: "movie" },
-      { query: "Die Hard with a Vengeance", mediaType: "movie" },
+      { tmdbId: 280, mediaType: "movie", title: "Terminator 2: Judgment Day", releaseYear: "1991" },
+      { tmdbId: 1637, mediaType: "movie", title: "Speed", releaseYear: "1994" },
+      { tmdbId: 36955, mediaType: "movie", title: "True Lies", releaseYear: "1994" },
+      { tmdbId: 603, mediaType: "movie", title: "The Matrix", releaseYear: "1999" },
+      { tmdbId: 954, mediaType: "movie", title: "Mission: Impossible", releaseYear: "1996" },
+      { tmdbId: 9802, mediaType: "movie", title: "The Rock", releaseYear: "1996" },
+      { tmdbId: 754, mediaType: "movie", title: "Face/Off", releaseYear: "1997" },
+      { tmdbId: 1572, mediaType: "movie", title: "Die Hard with a Vengeance", releaseYear: "1995" },
     ],
   },
   {
     triggers: ["christmas", "holiday movies", "holiday"],
     titles: [
-      { query: "Home Alone", mediaType: "movie" },
-      { query: "Elf", mediaType: "movie" },
-      { query: "It's a Wonderful Life", mediaType: "movie" },
-      { query: "National Lampoon's Christmas Vacation", mediaType: "movie" },
-      { query: "The Muppet Christmas Carol", mediaType: "movie" },
-      { query: "A Christmas Story", mediaType: "movie" },
-      { query: "The Polar Express", mediaType: "movie" },
+      { tmdbId: 771, mediaType: "movie", title: "Home Alone", releaseYear: "1990" },
+      { tmdbId: 10719, mediaType: "movie", title: "Elf", releaseYear: "2003" },
+      { tmdbId: 1585, mediaType: "movie", title: "It's a Wonderful Life", releaseYear: "1946" },
+      { tmdbId: 5825, mediaType: "movie", title: "National Lampoon's Christmas Vacation", releaseYear: "1989" },
+      { tmdbId: 10437, mediaType: "movie", title: "The Muppet Christmas Carol", releaseYear: "1992" },
+      { tmdbId: 850, mediaType: "movie", title: "A Christmas Story", releaseYear: "1983" },
+      { tmdbId: 5255, mediaType: "movie", title: "The Polar Express", releaseYear: "2004" },
     ],
   },
   {
     triggers: ["a24 horror", "a24 scary", "elevated horror"],
     titles: [
-      { query: "Hereditary", mediaType: "movie" },
-      { query: "Midsommar", mediaType: "movie" },
-      { query: "The Witch", mediaType: "movie" },
-      { query: "Talk to Me", mediaType: "movie" },
-      { query: "X", mediaType: "movie" },
-      { query: "Pearl", mediaType: "movie" },
-      { query: "The Lighthouse", mediaType: "movie" },
-      { query: "Green Room", mediaType: "movie" },
+      { tmdbId: 493922, mediaType: "movie", title: "Hereditary", releaseYear: "2018" },
+      { tmdbId: 530385, mediaType: "movie", title: "Midsommar", releaseYear: "2019" },
+      { tmdbId: 310131, mediaType: "movie", title: "The Witch", releaseYear: "2015" },
+      { tmdbId: 1008042, mediaType: "movie", title: "Talk to Me", releaseYear: "2023" },
+      { tmdbId: 760104, mediaType: "movie", title: "X", releaseYear: "2022" },
+      { tmdbId: 949423, mediaType: "movie", title: "Pearl", releaseYear: "2022" },
+      { tmdbId: 503919, mediaType: "movie", title: "The Lighthouse", releaseYear: "2019" },
+      { tmdbId: 313922, mediaType: "movie", title: "Green Room", releaseYear: "2015" },
     ],
   },
   {
     triggers: ["time travel", "time loop", "time machine"],
     titles: [
-      { query: "Back to the Future", mediaType: "movie" },
-      { query: "Looper", mediaType: "movie" },
-      { query: "12 Monkeys", mediaType: "movie" },
-      { query: "Edge of Tomorrow", mediaType: "movie" },
-      { query: "The Terminator", mediaType: "movie" },
-      { query: "About Time", mediaType: "movie" },
-      { query: "Primer", mediaType: "movie" },
-      { query: "Source Code", mediaType: "movie" },
+      { tmdbId: 105, mediaType: "movie", title: "Back to the Future", releaseYear: "1985" },
+      { tmdbId: 59967, mediaType: "movie", title: "Looper", releaseYear: "2012" },
+      { tmdbId: 63, mediaType: "movie", title: "12 Monkeys", releaseYear: "1995" },
+      { tmdbId: 137113, mediaType: "movie", title: "Edge of Tomorrow", releaseYear: "2014" },
+      { tmdbId: 218, mediaType: "movie", title: "The Terminator", releaseYear: "1984" },
+      { tmdbId: 122906, mediaType: "movie", title: "About Time", releaseYear: "2013" },
+      { tmdbId: 14337, mediaType: "movie", title: "Primer", releaseYear: "2004" },
+      { tmdbId: 45612, mediaType: "movie", title: "Source Code", releaseYear: "2011" },
     ],
   },
   {
     triggers: ["anime", "japanese animation"],
     titles: [
-      { query: "Spirited Away", mediaType: "movie" },
-      { query: "Akira", mediaType: "movie" },
-      { query: "Your Name.", mediaType: "movie" },
-      { query: "Princess Mononoke", mediaType: "movie" },
-      { query: "Ghost in the Shell", mediaType: "movie" },
-      { query: "Demon Slayer: Kimetsu no Yaiba - The Movie: Mugen Train", mediaType: "movie" },
-      { query: "Cowboy Bebop", mediaType: "tv" },
+      { tmdbId: 129, mediaType: "movie", title: "Spirited Away", releaseYear: "2001" },
+      { tmdbId: 149, mediaType: "movie", title: "Akira", releaseYear: "1988" },
+      { tmdbId: 372058, mediaType: "movie", title: "Your Name.", releaseYear: "2016" },
+      { tmdbId: 128, mediaType: "movie", title: "Princess Mononoke", releaseYear: "1997" },
+      { tmdbId: 9323, mediaType: "movie", title: "Ghost in the Shell", releaseYear: "1995" },
+      { tmdbId: 635302, mediaType: "movie", title: "Demon Slayer: Kimetsu no Yaiba - The Movie: Mugen Train", releaseYear: "2020" },
     ],
   },
   {
     triggers: ["shark", "sharks"],
     titles: [
-      { query: "Jaws", mediaType: "movie" },
-      { query: "The Shallows", mediaType: "movie" },
-      { query: "Deep Blue Sea", mediaType: "movie" },
-      { query: "The Meg", mediaType: "movie" },
-      { query: "Open Water", mediaType: "movie" },
-      { query: "47 Meters Down", mediaType: "movie" },
+      { tmdbId: 578, mediaType: "movie", title: "Jaws", releaseYear: "1975" },
+      { tmdbId: 332567, mediaType: "movie", title: "The Shallows", releaseYear: "2016" },
+      { tmdbId: 8914, mediaType: "movie", title: "Deep Blue Sea", releaseYear: "1999" },
+      { tmdbId: 345940, mediaType: "movie", title: "The Meg", releaseYear: "2018" },
+      { tmdbId: 83, mediaType: "movie", title: "Open Water", releaseYear: "2003" },
+      { tmdbId: 403119, mediaType: "movie", title: "47 Meters Down", releaseYear: "2017" },
     ],
   },
 ];
@@ -197,7 +212,6 @@ function expandedSearchTerms(query: string) {
   }
   if (normalized.includes("christmas")) {
     terms.add("holiday");
-    terms.add("family");
   }
   if (normalized.includes("zombie")) {
     terms.add("zombies");
@@ -236,7 +250,6 @@ function expandedSearchTerms(query: string) {
     terms.add("nineties");
   }
   if (normalized.includes("anime")) {
-    terms.add("animation");
     terms.add("japanese animation");
   }
   if (normalized.includes("oscar")) {
@@ -252,7 +265,11 @@ function searchPatterns(query: string) {
 
 function collectionSearchTerms(query: string) {
   const normalized = normalizeSearchText(query);
-  const terms = new Set(expandedSearchTerms(query));
+  const stripped = normalized
+    .replace(/\b(movies?|films?|tv|shows?|series|watch|best|top|like|similar to|about)\b/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const terms = new Set([normalized, stripped].filter(Boolean));
   if (normalized.includes("sci fi") || normalized.includes("scifi")) {
     terms.add("sci-fi");
     terms.add("science fiction");
@@ -262,20 +279,32 @@ function collectionSearchTerms(query: string) {
     terms.add("sci fi");
   }
   if (normalized.includes("marvel")) terms.add("mcu");
+  if (normalized.includes("christmas")) terms.add("holiday");
+  if (normalized.includes("anime")) terms.add("japanese animation");
+  if (normalized.includes("time travel")) {
+    terms.add("time travel");
+    terms.add("time loop");
+  }
+  if (normalized.includes("tornado") || normalized.includes("twister")) {
+    terms.add("tornado");
+    terms.add("twister");
+  }
+  if (normalized.includes("shark")) {
+    terms.add("shark");
+    terms.add("sharks");
+  }
+  if (normalized.includes("a24") && normalized.includes("horror")) {
+    terms.add("a24");
+    terms.add("a24 horror");
+  }
   return [...terms].filter(Boolean);
-}
-
-function titleMatchesSeed(title: string, query: string) {
-  const normalizedTitle = normalizeSearchText(title);
-  const normalizedQuery = normalizeSearchText(query);
-  return normalizedTitle === normalizedQuery || normalizedTitle.includes(normalizedQuery) || normalizedQuery.includes(normalizedTitle);
 }
 
 function matchingTitleSeeds(query: string) {
   const terms = expandedSearchTerms(query);
   const normalized = normalizeSearchText(query);
   const seen = new Set<string>();
-  const matches: Array<{ query: string; mediaType?: "movie" | "tv" }> = [];
+  const matches: Array<{ tmdbId: number; mediaType: "movie" | "tv"; title: string; releaseYear?: string; overview?: string }> = [];
 
   for (const seed of broadTitleSearchSeeds) {
     const hit = seed.triggers.some((trigger) => {
@@ -284,7 +313,7 @@ function matchingTitleSeeds(query: string) {
     });
     if (!hit) continue;
     for (const title of seed.titles) {
-      const key = `${title.mediaType || "movie"}:${title.query.toLowerCase()}`;
+      const key = `${title.mediaType}:${title.tmdbId}`;
       if (seen.has(key)) continue;
       seen.add(key);
       matches.push(title);
@@ -301,7 +330,18 @@ function searchHubs(query: string) {
       const haystack = normalizeSearchText([hub.title, hub.description, ...hub.terms].join(" "));
       return terms.some((term) => haystack.includes(term));
     })
+    .map((hub) => {
+      const hubText = normalizeSearchText([hub.title, hub.key, ...hub.terms].join(" "));
+      const rank = terms.some((term) => normalizeSearchText(hub.title) === term || normalizeSearchText(hub.key) === term)
+        ? 0
+        : terms.some((term) => hubText.includes(term))
+          ? 1
+          : 2;
+      return { hub, rank };
+    })
+    .sort((a, b) => a.rank - b.rank)
     .slice(0, MAX_HUB_RESULTS)
+    .map(({ hub }) => hub)
     .map((hub) => ({
       kind: hub.kind,
       key: hub.key,
@@ -386,19 +426,21 @@ async function searchBroadSeedTitles(sql: any, query: string) {
   const seeds = matchingTitleSeeds(query);
   if (seeds.length === 0) return [];
 
-  const settled = await Promise.allSettled(
+  const items = await Promise.all(
     seeds.map(async (seed) => {
-      const results = await fetchTmdbSearch(seed.query, seed.mediaType || "movie");
-      const exact = results.find((result: any) => titleMatchesSeed(result.title || "", seed.query));
-      return exact || results[0] || null;
+      const cached = await getCatalogMediaItem(sql, seed.tmdbId, seed.mediaType).catch(() => null);
+      if (cached) return mapCatalogSearchResult(cached);
+      return {
+        tmdbId: seed.tmdbId,
+        mediaType: seed.mediaType,
+        title: seed.title,
+        releaseYear: seed.releaseYear,
+        overview: seed.overview || "Discover this title on Flim.",
+        genreIds: [],
+      };
     }),
   );
-
-  const items = settled
-    .map((result) => result.status === "fulfilled" ? result.value : null)
-    .filter(Boolean);
-  if (items.length > 0) await upsertMediaItems(sql, items as any[]);
-  return items;
+  return items.filter(Boolean);
 }
 
 async function titleResultsForPerson(sql: any, actors: any[], query: string) {
@@ -801,7 +843,7 @@ export default async function handler(request: any, response: any) {
       searchCollections(sql, query),
       searchActors(sql, query),
     ]);
-    const personTitles = actors.length > 0 ? await titleResultsForPerson(sql, actors, query) : [];
+    const personTitles = actors.length > 0 && seedTitles.length === 0 ? await titleResultsForPerson(sql, actors, query) : [];
     const mergedTitles = mergeTitleResults(seedTitles, mergeTitleResults(personTitles, titleResults.items));
     const hubs = searchHubs(query);
     const availability = availableOnMyServices
