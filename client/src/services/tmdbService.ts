@@ -100,7 +100,7 @@ export async function getMovieDetails(tmdbId: number, options: DetailRequestOpti
   }
 
   return apiRequest<MovieDetails>(detailPath(tmdbId, "movie", options), {
-    ...(options.refreshMode ? { cache: "no-store" as RequestCache } : {}),
+    cache: "no-store" as RequestCache,
     timeoutMs: options.timeoutMs ?? 45000,
   });
 }
@@ -111,7 +111,7 @@ export async function getTvDetails(tmdbId: number, options: DetailRequestOptions
   }
 
   return apiRequest<MovieDetails>(detailPath(tmdbId, "tv", options), {
-    ...(options.refreshMode ? { cache: "no-store" as RequestCache } : {}),
+    cache: "no-store" as RequestCache,
     timeoutMs: options.timeoutMs ?? 45000,
   });
 }

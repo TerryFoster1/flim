@@ -7,7 +7,7 @@ import path from "node:path";
 import { randomBytes } from "node:crypto";
 
 const baseUrl = process.env.FLIM_BASE_URL || "https://www.flim.ca";
-const port = Number(process.env.CHROME_DEBUG_PORT || 9223);
+const port = Number(process.env.CHROME_DEBUG_PORT || 0) || 9300 + Math.floor(Math.random() * 500);
 const chromePath = process.env.CHROME_PATH || [
   "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
   "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
@@ -91,6 +91,12 @@ class DevToolsSocket {
 
       this.socket.on("data", onHandshake);
       this.socket.on("error", reject);
+      this.socket.on("close", () => {
+        for (const callback of this.callbacks.values()) {
+          callback.reject(new Error("Chrome DevTools socket closed."));
+        }
+        this.callbacks.clear();
+      });
     });
   }
 

@@ -52,7 +52,9 @@ import { createSystemPlaylists } from "./services/systemPlaylists";
 import { getActiveSeasonalTheme } from "./seasonalThemes";
 import type { AppRoute, CurrentUser, MovieDetails, MovieSearchResult, Playlist, RouteState, WatchStatus } from "./types";
 
-function routeFromPath(pathname = window.location.pathname): RouteState {
+function routeFromPath(path = window.location.pathname): RouteState {
+  const url = new URL(path, window.location.origin);
+  const pathname = url.pathname;
   if (pathname === "/") return { route: "/" };
   if (pathname === "/discover") return { route: "/discover" };
   if (pathname === "/curators") return { route: "/curators" };
@@ -75,7 +77,7 @@ function routeFromPath(pathname = window.location.pathname): RouteState {
       route: "/games/title/:mediaType/:tmdbId",
       gamesMediaType: mediaType,
       gamesTmdbId: parts[4],
-      returnTo: new URLSearchParams(window.location.search).get("returnTo") || undefined,
+      returnTo: url.searchParams.get("returnTo") || undefined,
     };
   }
   if (pathname.startsWith("/challenge/")) return { route: "/challenge/:token", challengeToken: pathname.split("/")[2] };

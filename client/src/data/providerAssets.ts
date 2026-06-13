@@ -179,6 +179,15 @@ export function providerIconKey(provider: { id?: string; name?: string }) {
     if (providerAssets[compact] || knownProviderNames.has(candidate)) return compact;
   }
 
+  for (const candidate of candidates) {
+    const compact = compactProviderKey(candidate);
+    if (candidate.includes("disney") || compact.includes("disney")) return "disney";
+    if (candidate.includes("paramount") || compact.includes("paramount")) return "paramount";
+    if (candidate.includes("hoopla") || compact.includes("hoopla")) return "hoopla";
+    if (candidate.includes("cbc gem") || compact.includes("cbc_gem")) return "cbc_gem";
+    if (candidate.includes("google") || compact.includes("google_tv")) return "google_tv";
+  }
+
   return undefined;
 }
 

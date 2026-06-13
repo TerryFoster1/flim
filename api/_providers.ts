@@ -72,7 +72,12 @@ const fallbackTemplates: Record<string, string> = {
 };
 
 function normalizeProviderId(name: string) {
-  const clean = name.toLowerCase().replace(/\s+/g, " ").trim();
+  const clean = name.toLowerCase().replace(/\+/g, " plus ").replace(/\s+/g, " ").trim();
+  if (clean.includes("disney")) return "disney";
+  if (clean.includes("paramount")) return "paramount";
+  if (clean.includes("hoopla")) return "hoopla";
+  if (clean.includes("cbc gem")) return "cbc_gem";
+  if (clean.includes("google")) return "google_tv";
   return providerAliases[clean] || clean.replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
 }
 
