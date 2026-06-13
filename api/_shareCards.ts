@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-export type ShareCardKind = "playlist" | "trailer" | "countdown" | "game" | "profile" | "title";
+export type ShareCardKind = "playlist" | "trailer" | "countdown" | "game" | "profile" | "title" | "collection";
 
 export interface ShareCardPoster {
   url?: string;
@@ -67,17 +67,18 @@ function svgText(value: string, x: number, y: number, size: number, weight = 800
 
 function posterTile(url: string | undefined, x: number, y: number, width: number, height: number, rotate = 0, id = "poster") {
   if (!url) {
-    return `<rect x="${x}" y="${y}" width="${width}" height="${height}" rx="24" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.18)" />`;
+    return `<rect x="${x}" y="${y}" width="${width}" height="${height}" rx="26" fill="rgba(255,255,255,0.10)" stroke="rgba(255,255,255,0.24)" />`;
   }
 
   const clipId = `${id}-${x}-${y}`.replace(/[^a-zA-Z0-9_-]/g, "");
   return `
     <g transform="rotate(${rotate} ${x + width / 2} ${y + height / 2})">
+      <rect x="${x + 10}" y="${y + 14}" width="${width}" height="${height}" rx="26" fill="#000000" opacity="0.34" />
       <clipPath id="${clipId}">
-        <rect x="${x}" y="${y}" width="${width}" height="${height}" rx="24" />
+        <rect x="${x}" y="${y}" width="${width}" height="${height}" rx="26" />
       </clipPath>
       <image href="${escapeXml(url)}" x="${x}" y="${y}" width="${width}" height="${height}" preserveAspectRatio="xMidYMid slice" clip-path="url(#${clipId})" />
-      <rect x="${x}" y="${y}" width="${width}" height="${height}" rx="24" fill="none" stroke="rgba(255,255,255,0.2)" />
+      <rect x="${x}" y="${y}" width="${width}" height="${height}" rx="26" fill="none" stroke="rgba(255,255,255,0.34)" stroke-width="2" />
     </g>
   `;
 }
@@ -98,22 +99,27 @@ function background(data: ShareCardData) {
   return `
     <defs>
       <linearGradient id="flim-bg" x1="0" x2="1" y1="0" y2="1">
-        <stop offset="0%" stop-color="#16050c" />
-        <stop offset="54%" stop-color="#07070d" />
-        <stop offset="100%" stop-color="#1b0d0f" />
+        <stop offset="0%" stop-color="#25070f" />
+        <stop offset="48%" stop-color="#111019" />
+        <stop offset="100%" stop-color="#32110d" />
       </linearGradient>
-      <radialGradient id="flim-warm" cx="14%" cy="14%" r="72%">
-        <stop offset="0%" stop-color="#ffb84d" stop-opacity="0.32" />
-        <stop offset="56%" stop-color="#ff4f6d" stop-opacity="0.12" />
-        <stop offset="100%" stop-color="#000000" stop-opacity="0" />
-      </radialGradient>
+      <linearGradient id="flim-art-overlay" x1="0" x2="1" y1="0" y2="0">
+        <stop offset="0%" stop-color="#08060a" stop-opacity="0.94" />
+        <stop offset="42%" stop-color="#130910" stop-opacity="0.78" />
+        <stop offset="72%" stop-color="#15070d" stop-opacity="0.26" />
+        <stop offset="100%" stop-color="#050406" stop-opacity="0.64" />
+      </linearGradient>
+      <linearGradient id="flim-bottom-vignette" x1="0" x2="0" y1="0" y2="1">
+        <stop offset="0%" stop-color="#000000" stop-opacity="0.04" />
+        <stop offset="76%" stop-color="#000000" stop-opacity="0.14" />
+        <stop offset="100%" stop-color="#000000" stop-opacity="0.56" />
+      </linearGradient>
     </defs>
     <rect width="1200" height="630" fill="url(#flim-bg)" />
-    ${image ? `<image href="${escapeXml(image)}" x="0" y="0" width="1200" height="630" preserveAspectRatio="xMidYMid slice" opacity="0.24" />` : ""}
-    <rect width="1200" height="630" fill="url(#flim-warm)" />
-    <rect width="1200" height="630" fill="rgba(0,0,0,0.42)" />
-    <circle cx="1060" cy="90" r="290" fill="#ff4f6d" opacity="0.10" />
-    <circle cx="1030" cy="540" r="250" fill="#ffb84d" opacity="0.10" />
+    ${image ? `<image href="${escapeXml(image)}" x="0" y="0" width="1200" height="630" preserveAspectRatio="xMidYMid slice" opacity="0.62" />` : ""}
+    <rect width="1200" height="630" fill="url(#flim-art-overlay)" />
+    <rect width="1200" height="630" fill="url(#flim-bottom-vignette)" />
+    <path d="M0 0 H1200 V630 H0 Z" fill="none" stroke="rgba(255,216,111,0.18)" stroke-width="18" />
   `;
 }
 
@@ -150,6 +156,13 @@ function cta(data: ShareCardData) {
   `;
 }
 
+function leftPanel() {
+  return `
+    <rect x="54" y="48" width="654" height="534" rx="34" fill="rgba(7,6,9,0.52)" />
+    <rect x="54" y="48" width="654" height="534" rx="34" fill="none" stroke="rgba(255,255,255,0.12)" />
+  `;
+}
+
 export function renderShareCard(data: ShareCardData) {
   const title = truncate(data.title || "Flim", 42);
   const subtitle = truncate(data.subtitle || "", 64);
@@ -164,14 +177,16 @@ export function renderShareCard(data: ShareCardData) {
       ${posterTile(posters[1]?.url, 850, 282, 120, 180, 3, "profile1")}
       ${posterTile(posters[2]?.url, 980, 294, 120, 180, -2, "profile2")}
     `
-    : data.kind === "playlist"
+    : data.kind === "playlist" || data.kind === "collection"
       ? `
-        ${posterTile(posters[0]?.url, 700, 88, 160, 238, -5, "p0")}
-        ${posterTile(posters[1]?.url, 870, 62, 160, 238, 6, "p1")}
-        ${posterTile(posters[2]?.url, 780, 324, 160, 238, 4, "p2")}
-        ${posterTile(posters[3]?.url, 960, 294, 160, 238, -4, "p3")}
+        ${posterTile(posters[0]?.url, 760, 86, 178, 268, -7, "p0")}
+        ${posterTile(posters[1]?.url, 932, 76, 178, 268, 6, "p1")}
+        ${posterTile(posters[2]?.url, 706, 302, 178, 268, 5, "p2")}
+        ${posterTile(posters[3]?.url, 906, 292, 178, 268, -4, "p3")}
       `
-      : posterTile(primaryPoster, 805, 96, 250, 374, 3, "single");
+      : data.kind === "title" || data.kind === "trailer" || data.kind === "countdown" || data.kind === "game"
+        ? posterTile(primaryPoster, 840, 128, 224, 336, 4, "single")
+        : posterTile(primaryPoster, 805, 96, 250, 374, 3, "single");
 
   const gameAccent = data.kind === "game" ? `<text x="805" y="510" font-family="Arial, Helvetica, sans-serif" font-size="86" font-weight="900" fill="#ffb84d" opacity="0.92">?</text>` : "";
   const playAccent = data.kind === "trailer" ? `<circle cx="930" cy="284" r="58" fill="#ff4f6d" opacity="0.94" /><polygon points="912,250 912,318 972,284" fill="#fff8eb" />` : "";
@@ -183,7 +198,7 @@ export function renderShareCard(data: ShareCardData) {
   ${artwork}
   ${playAccent}
   ${gameAccent}
-  <rect x="0" y="0" width="1200" height="630" fill="rgba(0,0,0,0.08)" />
+  ${leftPanel()}
   ${brand()}
   ${badge}
   <g transform="translate(76 254)">

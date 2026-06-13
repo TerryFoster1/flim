@@ -38,6 +38,10 @@
       "destination": "/api/games-title-page/:mediaType/:tmdbId"
     },
     {
+      "source": "/collection/:slug",
+      "destination": "/api/collection-page/:slug"
+    },
+    {
       "source": "/((?!api/|assets/|provider-icons/|avatars/|brand/|favicon.ico|favicon.png|manifest.json|sw.js).*)",
       "destination": "/index.html"
     }
