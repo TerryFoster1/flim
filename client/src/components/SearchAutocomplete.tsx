@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { buildSearchSuggestions, getDidYouMeanSuggestion, searchDiscovery, type SearchSuggestion } from "../services/discoveryService";
+import { buildLocalSearchSuggestions, buildSearchSuggestions, getDidYouMeanSuggestion, searchDiscovery, type SearchSuggestion } from "../services/discoveryService";
 
 interface SearchAutocompleteProps {
   query: string;
@@ -77,15 +77,19 @@ export function SearchAutocomplete({
       };
     }
 
+    const controller = new AbortController();
+    let requestTimeout = 0;
     setStatus("loading");
     const timeout = window.setTimeout(async () => {
       try {
-        const payload = await searchDiscovery(cleanQuery);
+        requestTimeout = window.setTimeout(() => controller.abort(), 3200);
+        const payload = await searchDiscovery(cleanQuery, { signal: controller.signal });
         if (cancelled) return;
         let nextSuggestions = buildSearchSuggestions(cleanQuery, payload, 8);
         if (nextSuggestions.length === 0) {
+          nextSuggestions = buildLocalSearchSuggestions(cleanQuery, 5);
           const didYouMean = getDidYouMeanSuggestion(cleanQuery, payload);
-          nextSuggestions = didYouMean ? [didYouMean] : [];
+          if (didYouMean && !nextSuggestions.some((suggestion) => suggestion.label === didYouMean.label)) nextSuggestions.unshift(didYouMean);
         }
         suggestionCache.set(cacheKey, nextSuggestions);
         setSuggestions(nextSuggestions);
@@ -93,16 +97,19 @@ export function SearchAutocomplete({
         setOpen(true);
       } catch {
         if (cancelled) return;
-        const didYouMean = getDidYouMeanSuggestion(cleanQuery, null);
-        const fallbackSuggestions = didYouMean ? [didYouMean] : [];
+        const fallbackSuggestions = buildLocalSearchSuggestions(cleanQuery, 5);
         setSuggestions(fallbackSuggestions);
         setStatus(fallbackSuggestions.length ? "ready" : "error");
         setOpen(Boolean(fallbackSuggestions.length));
+      } finally {
+        window.clearTimeout(requestTimeout);
       }
     }, 260);
 
     return () => {
       cancelled = true;
+      controller.abort();
+      window.clearTimeout(requestTimeout);
       window.clearTimeout(timeout);
     };
   }, [cacheKey, cleanQuery]);
@@ -119,7 +126,7 @@ export function SearchAutocomplete({
     }
   }
 
-  const didYouMean = suggestions.find((suggestion) => suggestion.type === "query");
+  const didYouMean = suggestions.find((suggestion) => suggestion.type === "query" && suggestion.meta === "Did you mean");
 
   return (
     <div className={["autocomplete-search", className].filter(Boolean).join(" ")} ref={rootRef}>
@@ -147,7 +154,7 @@ export function SearchAutocomplete({
               Did you mean: <strong>{didYouMean.label}</strong>?
             </button>
           ) : null}
-          {suggestions.filter((suggestion) => suggestion.type !== "query").map((suggestion) => (
+          {suggestions.filter((suggestion) => suggestion.id !== didYouMean?.id).map((suggestion) => (
             <button className="autocomplete-option" key={suggestion.id} onClick={() => chooseSuggestion(suggestion)} role="option" type="button">
               <span>{suggestionTypeLabel(suggestion.type)}</span>
               <strong>{suggestion.label}</strong>

@@ -4,6 +4,7 @@ interface DiscoverySearchOptions {
   availableOnMyServices?: boolean;
   providers?: string[];
   region?: string;
+  signal?: AbortSignal;
 }
 
 export async function searchDiscovery(query: string, options: DiscoverySearchOptions = {}) {
@@ -30,6 +31,7 @@ export async function searchDiscovery(query: string, options: DiscoverySearchOpt
     headers: {
       Accept: "application/json",
     },
+    signal: options.signal,
   });
 
   if (!response.ok) {
@@ -153,6 +155,39 @@ export function getDidYouMeanSuggestion(query: string, payload?: DiscoverySearch
     query: best.candidate,
     confidence: Math.max(0, 1 - best.ratio),
   };
+}
+
+export function buildLocalSearchSuggestions(query: string, limit = 5): SearchSuggestion[] {
+  const cleanQuery = query.trim();
+  const normalizedQuery = normalizeSuggestionText(cleanQuery);
+  if (normalizedQuery.length < 2) return [];
+
+  return correctionCandidates
+    .map((candidate) => {
+      const normalizedCandidate = normalizeSuggestionText(candidate);
+      const distance = editDistance(normalizedQuery, normalizedCandidate);
+      const ratio = distance / Math.max(normalizedCandidate.length, normalizedQuery.length, 1);
+      const isPrefix = normalizedCandidate.startsWith(normalizedQuery);
+      const isContained = normalizedCandidate.includes(normalizedQuery);
+      const isFuzzy = normalizedQuery.length >= 4 && distance <= (normalizedQuery.length <= 8 ? 3 : 4) && ratio <= 0.42;
+      return { candidate, distance, isContained, isFuzzy, isPrefix, ratio };
+    })
+    .filter((item) => item.isPrefix || item.isContained || item.isFuzzy)
+    .sort((a, b) => {
+      if (a.isPrefix !== b.isPrefix) return a.isPrefix ? -1 : 1;
+      if (a.isContained !== b.isContained) return a.isContained ? -1 : 1;
+      return a.ratio - b.ratio || a.distance - b.distance || a.candidate.localeCompare(b.candidate);
+    })
+    .slice(0, limit)
+    .map((item) => ({
+      id: `${item.isFuzzy ? "did-you-mean" : "local-query"}-${normalizeSuggestionText(item.candidate)}`,
+      type: "query",
+      label: item.candidate,
+      meta: item.isFuzzy ? "Did you mean" : "Suggestion",
+      reason: `Search for ${item.candidate}`,
+      query: item.candidate,
+      confidence: Math.max(0, 1 - item.ratio),
+    }));
 }
 
 function titlePath(title: MovieSearchResult) {
