@@ -370,7 +370,7 @@ export default function App() {
 
   return (
     <div
-      className={`app-shell ${!isHomeRoute && activeSeasonalTheme?.themeClass ? activeSeasonalTheme.themeClass : ""}`}
+      className={`app-shell ${isHomeRoute ? "is-home-route" : ""} ${!isHomeRoute && activeSeasonalTheme?.themeClass ? activeSeasonalTheme.themeClass : ""}`}
       data-seasonal-theme={!isHomeRoute && activeSeasonalTheme?.id ? activeSeasonalTheme.id : "default"}
       data-seasonal-theme-preview={!isHomeRoute && activeSeasonalTheme?.isPreview ? "true" : undefined}
     >
