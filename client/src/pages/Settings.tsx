@@ -171,7 +171,7 @@ export function Settings({ currentUser, onNavigate, playlists = [] }: SettingsPr
               autoComplete="name"
               value={profile.displayName}
               onChange={(event) => updateProfile("displayName", event.target.value)}
-              placeholder="Terry"
+              placeholder="Name"
             />
           </label>
           <label>
@@ -183,7 +183,7 @@ export function Settings({ currentUser, onNavigate, playlists = [] }: SettingsPr
                 autoComplete="username"
                 value={profile.handle}
                 onChange={(event) => updateProfile("handle", cleanHandle(event.target.value))}
-                placeholder="terry"
+                placeholder="Username"
                 required
               />
             </div>
@@ -194,7 +194,7 @@ export function Settings({ currentUser, onNavigate, playlists = [] }: SettingsPr
             <textarea
               value={profile.bio || ""}
               onChange={(event) => updateProfile("bio", event.target.value)}
-              placeholder="Movie lists, family picks, and weekend watch ideas."
+              placeholder="Tell people about yourself"
             />
           </label>
             <div className="avatar-picker">
@@ -247,7 +247,7 @@ export function Settings({ currentUser, onNavigate, playlists = [] }: SettingsPr
               <input
                 value={profile.favoriteMovie || ""}
                 onChange={(event) => updateProfile("favoriteMovie", event.target.value)}
-                placeholder="Back to the Future"
+                placeholder="Favorite Movie"
               />
             </label>
             <label>
@@ -255,7 +255,7 @@ export function Settings({ currentUser, onNavigate, playlists = [] }: SettingsPr
               <input
                 value={profile.favoriteGenre || ""}
                 onChange={(event) => updateProfile("favoriteGenre", event.target.value)}
-                placeholder="Sci-Fi"
+                placeholder="Favorite Genre"
               />
             </label>
             <label>
@@ -263,7 +263,7 @@ export function Settings({ currentUser, onNavigate, playlists = [] }: SettingsPr
               <input
                 value={profile.favoriteDirector || ""}
                 onChange={(event) => updateProfile("favoriteDirector", event.target.value)}
-                placeholder="Steven Spielberg"
+                placeholder="Favorite Director"
               />
             </label>
           </div>
@@ -320,7 +320,7 @@ export function Settings({ currentUser, onNavigate, playlists = [] }: SettingsPr
                 updateProfile("region", event.target.value);
                 updateProfile("provinceState", event.target.value);
               }}
-              placeholder="Ontario"
+              placeholder="Location"
             />
           </label>
           <label>
@@ -329,7 +329,7 @@ export function Settings({ currentUser, onNavigate, playlists = [] }: SettingsPr
               autoComplete="postal-code"
               value={profile.postalCode || ""}
               onChange={(event) => updateProfile("postalCode", event.target.value)}
-              placeholder="Optional"
+              placeholder="Postal / ZIP Code"
             />
           </label>
           <label>

@@ -86,7 +86,7 @@ export function AuthPage({ mode, onAuth, onNavigate }: AuthPageProps) {
           {isSignup ? (
             <label>
               Display Name
-              <input autoComplete="name" onChange={(event) => setDisplayName(event.target.value)} placeholder="Terry Foster" value={displayName} />
+              <input autoComplete="name" onChange={(event) => setDisplayName(event.target.value)} placeholder="Name" value={displayName} />
             </label>
           ) : null}
           {isSignup ? (
@@ -99,7 +99,7 @@ export function AuthPage({ mode, onAuth, onNavigate }: AuthPageProps) {
                   autoComplete="username"
                   onChange={(event) => setHandle(cleanHandle(event.target.value))}
                   pattern="[a-z0-9_]+"
-                  placeholder="moviebuff1984"
+                  placeholder="Username"
                   required
                   value={handle}
                 />
