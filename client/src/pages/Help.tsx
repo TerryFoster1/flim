@@ -19,6 +19,11 @@ export function Help() {
         <section>
           <h2>Need help?</h2>
           <p>Use the Contact page to send a note about account access, playlist sharing, or a broken link.</p>
+          <div className="legal-link-row">
+            <a href="/privacy">Privacy Policy</a>
+            <a href="/terms">Terms of Use</a>
+            <a href="/contact">Contact</a>
+          </div>
         </section>
       </div>
     </PageShell>

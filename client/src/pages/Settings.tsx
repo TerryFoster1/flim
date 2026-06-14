@@ -374,6 +374,18 @@ export function Settings({ currentUser, onNavigate, playlists = [] }: SettingsPr
 
         <PushNotificationSettings />
 
+        <section className="settings-panel">
+          <div className="settings-panel-heading">
+            <h2>Account and Legal</h2>
+            <p>Privacy, terms, and help links for your Flim account.</p>
+          </div>
+          <div className="legal-link-row">
+            <a href="/privacy">Privacy Policy</a>
+            <a href="/terms">Terms of Use</a>
+            <a href="/help">Help</a>
+          </div>
+        </section>
+
         <InstallFlimPrompt mode="settings" />
 
         {message ? <p className={status === "error" ? "error-message" : "success-message"}>{message}</p> : null}

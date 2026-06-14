@@ -15,6 +15,10 @@ export function About() {
         <section>
           <h2>Metadata</h2>
           <p>Movie and TV metadata may be provided by TMDb. Flim is not endorsed or certified by TMDb.</p>
+          <div className="legal-link-row">
+            <a href="/privacy">Privacy Policy</a>
+            <a href="/terms">Terms of Use</a>
+          </div>
         </section>
       </div>
     </PageShell>

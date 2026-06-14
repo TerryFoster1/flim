@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { CurrentUser, RouteAwareProps } from "../types";
 import { BrandMark } from "./BrandMark";
 import { getNotifications, markAllNotificationsRead, markNotificationRead } from "../services/notificationService";
@@ -15,6 +15,7 @@ export function NavigationBar({ currentUser, onNavigate, onLogout }: NavigationB
   const [isInstalled, setIsInstalled] = useState(false);
   const [notificationFeed, setNotificationFeed] = useState<NotificationFeed>({ unreadCount: 0, notifications: [] });
   const [notificationStatus, setNotificationStatus] = useState("");
+  const menuHistoryArmed = useRef(false);
 
   useEffect(() => {
     const standalone =
@@ -34,6 +35,17 @@ export function NavigationBar({ currentUser, onNavigate, onLogout }: NavigationB
     const timer = window.setInterval(refreshNotifications, 60000);
     return () => window.clearInterval(timer);
   }, [currentUser?.id]);
+
+  useEffect(() => {
+    const closeOnBack = () => {
+      if (menuHistoryArmed.current) {
+        menuHistoryArmed.current = false;
+        setIsMenuOpen(false);
+      }
+    };
+    window.addEventListener("popstate", closeOnBack);
+    return () => window.removeEventListener("popstate", closeOnBack);
+  }, []);
 
   async function refreshNotifications() {
     if (!currentUser) return;
@@ -59,9 +71,39 @@ export function NavigationBar({ currentUser, onNavigate, onLogout }: NavigationB
   }
 
   function navigate(path: string) {
+    if (menuHistoryArmed.current && window.history.state?.flimMenu) {
+      window.history.replaceState({ ...window.history.state, flimMenu: false }, "", window.location.href);
+    }
+    menuHistoryArmed.current = false;
     setIsMenuOpen(false);
     setIsNotificationsOpen(false);
     onNavigate(path);
+  }
+
+  function openMenu() {
+    setIsNotificationsOpen(false);
+    setIsMenuOpen(true);
+    if (!window.history.state?.flimMenu) {
+      window.history.pushState({ ...(window.history.state || {}), flimMenu: true }, "", window.location.href);
+      menuHistoryArmed.current = true;
+    }
+  }
+
+  function closeMenu() {
+    if (menuHistoryArmed.current && window.history.state?.flimMenu) {
+      window.history.back();
+      return;
+    }
+    menuHistoryArmed.current = false;
+    setIsMenuOpen(false);
+  }
+
+  function toggleMenu() {
+    if (isMenuOpen) {
+      closeMenu();
+    } else {
+      openMenu();
+    }
   }
 
   function logout() {
@@ -167,8 +209,8 @@ export function NavigationBar({ currentUser, onNavigate, onLogout }: NavigationB
         <button
           className="hamburger-button"
           aria-expanded={isMenuOpen}
-          aria-label="Open menu"
-          onClick={() => setIsMenuOpen((current) => !current)}
+          aria-label={isMenuOpen ? "Close menu" : "Open menu"}
+          onClick={toggleMenu}
           type="button"
         >
           <span />
@@ -176,31 +218,39 @@ export function NavigationBar({ currentUser, onNavigate, onLogout }: NavigationB
           <span />
         </button>
         {isMenuOpen ? (
-          <div className="hamburger-panel">
-            {currentUser ? (
-              <>
-                <button onClick={() => navigate("/discover")} type="button">Discover</button>
-                <button onClick={() => navigate(currentUser.profile?.handle ? `/@${currentUser.profile.handle}` : "/profile")} type="button">Profile</button>
-                <button onClick={() => navigate("/followed-titles")} type="button">My Followed Titles</button>
-                <button onClick={() => navigate("/upcoming")} type="button">Upcoming Releases</button>
-                <button onClick={() => navigate("/games")} type="button">Trivia & Games</button>
-                <button onClick={() => navigate("/settings")} type="button">Settings</button>
-                <button onClick={() => navigate("/settings")} type="button">Connect Plex</button>
-              </>
-            ) : (
-              <>
-                <button onClick={() => navigate("/signin")} type="button">Sign In</button>
-                <button onClick={() => navigate("/signup")} type="button">Create Account</button>
-                <button onClick={() => navigate("/discover")} type="button">Discover</button>
-                <button onClick={() => navigate("/upcoming")} type="button">Upcoming Releases</button>
-                <button onClick={() => navigate("/games")} type="button">Trivia & Games</button>
-              </>
-            )}
-            {currentUser && !isInstalled ? <button onClick={() => navigate("/settings")} type="button">Install Flim</button> : null}
-            <button onClick={() => navigate("/help")} type="button">Help</button>
-            <button onClick={() => navigate("/about")} type="button">About</button>
-            {currentUser ? <button className="logout-menu-item" onClick={logout} type="button">Logout</button> : null}
-          </div>
+          <>
+            <button className="hamburger-backdrop" aria-label="Close menu" onClick={closeMenu} type="button" />
+            <div className="hamburger-panel" role="dialog" aria-label="Navigation menu">
+              <div className="hamburger-panel-header">
+                <strong>Menu</strong>
+                <button className="hamburger-close-button" aria-label="Close menu" onClick={closeMenu} type="button">X</button>
+              </div>
+              {currentUser ? (
+                <>
+                  <button onClick={() => navigate("/discover")} type="button">Discover</button>
+                  <button onClick={() => navigate("/settings")} type="button">Profile & Settings</button>
+                  {currentUser.profile?.handle ? <button onClick={() => navigate(`/@${currentUser.profile?.handle}`)} type="button">View Public Profile</button> : null}
+                  <button onClick={() => navigate("/followed-titles")} type="button">My Followed Titles</button>
+                  <button onClick={() => navigate("/upcoming")} type="button">Upcoming Releases</button>
+                  <button onClick={() => navigate("/games")} type="button">Trivia & Games</button>
+                </>
+              ) : (
+                <>
+                  <button onClick={() => navigate("/signin")} type="button">Sign In</button>
+                  <button onClick={() => navigate("/signup")} type="button">Create Account</button>
+                  <button onClick={() => navigate("/discover")} type="button">Discover</button>
+                  <button onClick={() => navigate("/upcoming")} type="button">Upcoming Releases</button>
+                  <button onClick={() => navigate("/games")} type="button">Trivia & Games</button>
+                </>
+              )}
+              {currentUser && !isInstalled ? <button onClick={() => navigate("/settings")} type="button">Install Flim</button> : null}
+              <button onClick={() => navigate("/help")} type="button">Help</button>
+              <button onClick={() => navigate("/about")} type="button">About</button>
+              <button onClick={() => navigate("/privacy")} type="button">Privacy Policy</button>
+              <button onClick={() => navigate("/terms")} type="button">Terms of Use</button>
+              {currentUser ? <button className="logout-menu-item" onClick={logout} type="button">Logout</button> : null}
+            </div>
+          </>
         ) : null}
       </div>
     </header>

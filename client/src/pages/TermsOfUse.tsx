@@ -2,35 +2,96 @@ import { PageShell } from "../components/PageShell";
 
 export function TermsOfUse() {
   return (
-    <PageShell eyebrow="Terms" title="Terms of Use" description="Plain-language rules for using Flim.">
+    <PageShell eyebrow="Terms" title="Terms of Use" description="Last Updated: June 2026">
       <div className="legal-page">
         <section>
+          <p>Welcome to Flim. These Terms of Use explain the rules for using Flim. By using Flim, you agree to these terms.</p>
+        </section>
+
+        <section>
+          <h2>What Flim Is</h2>
+          <p>Flim is an entertainment discovery platform for movies and TV. Flim may include playlists, tracking, recommendations, release information, trivia, challenges, arcade features, rewards, and partner links. Flim does not provide movie or TV streaming playback unless clearly stated through a supported integration.</p>
+        </section>
+
+        <section>
+          <h2>Accounts</h2>
+          <p>You may need an account to use some features. You are responsible for keeping your account information accurate, keeping your login information secure, and activity that happens through your account. Do not use another person's account without permission.</p>
+        </section>
+
+        <section>
+          <h2>User Content</h2>
+          <p>You may create or share content on Flim, including playlists, profile information, comments if enabled, and shared challenge results. You are responsible for the content you create or share.</p>
+          <p>You agree not to post content that is illegal, harassing or abusive, hateful or discriminatory, sexually explicit, spam or misleading, infringing on someone else's rights, or harmful to Flim, other users, or third parties. We may remove content or restrict accounts that violate these terms.</p>
+        </section>
+
+        <section>
+          <h2>Public and Private Content</h2>
+          <p>Some content may be public, including public playlists, public profiles, and shared links. You are responsible for choosing whether your playlists or content are public or private.</p>
+        </section>
+
+        <section>
+          <h2>Movie and TV Information</h2>
+          <p>Flim may use third-party sources for movie and TV metadata, release dates, provider availability, trailers, images, credits, and related information. We try to provide useful information, but we cannot guarantee that all movie, TV, release, provider, or availability information is accurate, complete, or current. Streaming availability, release dates, and provider links may change.</p>
+        </section>
+
+        <section>
+          <h2>Trivia and Challenges</h2>
+          <p>Flim trivia and challenges are for entertainment purposes. Scores, tickets, rewards, badges, and challenge results may change as Flim evolves. We may correct errors, remove invalid results, or adjust game systems to prevent abuse or improve fairness.</p>
+        </section>
+
+        <section>
+          <h2>Tickets, Rewards, and Future Arcade Features</h2>
+          <p>Flim may include tickets, rewards, unlocks, skins, badges, or arcade features. Unless clearly stated otherwise, tickets and digital rewards have no cash value, are not redeemable for money, may change, expire, or be removed, and availability of rewards is not guaranteed.</p>
+        </section>
+
+        <section>
+          <h2>Affiliate Links, Sponsored Content, and Partner Offers</h2>
+          <p>Flim may include affiliate links, sponsored placements, ticket links, streaming links, rental or purchase links, merchandise links, or partner offers. If you click these links, Flim may receive a commission or benefit at no additional cost to you. Third-party purchases, subscriptions, tickets, merchandise, refunds, cancellations, or support are handled by the third-party provider, not Flim.</p>
+        </section>
+
+        <section>
           <h2>Acceptable Use</h2>
-          <p>Use Flim to create, organize, and share movie playlists. Do not use the service to harass others, abuse public sharing, or interfere with the platform.</p>
+          <p>You agree not to break, overload, or interfere with Flim; attempt to access data you are not allowed to access; scrape, copy, or harvest Flim data without permission; reverse engineer protected parts of the service; upload malicious code; use Flim for spam, fraud, or abuse; or misrepresent yourself or impersonate others.</p>
         </section>
+
         <section>
-          <h2>Content Ownership</h2>
-          <p>You own the playlist names, descriptions, and organization choices you create. Movie metadata, posters, and third-party provider information remain owned by their respective rights holders.</p>
+          <h2>Intellectual Property</h2>
+          <p>Flim's design, branding, features, software, logos, characters, and original content belong to Flim or its licensors. Movie and TV titles, posters, trademarks, images, trailers, and related materials belong to their respective owners. Using Flim does not give you ownership of third-party entertainment content.</p>
         </section>
+
         <section>
-          <h2>User-Generated Playlists</h2>
-          <p>If you make a playlist public or share its link, other people may view it. Future account controls will provide clearer ownership and visibility management.</p>
+          <h2>Third-Party Links and Services</h2>
+          <p>Flim may link to third-party websites, apps, streaming services, ticketing services, stores, or partners. We are not responsible for third-party services, content, prices, availability, policies, or transactions.</p>
         </section>
+
         <section>
-          <h2>Service Availability</h2>
-          <p>Flim is an evolving product. Features may change, improve, pause, or disappear while the platform develops.</p>
+          <h2>Changes to Flim</h2>
+          <p>Flim is evolving. We may add, change, suspend, or remove features at any time.</p>
         </section>
+
         <section>
-          <h2>Third-Party Integrations</h2>
-          <p>TMDb, Plex, streaming providers, Spotify, YouTube, and other integrations are separate services. Flim helps you decide what to watch and where to open it; it does not control those services.</p>
+          <h2>Termination</h2>
+          <p>We may suspend or terminate access to Flim if you violate these terms, misuse the service, or create risk for Flim or other users.</p>
         </section>
+
         <section>
-          <h2>Account Responsibilities</h2>
-          <p>When accounts are available, you are responsible for keeping your sign-in details safe and for activity under your account.</p>
+          <h2>Disclaimer</h2>
+          <p>Flim is provided "as is" and "as available." We do not guarantee that Flim will always be available, error-free, secure, or accurate.</p>
         </section>
+
         <section>
-          <h2>Limitation Of Liability</h2>
-          <p>Flim is provided as-is. We work hard to keep it useful, but we cannot guarantee uninterrupted availability, perfect metadata, or every provider link working on every device.</p>
+          <h2>Limitation of Liability</h2>
+          <p>To the fullest extent permitted by law, Flim is not liable for indirect, incidental, special, consequential, or punitive damages arising from your use of the service.</p>
+        </section>
+
+        <section>
+          <h2>Changes to These Terms</h2>
+          <p>We may update these Terms of Use from time to time. If we make significant changes, we will update the date above and may provide additional notice in the app.</p>
+        </section>
+
+        <section>
+          <h2>Contact</h2>
+          <p>If you have questions about these Terms, contact us through the support options available in Flim.</p>
         </section>
       </div>
     </PageShell>
