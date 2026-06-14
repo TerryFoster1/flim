@@ -9734,6 +9734,17 @@ textarea { min-height: 42px; resize: vertical; }
     gap: 4px;
     grid-template-columns: 1fr;
   }
+  .trivia-score-strip,
+  .trivia-question-kicker {
+    align-items: flex-start;
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+  .trivia-score-strip span,
+  .trivia-question-kicker small {
+    overflow: visible;
+    white-space: normal;
+  }
   .trivia-mode-row,
   .trivia-question-actions,
   .trivia-round-summary .share-inline-row {
