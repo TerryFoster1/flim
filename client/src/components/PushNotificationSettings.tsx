@@ -11,14 +11,14 @@ import type { PushNotificationPreferences, PushSubscriptionStatus } from "../typ
 
 const categoryGroups: Array<{
   title: string;
-  options: Array<{ key?: keyof PushNotificationPreferences; label: string; disabled?: boolean }>;
+  options: Array<{ key: keyof PushNotificationPreferences; label: string }>;
 }> = [
   {
     title: "Social",
     options: [
-      { label: "Someone follows me", disabled: true },
-      { label: "Someone follows one of my playlists", disabled: true },
-      { label: "Someone likes or saves one of my playlists", disabled: true },
+      { key: "socialFollowers", label: "Someone follows me" },
+      { key: "playlistFollowers", label: "Someone follows one of my playlists" },
+      { key: "playlistLikesSaves", label: "Someone likes or saves one of my playlists" },
     ],
   },
   {
@@ -27,23 +27,21 @@ const categoryGroups: Array<{
       { key: "releaseDates", label: "A tracked title is released or gets delayed" },
       { key: "trailers", label: "A tracked title gets a new trailer" },
       { key: "streamingAvailability", label: "A tracked title becomes available to stream, rent, or buy" },
-      { key: "movies", label: "Movie alerts for tracked movies" },
-      { key: "tvShows", label: "Season and episode alerts for tracked shows" },
     ],
   },
   {
     title: "Challenges",
     options: [
-      { label: "New weekly challenge", disabled: true },
-      { label: "New seasonal challenge", disabled: true },
-      { label: "Someone beats my trivia score", disabled: true },
-      { label: "I unlock a reward", disabled: true },
+      { key: "weeklyChallenges", label: "New weekly challenge" },
+      { key: "seasonalChallenges", label: "New seasonal challenge" },
+      { key: "triviaScoreBeaten", label: "Someone beats my trivia score" },
+      { key: "rewardUnlocked", label: "I unlock a reward" },
     ],
   },
   {
     title: "System",
     options: [
-      { label: "Important account updates only", disabled: true },
+      { key: "accountUpdates", label: "Important account updates only" },
     ],
   },
 ];
@@ -52,6 +50,7 @@ export function PushNotificationSettings() {
   const [status, setStatus] = useState<PushSubscriptionStatus | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "saving" | "error">("loading");
   const [message, setMessage] = useState("");
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(() => new Set(["Social", "Release Tracking"]));
   const permission = getBrowserNotificationPermission();
   const supported = browserSupportsPush();
 
@@ -113,15 +112,24 @@ export function PushNotificationSettings() {
     }
   }
 
+  function toggleSection(title: string) {
+    setExpandedSections((current) => {
+      const next = new Set(current);
+      if (next.has(title)) {
+        next.delete(title);
+      } else {
+        next.add(title);
+      }
+      return next;
+    });
+  }
+
   return (
     <section className="settings-panel push-settings-panel">
       <div className="settings-panel-heading">
-        <h2>Notification Settings</h2>
+        <h2>Notification settings</h2>
       </div>
-      <div className="push-settings-copy">
-        <h3>Release alerts</h3>
-        <p>Get notified when followed titles have release date, trailer, season, or streaming availability updates.</p>
-      </div>
+      <p className="notification-settings-note">Choose which Flim alerts you want. Push delivery is used only when notifications are enabled on this device.</p>
       {!supported ? <p className="helper-text">This browser does not support Web Push notifications.</p> : null}
       {supported && status && !status.configured ? (
         <p className="helper-text">Push delivery needs VAPID keys before notifications can be enabled.</p>
@@ -146,24 +154,40 @@ export function PushNotificationSettings() {
         )}
       </div>
       {status ? (
-        <div className="push-category-grid" aria-label="Push notification categories">
-          {categoryGroups.map((group) => (
-            <div className="push-category-group" key={group.title}>
-              <h3>{group.title}</h3>
-              {group.options.map((option) => (
-                <label className={option.disabled ? "follow-title-option is-disabled" : "follow-title-option"} key={`${group.title}-${option.label}`}>
-                  <input
-                    checked={option.key ? Boolean(status.preferences[option.key]) : false}
-                    disabled={state === "saving" || option.disabled || !option.key}
-                    onChange={() => option.key ? toggleCategory(option.key) : undefined}
-                    type="checkbox"
-                  />
-                  <span>{option.label}</span>
-                  {option.disabled ? <small>In-app only for now</small> : null}
-                </label>
-              ))}
-            </div>
-          ))}
+        <div className="notification-preference-list" aria-label="Notification preference categories">
+          {categoryGroups.map((group) => {
+            const isExpanded = expandedSections.has(group.title);
+            const selectedCount = group.options.filter((option) => Boolean(status.preferences[option.key])).length;
+            return (
+              <section className="notification-preference-group" key={group.title}>
+                <button
+                  aria-expanded={isExpanded}
+                  className="notification-preference-header"
+                  onClick={() => toggleSection(group.title)}
+                  type="button"
+                >
+                  <span>{group.title}</span>
+                  <small>{selectedCount}/{group.options.length}</small>
+                  <strong aria-hidden="true">{isExpanded ? "-" : "+"}</strong>
+                </button>
+                {isExpanded ? (
+                  <div className="notification-preference-options">
+                    {group.options.map((option) => (
+                      <label className="notification-preference-row" key={`${group.title}-${option.key}`}>
+                        <input
+                          checked={Boolean(status.preferences[option.key])}
+                          disabled={state === "saving"}
+                          onChange={() => toggleCategory(option.key)}
+                          type="checkbox"
+                        />
+                        <span>{option.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                ) : null}
+              </section>
+            );
+          })}
         </div>
       ) : null}
       {status?.enabled ? <p className="success-message">Push notifications are enabled on this device.</p> : null}

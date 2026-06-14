@@ -15,6 +15,14 @@ const defaultPushPreferences = {
   streamingAvailability: true,
   trailers: true,
   releaseDates: true,
+  socialFollowers: true,
+  playlistFollowers: true,
+  playlistLikesSaves: true,
+  weeklyChallenges: true,
+  seasonalChallenges: true,
+  triviaScoreBeaten: true,
+  rewardUnlocked: true,
+  accountUpdates: true,
 };
 
 let configured = false;
@@ -108,6 +116,14 @@ export function normalizePushPreferences(value: unknown) {
     streamingAvailability: typeof source.streamingAvailability === "boolean" ? source.streamingAvailability : defaultPushPreferences.streamingAvailability,
     trailers: typeof source.trailers === "boolean" ? source.trailers : defaultPushPreferences.trailers,
     releaseDates: typeof source.releaseDates === "boolean" ? source.releaseDates : defaultPushPreferences.releaseDates,
+    socialFollowers: typeof source.socialFollowers === "boolean" ? source.socialFollowers : defaultPushPreferences.socialFollowers,
+    playlistFollowers: typeof source.playlistFollowers === "boolean" ? source.playlistFollowers : defaultPushPreferences.playlistFollowers,
+    playlistLikesSaves: typeof source.playlistLikesSaves === "boolean" ? source.playlistLikesSaves : defaultPushPreferences.playlistLikesSaves,
+    weeklyChallenges: typeof source.weeklyChallenges === "boolean" ? source.weeklyChallenges : defaultPushPreferences.weeklyChallenges,
+    seasonalChallenges: typeof source.seasonalChallenges === "boolean" ? source.seasonalChallenges : defaultPushPreferences.seasonalChallenges,
+    triviaScoreBeaten: typeof source.triviaScoreBeaten === "boolean" ? source.triviaScoreBeaten : defaultPushPreferences.triviaScoreBeaten,
+    rewardUnlocked: typeof source.rewardUnlocked === "boolean" ? source.rewardUnlocked : defaultPushPreferences.rewardUnlocked,
+    accountUpdates: typeof source.accountUpdates === "boolean" ? source.accountUpdates : defaultPushPreferences.accountUpdates,
   };
 }
 

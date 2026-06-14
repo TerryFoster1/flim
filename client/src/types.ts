@@ -652,6 +652,14 @@ export interface PushNotificationPreferences {
   streamingAvailability: boolean;
   trailers: boolean;
   releaseDates: boolean;
+  socialFollowers: boolean;
+  playlistFollowers: boolean;
+  playlistLikesSaves: boolean;
+  weeklyChallenges: boolean;
+  seasonalChallenges: boolean;
+  triviaScoreBeaten: boolean;
+  rewardUnlocked: boolean;
+  accountUpdates: boolean;
 }
 
 export interface PushSubscriptionStatus {

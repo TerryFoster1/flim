@@ -7517,39 +7517,90 @@ textarea { min-height: 42px; resize: vertical; }
 .push-settings-panel {
   align-content: start;
 }
-.push-settings-copy {
-  display: grid;
-  gap: 6px;
-}
-.push-settings-copy h3 {
+
+.notification-settings-note {
   margin: 0;
-  font-size: 1.15rem;
-}
-.push-category-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 12px;
-}
-
-.push-category-group {
-  display: grid;
-  align-content: start;
-  gap: 8px;
-}
-
-.push-category-group h3 {
-  margin: 0;
-  color: #ffe7b8;
-  font-size: 0.95rem;
-}
-
-.follow-title-option.is-disabled {
-  opacity: 0.64;
-}
-
-.follow-title-option small {
   color: var(--muted);
-  font-size: 0.72rem;
+}
+
+.notification-preference-list {
+  display: grid;
+  gap: 10px;
+}
+
+.notification-preference-group {
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.notification-preference-header {
+  width: 100%;
+  min-height: 48px;
+  border: 0;
+  background: rgba(0, 0, 0, 0.18);
+  color: #ffe7b8;
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  font: inherit;
+  font-weight: 950;
+  text-align: left;
+}
+
+.notification-preference-header small {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.notification-preference-header strong {
+  width: 26px;
+  height: 26px;
+  border: 1px solid rgba(255, 184, 77, 0.3);
+  border-radius: 999px;
+  color: #ffcf75;
+  display: grid;
+  place-items: center;
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.notification-preference-options {
+  display: grid;
+  gap: 0;
+}
+
+.notification-preference-row {
+  min-height: 48px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  font-weight: 800;
+  line-height: 1.22;
+}
+
+.notification-preference-row input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--amber);
+}
+
+.notification-preference-row:has(input:checked) {
+  background: linear-gradient(135deg, rgba(255, 184, 77, 0.12), rgba(255, 87, 87, 0.08));
+}
+
+.notification-preference-row:has(input:disabled) {
+  cursor: wait;
+  opacity: 0.72;
 }
 
 .settings-profile-form label {
@@ -7670,6 +7721,7 @@ textarea { min-height: 42px; resize: vertical; }
 
 .save-settings-button {
   justify-self: start;
+  margin-bottom: calc(var(--floating-nav-clearance, 168px) * 0.35);
 }
 
 .success-message {
