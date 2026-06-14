@@ -5678,9 +5678,9 @@ textarea { min-height: 42px; resize: vertical; }
 }
 .arcade-preview-hero {
   position: relative;
-  min-height: clamp(360px, 54svh, 460px);
+  min-height: clamp(260px, 38svh, 380px);
   display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(280px, .95fr);
+  grid-template-columns: minmax(0, .8fr) minmax(280px, 1.2fr);
   gap: clamp(16px, 4vw, 42px);
   align-items: center;
   border: 1px solid rgba(255,255,255,.12);
@@ -5728,8 +5728,8 @@ textarea { min-height: 42px; resize: vertical; }
 }
 .arcade-hero-copy h1 {
   margin: 8px 0 12px;
-  font-size: clamp(2.6rem, 7vw, 5rem);
-  line-height: .9;
+  font-size: clamp(2.35rem, 6vw, 4.5rem);
+  line-height: .94;
   color: #fff8e8;
 }
 .arcade-hero-copy p {
@@ -5750,74 +5750,118 @@ textarea { min-height: 42px; resize: vertical; }
   color: #ffcf8a;
   font-weight: 850;
 }
-.arcade-hero-art {
-  position: relative;
-  z-index: 1;
-  min-height: 240px;
-  width: 100%;
-}
-.arcade-play-menu {
-  display: grid;
-  gap: 12px;
-  width: min(100%, 380px);
-  border: 1px solid rgba(255,255,255,.18);
-  border-radius: 24px;
-  margin-left: auto;
-  padding: 18px;
+.arcade-featured-trivia-card {
   position: relative;
   overflow: hidden;
-  background:
-    radial-gradient(circle at 84% 10%, rgba(255,255,255,.2), transparent 10rem),
-    radial-gradient(circle at 8% 88%, rgba(255,184,77,.18), transparent 12rem),
-    linear-gradient(150deg, rgba(255,196,86,.92), rgba(255,78,121,.82) 52%, rgba(111,69,255,.78));
+  z-index: 1;
+  min-height: clamp(220px, 32vw, 330px);
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 24px;
+  background: rgba(8,9,13,.72);
   box-shadow: 0 26px 80px rgba(0,0,0,.38);
 }
-.arcade-play-menu::before {
-  display: none;
+
+.arcade-featured-trivia-card img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: .9;
 }
-.arcade-play-menu::after {
-  display: none;
+
+.arcade-featured-trivia-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(0deg, rgba(8,9,13,.94), rgba(8,9,13,.18) 54%, rgba(8,9,13,.1));
 }
-.arcade-play-menu > * {
-  position: relative;
+
+.arcade-featured-trivia-card > div {
+  position: absolute;
+  inset: auto 0 0;
   z-index: 1;
+  padding: clamp(16px, 3vw, 24px);
 }
-.arcade-play-menu > span {
-  width: fit-content;
-  border-radius: 999px;
-  padding: 7px 10px;
-  background: rgba(8,9,13,.38);
-  color: #fff6df;
+
+.arcade-featured-trivia-card span,
+.arcade-featured-trivia-card p {
+  color: #ffcf8a;
   font-weight: 950;
-  font-size: .78rem;
   text-transform: uppercase;
-  letter-spacing: .06em;
 }
-.arcade-play-menu > strong {
-  color: #fff;
-  font-size: clamp(1.55rem, 3vw, 2.25rem);
-  line-height: 1;
+
+.arcade-featured-trivia-card h2 {
+  margin: 8px 0 4px;
+  color: #fff8e8;
+  font-size: clamp(1.8rem, 4vw, 3rem);
+  line-height: .98;
 }
-.arcade-play-menu-list {
+
+.arcade-featured-trivia-card p {
+  margin: 0;
+}
+
+.arcade-movie-row,
+.arcade-challenge-row {
   display: grid;
-  gap: 10px;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(210px, 260px);
+  gap: 14px;
+  overflow-x: auto;
+  padding: 2px 2px 14px;
+  scroll-snap-type: x proximity;
 }
-.arcade-play-menu-list div {
-  display: grid;
-  gap: 2px;
-  border: 1px solid rgba(255,255,255,.18);
-  border-radius: 16px;
-  background: rgba(8,9,13,.42);
-  padding: 12px;
-  box-shadow: 0 12px 30px rgba(0,0,0,.16);
+
+.arcade-movie-row > *,
+.arcade-challenge-row > * {
+  scroll-snap-align: start;
 }
-.arcade-play-menu-list b {
-  color: #fff;
-  font-size: 1rem;
+
+.arcade-movie-row .arcade-trivia-card,
+.arcade-challenge-row .challenge-discovery-card {
+  min-height: 0;
+  padding: 0;
+  overflow: hidden;
+  background: rgba(255,255,255,.045);
 }
-.arcade-play-menu-list small {
+
+.arcade-trivia-card img,
+.challenge-discovery-card img {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  background: rgba(0,0,0,.32);
+}
+
+.arcade-trivia-card > span,
+.arcade-trivia-card > h3,
+.arcade-trivia-card > p,
+.arcade-trivia-card > button,
+.challenge-discovery-card > h3,
+.challenge-discovery-card > p,
+.challenge-discovery-card > button {
+  margin-left: 14px;
+  margin-right: 14px;
+}
+
+.arcade-trivia-card > button,
+.challenge-discovery-card > button {
+  margin-bottom: 14px;
+}
+
+.challenge-discovery-card h3 {
+  margin-top: 0;
+  margin-bottom: 0;
+  color: #fff5dc;
+  font-size: 1.05rem;
+  line-height: 1.12;
+}
+
+.challenge-discovery-card p {
+  margin-top: 0;
   color: rgba(255,255,255,.78);
-  font-weight: 800;
+  line-height: 1.35;
 }
 .arcade-feature-grid,
 .arcade-reward-grid,
@@ -8519,11 +8563,8 @@ textarea { min-height: 42px; resize: vertical; }
   .challenge-ticket-rules {
     justify-content: flex-start;
   }
-  .arcade-hero-art {
-    min-height: auto;
-  }
-  .arcade-play-menu {
-    margin-left: 0;
+  .arcade-featured-trivia-card {
+    min-height: 260px;
   }
 }
 @media (max-width: 620px) {
@@ -8584,13 +8625,12 @@ textarea { min-height: 42px; resize: vertical; }
     display: grid;
     grid-template-columns: 1fr;
   }
-  .arcade-hero-art {
-    min-height: auto;
+  .arcade-featured-trivia-card {
+    min-height: 230px;
   }
-  .arcade-play-menu {
-    border-radius: 20px;
-    padding: 14px;
-    width: 100%;
+  .arcade-movie-row,
+  .arcade-challenge-row {
+    grid-auto-columns: minmax(190px, 76vw);
   }
   .arcade-reward-card {
     grid-template-columns: 58px minmax(0, 1fr);
