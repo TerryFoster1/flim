@@ -48,6 +48,17 @@ interface TmdbMovieDetails extends TmdbSearchMovie {
   credits?: {
     cast?: TmdbCastMember[];
   };
+  videos?: {
+    results?: Array<{
+      id?: string;
+      key?: string;
+      name?: string;
+      site?: string;
+      type?: string;
+      official?: boolean;
+      published_at?: string;
+    }>;
+  };
   seasons?: Array<{
     id?: number;
     season_number?: number;
@@ -248,6 +259,57 @@ function chooseContentRating(ratings: Array<{ countryCode: string; rating: strin
   )?.rating;
 }
 
+function normalizeVideoContentType(type?: string, official?: boolean) {
+  const normalized = (type || "").toLowerCase();
+  if (normalized === "trailer") return official ? "official_trailer" : "teaser_trailer";
+  if (normalized === "teaser") return "teaser_trailer";
+  if (normalized === "behind the scenes") return "behind_the_scenes";
+  if (normalized === "interview") return "interview";
+  if (normalized === "featurette" || normalized === "clip") return "featurette";
+  return null;
+}
+
+function videoSortRank(video: { contentType: string; official?: boolean; publishedAt?: string }) {
+  const typeRank: Record<string, number> = {
+    official_trailer: 0,
+    teaser_trailer: 1,
+    featurette: 2,
+    behind_the_scenes: 3,
+    interview: 4,
+  };
+  return [
+    video.official ? 0 : 1,
+    typeRank[video.contentType] ?? 9,
+    video.publishedAt ? -Date.parse(video.publishedAt) : 0,
+  ];
+}
+
+function mapVideos(payload: TmdbMovieDetails) {
+  return (payload.videos?.results || [])
+    .map((video) => {
+      const contentType = normalizeVideoContentType(video.type, video.official);
+      if (!contentType || video.site?.toLowerCase() !== "youtube" || !video.key) return null;
+      return {
+        provider: "youtube" as const,
+        contentType,
+        url: `https://www.youtube.com/watch?v=${video.key}`,
+        linkType: "exact" as const,
+        label: video.name || video.type || "Official Trailer",
+        thumbnailUrl: `https://img.youtube.com/vi/${video.key}/hqdefault.jpg`,
+        official: Boolean(video.official),
+        publishedAt: video.published_at,
+      };
+    })
+    .filter(Boolean)
+    .sort((a: any, b: any) => {
+      const left = videoSortRank(a);
+      const right = videoSortRank(b);
+      return left[0] - right[0] || left[1] - right[1] || left[2] - right[2];
+    })
+    .slice(0, 8)
+    .map(({ official, publishedAt, ...video }: any) => video);
+}
+
 export function normalizeMovieQuery(query: string) {
   return query.trim().toLowerCase();
 }
@@ -351,7 +413,7 @@ export async function fetchTmdbMovieDetails(tmdbId: number, mediaType: "movie" |
 
   const url = new URL(`${TMDB_API_BASE_URL}/${mediaType}/${tmdbId}`);
   url.searchParams.set("language", "en-US");
-  url.searchParams.set("append_to_response", mediaType === "tv" ? "content_ratings,credits" : "release_dates,credits");
+  url.searchParams.set("append_to_response", mediaType === "tv" ? "content_ratings,credits,videos" : "release_dates,credits,videos");
 
   const response = await fetch(url, applyTmdbAuth(url));
   if (!response.ok) {
@@ -387,6 +449,8 @@ export async function fetchTmdbMovieDetails(tmdbId: number, mediaType: "movie" |
     status: payload.status,
     cast: (payload.credits?.cast || []).slice(0, 16).map(mapCastMember),
     castVersion: 1,
+    videos: mapVideos(payload),
+    videoVersion: 1,
   };
 }
 

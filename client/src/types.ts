@@ -101,6 +101,8 @@ export interface MovieDetails extends MovieSearchResult {
   popularity?: number;
   language?: string;
   cast?: CastMember[];
+  videos?: MediaVideoLink[];
+  videoVersion?: number;
 }
 
 export interface CastMember {

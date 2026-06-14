@@ -40,7 +40,10 @@ export function getSoundtrackAvailability(media: { tmdbId: number; title: string
   };
 }
 
-export function getTrailerLinks(media: { tmdbId: number; title: string; mediaType?: MediaType }): MediaVideoLink[] {
+export function getTrailerLinks(media: { tmdbId: number; title: string; mediaType?: MediaType; videos?: MediaVideoLink[] }): MediaVideoLink[] {
+  const exactVideos = Array.isArray(media.videos) ? media.videos.filter((video) => Boolean(video?.url)) : [];
+  if (exactVideos.length > 0) return exactVideos;
+
   const mediaType = media.mediaType ?? "movie";
   return [
     {
@@ -64,7 +67,7 @@ export function getTriviaPlaceholders(media: { tmdbId: number; title: string; me
   ];
 }
 
-export function getMediaExtensions(media: { tmdbId: number; title: string; mediaType?: MediaType }): MediaExtensions {
+export function getMediaExtensions(media: { tmdbId: number; title: string; mediaType?: MediaType; videos?: MediaVideoLink[] }): MediaExtensions {
   return {
     mediaType: media.mediaType ?? "movie",
     tmdbId: media.tmdbId,

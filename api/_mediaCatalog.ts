@@ -21,6 +21,8 @@ export interface CatalogMediaInput {
   seasonCount?: number;
   episodeCount?: number;
   seasons?: Array<Record<string, unknown>>;
+  videos?: Array<Record<string, unknown>>;
+  videoVersion?: number;
   cast?: Array<Record<string, unknown>>;
   castVersion?: number;
   contentRatings?: Array<{ countryCode: string; rating: string }>;
@@ -216,6 +218,8 @@ export async function upsertMediaItem(sql: any, input: CatalogMediaInput) {
     seasons: input.seasons,
     cast: input.cast,
     castVersion: input.castVersion,
+    videos: input.videos,
+    videoVersion: input.videoVersion,
     contentRatings: input.contentRatings,
     contentRatingVersion: input.contentRatingVersion,
     genreIds: input.genreIds,
@@ -453,6 +457,8 @@ export function mapCatalogDetails(row: any) {
     episodeCount: payload.episodeCount || undefined,
     seasons: Array.isArray(payload.seasons) ? payload.seasons : undefined,
     cast: Array.isArray(payload.cast) ? payload.cast : [],
+    videos: Array.isArray(payload.videos) ? payload.videos : [],
+    videoVersion: payload.videoVersion,
     firstAirYear: row.media_type === "tv" ? row.year || undefined : undefined,
     contentRating: row.rating || undefined,
     contentRatings: Array.isArray(payload.contentRatings) ? payload.contentRatings : [],

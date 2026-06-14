@@ -2,7 +2,7 @@ import { useState } from "react";
 import { ShareAssetButton } from "./ShareAssetButton";
 import { getMediaExtensions } from "../services/mediaExtensionService";
 import { completeCompanionItem, getTitleTrivia, reportEasterEggHunt, reportTriviaQuestion, updateEasterEggHunt } from "../services/triviaService";
-import type { EasterEggHunt, MediaType, TriviaFeed, TriviaQuestion, TriviaReportReason } from "../types";
+import type { EasterEggHunt, MediaType, MediaVideoLink, TriviaFeed, TriviaQuestion, TriviaReportReason } from "../types";
 
 interface MediaExtensionsProps {
   media: {
@@ -11,6 +11,7 @@ interface MediaExtensionsProps {
     mediaType?: MediaType;
     posterUrl?: string;
     backdropUrl?: string;
+    videos?: MediaVideoLink[];
   };
   onNavigate?: (path: string) => void;
 }
@@ -19,6 +20,7 @@ export function MediaExtensions({ media, onNavigate }: MediaExtensionsProps) {
   const extensions = getMediaExtensions(media);
   const soundtrackLink = extensions.soundtrack.soundtrack?.links[0];
   const trailerLink = extensions.videos[0];
+  const extraVideos = extensions.videos.slice(1, 4);
   const trailerArtwork = trailerLink?.thumbnailUrl || media.backdropUrl || media.posterUrl;
   const [triviaFeed, setTriviaFeed] = useState<TriviaFeed | null>(null);
   const [triviaOpen, setTriviaOpen] = useState(false);
@@ -122,7 +124,7 @@ export function MediaExtensions({ media, onNavigate }: MediaExtensionsProps) {
   return (
     <section className="media-extensions" aria-label={`Media extensions for ${media.title}`}>
       <div className="media-extension-heading">
-        <h2>Keep exploring</h2>
+        <h2>Trailers & Extras</h2>
       </div>
 
       <div className="media-extension-grid">
@@ -138,8 +140,8 @@ export function MediaExtensions({ media, onNavigate }: MediaExtensionsProps) {
             <strong>Play</strong>
           </div>
           <div>
-            <h3>Official Trailer</h3>
-            <p>Open trailer results on YouTube.</p>
+            <h3>{trailerLink?.label || "Official Trailer"}</h3>
+            <p>{trailerLink?.linkType === "exact" ? "Watch the official video on YouTube." : "Open trailer results on YouTube."}</p>
           </div>
         </a>
 
@@ -170,6 +172,20 @@ export function MediaExtensions({ media, onNavigate }: MediaExtensionsProps) {
           </div>
         </button>
       </div>
+
+      {extraVideos.length > 0 ? (
+        <div className="trailer-extra-row" aria-label={`${media.title} additional videos`}>
+          {extraVideos.map((video) => (
+            <a className="trailer-extra-chip" href={video.url} key={`${video.url}-${video.label}`} rel="noreferrer" target="_blank">
+              {video.thumbnailUrl ? <img alt="" src={video.thumbnailUrl} /> : <span aria-hidden="true" />}
+              <div>
+                <strong>{video.label}</strong>
+                <small>{video.contentType.replace(/_/g, " ")}</small>
+              </div>
+            </a>
+          ))}
+        </div>
+      ) : null}
 
       <div className="share-inline-row" aria-label={`Share ${media.title}`}>
         <ShareAssetButton

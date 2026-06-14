@@ -608,7 +608,7 @@ button { color: inherit; font: inherit; }
   border-radius: 999px;
 }
 .page-container {
-  --floating-nav-clearance: calc(132px + env(safe-area-inset-bottom, 0px));
+  --floating-nav-clearance: calc(168px + env(safe-area-inset-bottom, 0px));
   width: min(1480px, 100%);
   max-width: 100%;
   margin: 0 auto;
@@ -623,7 +623,7 @@ button { color: inherit; font: inherit; }
   padding-bottom: 0;
   overflow: hidden;
 }
-.route-page { width: 100%; max-width: 100%; min-width: 0; overflow-x: clip; animation: pageIn 0.28s ease; padding-bottom: var(--floating-nav-clearance, 132px); }
+.route-page { width: 100%; max-width: 100%; min-width: 0; overflow-x: clip; animation: pageIn 0.28s ease; padding-bottom: var(--floating-nav-clearance, 168px); }
 @keyframes pageIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 .cinema-hero {
   min-height: clamp(560px, 74vh, 820px);
@@ -5380,6 +5380,48 @@ textarea { min-height: 42px; resize: vertical; }
   width: 100%;
   margin-top: 4px;
 }
+.trailer-extra-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.trailer-extra-chip {
+  display: grid;
+  grid-template-columns: 86px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 14px;
+  color: var(--text);
+  text-decoration: none;
+  background: rgba(255,255,255,.055);
+}
+.trailer-extra-chip:hover {
+  border-color: rgba(255,184,77,.32);
+  background: rgba(255,255,255,.08);
+}
+.trailer-extra-chip img,
+.trailer-extra-chip > span {
+  width: 86px;
+  aspect-ratio: 16 / 9;
+  border-radius: 10px;
+  object-fit: cover;
+  background: rgba(255,255,255,.1);
+}
+.trailer-extra-chip strong {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: .9rem;
+}
+.trailer-extra-chip small {
+  color: var(--muted);
+  font-weight: 800;
+  text-transform: capitalize;
+}
 .compact-extension-card {
   min-height: 0;
   grid-template-rows: 1fr;
@@ -5531,7 +5573,7 @@ textarea { min-height: 42px; resize: vertical; }
 }
 .arcade-preview-hero {
   position: relative;
-  min-height: min(520px, calc(100svh - 170px));
+  min-height: clamp(360px, 54svh, 460px);
   display: grid;
   grid-template-columns: minmax(0, 1.05fr) minmax(280px, .95fr);
   gap: clamp(16px, 4vw, 42px);
@@ -5581,7 +5623,7 @@ textarea { min-height: 42px; resize: vertical; }
 }
 .arcade-hero-copy h1 {
   margin: 8px 0 12px;
-  font-size: clamp(3rem, 8vw, 5.8rem);
+  font-size: clamp(2.6rem, 7vw, 5rem);
   line-height: .9;
   color: #fff8e8;
 }
@@ -5606,17 +5648,17 @@ textarea { min-height: 42px; resize: vertical; }
 .arcade-hero-art {
   position: relative;
   z-index: 1;
-  min-height: 300px;
+  min-height: 240px;
   width: 100%;
 }
 .arcade-play-menu {
   display: grid;
-  gap: 14px;
+  gap: 12px;
   width: min(100%, 380px);
   border: 1px solid rgba(255,255,255,.18);
-  border-radius: 26px;
+  border-radius: 24px;
   margin-left: auto;
-  padding: 22px;
+  padding: 18px;
   position: relative;
   overflow: hidden;
   background:
@@ -5626,21 +5668,10 @@ textarea { min-height: 42px; resize: vertical; }
   box-shadow: 0 26px 80px rgba(0,0,0,.38);
 }
 .arcade-play-menu::before {
-  content: "";
-  position: absolute;
-  inset: 16px;
-  border: 1px dashed rgba(255,255,255,.34);
-  border-radius: 20px;
+  display: none;
 }
 .arcade-play-menu::after {
-  content: "";
-  position: absolute;
-  width: 96px;
-  height: 96px;
-  right: -18px;
-  top: -18px;
-  border-radius: 50%;
-  background: rgba(8,9,13,.28);
+  display: none;
 }
 .arcade-play-menu > * {
   position: relative;
@@ -5670,9 +5701,10 @@ textarea { min-height: 42px; resize: vertical; }
   display: grid;
   gap: 2px;
   border: 1px solid rgba(255,255,255,.18);
-  border-radius: 18px;
-  background: rgba(8,9,13,.28);
+  border-radius: 16px;
+  background: rgba(8,9,13,.42);
   padding: 12px;
+  box-shadow: 0 12px 30px rgba(0,0,0,.16);
 }
 .arcade-play-menu-list b {
   color: #fff;
@@ -7878,7 +7910,7 @@ textarea { min-height: 42px; resize: vertical; }
   gap: 18px;
   align-items: center;
   border-top: 1px solid rgba(255,255,255,.08);
-  padding: 24px clamp(18px, 4vw, 44px);
+  padding: 24px clamp(18px, 4vw, 44px) max(24px, var(--floating-nav-clearance, 168px));
   background:
     radial-gradient(circle at 18% 0%, rgba(255,184,77,.08), transparent 18rem),
     rgba(8,9,13,.72);
@@ -8345,7 +8377,7 @@ textarea { min-height: 42px; resize: vertical; }
     width: 100%;
   }
   .page-container {
-    --floating-nav-clearance: calc(150px + env(safe-area-inset-bottom, 0px));
+    --floating-nav-clearance: calc(190px + env(safe-area-inset-bottom, 0px));
     padding: 16px;
     padding-bottom: var(--floating-nav-clearance);
   }
@@ -8355,13 +8387,14 @@ textarea { min-height: 42px; resize: vertical; }
     border-left: 0;
     border-right: 0;
     border-radius: 0;
-    padding: 20px 16px;
+    padding: 18px 16px;
   }
   .arcade-hero-copy h1 {
-    font-size: clamp(2.6rem, 15vw, 4rem);
+    font-size: clamp(2.25rem, 12vw, 3.4rem);
   }
   .arcade-hero-copy p {
     line-height: 1.45;
+    font-size: .98rem;
   }
   .arcade-hero-actions {
     display: grid;
@@ -8371,8 +8404,8 @@ textarea { min-height: 42px; resize: vertical; }
     min-height: auto;
   }
   .arcade-play-menu {
-    border-radius: 22px;
-    padding: 18px;
+    border-radius: 20px;
+    padding: 14px;
     width: 100%;
   }
   .arcade-reward-card {
@@ -8914,6 +8947,16 @@ textarea { min-height: 42px; resize: vertical; }
   .media-extension-grid {
     grid-template-columns: 1fr;
   }
+  .trailer-extra-row {
+    grid-template-columns: 1fr;
+  }
+  .trailer-extra-chip {
+    grid-template-columns: 96px minmax(0, 1fr);
+  }
+  .trailer-extra-chip img,
+  .trailer-extra-chip > span {
+    width: 96px;
+  }
   .continue-watching-row {
     grid-auto-columns: minmax(240px, 82vw);
   }
@@ -9010,7 +9053,7 @@ textarea { min-height: 42px; resize: vertical; }
   .footer {
     display: grid;
     gap: 12px;
-    padding-bottom: 92px;
+    padding-bottom: calc(190px + env(safe-area-inset-bottom, 0px));
   }
   .footer nav {
     gap: 12px;
