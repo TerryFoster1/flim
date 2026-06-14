@@ -7690,7 +7690,7 @@ textarea { min-height: 42px; resize: vertical; }
 
 .avatar-picker-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
   gap: 10px;
 }
 
@@ -7717,9 +7717,8 @@ textarea { min-height: 42px; resize: vertical; }
   color: var(--text);
   cursor: pointer;
   display: grid;
-  gap: 7px;
   justify-items: center;
-  min-height: 154px;
+  min-height: 118px;
   padding: 14px 10px;
   text-align: center;
 }
@@ -7740,20 +7739,20 @@ textarea { min-height: 42px; resize: vertical; }
 
 .avatar-skin-grid {
   display: grid;
-  gap: 10px;
-  grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(126px, 1fr));
 }
 
 .avatar-skin-chip {
   align-items: center;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.045);
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.065), rgba(255, 255, 255, 0.032));
   display: grid;
-  gap: 9px;
+  gap: 8px;
   justify-items: center;
-  min-height: 146px;
-  padding: 10px 8px;
+  min-height: 178px;
+  padding: 10px 8px 12px;
   text-align: center;
 }
 
@@ -7762,21 +7761,20 @@ textarea { min-height: 42px; resize: vertical; }
 }
 
 .avatar-skin-art {
-  background:
-    radial-gradient(circle at 50% 38%, rgba(236, 242, 255, 0.32), rgba(140, 158, 184, 0.14) 42%, transparent 66%),
-    linear-gradient(145deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.055));
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 22px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
   display: grid;
-  height: 92px;
+  height: 126px;
   justify-items: center;
-  overflow: hidden;
+  overflow: visible;
   position: relative;
-  width: 92px;
+  width: 112px;
 }
 
 
 .avatar-skin-costume {
+  filter: saturate(0.92) brightness(0.92);
   height: 100%;
   inset: 0;
   object-fit: contain;

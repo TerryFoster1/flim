@@ -183,7 +183,6 @@ export function Settings({ currentUser, onNavigate, playlists = [] }: SettingsPr
             <div className="avatar-picker">
             <div>
               <h3>Choose your avatar</h3>
-              <p>Your avatar is your Flim identity.</p>
             </div>
             <div className="avatar-current-preview">
               <FlimAvatar avatarKey={selectedAvatar.id} label={selectedAvatar.name} size="lg" />
@@ -199,10 +198,10 @@ export function Settings({ currentUser, onNavigate, playlists = [] }: SettingsPr
                     className={selected ? "avatar-option is-selected" : "avatar-option"}
                     key={avatar.key}
                     onClick={() => updateProfile("avatarKey", avatar.key)}
+                    title={avatar.name}
                     type="button"
                   >
                     <FlimAvatar avatarKey={avatar.key} label={avatar.name} size="md" />
-                    <strong>{avatar.name}</strong>
                   </button>
                 );
               })}
