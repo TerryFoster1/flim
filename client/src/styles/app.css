@@ -3724,9 +3724,17 @@ textarea { min-height: 42px; resize: vertical; }
   margin: 18px 0 6px;
   color: #ffe7b8;
 }
-.legal-page p {
+.legal-page p,
+.legal-page li {
   color: var(--muted);
   line-height: 1.65;
+}
+.legal-page ul {
+  margin: 8px 0 0;
+  padding-left: 22px;
+}
+.legal-page li + li {
+  margin-top: 4px;
 }
 .legal-link-row {
   display: flex;
