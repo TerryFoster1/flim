@@ -1,10 +1,12 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { hasTmdbApiKey, searchMovies, type MediaSearchMode } from "../services/tmdbService";
+import { getDidYouMeanSuggestion, searchLabelMatchesQuery } from "../services/discoveryService";
 import { getCurrentProfile } from "../services/profileService";
 import { enqueueTitleTrivia } from "../services/triviaService";
 import { getProviderAvailabilityForTitle, normalizeStreamingRegion } from "../services/watchProviderService";
 import type { MovieSearchResult, Playlist } from "../types";
 import { AddToPlaylistControl } from "./AddToPlaylistControl";
+import { SearchAutocomplete } from "./SearchAutocomplete";
 
 interface MovieSearchPanelProps {
   playlists: Playlist[];
@@ -30,6 +32,12 @@ export function MovieSearchPanel({ playlists, addToPlaylist, onNavigate, variant
   const hasKey = hasTmdbApiKey();
   const targetPlaylists = fixedPlaylistId ? playlists.filter((playlist) => playlist.id === fixedPlaylistId) : playlists;
   const fixedPlaylist = fixedPlaylistId ? targetPlaylists[0] : null;
+  const didYouMean = query.trim().length >= 4 ? getDidYouMeanSuggestion(query, null) : null;
+  const shouldShowDidYouMean = Boolean(
+    status === "done" &&
+    didYouMean &&
+    !results.some((movie) => searchLabelMatchesQuery(query, movie.title)),
+  );
 
   function resultKey(movie: MovieSearchResult) {
     return `${movie.mediaType || "movie"}-${movie.tmdbId}`;
@@ -39,8 +47,8 @@ export function MovieSearchPanel({ playlists, addToPlaylist, onNavigate, variant
     return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
   }
 
-  function enqueueTriviaForSearchInterest(movies: MovieSearchResult[]) {
-    const normalizedQuery = normalizedSearchText(query);
+  function enqueueTriviaForSearchInterest(movies: MovieSearchResult[], sourceQuery = query) {
+    const normalizedQuery = normalizedSearchText(sourceQuery);
     if (!normalizedQuery) return;
     const highConfidenceMatches = movies
       .filter((movie, index) => {
@@ -107,18 +115,20 @@ export function MovieSearchPanel({ playlists, addToPlaylist, onNavigate, variant
     return [...movies].sort((a, b) => Number(Boolean(matchMap[resultKey(b)])) - Number(Boolean(matchMap[resultKey(a)])));
   }
 
-  async function submitSearch(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function runSearch(nextQuery = query) {
     if (!hasKey) {
       setMessage("Movie search is not configured yet.");
       return;
     }
 
+    const cleanQuery = nextQuery.trim();
+    if (!cleanQuery) return;
+    setQuery(cleanQuery);
     setStatus("loading");
     setMessage("");
     try {
-      const movies = await searchMovies(query, mediaType);
-      enqueueTriviaForSearchInterest(movies);
+      const movies = await searchMovies(cleanQuery, mediaType);
+      enqueueTriviaForSearchInterest(movies, cleanQuery);
       const prioritized = await prioritizeAvailableResults(movies);
       setResults(prioritized);
       setStatus("done");
@@ -127,6 +137,11 @@ export function MovieSearchPanel({ playlists, addToPlaylist, onNavigate, variant
       setStatus("error");
       setMessage("Movie search failed. Please try again shortly.");
     }
+  }
+
+  async function submitSearch(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    await runSearch(query);
   }
 
   async function addToCurrentPlaylist(movie: MovieSearchResult) {
@@ -156,9 +171,14 @@ export function MovieSearchPanel({ playlists, addToPlaylist, onNavigate, variant
   return (
     <section className={variant === "hero" ? "search-panel hero-search-panel" : "search-panel"} id="movie-search">
       <form className="search-form" onSubmit={submitSearch}>
-        <label>
-          <input onChange={(event) => setQuery(event.target.value)} placeholder="Search movies or TV shows" type="search" value={query} />
-        </label>
+        <SearchAutocomplete
+          label="Search"
+          onNavigate={onNavigate}
+          onQueryChange={setQuery}
+          onSubmitQuery={(nextQuery) => void runSearch(nextQuery)}
+          placeholder="Search movies or TV shows"
+          query={query}
+        />
         <div className="search-type-toggle" aria-label="Search media type">
           {(["both", "movie", "tv"] as MediaSearchMode[]).map((option) => (
             <button className={mediaType === option ? "is-active" : ""} key={option} onClick={() => setMediaType(option)} type="button">
@@ -187,6 +207,11 @@ export function MovieSearchPanel({ playlists, addToPlaylist, onNavigate, variant
       </form>
       {!hasKey ? <p className="empty-state">Movie search is not configured yet.</p> : null}
       {message ? <p className="empty-state">{message}</p> : null}
+      {shouldShowDidYouMean && didYouMean ? (
+        <button className="autocomplete-did-you-mean search-did-you-mean" onClick={() => void runSearch(didYouMean.label)} type="button">
+          Did you mean: <strong>{didYouMean.label}</strong>?
+        </button>
+      ) : null}
       {availabilityStatus ? <p className="helper-text">{availabilityStatus}</p> : null}
       {results.length > 0 ? (
         <div className="search-results-experience" aria-live="polite">

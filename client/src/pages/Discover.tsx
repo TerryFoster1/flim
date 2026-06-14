@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { DiscoveryRecommendationShelf } from "../components/DiscoveryRecommendationShelf";
 import { FlimAvatar } from "../components/FlimAvatar";
 import { PlaylistGrid } from "../components/PlaylistGrid";
-import { searchDiscovery } from "../services/discoveryService";
+import { SearchAutocomplete } from "../components/SearchAutocomplete";
+import { getDidYouMeanSuggestion, searchDiscovery, searchLabelMatchesQuery } from "../services/discoveryService";
 import { getCurrentProfile } from "../services/profileService";
 import { getProviderAvailabilityForTitle, normalizeStreamingRegion } from "../services/watchProviderService";
 import type { DiscoveryCollectionResult, DiscoveryHubLink, DiscoverySearchResults, MovieSearchResult } from "../types";
@@ -139,6 +140,18 @@ export function Discover({ onNavigate }: DiscoverProps) {
   );
   const movieResults = useMemo(() => (results?.titles || []).filter((title) => title.mediaType !== "tv"), [results]);
   const tvResults = useMemo(() => (results?.titles || []).filter((title) => title.mediaType === "tv"), [results]);
+  const didYouMean = useMemo(() => (results ? getDidYouMeanSuggestion(query, results) : null), [query, results]);
+  const hasStrongSearchMatch = useMemo(() => {
+    if (!results) return false;
+    return [
+      ...results.playlists.map((item) => item.name),
+      ...results.collections.map((item) => item.title),
+      ...results.actors.map((item) => item.name),
+      ...results.profiles.map((item) => item.displayName),
+      ...results.titles.map((item) => item.title),
+      ...results.hubs.map((item) => item.title),
+    ].some((label) => searchLabelMatchesQuery(query, label));
+  }, [query, results]);
 
   useEffect(() => {
     let active = true;
@@ -239,16 +252,14 @@ export function Discover({ onNavigate }: DiscoverProps) {
           </button>
         </div>
         <form className="discover-search-form" onSubmit={submit}>
-          <label>
-            <span>Search Flim</span>
-            <input
-              autoComplete="off"
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Try Anime, Horror, Sci-Fi, Marvel..."
-              type="search"
-              value={query}
-            />
-          </label>
+          <SearchAutocomplete
+            label="Search Flim"
+            onNavigate={onNavigate}
+            onQueryChange={setQuery}
+            onSubmitQuery={(nextQuery) => void submit(undefined, nextQuery)}
+            placeholder="Try Anime, Horror, Sci-Fi, Marvel..."
+            query={query}
+          />
           <button className="primary-button" disabled={!query.trim() || status === "loading"} type="submit">
             {status === "loading" ? "Searching..." : "Search"}
           </button>
@@ -271,6 +282,11 @@ export function Discover({ onNavigate }: DiscoverProps) {
       </section>
 
       {message ? <p className="error-message">{message}</p> : null}
+      {didYouMean && !hasStrongSearchMatch ? (
+        <button className="autocomplete-did-you-mean search-did-you-mean" onClick={() => void submit(undefined, didYouMean.label)} type="button">
+          Did you mean: <strong>{didYouMean.label}</strong>?
+        </button>
+      ) : null}
       {availabilityStatus ? <p className="helper-text">{availabilityStatus}</p> : null}
 
       {!results ? <DiscoveryRecommendationShelf onNavigate={onNavigate} /> : null}

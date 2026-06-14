@@ -2700,6 +2700,97 @@ h3 { margin-bottom: 8px; }
 }
 .search-action-row { display: flex; gap: 10px; align-items: end; }
 .search-submit-button { min-width: 132px; }
+.autocomplete-search {
+  position: relative;
+  min-width: 0;
+}
+.autocomplete-label {
+  display: block;
+  color: var(--muted);
+  font-size: .82rem;
+  margin-bottom: 6px;
+}
+.autocomplete-search input {
+  width: 100%;
+}
+.autocomplete-panel {
+  position: absolute;
+  z-index: 45;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  display: grid;
+  gap: 8px;
+  max-height: min(440px, calc(100svh - 230px));
+  overflow: auto;
+  padding: 10px;
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 18px;
+  background: rgba(8, 9, 13, .97);
+  box-shadow: 0 22px 70px rgba(0,0,0,.48);
+}
+.autocomplete-option,
+.autocomplete-did-you-mean {
+  width: 100%;
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  border: 1px solid rgba(255,255,255,.11);
+  border-radius: 14px;
+  padding: 10px 12px;
+  color: var(--text);
+  text-align: left;
+  background: rgba(255,255,255,.055);
+  cursor: pointer;
+}
+.autocomplete-option:hover,
+.autocomplete-option:focus-visible,
+.autocomplete-did-you-mean:hover,
+.autocomplete-did-you-mean:focus-visible {
+  border-color: rgba(255,184,77,.38);
+  background: rgba(255,255,255,.09);
+}
+.autocomplete-option > span {
+  color: #ffcf8a;
+  font-size: .68rem;
+  font-weight: 950;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.autocomplete-option strong,
+.autocomplete-did-you-mean strong {
+  overflow-wrap: anywhere;
+}
+.autocomplete-option small {
+  color: rgba(255,255,255,.7);
+  font-weight: 800;
+}
+.autocomplete-option em {
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: .82rem;
+  font-style: normal;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.autocomplete-did-you-mean {
+  display: block;
+  border-color: rgba(255,184,77,.28);
+  background: linear-gradient(135deg, rgba(255,184,77,.18), rgba(255,79,109,.13));
+}
+.autocomplete-status {
+  margin: 0;
+  color: var(--muted);
+  font-size: .86rem;
+  line-height: 1.45;
+  padding: 6px 4px;
+}
+.search-did-you-mean {
+  width: min(100%, 620px);
+  margin-top: 12px;
+}
 .playlist-form { grid-template-columns: repeat(3, minmax(0, 1fr)) auto; }
 label span { display: block; color: var(--muted); font-size: .82rem; margin-bottom: 6px; }
 input, textarea, select {
