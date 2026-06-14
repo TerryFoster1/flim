@@ -180,10 +180,10 @@ export function buildLocalSearchSuggestions(query: string, limit = 5): SearchSug
     })
     .slice(0, limit)
     .map((item) => ({
-      id: `${item.isFuzzy ? "did-you-mean" : "local-query"}-${normalizeSuggestionText(item.candidate)}`,
+      id: `${item.isFuzzy && !item.isPrefix && !item.isContained ? "did-you-mean" : "local-query"}-${normalizeSuggestionText(item.candidate)}`,
       type: "query",
       label: item.candidate,
-      meta: item.isFuzzy ? "Did you mean" : "Suggestion",
+      meta: item.isFuzzy && !item.isPrefix && !item.isContained ? "Did you mean" : "Suggestion",
       reason: `Search for ${item.candidate}`,
       query: item.candidate,
       confidence: Math.max(0, 1 - item.ratio),
