@@ -10,6 +10,7 @@ export const providerAssets: Record<string, ProviderAsset> = {
   criterion: { src: "/provider-icons/criterion.png" },
   disney: { src: "/provider-icons/disney-plus.png" },
   google_tv: { src: "/provider-icons/google-tv.png" },
+  hollywood_suite: { src: "/provider-icons/hollywood-suite.svg" },
   hoopla: { src: "/provider-icons/hoopla.png" },
   hulu: { src: "/provider-icons/hulu.png" },
   max: { src: "/provider-icons/max.png" },
@@ -53,6 +54,9 @@ const providerAliases: Record<string, string> = {
   "google tv": "google_tv",
   "google tv movies": "google_tv",
   "hbo max": "max",
+  "hollywood suite": "hollywood_suite",
+  "hollywood suite canada": "hollywood_suite",
+  "hollywoodsuite": "hollywood_suite",
   "hoopla": "hoopla",
   "hoopla digital": "hoopla",
   "hulu": "hulu",
@@ -118,6 +122,9 @@ const knownProviderNames = new Set([
   "google tv",
   "google tv movies",
   "hbo max",
+  "hollywood suite",
+  "hollywood suite canada",
+  "hollywoodsuite",
   "hoopla",
   "hoopla digital",
   "hulu",
@@ -184,6 +191,7 @@ export function providerIconKey(provider: { id?: string; name?: string }) {
     if (candidate.includes("disney") || compact.includes("disney")) return "disney";
     if (candidate.includes("paramount") || compact.includes("paramount")) return "paramount";
     if (candidate.includes("hoopla") || compact.includes("hoopla")) return "hoopla";
+    if (candidate.includes("hollywood suite") || compact.includes("hollywood_suite") || compact.includes("hollywoodsuite")) return "hollywood_suite";
     if (candidate.includes("cbc gem") || compact.includes("cbc_gem")) return "cbc_gem";
     if (candidate.includes("google") || compact.includes("google_tv")) return "google_tv";
   }

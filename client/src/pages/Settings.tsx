@@ -51,8 +51,25 @@ export function Settings({ currentUser, onNavigate, playlists = [] }: SettingsPr
   const [profile, setProfile] = useState<UserProfile>(emptyProfile);
   const [status, setStatus] = useState<"loading" | "ready" | "saving" | "saved" | "error">("loading");
   const [message, setMessage] = useState("");
+  const [providerSearchQuery, setProviderSearchQuery] = useState("");
   const vanityUrl = useMemo(() => (profile.handle ? `https://www.flim.ca/@${profile.handle}` : "Choose a username to create your Flim URL."), [profile.handle]);
   const streamingProviders = useMemo(() => watchProviders.filter((provider) => provider.id !== "plex"), []);
+  const filteredStreamingProviders = useMemo(() => {
+    const normalizedQuery = providerSearchQuery.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+    if (!normalizedQuery) return streamingProviders;
+
+    return streamingProviders.filter((provider) => {
+      if (profile.preferredProviders.includes(provider.id)) return true;
+      const searchable = [
+        provider.name,
+        provider.id,
+        provider.icon,
+        ...(provider.aliases || []),
+        ...(provider.categories || []),
+      ].join(" ").toLowerCase().replace(/[^a-z0-9]+/g, " ");
+      return searchable.includes(normalizedQuery);
+    });
+  }, [profile.preferredProviders, providerSearchQuery, streamingProviders]);
   const publicOwnedPlaylists = useMemo(() => playlists.filter((playlist) => playlist.isOwner && playlist.visibility === "public" && !playlist.isSystem), [playlists]);
   const selectedAvatar = useMemo(() => getFlimAvatar(profile.avatarKey), [profile.avatarKey]);
 
@@ -338,20 +355,36 @@ export function Settings({ currentUser, onNavigate, playlists = [] }: SettingsPr
 
           <div className="settings-subsection">
             <h3>Streaming services</h3>
-          <div className="provider-preference-grid">
-            {streamingProviders.map((provider) => (
-              <button
-                className={profile.preferredProviders.includes(provider.id) ? "provider-preference selected" : "provider-preference"}
-                key={provider.id}
-                onClick={() => toggleProvider(provider.id)}
-                aria-label={provider.name}
-                type="button"
-              >
-                <ProviderLogo provider={provider} />
-              </button>
-            ))}
-          </div>
-          <p className="helper-text">Choose the services you use most so Flim can personalize watch options as availability improves.</p>
+            <label className="provider-search-field">
+              <span>Find services</span>
+              <input
+                autoComplete="off"
+                onChange={(event) => setProviderSearchQuery(event.target.value)}
+                placeholder="Search streaming services"
+                type="search"
+                value={providerSearchQuery}
+              />
+            </label>
+            <div className="provider-preference-grid">
+              {filteredStreamingProviders.map((provider) => {
+                const selected = profile.preferredProviders.includes(provider.id);
+                return (
+                  <button
+                    className={selected ? "provider-preference selected" : "provider-preference"}
+                    key={provider.id}
+                    onClick={() => toggleProvider(provider.id)}
+                    aria-label={provider.name}
+                    type="button"
+                  >
+                    <ProviderLogo provider={provider} />
+                    <span>{provider.name}</span>
+                    {selected ? <small>Selected</small> : null}
+                  </button>
+                );
+              })}
+            </div>
+            {filteredStreamingProviders.length === 0 ? <p className="empty-state compact">No matching services found.</p> : null}
+            <p className="helper-text">Choose the services you use most so Flim can personalize watch options as availability improves.</p>
 
           </div>
 

@@ -2909,6 +2909,12 @@ textarea { min-height: 42px; resize: vertical; }
   cursor: not-allowed;
 }
 .helper-text, .empty-state { color: var(--muted); }
+
+.empty-state.compact {
+  margin: 4px 0 0;
+  min-height: auto;
+  padding: 8px 2px;
+}
 .add-playlists-panel {
   width: fit-content;
   max-width: 100%;
@@ -7608,6 +7614,16 @@ textarea { min-height: 42px; resize: vertical; }
   gap: 10px;
 }
 
+.provider-search-field {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0 12px;
+}
+
+.provider-search-field input {
+  min-height: 46px;
+}
+
 .provider-preference {
   min-height: 68px;
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -7615,6 +7631,7 @@ textarea { min-height: 42px; resize: vertical; }
   background: rgba(255, 255, 255, 0.06);
   color: var(--text);
   display: grid;
+  gap: 5px;
   place-items: center;
   padding: 8px;
   font-weight: 800;
@@ -7625,6 +7642,24 @@ textarea { min-height: 42px; resize: vertical; }
   width: 58px;
   height: 58px;
   max-width: none;
+}
+
+.provider-preference span {
+  max-width: 100%;
+  overflow: hidden;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 0.78rem;
+  line-height: 1.15;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.provider-preference small {
+  color: #ffe4a7;
+  font-size: 0.68rem;
+  font-weight: 950;
+  text-transform: uppercase;
 }
 
 .provider-preference.selected {

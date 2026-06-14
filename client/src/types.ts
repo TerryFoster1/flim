@@ -512,6 +512,8 @@ export interface WatchProvider {
   icon: string;
   logoUrl?: string;
   searchUrlTemplate?: string;
+  aliases?: string[];
+  categories?: string[];
   regions?: ProviderRegion[];
   capabilities?: ProviderCapabilities;
   notes: string;
