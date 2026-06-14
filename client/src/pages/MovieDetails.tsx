@@ -5,6 +5,7 @@ import { OptionalSectionBoundary } from "../components/OptionalSectionBoundary";
 import { PageShell } from "../components/PageShell";
 import { RecommendationShelf } from "../components/RecommendationShelf";
 import { WatchStatusBadge } from "../components/WatchStatusBadge";
+import { getSoundtrackAvailability } from "../services/mediaExtensionService";
 import { getCurrentProfile } from "../services/profileService";
 import { getMovieDetails, getTvDetails, hasTmdbApiKey } from "../services/tmdbService";
 import { enqueueTitleTrivia } from "../services/triviaService";
@@ -126,6 +127,36 @@ function TitleTriviaGamesCard({ movie, onNavigate }: { movie: MovieDetails; onNa
           <em>Play Now</em>
         </div>
       </button>
+    </section>
+  );
+}
+
+function TitleSoundtrackCard({ movie }: { movie: MovieDetails }) {
+  const soundtrack = getSoundtrackAvailability(movie);
+  const link = soundtrack.soundtrack?.links[0];
+
+  return (
+    <section className="media-extensions soundtrack-section" aria-label={`${movie.title} soundtrack`}>
+      <div className="media-extension-heading">
+        <h2>Soundtrack</h2>
+      </div>
+      <div className="media-extension-grid compact-media-extension-grid">
+        <a
+          className="media-extension-card media-extension-card-action soundtrack-card compact-extension-card"
+          href={link?.url}
+          rel="noreferrer"
+          target="_blank"
+          aria-label={`Listen to ${movie.title} soundtrack on Spotify`}
+        >
+          <div className="compact-extension-copy">
+            <h3>Listen to the soundtrack</h3>
+            <span className="round-media-link spotify-link" aria-hidden="true">
+              <img alt="" src="/provider-icons/spotify.png" />
+            </span>
+            <p>{link ? soundtrack.notes : "Soundtrack not available yet."}</p>
+          </div>
+        </a>
+      </div>
     </section>
   );
 }
@@ -411,12 +442,30 @@ export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addTo
               </button>
             </div>
           ) : null}
-          <TitleTriviaGamesCard movie={normalizedMovie} onNavigate={onNavigate} />
           <OptionalSectionBoundary key={`rating-${detailsKey}`} label="Title rating">
             <Suspense fallback={<OptionalLoading label="Title rating" />}>
               <TitleRatingControl mediaType={normalizedMovie.mediaType || mediaType} tmdbId={normalizedMovie.tmdbId} />
             </Suspense>
           </OptionalSectionBoundary>
+          <OptionalSectionBoundary key={`where-${detailsKey}`} label="Where To Watch">
+            <Suspense fallback={<OptionalLoading label="Where To Watch" />}>
+              <WhereToWatch movie={normalizedMovie} />
+            </Suspense>
+          </OptionalSectionBoundary>
+          {mediaType === "tv" ? (
+            <OptionalSectionBoundary key={`progress-${detailsKey}`} label="TV progress">
+              <Suspense fallback={<OptionalLoading label="TV progress" />}>
+                <TvProgressTracker show={normalizedMovie} />
+              </Suspense>
+            </OptionalSectionBoundary>
+          ) : null}
+          <OptionalSectionBoundary key={`extensions-${detailsKey}`} label="Trailers and extras">
+            <Suspense fallback={<OptionalLoading label="Trailers and extras" />}>
+              <MediaExtensions media={normalizedMovie} onNavigate={onNavigate} />
+            </Suspense>
+          </OptionalSectionBoundary>
+          <TitleTriviaGamesCard movie={normalizedMovie} onNavigate={onNavigate} />
+          <TitleSoundtrackCard movie={normalizedMovie} />
           {normalizedMovie.cast && normalizedMovie.cast.length > 0 ? (
             <section className="cast-section">
               <div className="actor-section-heading">
@@ -439,23 +488,6 @@ export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addTo
               </div>
             </section>
           ) : null}
-          <OptionalSectionBoundary key={`where-${detailsKey}`} label="Where To Watch">
-            <Suspense fallback={<OptionalLoading label="Where To Watch" />}>
-              <WhereToWatch movie={normalizedMovie} />
-            </Suspense>
-          </OptionalSectionBoundary>
-          {mediaType === "tv" ? (
-            <OptionalSectionBoundary key={`progress-${detailsKey}`} label="TV progress">
-              <Suspense fallback={<OptionalLoading label="TV progress" />}>
-                <TvProgressTracker show={normalizedMovie} />
-              </Suspense>
-            </OptionalSectionBoundary>
-          ) : null}
-          <OptionalSectionBoundary key={`extensions-${detailsKey}`} label="Trailers and extras">
-            <Suspense fallback={<OptionalLoading label="Trailers and extras" />}>
-              <MediaExtensions media={normalizedMovie} onNavigate={onNavigate} />
-            </Suspense>
-          </OptionalSectionBoundary>
           {onNavigate ? (
             <OptionalSectionBoundary key={`recommendations-${detailsKey}`} label="Recommendations">
               <RecommendationShelf

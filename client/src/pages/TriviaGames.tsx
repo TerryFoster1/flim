@@ -5,7 +5,7 @@ import { createFriendChallenge, getFriendChallengeHistory } from "../services/fr
 import { getSeasonalChallenges } from "../services/seasonalChallengeService";
 import { getTicketFeed } from "../services/ticketService";
 import { getMovieDetails, getTvDetails } from "../services/tmdbService";
-import { completeCompanionItem, getTitleTrivia } from "../services/triviaService";
+import { completeCompanionItem, enqueueTitleTrivia, getTitleTrivia } from "../services/triviaService";
 import type { CompanionAchievement, FriendChallengeHistoryAttempt, FriendTriviaChallenge, MediaType, MovieDetails, SeasonalChallengeEvent, TicketAward, TicketFeed, TriviaFeed, TriviaQuestion } from "../types";
 
 interface TriviaGamesProps {
@@ -661,6 +661,7 @@ function ClassicTriviaPanel({ mediaType, tmdbId, title, artworkUrl }: { mediaTyp
     setCompletionStatus("");
     setCompletionAwards([]);
     setCompletionAchievements([]);
+    enqueueTitleTrivia({ mediaType, tmdbId, source: "trivia_page" });
     getTitleTrivia({ mediaType, tmdbId })
       .then((result) => {
         if (!mounted) return;
@@ -823,14 +824,17 @@ function ClassicTriviaPanel({ mediaType, tmdbId, title, artworkUrl }: { mediaTyp
 
   if (status === "error" || questions.length === 0) {
     return (
-      <section className="title-games-section">
-        <h2>Classic Trivia</h2>
-        <p className="empty-state">
-          {isBuildingPack ? "Building your trivia pack..." : "This title does not have enough movie-fan trivia yet."}
-        </p>
-        <p className="helper-text">{feed?.notes || "We do not fall back to cast-table or metadata questions."}</p>
+      <section className="title-games-section trivia-building-pack">
+        <span className="title-game-kicker">{isBuildingPack ? "Queued" : "Preparing"}</span>
+        <h2>Building Trivia Pack</h2>
+        <p>Creating movie-fan questions...</p>
+        <div className="trivia-building-detail">
+          <span>Expected</span>
+          <strong>25-50 questions</strong>
+        </div>
+        <p className="helper-text">This title will be ready shortly.</p>
         <button className="secondary-button compact" onClick={loadTriviaPack} type="button">
-          Retry Trivia Pack
+          Refresh
         </button>
       </section>
     );

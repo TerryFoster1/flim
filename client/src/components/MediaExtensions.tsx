@@ -16,9 +16,8 @@ interface MediaExtensionsProps {
   onNavigate?: (path: string) => void;
 }
 
-export function MediaExtensions({ media, onNavigate }: MediaExtensionsProps) {
+export function MediaExtensions({ media }: MediaExtensionsProps) {
   const extensions = getMediaExtensions(media);
-  const soundtrackLink = extensions.soundtrack.soundtrack?.links[0];
   const trailerLink = extensions.videos[0];
   const extraVideos = extensions.videos.slice(1, 4);
   const trailerArtwork = trailerLink?.thumbnailUrl || media.backdropUrl || media.posterUrl;
@@ -34,16 +33,6 @@ export function MediaExtensions({ media, onNavigate }: MediaExtensionsProps) {
   const mediaType = media.mediaType || "movie";
   const titlePath = `/${mediaType === "tv" ? "tv" : "movies"}/${media.tmdbId}`;
   const titleLabel = media.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || `${mediaType}-${media.tmdbId}`;
-
-  function openTriviaGames() {
-    const returnTo = `${window.location.pathname}${window.location.search}`;
-    const path = `/games/title/${mediaType}/${media.tmdbId}?returnTo=${encodeURIComponent(returnTo)}`;
-    if (onNavigate) {
-      onNavigate(path);
-      return;
-    }
-    window.location.assign(path);
-  }
 
   async function openTrivia() {
     setTriviaOpen((current) => !current);
@@ -144,33 +133,6 @@ export function MediaExtensions({ media, onNavigate }: MediaExtensionsProps) {
             <p>{trailerLink?.linkType === "exact" ? "Watch the official video on YouTube." : "Open trailer results on YouTube."}</p>
           </div>
         </a>
-
-        <a
-          className="media-extension-card media-extension-card-action soundtrack-card compact-extension-card"
-          href={soundtrackLink?.url}
-          rel="noreferrer"
-          target="_blank"
-          aria-label={`Listen to ${media.title} soundtrack on Spotify`}
-        >
-          <div className="compact-extension-copy">
-            <h3>Listen to the soundtrack</h3>
-            <span className="round-media-link spotify-link" aria-hidden="true">
-              <img alt="" src="/provider-icons/spotify.png" />
-            </span>
-            <p>{soundtrackLink ? extensions.soundtrack.notes : "Soundtrack not available yet."}</p>
-          </div>
-        </a>
-
-        <button className="media-extension-card media-extension-card-action trivia-card reset-button" onClick={openTriviaGames} type="button" aria-label={`Open Trivia and Games for ${media.title}`}>
-          <div className="extension-art trivia-art" aria-hidden="true">
-            <span />
-            <strong>?</strong>
-          </div>
-          <div>
-            <h3>Trivia & Games</h3>
-            <p>Open title trivia, challenges, and future game modes.</p>
-          </div>
-        </button>
       </div>
 
       {extraVideos.length > 0 ? (
