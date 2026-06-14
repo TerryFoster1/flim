@@ -9728,6 +9728,12 @@ textarea { min-height: 42px; resize: vertical; }
 }
 
 @media (max-width: 680px) {
+  .classic-trivia-play .actor-section-heading {
+    align-items: flex-start;
+    display: grid;
+    gap: 4px;
+    grid-template-columns: 1fr;
+  }
   .trivia-mode-row,
   .trivia-question-actions,
   .trivia-round-summary .share-inline-row {

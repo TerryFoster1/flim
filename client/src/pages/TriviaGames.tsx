@@ -203,6 +203,7 @@ function inferQuestionType(question: TriviaQuestion) {
   const prompt = question.question.toLowerCase();
   if (prompt.includes("quote") || prompt.includes("line")) return "quote";
   if (prompt.includes("weapon")) return "weapon";
+  if (prompt.includes("vehicle") || prompt.includes("car") || prompt.includes("travel through time")) return "vehicle";
   if (prompt.includes("where") || prompt.includes("location") || prompt.includes("place")) return "location";
   if (prompt.includes("who") || prompt.includes("which character")) return "character";
   if (prompt.includes("director") || prompt.includes("producer") || prompt.includes("production")) return "production";
@@ -214,6 +215,7 @@ function imageCouldRevealAnswer(question: TriviaQuestion, imageType?: TriviaQues
   if (!imageType) return false;
   const questionType = inferQuestionType(question);
   if (questionType === "weapon" && (imageType === "weapon" || imageType === "object" || imageType === "character")) return true;
+  if (questionType === "vehicle" && (imageType === "vehicle" || imageType === "object" || imageType === "poster")) return true;
   if (questionType === "character" && imageType === "character") return true;
   if (questionType === "quote" && imageType === "character") return true;
   if (questionType === "story" && (imageType === "weapon" || imageType === "vehicle" || imageType === "object")) return true;
@@ -221,13 +223,14 @@ function imageCouldRevealAnswer(question: TriviaQuestion, imageType?: TriviaQues
 }
 
 function safeTriviaImage(question: TriviaQuestion, fallbackArtworkUrl?: string) {
+  const questionType = inferQuestionType(question);
   if (question.imageUrl && !imageCouldRevealAnswer(question, question.imageType)) {
     return {
       src: question.imageUrl,
       label: question.imageType || "image",
     };
   }
-  if (fallbackArtworkUrl) {
+  if (fallbackArtworkUrl && !["character", "quote", "vehicle", "weapon"].includes(questionType)) {
     return {
       src: fallbackArtworkUrl,
       label: "backdrop",

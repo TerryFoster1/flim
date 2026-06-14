@@ -1112,7 +1112,7 @@ export interface TriviaQuestion {
   id: string;
   tmdbId: number;
   mediaType: MediaType;
-  questionType?: "text" | "image" | "quote" | "character" | "location" | "story" | "weapon" | "production" | "franchise" | "lore";
+  questionType?: "text" | "image" | "quote" | "character" | "location" | "story" | "weapon" | "vehicle" | "production" | "franchise" | "lore";
   question: string;
   answer: string;
   options: string[];
