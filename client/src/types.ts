@@ -726,6 +726,7 @@ export interface UpcomingRelease {
   availabilityKnown: boolean;
   providerNames?: string[];
   releaseContext?: string;
+  region?: string;
 }
 
 export interface UpcomingReleaseEvent {
@@ -762,6 +763,7 @@ export interface UpcomingReleaseFeed {
     window: "month" | "quarter" | "year" | "all";
     audience?: "all" | "following";
   };
+  region?: string;
   generatedAt: string;
 }
 

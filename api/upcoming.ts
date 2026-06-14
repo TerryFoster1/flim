@@ -1,4 +1,4 @@
-import { db, ensureFollowTitleTables, getCurrentUser, sendJson } from "./_db.js";
+import { db, ensureFollowTitleTables, ensureUserProfilesTable, getCurrentUser, sendJson } from "./_db.js";
 import { ensureMediaCatalogTables } from "./_mediaCatalog.js";
 import { ensureProviderAvailabilityTables } from "./_providers.js";
 
@@ -17,8 +17,21 @@ function normalizeAudience(value: string | null) {
   return "all";
 }
 
+function dateOnly(value: unknown) {
+  if (!value) return undefined;
+  if (value instanceof Date && Number.isFinite(value.getTime())) return value.toISOString().slice(0, 10);
+  const text = String(value);
+  const match = text.match(/\d{4}-\d{2}-\d{2}/);
+  return match?.[0] || undefined;
+}
+
+function normalizeRegion(value?: string | null) {
+  const clean = String(value || "").trim().toUpperCase();
+  return clean || "CA";
+}
+
 function mapUpcoming(row: any) {
-  const releaseDate = row.release_date ? new Date(row.release_date).toISOString() : undefined;
+  const releaseDate = dateOnly(row.release_date);
   const payload = row.source_payload || {};
   return {
     mediaItemId: row.media_item_id,
@@ -43,10 +56,12 @@ function mapUpcoming(row: any) {
     availabilityKnown: Boolean(row.availability_count && Number(row.availability_count) > 0),
     providerNames: Array.isArray(row.provider_names) ? row.provider_names.filter(Boolean) : [],
     releaseContext: row.release_context || undefined,
+    region: row.region || undefined,
   };
 }
 
 function mapReleaseEvent(row: any) {
+  const releaseDate = dateOnly(row.release_date);
   return {
     eventType: row.event_type,
     createdAt: row.created_at ? new Date(row.created_at).toISOString() : new Date().toISOString(),
@@ -56,7 +71,7 @@ function mapReleaseEvent(row: any) {
     body: row.body || undefined,
     title: row.title,
     posterUrl: row.poster_url || undefined,
-    releaseDate: row.release_date ? new Date(row.release_date).toISOString() : undefined,
+    releaseDate,
     oldValue: row.old_value ?? undefined,
     newValue: row.new_value ?? undefined,
     context: row.context || undefined,
@@ -78,7 +93,15 @@ export default async function handler(request: any, response: any) {
     await ensureMediaCatalogTables(sql);
     await ensureFollowTitleTables(sql);
     await ensureProviderAvailabilityTables(sql);
+    await ensureUserProfilesTable(sql);
     const user = await getCurrentUser(sql, request);
+    const profileRows = user?.id ? await sql`
+      select streaming_region, country_code
+      from user_profiles
+      where user_id = ${user.id}
+      limit 1
+    ` : [];
+    const region = normalizeRegion(profileRows[0]?.streaming_region || profileRows[0]?.country_code || "CA");
 
     const rows = await sql`
       with title_rows as (
@@ -97,6 +120,7 @@ export default async function handler(request: any, response: any) {
           rt.episode_count,
           mi.genres,
           mi.source_payload,
+          ${region} as region,
           exists (
             select 1
             from followed_titles ft
@@ -136,6 +160,7 @@ export default async function handler(request: any, response: any) {
             from title_availability ta
             where ta.media_type = mi.media_type
               and ta.tmdb_id = mi.tmdb_id
+              and ta.region = ${region}
               and ta.expires_at > now()
           ) as availability_count
           ,
@@ -144,6 +169,7 @@ export default async function handler(request: any, response: any) {
             from title_availability ta
             where ta.media_type = mi.media_type
               and ta.tmdb_id = mi.tmdb_id
+              and ta.region = ${region}
               and ta.expires_at > now()
           ) as provider_names,
           case
@@ -173,8 +199,10 @@ export default async function handler(request: any, response: any) {
               )
             )
           )
-          and coalesce(rt.release_date, mi.release_date) is not null
-          and coalesce(rt.release_date, mi.release_date) >= current_date - interval '7 days'
+          and (
+            coalesce(rt.release_date, mi.release_date) >= current_date - interval '7 days'
+            or rt.upcoming = true
+          )
           and (
             ${windowFilter} = 'all'
             or (${windowFilter} = 'month' and coalesce(rt.release_date, mi.release_date) < current_date + interval '1 month')
@@ -184,7 +212,7 @@ export default async function handler(request: any, response: any) {
       )
       select *
       from title_rows
-      order by release_date asc, latest_event_at desc nulls last, title asc
+      order by release_date asc nulls last, latest_event_at desc nulls last, title asc
       limit ${limit}
     `;
 
@@ -336,6 +364,7 @@ export default async function handler(request: any, response: any) {
       },
       sectionLimit,
       filters: { mediaType, window: windowFilter, audience },
+      region,
       generatedAt: new Date().toISOString(),
     });
   } catch (error) {

@@ -4971,28 +4971,60 @@ textarea { min-height: 42px; resize: vertical; }
   line-height: 1.48;
 }
 .upcoming-release-date {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
+  display: grid;
+  gap: 7px;
+  align-items: start;
+  border: 1px solid rgba(255,184,77,.28);
+  border-radius: 18px;
+  padding: 12px;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(255,184,77,.2), transparent 10rem),
+    rgba(0,0,0,.24);
 }
-.upcoming-release-date strong,
+.upcoming-release-date small,
+.upcoming-release-date em {
+  color: var(--amber);
+  font-size: .72rem;
+  font-style: normal;
+  font-weight: 950;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+.upcoming-release-date strong {
+  color: #fff4d6;
+  font-size: clamp(1.06rem, 2vw, 1.34rem);
+  line-height: 1.12;
+}
 .upcoming-release-date span {
-  min-height: 32px;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 30px;
   display: inline-flex;
   align-items: center;
   border-radius: 999px;
-  padding: 0 10px;
-  font-size: .84rem;
-  font-weight: 900;
-}
-.upcoming-release-date strong {
-  background: rgba(255,184,77,.14);
-  color: #ffe5ae;
-}
-.upcoming-release-date span {
+  padding: 0 11px;
   background: rgba(62,226,160,.13);
   color: #c6ffe8;
+  font-size: .82rem;
+  font-weight: 900;
+  line-height: 1.25;
+  white-space: normal;
+}
+.upcoming-release-date em {
+  width: max-content;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 999px;
+  padding: 4px 8px;
+  color: var(--muted);
+}
+.upcoming-release-date.is-tba span {
+  background: rgba(255,255,255,.08);
+  color: #ddd6c8;
+}
+.upcoming-release-date.is-released span,
+.upcoming-release-date.is-today span {
+  background: rgba(255,184,77,.18);
+  color: #ffe5ae;
 }
 .upcoming-event-note {
   border-left: 3px solid rgba(255,184,77,.52);

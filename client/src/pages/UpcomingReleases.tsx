@@ -31,16 +31,47 @@ const audienceFilters: Array<{ label: string; value: UpcomingReleaseFilters["aud
 
 const INITIAL_SECTION_COUNT = 10;
 
+function parseReleaseDate(value?: string) {
+  if (!value) return null;
+  const normalized = value.match(/^\d{4}-\d{2}-\d{2}/)?.[0] || value;
+  const date = new Date(`${normalized.slice(0, 10)}T12:00:00`);
+  if (!Number.isFinite(date.getTime())) return null;
+  return date;
+}
+
 function formatDate(value?: string) {
-  if (!value) return "Coming Soon";
-  const date = new Date(value);
-  if (!Number.isFinite(date.getTime())) return "Coming Soon";
+  const date = parseReleaseDate(value);
+  if (!date) return "Release Date TBA";
+  return date.toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" });
+}
+
+function releaseTimingState(value?: string, mediaType: MediaType = "movie") {
+  const date = parseReleaseDate(value);
+  if (!date) return { label: "Release Date", dateText: "Release Date TBA", countdown: "Notify me when a date is announced", state: "tba" };
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  date.setHours(0, 0, 0, 0);
+  const days = Math.round((date.getTime() - today.getTime()) / 86400000);
+  if (days < 0) return { label: "Release Date", dateText: "Now Available", countdown: formatDate(value), state: "released" };
+  if (days === 0) return { label: "Release Date", dateText: mediaType === "tv" ? "Season Premieres Today" : "Releases Today", countdown: formatDate(value), state: "today" };
+  if (days === 1) return { label: "Release Date", dateText: mediaType === "tv" ? "Season Premieres Tomorrow" : "Releases Tomorrow", countdown: formatDate(value), state: "soon" };
+  return {
+    label: "Release Date",
+    dateText: `Coming ${formatDate(value)}`,
+    countdown: mediaType === "tv" ? `Season premieres in ${days} days` : `Releases in ${days} days`,
+    state: "future",
+  };
+}
+
+function formatEventDate(value?: string) {
+  const date = parseReleaseDate(value);
+  if (!date) return "Release Date TBA";
   return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 }
 
 function compactDateValue(value: unknown) {
   if (!value) return "";
-  if (typeof value === "string") return formatDate(value.replace(/^"|"$/g, ""));
+  if (typeof value === "string") return formatEventDate(value.replace(/^"|"$/g, ""));
   if (typeof value === "object" && value) {
     const maybeValue = (value as { value?: unknown; date?: unknown; releaseDate?: unknown }).value ||
       (value as { date?: unknown }).date ||
@@ -48,20 +79,6 @@ function compactDateValue(value: unknown) {
     return compactDateValue(maybeValue);
   }
   return String(value);
-}
-
-function countdownCopy(value?: string, mediaType: MediaType = "movie") {
-  if (!value) return "Coming Soon";
-  const date = new Date(value);
-  if (!Number.isFinite(date.getTime())) return "Coming Soon";
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  date.setHours(0, 0, 0, 0);
-  const days = Math.round((date.getTime() - today.getTime()) / 86400000);
-  if (days < 0) return "Available Now";
-  if (days === 0) return mediaType === "tv" ? "Season Premieres Today" : "Releases Today";
-  if (days === 1) return mediaType === "tv" ? "Season Premieres Tomorrow" : "Releases Tomorrow";
-  return mediaType === "tv" ? `Season premieres in ${days} days` : `Releases in ${days} days`;
 }
 
 function titlePath(item: UpcomingRelease) {
@@ -181,7 +198,7 @@ function UpcomingFollowButton({ item, movie, onChange }: {
   return (
     <div className="upcoming-follow-action">
       <button className={item.isFollowing ? "follow-title-button is-following" : "follow-title-button"} disabled={isSaving} onClick={toggleFollow} type="button">
-        {isSaving ? "Saving..." : item.isFollowing ? "Following" : "Follow Title"}
+        {isSaving ? "Saving..." : item.isFollowing ? "Following" : item.releaseDate ? "Track Release" : "Notify Me"}
       </button>
       {message ? <small className={message.startsWith("Unable") || message.startsWith("Sign in") ? "error-text" : "success-text"}>{message}</small> : null}
     </div>
@@ -196,6 +213,7 @@ function UpcomingReleaseCard({ item, playlists, addToPlaylist, onNavigate, onFol
   onFollowChange: (mediaType: MediaType, tmdbId: number, isFollowing: boolean) => void;
 }) {
   const movie = toMovieDetails(item);
+  const timing = releaseTimingState(item.releaseDate, item.mediaType);
   return (
     <article className="upcoming-release-card">
       <button className="upcoming-poster-button" onClick={() => onNavigate(titlePath(item))} type="button">
@@ -209,11 +227,13 @@ function UpcomingReleaseCard({ item, playlists, addToPlaylist, onNavigate, onFol
         <button className="reset-button upcoming-title-button" onClick={() => onNavigate(titlePath(item))} type="button">
           <h3>{item.title}</h3>
         </button>
-        <p>{item.overview}</p>
-        <div className="upcoming-release-date">
-          <strong>{formatDate(item.releaseDate)}</strong>
-          <span>{countdownCopy(item.releaseDate, item.mediaType)}</span>
+        <div className={`upcoming-release-date is-${timing.state}`}>
+          <small>{timing.label}</small>
+          <strong>{timing.dateText}</strong>
+          <span>{timing.countdown}</span>
+          {item.region ? <em>{item.region}</em> : null}
         </div>
+        <p>{item.overview}</p>
         {item.mediaType === "tv" && item.seasonCount ? <small className="helper-text">Season {item.seasonCount}</small> : null}
         <p className="upcoming-event-note">{eventReason(item)}</p>
         <div className="upcoming-card-actions">
@@ -254,7 +274,7 @@ function ReleaseEventSection({ title, events, onNavigate }: {
               </span>
             ) : null}
             {event.eventType === "trailer_released" ? <em>Watch Trailer</em> : null}
-            <small>{event.body || event.context || event.eventTitle || formatDate(event.createdAt)}</small>
+            <small>{event.body || event.context || event.eventTitle || formatEventDate(event.createdAt)}</small>
           </button>
         ))}
       </div>
@@ -314,7 +334,7 @@ export function UpcomingReleases({ playlists, addToPlaylist, onNavigate }: Upcom
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [mediaType, setMediaType] = useState<MediaType | "both">("both");
   const [windowFilter, setWindowFilter] = useState<UpcomingReleaseFilters["window"]>("all");
-  const [audience, setAudience] = useState<UpcomingReleaseFilters["audience"]>("following");
+  const [audience, setAudience] = useState<UpcomingReleaseFilters["audience"]>("all");
 
   useEffect(() => {
     document.title = "Upcoming Releases | Flim";
