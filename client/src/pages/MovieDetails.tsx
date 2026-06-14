@@ -98,6 +98,38 @@ function OptionalLoading({ label }: { label: string }) {
   return <section className="optional-section-fallback"><p>{label} is loading...</p></section>;
 }
 
+function TitleTriviaGamesCard({ movie, onNavigate }: { movie: MovieDetails; onNavigate?: (path: string) => void }) {
+  const mediaType = movie.mediaType || "movie";
+  const gamePath = `/games/title/${mediaType}/${movie.tmdbId}`;
+
+  function openGames() {
+    const returnTo = `${window.location.pathname}${window.location.search}`;
+    const path = `${gamePath}?returnTo=${encodeURIComponent(returnTo)}`;
+    if (onNavigate) {
+      onNavigate(path);
+      return;
+    }
+    window.location.assign(path);
+  }
+
+  return (
+    <section className="title-games-entry-card" aria-label={`Trivia and games for ${movie.title}`}>
+      <button className="reset-button title-games-entry-button" onClick={openGames} type="button">
+        <div className="title-games-entry-art" aria-hidden="true">
+          {movie.backdropUrl || movie.posterUrl ? <img alt="" src={movie.backdropUrl || movie.posterUrl} /> : <span />}
+          <strong>?</strong>
+        </div>
+        <div className="title-games-entry-copy">
+          <span>Movie Companion</span>
+          <h2>Trivia & Games</h2>
+          <p>Play title trivia, challenge friends, and explore Flim Arcade modes for {movie.title}.</p>
+          <em>Play Now</em>
+        </div>
+      </button>
+    </section>
+  );
+}
+
 function DetailsSkeleton({ mediaType, retryCount, isSlow }: { mediaType: MediaType; retryCount: number; isSlow?: boolean }) {
   return (
     <section className="route-page" aria-busy="true">
@@ -379,6 +411,7 @@ export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addTo
               </button>
             </div>
           ) : null}
+          <TitleTriviaGamesCard movie={normalizedMovie} onNavigate={onNavigate} />
           <OptionalSectionBoundary key={`rating-${detailsKey}`} label="Title rating">
             <Suspense fallback={<OptionalLoading label="Title rating" />}>
               <TitleRatingControl mediaType={normalizedMovie.mediaType || mediaType} tmdbId={normalizedMovie.tmdbId} />
