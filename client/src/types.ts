@@ -1112,10 +1112,13 @@ export interface TriviaQuestion {
   id: string;
   tmdbId: number;
   mediaType: MediaType;
+  questionType?: "text" | "image" | "quote" | "character" | "location" | "story" | "weapon" | "production" | "franchise" | "lore";
   question: string;
   answer: string;
   options: string[];
   explanation: string;
+  imageUrl?: string;
+  imageType?: "poster" | "backdrop" | "character" | "scene" | "location" | "environment" | "weapon" | "vehicle" | "object";
   difficulty: "easy" | "medium" | "hard" | "family_night" | "expert";
   spoilerLevel: "none" | "minor" | "major";
   sourceUrls: string[];
