@@ -32,7 +32,7 @@ function hasUsefulCastPayload(details: any) {
 }
 
 function hasVideoPayload(details: any) {
-  return details?.videoVersion === 1 || Array.isArray(details?.videos);
+  return details?.videoVersion === 1;
 }
 
 function withCatalogCast(details: any, catalogCast: any[]) {
