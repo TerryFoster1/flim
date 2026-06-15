@@ -117,7 +117,6 @@ function defaultNotificationSettings(mediaType: MediaType): TitleNotificationSet
   return {
     theaterRelease: true,
     streamingAvailability: true,
-    trailerReleased: true,
   };
 }
 

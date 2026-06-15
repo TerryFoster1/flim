@@ -124,8 +124,8 @@ function TitleStatusBanner({ movie, region }: { movie: MovieDetails; region: str
     detail = "Watch availability is confirmed in your region.";
   } else if (windowState === "theaters") {
     eyebrow = "In Theaters Now";
-    title = primaryTicket ? "Buy Tickets" : "Follow for ticket and streaming updates";
-    detail = dateText ? `Released ${dateText}` : "Theatrical release is active.";
+    title = primaryTicket ? "Tickets available" : "In theaters now";
+    detail = dateText ? `Released ${dateText}. Follow for streaming availability.` : "Follow for streaming availability.";
   } else if (windowState === "released") {
     eyebrow = "Released";
     title = dateText ? `Released ${dateText}` : "Now Available";

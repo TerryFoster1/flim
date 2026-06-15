@@ -117,6 +117,7 @@ export function WhereToWatch({ compact = false, movie }: WhereToWatchProps) {
     if (status === "loading") return "Checking confirmed providers and ticket availability.";
     if (hasTicketLinks) return "Find tickets from confirmed ticket providers.";
     if (releaseState === "upcoming") return `${(movie.mediaType || "movie") === "tv" ? "Coming to streaming" : "Coming to theaters"} - ${releaseDateLine()}.`;
+    if (releaseState === "theaters") return "In theaters now. Follow this title to get streaming availability updates.";
     if (hasConfirmedLinks && preferredProviders.size > 0 && preferredLinks.length === 0) return "Not on your services. Other watch options are available.";
     if (hasConfirmedLinks) return availability?.notes || statusMessage();
     return "Notify me when available.";
@@ -134,9 +135,6 @@ export function WhereToWatch({ compact = false, movie }: WhereToWatchProps) {
     return {
       streamingAvailability: true,
       theaterRelease: true,
-      rentalAvailability: true,
-      purchaseAvailability: true,
-      providerChanged: true,
     };
   }
 
@@ -217,7 +215,7 @@ export function WhereToWatch({ compact = false, movie }: WhereToWatchProps) {
       <div className="watch-provider-heading">
         <div>
           {!compact ? <h2>Where To Watch</h2> : null}
-          <p>{expanded ? statusMessage() : `Availability in ${regionName}`}</p>
+          <p>{expanded ? statusMessage() : statusMessage()}</p>
         </div>
         <div className="watch-provider-summary">
           {previewLinks.length > 0 ? (
@@ -286,6 +284,8 @@ export function WhereToWatch({ compact = false, movie }: WhereToWatchProps) {
               ? "Not on your services"
               : releaseState === "upcoming"
                 ? (movie.mediaType || "movie") === "tv" ? "Coming to streaming" : "Coming to theaters"
+                : releaseState === "theaters"
+                  ? "In theaters now"
                 : "Notify me when available"}
           </h3>
           <p>
@@ -293,6 +293,8 @@ export function WhereToWatch({ compact = false, movie }: WhereToWatchProps) {
               ? "This title is available elsewhere. Follow it to get updates when availability changes."
               : releaseState === "upcoming"
                 ? `${releaseDateLine()}. Follow this title for release and streaming availability updates.`
+                : releaseState === "theaters"
+                  ? "Follow this title to get streaming availability updates."
                 : "Follow this title to get release and streaming availability updates."}
           </p>
           <button className="primary-button compact" onClick={notifyWhenAvailable} type="button">Notify me when available</button>

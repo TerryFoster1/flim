@@ -35,7 +35,6 @@ function defaultSettings(mediaType: MovieDetails["mediaType"]): TitleNotificatio
   return {
     theaterRelease: true,
     streamingAvailability: true,
-    trailerReleased: false,
   };
 }
 

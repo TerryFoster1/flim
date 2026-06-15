@@ -1,7 +1,7 @@
 import { db, ensureFollowTitleTables, ensureNotificationsTable, getCurrentUser, readBody, sendJson } from "../_db.js";
 import { ensureMediaCatalogTables, upsertMediaItem } from "../_mediaCatalog.js";
 
-const moviePreferenceKeys = ["theaterRelease", "streamingAvailability", "trailerReleased"] as const;
+const moviePreferenceKeys = ["theaterRelease", "streamingAvailability"] as const;
 const tvPreferenceKeys = ["newSeasonAnnounced", "seasonReleaseDate", "newEpisodeAvailable", "streamingAvailability"] as const;
 
 function normalizeMediaType(value: unknown) {
@@ -21,7 +21,6 @@ function defaultNotificationSettings(mediaType: "movie" | "tv") {
   return {
     theaterRelease: true,
     streamingAvailability: true,
-    trailerReleased: true,
   };
 }
 
@@ -54,7 +53,7 @@ function mapFollowedTitle(row: any) {
     status: row.status || undefined,
     upcoming: Boolean(row.upcoming),
     seasonData: row.season_data || {},
-    notificationSettings: row.notification_settings || defaultNotificationSettings(normalizeMediaType(row.media_type)),
+    notificationSettings: normalizeNotificationSettings(normalizeMediaType(row.media_type), row.notification_settings),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
