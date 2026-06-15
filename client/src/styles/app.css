@@ -6329,6 +6329,10 @@ textarea { min-height: 42px; resize: vertical; }
     radial-gradient(circle at 14% 10%, rgba(255,184,77,.14), transparent 13rem),
     linear-gradient(145deg, rgba(255,255,255,.09), rgba(255,255,255,.035));
 }
+.title-game-card.is-selected {
+  border-color: rgba(255, 184, 77, .58);
+  box-shadow: 0 0 0 1px rgba(255, 184, 77, .14), 0 18px 42px rgba(0, 0, 0, .28);
+}
 .title-game-card-copy span {
   color: #ffcf8a;
   font-size: .78rem;
@@ -8240,7 +8244,6 @@ textarea { min-height: 42px; resize: vertical; }
 
 
 .avatar-skin-costume {
-  filter: saturate(0.92) brightness(0.92);
   height: 100%;
   inset: 0;
   object-fit: contain;

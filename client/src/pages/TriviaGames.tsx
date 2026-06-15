@@ -270,9 +270,9 @@ function ticketTotal(awards: TicketAward[]) {
   return awards.filter((award) => award.awarded).reduce((sum, award) => sum + award.amount, 0);
 }
 
-function GameCard({ game, disabled }: { game: GameCardDefinition; disabled: boolean }) {
+function GameCard({ game, selected, onPlay }: { game: GameCardDefinition; selected?: boolean; onPlay: () => void }) {
   return (
-    <article className="title-game-card">
+    <article className={`title-game-card${selected ? " is-selected" : ""}`}>
       <div className="title-game-card-copy">
         <span>{game.difficulty} / {game.estimatedTime}</span>
         <h3>{game.title}</h3>
@@ -280,8 +280,8 @@ function GameCard({ game, disabled }: { game: GameCardDefinition; disabled: bool
       </div>
       <div className="title-game-score-row">
         <small>{highScoreText()}</small>
-        <button className="primary-button compact" disabled={disabled} type="button">
-          Play
+        <button className="primary-button compact" onClick={onPlay} type="button">
+          {selected ? "Selected" : "Play"}
         </button>
       </div>
     </article>
@@ -618,7 +618,7 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
   );
 }
 
-function ClassicTriviaPanel({ mediaType, tmdbId, title, artworkUrl }: { mediaType: MediaType; tmdbId: number; title: string; artworkUrl?: string }) {
+function ClassicTriviaPanel({ mediaType, tmdbId, title, artworkUrl, gameTitle = "Classic Trivia" }: { mediaType: MediaType; tmdbId: number; title: string; artworkUrl?: string; gameTitle?: string }) {
   const [feed, setFeed] = useState<TriviaFeed | null>(null);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [status, setStatus] = useState<TriviaLoadStatus>("loading");
@@ -944,7 +944,7 @@ function ClassicTriviaPanel({ mediaType, tmdbId, title, artworkUrl }: { mediaTyp
   return (
     <section className="title-games-section classic-trivia-play">
       <div className="actor-section-heading">
-        <h2>Classic Trivia</h2>
+        <h2>{gameTitle}</h2>
         <span>{triviaModeConfig[mode].label} mode</span>
       </div>
       <div className="trivia-score-strip">
@@ -1098,9 +1098,11 @@ function ClassicTriviaPanel({ mediaType, tmdbId, title, artworkUrl }: { mediaTyp
 function TitleGamesPage({ mediaType = "movie", tmdbId = 0, returnTo, onNavigate }: TriviaGamesProps) {
   const [title, setTitle] = useState<MovieDetails | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [selectedGameId, setSelectedGameId] = useState(titleGameCards[0].id);
   const targetPath = Number.isFinite(tmdbId) && tmdbId > 0 ? gameTargetPath(mediaType, tmdbId) : "/playlists";
   const gamePath = `/games/title/${mediaType}/${tmdbId}`;
   const genres = useMemo(() => title?.genres?.filter(Boolean) || [], [title]);
+  const selectedGame = titleGameCards.find((game) => game.id === selectedGameId) || titleGameCards[0];
   const recommendationReason = genres[0] ? `Because this is ${genres[0]}` : `Because this is ${mediaType === "tv" ? "TV" : "Movies"}`;
   const recommendedGames = useMemo(() => {
     const genre = genres[0] || (mediaType === "tv" ? "TV" : "Movie");
@@ -1188,17 +1190,30 @@ function TitleGamesPage({ mediaType = "movie", tmdbId = 0, returnTo, onNavigate 
             </div>
           </section>
 
-          <ClassicTriviaPanel mediaType={mediaType} tmdbId={tmdbId} title={title.title} artworkUrl={title.backdropUrl || title.posterUrl} />
-
           <section className="title-games-section">
             <div className="actor-section-heading">
               <h2>Available Games & Challenges</h2>
               <span>{titleGameCards.length} modes</span>
             </div>
             <div className="title-game-grid">
-              {titleGameCards.map((game) => <GameCard key={game.id} game={game} disabled />)}
+              {titleGameCards.map((game) => (
+                <GameCard
+                  key={game.id}
+                  game={game}
+                  selected={game.id === selectedGame.id}
+                  onPlay={() => setSelectedGameId(game.id)}
+                />
+              ))}
             </div>
           </section>
+
+          <ClassicTriviaPanel
+            mediaType={mediaType}
+            tmdbId={tmdbId}
+            title={title.title}
+            artworkUrl={title.backdropUrl || title.posterUrl}
+            gameTitle={selectedGame.title}
+          />
 
           <section className="title-games-section">
             <div className="actor-section-heading">
