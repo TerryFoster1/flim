@@ -8309,6 +8309,13 @@ textarea { min-height: 42px; resize: vertical; }
 }
 
 .avatar-skin-art {
+  --skin-face-x: 50%;
+  --skin-face-y: 40%;
+  --skin-face-w: 44%;
+  --skin-face-h: 36%;
+  --skin-avatar-scale: 138%;
+  --skin-avatar-x: 50%;
+  --skin-avatar-y: 56%;
   background: linear-gradient(180deg, #e8e8e8, #cfcfcf);
   border: 1px solid rgba(255, 255, 255, 0.46);
   border-radius: 18px;
@@ -8320,29 +8327,82 @@ textarea { min-height: 42px; resize: vertical; }
   width: 126px;
 }
 
-.avatar-skin-base {
-  height: 56%;
-  left: 50%;
-  object-fit: contain;
+.avatar-skin-face-window {
+  border-radius: 999px;
+  height: var(--skin-face-h);
+  left: var(--skin-face-x);
+  overflow: hidden;
   position: absolute;
-  top: 43%;
+  top: var(--skin-face-y);
   transform: translate(-50%, -50%);
-  width: 56%;
+  width: var(--skin-face-w);
   z-index: 0;
 }
 
-.avatar-skin-art-rex .avatar-skin-base {
-  height: 52%;
-  left: 62%;
-  top: 45%;
-  width: 52%;
+.avatar-skin-base {
+  height: var(--skin-avatar-scale);
+  left: var(--skin-avatar-x);
+  object-fit: contain;
+  position: absolute;
+  top: var(--skin-avatar-y);
+  transform: translate(-50%, -50%);
+  width: var(--skin-avatar-scale);
 }
 
-.avatar-skin-art-spaceman .avatar-skin-base {
-  height: 54%;
-  left: 50%;
-  top: 36%;
-  width: 54%;
+.avatar-skin-art-rex {
+  --skin-face-x: 62%;
+  --skin-face-y: 45%;
+  --skin-face-w: 45%;
+  --skin-face-h: 36%;
+}
+
+.avatar-skin-art-spaceman {
+  --skin-face-x: 50%;
+  --skin-face-y: 36%;
+  --skin-face-w: 47%;
+  --skin-face-h: 36%;
+}
+
+.avatar-skin-art-gearbox {
+  --skin-face-x: 50%;
+  --skin-face-y: 40%;
+  --skin-face-w: 43%;
+  --skin-face-h: 35%;
+}
+
+.avatar-skin-art-spook {
+  --skin-face-x: 50%;
+  --skin-face-y: 39%;
+  --skin-face-w: 36%;
+  --skin-face-h: 34%;
+}
+
+.avatar-skin-art-peg-leg {
+  --skin-face-x: 50%;
+  --skin-face-y: 42%;
+  --skin-face-w: 45%;
+  --skin-face-h: 36%;
+}
+
+.avatar-skin-art-hocus {
+  --skin-face-x: 50%;
+  --skin-face-y: 42%;
+  --skin-face-w: 43%;
+  --skin-face-h: 35%;
+}
+
+.avatar-skin-art-ninjin {
+  --skin-face-x: 50%;
+  --skin-face-y: 42%;
+  --skin-face-w: 42%;
+  --skin-face-h: 34%;
+}
+
+.avatar-skin-art-magnifico {
+  --skin-face-x: 50%;
+  --skin-face-y: 42%;
+  --skin-face-w: 42%;
+  --skin-face-h: 36%;
 }
 
 .avatar-skin-costume {
