@@ -812,6 +812,7 @@ async function generateAndStoreTrivia(sql: any, tmdbId: number, mediaType: Media
         source_labels = excluded.source_labels,
         confidence = excluded.confidence,
         updated_at = now()
+      where title_trivia.status <> 'approved'
     `;
   }
 
@@ -954,6 +955,7 @@ async function generateAndStoreEasterEggs(sql: any, tmdbId: number, mediaType: M
         source_labels = excluded.source_labels,
         confidence = excluded.confidence,
         updated_at = now()
+      where title_easter_eggs.status <> 'approved'
     `;
   }
 

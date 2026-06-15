@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { ShareAssetButton } from "../components/ShareAssetButton";
 import { createFriendChallenge, getFriendChallengeHistory } from "../services/friendChallengeService";
 import { getSeasonalChallenges } from "../services/seasonalChallengeService";
 import { getTicketFeed } from "../services/ticketService";
 import { getMovieDetails, getTvDetails } from "../services/tmdbService";
-import { completeCompanionItem, enqueueTitleTrivia, getTitleTrivia } from "../services/triviaService";
+import { completeCompanionItem, getTitleTrivia } from "../services/triviaService";
 import type { CompanionAchievement, FriendChallengeHistoryAttempt, FriendTriviaChallenge, MediaType, MovieDetails, SeasonalChallengeEvent, TicketAward, TicketFeed, TriviaFeed, TriviaQuestion } from "../types";
 
 interface TriviaGamesProps {
@@ -23,6 +23,10 @@ interface GameCardDefinition {
 }
 
 type TriviaRoundMode = "casual" | "timed" | "challenge";
+type TriviaLoadStatus = "loading" | "building" | "ready" | "error";
+
+const TRIVIA_PACK_POLL_MS = 5000;
+const TRIVIA_PACK_MAX_POLLS = 36;
 
 const triviaModeConfig: Record<TriviaRoundMode, { label: string; detail: string; secondsPerQuestion?: number }> = {
   casual: { label: "Casual", detail: "No timer" },
@@ -617,7 +621,12 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
 function ClassicTriviaPanel({ mediaType, tmdbId, title, artworkUrl }: { mediaType: MediaType; tmdbId: number; title: string; artworkUrl?: string }) {
   const [feed, setFeed] = useState<TriviaFeed | null>(null);
   const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [status, setStatus] = useState<TriviaLoadStatus>("loading");
+  const [loadStartedAt, setLoadStartedAt] = useState(() => Date.now());
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [pollAttempt, setPollAttempt] = useState(0);
+  const [lastPackCheck, setLastPackCheck] = useState("");
+  const activeTriviaRequest = useRef(0);
   const [completed, setCompleted] = useState(false);
   const [mode, setMode] = useState<TriviaRoundMode>("casual");
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -643,10 +652,7 @@ function ClassicTriviaPanel({ mediaType, tmdbId, title, artworkUrl }: { mediaTyp
   const questionArtwork = currentQuestion ? safeTriviaImage(currentQuestion, artworkUrl) : null;
   const progressPercent = questions.length ? ((currentIndex + 1) / questions.length) * 100 : 0;
 
-  function loadTriviaPack() {
-    let mounted = true;
-    setStatus("loading");
-    setFeed(null);
+  function resetTriviaRound() {
     setAnswers({});
     setCompleted(false);
     setCurrentIndex(0);
@@ -660,25 +666,64 @@ function ClassicTriviaPanel({ mediaType, tmdbId, title, artworkUrl }: { mediaTyp
     setCompletionStatus("");
     setCompletionAwards([]);
     setCompletionAchievements([]);
-    enqueueTitleTrivia({ mediaType, tmdbId, source: "trivia_page" });
+  }
+
+  function loadTriviaPack(options: { reset?: boolean; poll?: boolean } = {}) {
+    const requestId = activeTriviaRequest.current + 1;
+    activeTriviaRequest.current = requestId;
+    if (options.reset) {
+      resetTriviaRound();
+      setFeed(null);
+      setPollAttempt(0);
+      setLoadStartedAt(Date.now());
+      setElapsedSeconds(0);
+      setLastPackCheck("");
+    }
+    setStatus(options.poll ? "building" : "loading");
     getTitleTrivia({ mediaType, tmdbId })
       .then((result) => {
-        if (!mounted) return;
+        if (activeTriviaRequest.current !== requestId) return;
         setFeed(result);
-        setStatus("ready");
+        setLastPackCheck(new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }));
+        if (result.generationStatus === "ready" && result.questions.length > 0) {
+          setStatus("ready");
+          return;
+        }
+        if (result.generationStatus === "failed" && result.questions.length === 0) {
+          setStatus("error");
+          return;
+        }
+        setStatus("building");
       })
       .catch(() => {
-        if (!mounted) return;
+        if (activeTriviaRequest.current !== requestId) return;
         setStatus("error");
       });
     return () => {
-      mounted = false;
+      activeTriviaRequest.current += 1;
     };
   }
 
   useEffect(() => {
-    return loadTriviaPack();
+    return loadTriviaPack({ reset: true });
   }, [mediaType, tmdbId]);
+
+  useEffect(() => {
+    if (status !== "loading" && status !== "building") return undefined;
+    const timer = window.setInterval(() => {
+      setElapsedSeconds(Math.max(1, Math.round((Date.now() - loadStartedAt) / 1000)));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [loadStartedAt, status]);
+
+  useEffect(() => {
+    if (status !== "building" || pollAttempt >= TRIVIA_PACK_MAX_POLLS) return undefined;
+    const timer = window.setTimeout(() => {
+      setPollAttempt((attempt) => attempt + 1);
+      loadTriviaPack({ poll: true });
+    }, TRIVIA_PACK_POLL_MS);
+    return () => window.clearTimeout(timer);
+  }, [pollAttempt, status, mediaType, tmdbId]);
 
   useEffect(() => {
     if (showSubmitChoice || completed) {
@@ -813,10 +858,32 @@ function ClassicTriviaPanel({ mediaType, tmdbId, title, artworkUrl }: { mediaTyp
     setCompletionStatus(earnedTickets > 0 || uniqueAchievements.length > 0 ? "Rewards saved." : "Progress saved.");
   }
 
-  if (status === "loading") {
+  if (status === "loading" || status === "building") {
     return (
-      <section className="title-games-section">
-        <p className="empty-state">Please wait while we load your trivia questions.</p>
+      <section className="title-games-section trivia-building-pack">
+        <span className="title-game-kicker">{status === "loading" ? "Checking cache" : "Building"}</span>
+        <h2>{status === "loading" ? "Loading Trivia Pack" : "Building Trivia Pack"}</h2>
+        <p>{feed?.notes || "Creating movie-fan questions and checking the saved pack."}</p>
+        <div className="trivia-pack-activity" aria-label="Trivia pack loading progress">
+          <span />
+          <span />
+          <span />
+        </div>
+        <div className="trivia-building-detail">
+          <span>Status</span>
+          <strong>{feed?.generationStatus === "queued" ? "Queued" : feed?.generationStatus === "generating" ? "Generating" : "Checking saved pack"}</strong>
+        </div>
+        <div className="trivia-building-detail">
+          <span>Expected</span>
+          <strong>25-50 questions</strong>
+        </div>
+        <p className="helper-text">
+          {lastPackCheck ? `Last checked ${lastPackCheck}. ` : ""}
+          Still working after {elapsedSeconds || 1}s. This will refresh automatically.
+        </p>
+        <button className="secondary-button compact" onClick={() => loadTriviaPack({ reset: true })} type="button">
+          Check Now
+        </button>
       </section>
     );
   }
@@ -832,8 +899,8 @@ function ClassicTriviaPanel({ mediaType, tmdbId, title, artworkUrl }: { mediaTyp
           <strong>25-50 questions</strong>
         </div>
         <p className="helper-text">This title will be ready shortly.</p>
-        <button className="secondary-button compact" onClick={loadTriviaPack} type="button">
-          Refresh
+        <button className="secondary-button compact" onClick={() => loadTriviaPack({ reset: true })} type="button">
+          Try Again
         </button>
       </section>
     );
@@ -1005,7 +1072,7 @@ function ClassicTriviaPanel({ mediaType, tmdbId, title, artworkUrl }: { mediaTyp
             <button className="secondary-button compact" onClick={handleCreateChallenge} type="button">
               {challengeUrl ? "Challenge Created" : "Challenge Friends"}
             </button>
-            <button className="secondary-button compact" onClick={loadTriviaPack} type="button">Play Again</button>
+            <button className="secondary-button compact" onClick={() => loadTriviaPack({ reset: true })} type="button">Play Again</button>
             {challengeUrl ? <button className="secondary-button compact" onClick={shareChallenge} type="button">Share Challenge</button> : null}
             {challengeUrl ? <button className="secondary-button compact" onClick={copyChallengeLink} type="button">Copy Link</button> : null}
             {challengeToken ? (

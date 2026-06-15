@@ -14,7 +14,7 @@ export async function getTitleTrivia(input: { mediaType?: MediaType; tmdbId: num
     mediaType,
     tmdbId: String(input.tmdbId),
   });
-  const response = await fetch(`/api/trivia?${params.toString()}`);
+  const response = await fetch(`/api/trivia?${params.toString()}`, { cache: "no-store" });
   return parseJson<TriviaFeed>(response);
 }
 
@@ -25,6 +25,7 @@ export function enqueueTitleTrivia(input: { mediaType?: MediaType; tmdbId: numbe
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ mediaType, tmdbId: input.tmdbId, source: input.source }),
+    cache: "no-store",
     keepalive: true,
   }).catch(() => undefined);
 }
