@@ -15,6 +15,7 @@ const defaultPushPreferences = {
   streamingAvailability: true,
   trailers: true,
   releaseDates: true,
+  releaseDelays: true,
   socialFollowers: true,
   playlistFollowers: true,
   playlistLikesSaves: true,
@@ -116,6 +117,7 @@ export function normalizePushPreferences(value: unknown) {
     streamingAvailability: typeof source.streamingAvailability === "boolean" ? source.streamingAvailability : defaultPushPreferences.streamingAvailability,
     trailers: typeof source.trailers === "boolean" ? source.trailers : defaultPushPreferences.trailers,
     releaseDates: typeof source.releaseDates === "boolean" ? source.releaseDates : defaultPushPreferences.releaseDates,
+    releaseDelays: typeof source.releaseDelays === "boolean" ? source.releaseDelays : defaultPushPreferences.releaseDelays,
     socialFollowers: typeof source.socialFollowers === "boolean" ? source.socialFollowers : defaultPushPreferences.socialFollowers,
     playlistFollowers: typeof source.playlistFollowers === "boolean" ? source.playlistFollowers : defaultPushPreferences.playlistFollowers,
     playlistLikesSaves: typeof source.playlistLikesSaves === "boolean" ? source.playlistLikesSaves : defaultPushPreferences.playlistLikesSaves,
@@ -133,11 +135,10 @@ function pushPreferencesAllow(notification: any) {
   if (notification.media_type !== "tv" && !preferences.movies) return false;
   if ((notification.type === "streaming_available" || notification.type === "provider_changed") && !preferences.streamingAvailability) return false;
   if (notification.type === "trailer_released" && !preferences.trailers) return false;
+  if ((notification.type === "release_date_changed" || notification.type === "season_release_changed") && !preferences.releaseDelays) return false;
   if (
     (
-      notification.type === "release_date_changed" ||
       notification.type === "movie_released" ||
-      notification.type === "season_release_changed" ||
       notification.type === "season_released" ||
       notification.type === "title_status_changed"
     ) &&

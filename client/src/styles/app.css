@@ -7321,6 +7321,7 @@ textarea { min-height: 42px; resize: vertical; }
 .settings-profile-form {
   display: grid;
   gap: 18px;
+  padding-bottom: calc(var(--floating-nav-clearance, 168px) * 0.45);
 }
 
 .settings-panel {
@@ -7977,28 +7978,33 @@ textarea { min-height: 42px; resize: vertical; }
 }
 .push-settings-panel {
   align-content: start;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 18px;
 }
 
 .notification-settings-note {
-  margin: 0;
+  margin: -2px 0 2px;
   color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.35;
 }
 
 .notification-preference-list {
   display: grid;
-  gap: 10px;
+  gap: 8px;
 }
 
 .notification-preference-group {
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.11);
-  border-radius: 14px;
+  border-radius: 12px;
   background: rgba(255, 255, 255, 0.045);
 }
 
 .notification-preference-header {
   width: 100%;
-  min-height: 48px;
+  min-height: 42px;
   border: 0;
   background: rgba(0, 0, 0, 0.18);
   color: #ffe7b8;
@@ -8006,10 +8012,11 @@ textarea { min-height: 42px; resize: vertical; }
   grid-template-columns: 1fr auto auto;
   align-items: center;
   gap: 10px;
-  padding: 10px 12px;
+  padding: 8px 10px;
   font: inherit;
   font-weight: 950;
   text-align: left;
+  cursor: pointer;
 }
 
 .notification-preference-header small {
@@ -8036,30 +8043,60 @@ textarea { min-height: 42px; resize: vertical; }
 }
 
 .notification-preference-row {
-  min-height: 48px;
+  width: 100%;
+  min-height: 42px;
+  border: 0;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: transparent;
   color: rgba(255, 255, 255, 0.9);
   cursor: pointer;
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px;
-  padding: 9px 12px;
+  padding: 8px 10px;
+  font: inherit;
   font-weight: 800;
   line-height: 1.22;
+  text-align: left;
 }
 
-.notification-preference-row input {
-  width: 18px;
-  height: 18px;
-  accent-color: var(--amber);
+.notification-switch {
+  width: 36px;
+  height: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.09);
+  display: inline-flex;
+  align-items: center;
+  padding: 2px;
+  transition: background .16s ease, border-color .16s ease;
 }
 
-.notification-preference-row:has(input:checked) {
+.notification-switch span {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  transition: transform .16s ease, background .16s ease;
+}
+
+.notification-preference-row.is-on {
   background: linear-gradient(135deg, rgba(255, 184, 77, 0.12), rgba(255, 87, 87, 0.08));
 }
 
-.notification-preference-row:has(input:disabled) {
+.notification-preference-row.is-on .notification-switch {
+  background: rgba(255, 184, 77, 0.28);
+  border-color: rgba(255, 184, 77, 0.48);
+}
+
+.notification-preference-row.is-on .notification-switch span {
+  transform: translateX(16px);
+  background: #ffcf75;
+}
+
+.notification-preference-row:disabled {
   cursor: wait;
   opacity: 0.72;
 }

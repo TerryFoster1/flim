@@ -653,6 +653,7 @@ export interface PushNotificationPreferences {
   streamingAvailability: boolean;
   trailers: boolean;
   releaseDates: boolean;
+  releaseDelays: boolean;
   socialFollowers: boolean;
   playlistFollowers: boolean;
   playlistLikesSaves: boolean;
