@@ -9,8 +9,9 @@ import { getSoundtrackAvailability } from "../services/mediaExtensionService";
 import { getCurrentProfile } from "../services/profileService";
 import { getMovieDetails, getTvDetails, hasTmdbApiKey } from "../services/tmdbService";
 import { enqueueTitleTrivia } from "../services/triviaService";
+import { getProviderAvailabilityForTitle, normalizeStreamingRegion } from "../services/watchProviderService";
 import type { ContentRating } from "../types";
-import type { MediaType, MovieDetails, Playlist, WatchStatus } from "../types";
+import type { MediaType, MovieAvailability, MovieDetails, Playlist, WatchStatus } from "../types";
 
 const MediaExtensions = lazy(() => import("../components/MediaExtensions").then((module) => ({ default: module.MediaExtensions })));
 const TitleRatingControl = lazy(() => import("../components/TitleRatingControl").then((module) => ({ default: module.TitleRatingControl })));
@@ -48,6 +49,114 @@ function chooseContentRating(ratings: ContentRating[] = [], countryCode = "") {
     ratings.find((rating) => rating.countryCode === "US") ||
     ratings[0]
   )?.rating;
+}
+
+function titleDateLabel(value?: string) {
+  if (!value) return "";
+  const date = new Date(`${value}T12:00:00`);
+  if (Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat(undefined, { month: "long", day: "numeric", year: "numeric" }).format(date);
+}
+
+function releaseCountdown(value?: string) {
+  if (!value) return "";
+  const releaseTime = new Date(`${value}T12:00:00`).getTime();
+  if (!Number.isFinite(releaseTime)) return "";
+  const today = new Date();
+  today.setHours(12, 0, 0, 0);
+  const days = Math.ceil((releaseTime - today.getTime()) / 86400000);
+  if (days > 1) return `Releases in ${days} Days`;
+  if (days === 1) return "Releases Tomorrow";
+  if (days === 0) return "Releases Today";
+  return "";
+}
+
+function releaseWindow(releaseDate?: string, mediaType: MediaType = "movie") {
+  if (!releaseDate) return "unknown";
+  const releaseTime = new Date(`${releaseDate}T12:00:00`).getTime();
+  if (!Number.isFinite(releaseTime)) return "unknown";
+  const today = new Date();
+  today.setHours(12, 0, 0, 0);
+  const days = Math.ceil((releaseTime - today.getTime()) / 86400000);
+  if (days > 0) return "upcoming";
+  if (mediaType === "movie" && days >= -60) return "theaters";
+  return "released";
+}
+
+function firstStreamingProvider(availability: MovieAvailability | null) {
+  return availability?.links.find((link) => link.availabilityKnown && link.url && (link.accessType === "subscription" || link.accessType === "free"));
+}
+
+function TitleStatusBanner({ movie, region }: { movie: MovieDetails; region: string }) {
+  const [availability, setAvailability] = useState<MovieAvailability | null>(null);
+  const mediaType = movie.mediaType || "movie";
+  const normalizedRegion = normalizeStreamingRegion(region || "CA");
+  const windowState = releaseWindow(movie.releaseDate, mediaType);
+  const dateText = titleDateLabel(movie.releaseDate);
+  const countdown = releaseCountdown(movie.releaseDate);
+  const ticketLinks = availability?.ticketLinks || [];
+  const primaryTicket = ticketLinks[0];
+  const streamingProvider = firstStreamingProvider(availability);
+
+  useEffect(() => {
+    let isActive = true;
+    setAvailability(null);
+    getProviderAvailabilityForTitle(movie, normalizedRegion)
+      .then((result) => {
+        if (!isActive) return;
+        setAvailability(result);
+      })
+      .catch(() => {
+        if (isActive) setAvailability(null);
+      });
+    return () => {
+      isActive = false;
+    };
+  }, [movie.tmdbId, mediaType, normalizedRegion]);
+
+  let eyebrow = mediaType === "tv" ? "Coming To Streaming" : "Coming To Theaters";
+  let title = dateText || "Release Date TBA";
+  let detail = countdown || (dateText ? "Follow this title for release updates." : "Follow this title for release updates.");
+
+  if (streamingProvider) {
+    eyebrow = "Now Streaming";
+    title = `Available on ${streamingProvider.provider.name}`;
+    detail = "Watch availability is confirmed in your region.";
+  } else if (windowState === "theaters") {
+    eyebrow = "In Theaters Now";
+    title = primaryTicket ? "Buy Tickets" : "Follow for ticket and streaming updates";
+    detail = dateText ? `Released ${dateText}` : "Theatrical release is active.";
+  } else if (windowState === "released") {
+    eyebrow = "Released";
+    title = dateText ? `Released ${dateText}` : "Now Available";
+    detail = "Follow for streaming availability updates.";
+  } else if (windowState === "unknown") {
+    eyebrow = "Release Date TBA";
+    title = mediaType === "tv" ? "Season date not announced yet" : "Theatrical date not announced yet";
+    detail = "Follow this title for release and streaming updates.";
+  }
+
+  return (
+    <section className={`title-status-banner title-status-${streamingProvider ? "streaming" : windowState}`} aria-label={`${movie.title} release status`}>
+      <div>
+        <span>{eyebrow}</span>
+        <strong>{title}</strong>
+        <small>{detail}</small>
+      </div>
+      <div className="title-status-actions">
+        {primaryTicket ? (
+          <a className="primary-button compact" href={primaryTicket.url} rel="noreferrer" target="_blank">
+            {windowState === "upcoming" ? "Buy Advance Tickets" : "Buy Tickets"}
+          </a>
+        ) : null}
+        {streamingProvider?.url ? (
+          <a className="secondary-button compact" href={streamingProvider.url} rel="noreferrer" target="_blank">
+            Watch on {streamingProvider.provider.name}
+          </a>
+        ) : null}
+      </div>
+    </section>
+  );
 }
 
 const detailRetryDelays = [750, 1500];
@@ -406,6 +515,7 @@ export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addTo
         {normalizedMovie.posterUrl ? <img className="movie-detail-poster" src={normalizedMovie.posterUrl} alt={`${normalizedMovie.title} poster`} /> : <div className="poster tone-blue" />}
         <div className="movie-detail-copy">
           <h1>{normalizedMovie.title}</h1>
+          <TitleStatusBanner movie={normalizedMovie} region={streamingCountry} />
           <div className="meta-row">
             {normalizedMovie.releaseYear ? <span>{normalizedMovie.releaseYear}</span> : null}
             {normalizedMovie.runtimeMinutes ? <span>{normalizedMovie.runtimeMinutes} min</span> : null}

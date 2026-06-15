@@ -4316,6 +4316,57 @@ textarea { min-height: 42px; resize: vertical; }
   min-width: 0;
   max-width: 100%;
 }
+.title-status-banner {
+  align-items: center;
+  background:
+    linear-gradient(135deg, rgba(255, 184, 77, 0.18), rgba(255, 79, 109, 0.13)),
+    rgba(7, 8, 12, 0.72);
+  border: 1px solid rgba(255, 184, 77, 0.34);
+  border-radius: 16px;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.24);
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  margin: 14px 0 12px;
+  padding: 14px;
+}
+.title-status-banner > div:first-child {
+  display: grid;
+  gap: 4px;
+}
+.title-status-banner span {
+  color: var(--amber);
+  font-size: 0.76rem;
+  font-weight: 1000;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.title-status-banner strong {
+  color: var(--text);
+  font-size: clamp(1.05rem, 2.4vw, 1.35rem);
+  line-height: 1.12;
+}
+.title-status-banner small {
+  color: var(--muted);
+  line-height: 1.35;
+}
+.title-status-streaming {
+  background:
+    linear-gradient(135deg, rgba(62, 226, 160, 0.20), rgba(255, 184, 77, 0.12)),
+    rgba(7, 8, 12, 0.74);
+  border-color: rgba(62, 226, 160, 0.38);
+}
+.title-status-streaming span {
+  color: #80ffd1;
+}
+.title-status-actions {
+  align-items: center;
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
 .movie-detail-skeleton {
   min-height: clamp(420px, 62vh, 680px);
 }
@@ -9464,6 +9515,18 @@ textarea { min-height: 42px; resize: vertical; }
   .playlist-card { padding: 14px; }
   .playlist-cover { height: 250px; }
   .empty-playlists-panel, .movie-detail-hero, .actor-hero, .collection-detail-hero, .title-games-hero { grid-template-columns: 1fr; }
+  .title-status-banner {
+    align-items: stretch;
+    display: grid;
+  }
+  .title-status-actions {
+    justify-content: stretch;
+  }
+  .title-status-actions .primary-button,
+  .title-status-actions .secondary-button {
+    justify-content: center;
+    width: 100%;
+  }
   .title-games-hero { min-height: 0; }
   .title-games-hero > img,
   .title-games-hero > .poster { width: min(62vw, 220px); margin: 0 auto; }

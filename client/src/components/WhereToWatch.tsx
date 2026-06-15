@@ -60,6 +60,19 @@ export function WhereToWatch({ compact = false, movie }: WhereToWatchProps) {
   const releaseState = useMemo(() => getReleaseState(movie.releaseDate, movie.mediaType || "movie"), [movie.releaseDate, movie.mediaType]);
   const previewLinks = (preferredLinks.length ? preferredLinks : confirmedLinks).slice(0, 3);
 
+  function formatReleaseDate(value?: string) {
+    if (!value) return "";
+    const date = new Date(`${value}T12:00:00`);
+    if (Number.isNaN(date.getTime())) return "";
+    return new Intl.DateTimeFormat(undefined, { month: "long", day: "numeric", year: "numeric" }).format(date);
+  }
+
+  function releaseDateLine() {
+    const formatted = formatReleaseDate(movie.releaseDate);
+    if (!formatted) return "Release Date TBA";
+    return `${(movie.mediaType || "movie") === "tv" ? "Expected" : "Coming"} ${formatted}`;
+  }
+
   function accessLabel(value?: string) {
     if (value === "subscription") return "Subscription";
     if (value === "rent") return "Rent";
@@ -96,13 +109,14 @@ export function WhereToWatch({ compact = false, movie }: WhereToWatchProps) {
     if (hasConfirmedLinks) return "Available on confirmed providers in your region.";
     if (hasTicketLinks) return "Tickets are available from a confirmed ticket provider.";
     if (releaseState === "theaters") return "In theaters now. Follow this title for ticket and streaming updates.";
-    if (releaseState === "upcoming") return "Coming soon.";
+    if (releaseState === "upcoming") return `${(movie.mediaType || "movie") === "tv" ? "Coming to streaming" : "Coming to theaters"} - ${releaseDateLine()}.`;
     return "Notify me when available.";
   }
 
   function helperMessage() {
     if (status === "loading") return "Checking confirmed providers and ticket availability.";
     if (hasTicketLinks) return "Find tickets from confirmed ticket providers.";
+    if (releaseState === "upcoming") return `${(movie.mediaType || "movie") === "tv" ? "Coming to streaming" : "Coming to theaters"} - ${releaseDateLine()}.`;
     if (hasConfirmedLinks && preferredProviders.size > 0 && preferredLinks.length === 0) return "Not on your services. Other watch options are available.";
     if (hasConfirmedLinks) return availability?.notes || statusMessage();
     return "Notify me when available.";
@@ -254,7 +268,7 @@ export function WhereToWatch({ compact = false, movie }: WhereToWatchProps) {
       ) : null}
       {expanded && hasTicketLinks ? (
         <div className="provider-empty-action">
-          <h3>Find tickets</h3>
+          <h3>{releaseState === "upcoming" ? "Buy Advance Tickets" : "Find tickets"}</h3>
           <p>Tickets are available from confirmed providers in {streamingRegion}.</p>
           <div className="button-row">
             {ticketLinks.map((link) => (
@@ -267,11 +281,19 @@ export function WhereToWatch({ compact = false, movie }: WhereToWatchProps) {
       ) : null}
       {expanded && !hasTicketLinks ? (
         <div className="provider-empty-action">
-          <h3>{hasConfirmedLinks && preferredProviders.size > 0 && preferredLinks.length === 0 ? "Not on your services" : "Notify me when available"}</h3>
+          <h3>
+            {hasConfirmedLinks && preferredProviders.size > 0 && preferredLinks.length === 0
+              ? "Not on your services"
+              : releaseState === "upcoming"
+                ? (movie.mediaType || "movie") === "tv" ? "Coming to streaming" : "Coming to theaters"
+                : "Notify me when available"}
+          </h3>
           <p>
             {hasConfirmedLinks && preferredProviders.size > 0 && preferredLinks.length === 0
               ? "This title is available elsewhere. Follow it to get updates when availability changes."
-              : "Follow this title to get release, streaming, rental, purchase, ticket, or provider availability updates."}
+              : releaseState === "upcoming"
+                ? `${releaseDateLine()}. Follow this title for release and streaming availability updates.`
+                : "Follow this title to get release and streaming availability updates."}
           </p>
           <button className="primary-button compact" onClick={notifyWhenAvailable} type="button">Notify me when available</button>
           {notifyStatus ? <small>{notifyStatus}</small> : null}

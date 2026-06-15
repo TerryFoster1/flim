@@ -13,7 +13,6 @@ interface FollowTitleControlProps {
 const movieOptions = [
   { key: "theaterRelease", label: "Theater Release" },
   { key: "streamingAvailability", label: "Streaming Availability" },
-  { key: "trailerReleased", label: "Trailer Released" },
 ] as const;
 
 const tvOptions = [
@@ -36,7 +35,7 @@ function defaultSettings(mediaType: MovieDetails["mediaType"]): TitleNotificatio
   return {
     theaterRelease: true,
     streamingAvailability: true,
-    trailerReleased: true,
+    trailerReleased: false,
   };
 }
 
