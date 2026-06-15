@@ -8491,6 +8491,58 @@ textarea { min-height: 42px; resize: vertical; }
   gap: 12px;
 }
 
+.rig-measurement-table {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  display: grid;
+  margin-bottom: 14px;
+  overflow: hidden;
+}
+
+.rig-measurement-row {
+  display: grid;
+  grid-template-columns: minmax(88px, 0.7fr) minmax(120px, 1fr) minmax(150px, 1.25fr) minmax(150px, 1.25fr) minmax(92px, 0.8fr);
+  gap: 8px;
+  align-items: center;
+  padding: 9px 10px;
+  background: rgba(255, 255, 255, 0.035);
+  border-top: 1px solid rgba(255, 255, 255, 0.075);
+  font-size: 0.78rem;
+  line-height: 1.25;
+}
+
+.rig-measurement-row:first-child {
+  border-top: 0;
+}
+
+.rig-measurement-row.is-header {
+  background: rgba(0, 0, 0, 0.2);
+  color: #ffcf75;
+  font-weight: 950;
+}
+
+.rig-measurement-row.is-pass {
+  box-shadow: inset 4px 0 0 rgba(104, 225, 181, 0.52);
+}
+
+.rig-measurement-row.is-fail {
+  box-shadow: inset 4px 0 0 rgba(255, 191, 52, 0.62);
+}
+
+.rig-measurement-row span {
+  min-width: 0;
+}
+
+.rig-measurement-row strong,
+.rig-measurement-row small {
+  display: block;
+}
+
+.rig-measurement-row small {
+  color: var(--muted);
+  font-size: 0.68rem;
+}
+
 .rig-asset-grid {
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
 }
@@ -9809,6 +9861,13 @@ textarea { min-height: 42px; resize: vertical; }
   .trailer-extra-chip img,
   .trailer-extra-chip > span {
     width: 96px;
+  }
+  .rig-measurement-row {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+  .rig-measurement-row.is-header {
+    display: none;
   }
   .continue-watching-row {
     grid-auto-columns: minmax(240px, 82vw);
