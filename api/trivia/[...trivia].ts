@@ -1337,14 +1337,18 @@ async function handleGet(request: any, response: any) {
   let hunts = await readCachedEasterEggs(sql, tmdbId, mediaType, user?.id);
   let job = await readTriviaJob(sql, tmdbId, mediaType);
   let source: "cache" | "curated_pack" | "none" = questions.length >= TRIVIA_MIN_READY_COUNT || hunts.length ? "cache" : "none";
+  let generatedTriviaThisRequest = false;
 
   try {
     if (questions.length < TRIVIA_MIN_READY_COUNT || hunts.length === 0) {
       const details = await loadTitleDetails(sql, tmdbId, mediaType);
-      if (questions.length < TRIVIA_MIN_READY_COUNT) questions = await ensureTriviaPack(sql, tmdbId, mediaType, { userId: user?.id, interestSource: "trivia_page" });
+      if (questions.length < TRIVIA_MIN_READY_COUNT) {
+        questions = await ensureTriviaPack(sql, tmdbId, mediaType, { userId: user?.id, interestSource: "trivia_page" });
+        generatedTriviaThisRequest = true;
+      }
       if (hunts.length === 0) hunts = await generateAndStoreEasterEggs(sql, tmdbId, mediaType, details, user?.id);
       job = await readTriviaJob(sql, tmdbId, mediaType);
-      source = questions.length >= TRIVIA_MIN_READY_COUNT || hunts.length ? "curated_pack" : "none";
+      source = questions.length >= TRIVIA_MIN_READY_COUNT || hunts.length ? generatedTriviaThisRequest ? "curated_pack" : "cache" : "none";
     }
     const completedTriviaCount = questions.filter((question: any) => question.completed).length;
     const completedHuntCount = hunts.filter((hunt: any) => hunt.completed).length;
