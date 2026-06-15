@@ -6211,6 +6211,9 @@ textarea { min-height: 42px; resize: vertical; }
   padding: 10px 12px;
   background: rgba(8,9,13,.72);
 }
+.title-games-header-close-only {
+  justify-content: flex-end;
+}
 .title-games-brand {
   display: flex;
   align-items: center;

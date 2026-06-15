@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
-import { BrandMark } from "../components/BrandMark";
 import { ShareAssetButton } from "../components/ShareAssetButton";
 import { createFriendChallenge, getFriendChallengeHistory } from "../services/friendChallengeService";
 import { getSeasonalChallenges } from "../services/seasonalChallengeService";
@@ -1081,10 +1080,7 @@ function TitleGamesPage({ mediaType = "movie", tmdbId = 0, returnTo, onNavigate 
 
   return (
     <section className="route-page title-games-page">
-      <header className="title-games-header">
-        <button className="title-games-brand reset-button" onClick={() => onNavigate("/")} type="button">
-          <BrandMark />
-        </button>
+      <header className="title-games-header title-games-header-close-only">
         <button className="title-games-close" onClick={closePage} type="button" aria-label="Close Trivia and Games">
           X
         </button>
