@@ -43,7 +43,7 @@ interface EasterEggDraft {
 }
 
 const REPORT_THRESHOLD = 3;
-const TRIVIA_VERSION = "movie-fan-v6";
+const TRIVIA_VERSION = "movie-fan-v7-title-context";
 const TRIVIA_TARGET_COUNT = 40;
 const TRIVIA_MIN_READY_COUNT = 20;
 const SOURCE_LABELS = ["TMDb metadata"];
@@ -98,6 +98,56 @@ function titleMatches(details: any, ids: number[], names: string[]) {
   const tmdbId = Number(details.tmdbId);
   const title = compactTitle(details.title || details.name);
   return ids.includes(tmdbId) || names.some((name) => title.includes(compactTitle(name)));
+}
+
+const knownFranchiseTitleRules = [
+  { ids: [11, 1891, 1892, 1893, 1894, 1895, 1896, 140607, 181808, 181812], names: ["star wars"] },
+  { ids: [105, 165, 196], names: ["back to the future"] },
+  { ids: [329, 330, 331, 135397, 351286, 507086], names: ["jurassic park", "jurassic world"] },
+  { ids: [218, 280, 296, 534, 87101, 290859], names: ["terminator"] },
+  { ids: [862, 863, 10193, 301528], names: ["toy story"] },
+  { ids: [120, 121, 122, 49051, 57158, 122917], names: ["lord of the rings", "hobbit"] },
+  { ids: [954, 955, 956, 56292, 177677, 353081, 575264], names: ["mission impossible"] },
+  { ids: [671, 672, 673, 674, 675, 767, 12444, 259316, 338953], names: ["harry potter", "fantastic beasts"] },
+  { ids: [19995, 76600, 83533, 216527], names: ["avatar"] },
+  { ids: [24428, 299536, 299534, 99861, 271110, 284052, 283995], names: ["avengers", "captain america", "iron man", "thor", "marvel"] },
+];
+
+function titleNeedsExplicitTriviaContext(details: any) {
+  const mediaType = normalizeMediaType(details.mediaType);
+  const title = String(details.title || details.name || "").trim();
+  const compact = compactTitle(title);
+  if (!title) return false;
+  if (mediaType === "tv") return true;
+  if (/[0-9:]/.test(title)) return true;
+  if (/\b(part|chapter|episode|vol|volume|return|revenge|rises|awakens|fallout|maverick|way of water|judgment day)\b/i.test(title)) return true;
+  return knownFranchiseTitleRules.some((rule) => {
+    const tmdbId = Number(details.tmdbId);
+    return rule.ids.includes(tmdbId) || rule.names.some((name) => compact.includes(compactTitle(name)));
+  });
+}
+
+function startsWithTitleContext(question: string, title: string) {
+  const normalizedQuestion = normalizeTriviaText(question);
+  const normalizedTitle = normalizeTriviaText(title);
+  if (!normalizedQuestion || !normalizedTitle) return false;
+  return normalizedQuestion.includes(normalizedTitle);
+}
+
+function withExplicitTitleContext(question: string, title: string) {
+  const cleanQuestion = String(question || "").trim();
+  const cleanTitle = String(title || "").trim();
+  if (!cleanQuestion || !cleanTitle || startsWithTitleContext(cleanQuestion, cleanTitle)) return cleanQuestion;
+  return `In ${cleanTitle}, ${cleanQuestion.charAt(0).toLowerCase()}${cleanQuestion.slice(1)}`;
+}
+
+function applyTitleContextRule(draft: TriviaDraft, details: any): TriviaDraft {
+  const title = String(details.title || details.name || "this title").trim();
+  if (!titleNeedsExplicitTriviaContext(details)) return draft;
+  return {
+    ...draft,
+    question: withExplicitTitleContext(draft.question, title),
+  };
 }
 
 function draftQuestion(input: TriviaDraft): TriviaDraft {
@@ -941,6 +991,7 @@ function generateTrivia(details: any): TriviaDraft[] {
   ];
 
   return drafts
+    .map((draft) => applyTitleContextRule(draft, { ...details, mediaType }))
     .filter((draft) => isHighQualityTriviaDraft(draft, title, seenQuestions, seenAnswers))
     .slice(0, TRIVIA_TARGET_COUNT);
 }
@@ -995,12 +1046,15 @@ function generateEasterEggHunts(details: any): EasterEggDraft[] {
   return hunts.filter((hunt) => hunt.confidence >= 0.74).slice(0, 5);
 }
 
-function mapTrivia(row: any, completedIds = new Set<string>()) {
+function mapTrivia(row: any, completedIds = new Set<string>(), details?: any) {
+  const question = details
+    ? withExplicitTitleContext(row.question, String(details.title || details.name || ""))
+    : row.question;
   return {
     id: row.id,
     tmdbId: row.tmdb_id,
     mediaType: normalizeMediaType(row.media_type),
-    question: row.question,
+    question,
     answer: row.answer,
     options: Array.isArray(row.options) ? row.options : [],
     explanation: row.explanation || "",
@@ -1047,7 +1101,7 @@ function mapEasterEgg(row: any, completedIds = new Set<string>()) {
   };
 }
 
-async function readCachedTrivia(sql: any, tmdbId: number, mediaType: MediaType, userId?: string) {
+async function readCachedTrivia(sql: any, tmdbId: number, mediaType: MediaType, userId?: string, details?: any) {
   const completedIds = await readCompletedIds(sql, userId, "user_trivia_progress", "trivia_id");
   const rows = await sql`
     select *
@@ -1061,7 +1115,8 @@ async function readCachedTrivia(sql: any, tmdbId: number, mediaType: MediaType, 
     order by confidence desc, created_at asc
     limit ${TRIVIA_TARGET_COUNT}
   `;
-  return rows.map((row: any) => mapTrivia(row, completedIds));
+  const needsContext = details && titleNeedsExplicitTriviaContext({ ...details, mediaType, tmdbId });
+  return rows.map((row: any) => mapTrivia(row, completedIds, needsContext ? { ...details, mediaType, tmdbId } : undefined));
 }
 
 async function readCompletedIds(sql: any, userId: string | undefined, table: "user_trivia_progress" | "user_easter_egg_progress", idColumn: "trivia_id" | "easter_egg_id"): Promise<Set<string>> {
@@ -1204,7 +1259,7 @@ async function generateAndStoreTrivia(sql: any, tmdbId: number, mediaType: Media
     `;
   }
 
-  return readCachedTrivia(sql, tmdbId, mediaType, userId);
+  return readCachedTrivia(sql, tmdbId, mediaType, userId, details);
 }
 
 async function updateTriviaJob(sql: any, tmdbId: number, mediaType: MediaType, status: "queued" | "generating" | "ready" | "failed", input: { interestSource?: string; questionCount?: number; error?: string | null } = {}) {

@@ -22,16 +22,15 @@ interface GameCardDefinition {
   estimatedTime: string;
 }
 
-type TriviaRoundMode = "casual" | "timed" | "challenge";
+type TriviaRoundMode = "casual" | "timed";
 type TriviaLoadStatus = "loading" | "building" | "ready" | "error";
 
 const TRIVIA_PACK_POLL_MS = 5000;
 const TRIVIA_PACK_MAX_POLLS = 36;
 
 const triviaModeConfig: Record<TriviaRoundMode, { label: string; detail: string; secondsPerQuestion?: number }> = {
-  casual: { label: "Casual", detail: "No timer" },
-  timed: { label: "Timed", detail: "20 seconds/question", secondsPerQuestion: 20 },
-  challenge: { label: "Challenge", detail: "30 seconds/question", secondsPerQuestion: 30 },
+  casual: { label: "Casual", detail: "No timer. Best for relaxed play." },
+  timed: { label: "Timed", detail: "20 seconds/question. Chase a personal best.", secondsPerQuestion: 20 },
 };
 
 const arcadeRewardCards = [
