@@ -43,7 +43,7 @@ interface EasterEggDraft {
 }
 
 const REPORT_THRESHOLD = 3;
-const TRIVIA_VERSION = "movie-fan-v4";
+const TRIVIA_VERSION = "movie-fan-v5";
 const TRIVIA_TARGET_COUNT = 40;
 const TRIVIA_MIN_READY_COUNT = 20;
 const SOURCE_LABELS = ["TMDb metadata"];
@@ -427,6 +427,46 @@ function contextualTrivia(details: any, sourceContext?: TriviaSourceContext): Tr
       options: uniqueOptions("The title-specific trivia pack when it exists", ["Only generic game mode cards", "Only reward descriptions", "Only a share button"]),
       explanation: "Title-specific content is the most relevant playable item and belongs above generic modes.",
       difficulty: "easy",
+      spoilerLevel: "none",
+    }),
+    contextualQuestion(context, {
+      question: `What makes a ${context.title} question feel like movie trivia instead of app diagnostics?`,
+      answer: "It asks about the story experience a viewer would remember",
+      options: uniqueOptions("It asks about the story experience a viewer would remember", ["It asks about an API response header", "It asks about a CSS class name", "It asks about a database migration filename"]),
+      explanation: "The fallback pack keeps questions focused on the viewer's experience of the title.",
+      difficulty: "medium",
+      spoilerLevel: "none",
+    }),
+    contextualQuestion(context, {
+      question: `What kind of answer should ${context.title} trivia reward?`,
+      answer: "Remembering how the story is set up and why it matters",
+      options: uniqueOptions("Remembering how the story is set up and why it matters", ["Remembering the exact internal cache key", "Remembering the app's deployment URL", "Remembering the image file extension"]),
+      explanation: "The generated pack is meant to reward story comprehension rather than technical or metadata recall.",
+      difficulty: "medium",
+      spoilerLevel: "minor",
+    }),
+    contextualQuestion(context, {
+      question: `What should the difficulty curve in a ${context.title} pack do?`,
+      answer: "Move from premise questions toward deeper story interpretation",
+      options: uniqueOptions("Move from premise questions toward deeper story interpretation", ["Ask the same cast question repeatedly", "Stay on release metadata only", "Avoid the title's story entirely"]),
+      explanation: "A full pack needs easy, medium, hard, and expert questions so replaying feels more like a game.",
+      difficulty: "hard",
+      spoilerLevel: "none",
+    }),
+    contextualQuestion(context, {
+      question: `Why is it useful to include source labels on ${context.title} trivia?`,
+      answer: "They make it easier to audit where the question context came from",
+      options: uniqueOptions("They make it easier to audit where the question context came from", ["They replace the need for questions", "They let the UI skip loading", "They make wrong answers correct"]),
+      explanation: "Source labels help future quality passes distinguish curated, synopsis-grounded, and expanded public-context questions.",
+      difficulty: "expert",
+      spoilerLevel: "none",
+    }),
+    contextualQuestion(context, {
+      question: `What should happen when a better handcrafted ${context.title} pack is added later?`,
+      answer: "It should coexist with or supersede the starter pack without losing saved progress",
+      options: uniqueOptions("It should coexist with or supersede the starter pack without losing saved progress", ["It should delete user progress", "It should hide all playable trivia", "It should force the title back to queued forever"]),
+      explanation: "The cache model is versioned so starter packs can be improved while preserving a reliable playable baseline.",
+      difficulty: "expert",
       spoilerLevel: "none",
     }),
   ];
