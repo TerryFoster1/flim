@@ -1084,7 +1084,6 @@ function TitleGamesPage({ mediaType = "movie", tmdbId = 0, returnTo, onNavigate 
       <header className="title-games-header">
         <button className="title-games-brand reset-button" onClick={() => onNavigate("/")} type="button">
           <BrandMark />
-          <span>Flim</span>
         </button>
         <button className="title-games-close" onClick={closePage} type="button" aria-label="Close Trivia and Games">
           X
