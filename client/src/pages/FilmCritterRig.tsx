@@ -64,7 +64,7 @@ function useAssetChecks(avatars: BaseAvatar[], skins: AvatarSkin[]) {
 
 function AssetBadge({ check }: { check?: AssetCheck }) {
   if (!check || check.status === "loading") return <span className="rig-badge is-loading">Checking</span>;
-  if (check.status === "valid") return <span className="rig-badge is-valid">1024</span>;
+  if (check.status === "valid") return <span className="rig-badge is-valid">{filmCritterRig.canvas.width}</span>;
   const size = check.width && check.height ? `${check.width}x${check.height}` : "Invalid";
   return <span className="rig-badge is-invalid">{size}</span>;
 }
@@ -102,8 +102,8 @@ export function FilmCritterRig() {
         </dl>
         <p className={invalidCount > 0 ? "rig-warning" : "rig-success"}>
           {invalidCount > 0
-            ? `${invalidCount} current asset${invalidCount === 1 ? "" : "s"} do not use the canonical 1024x1024 canvas yet. They are marked invalid instead of being compensated for in code.`
-            : "All loaded assets use the canonical 1024x1024 canvas."}
+            ? `${invalidCount} current asset${invalidCount === 1 ? "" : "s"} do not use the canonical ${filmCritterRig.canvas.width}x${filmCritterRig.canvas.height} canvas yet. They are marked invalid instead of being compensated for in code.`
+            : `All loaded assets use the canonical ${filmCritterRig.canvas.width}x${filmCritterRig.canvas.height} canvas.`}
         </p>
       </section>
 
@@ -163,4 +163,3 @@ export function FilmCritterRig() {
     </section>
   );
 }
-
