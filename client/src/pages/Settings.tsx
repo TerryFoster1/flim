@@ -231,7 +231,8 @@ export function Settings({ currentUser, onNavigate, playlists = [] }: SettingsPr
               <div className="avatar-skin-grid" aria-label="Locked Film Critter skins">
                 {avatarSkins.map((skin) => (
                   <span className={`avatar-skin-chip avatar-skin-${skin.rarity} is-locked`} key={skin.id} title={`${skin.name} skin locked`}>
-                    <span className="avatar-skin-art" aria-hidden="true">
+                    <span className={`avatar-skin-art avatar-skin-art-${skin.id}`} aria-hidden="true">
+                      <img className="avatar-skin-base" src={selectedAvatar.imagePath} alt="" loading="lazy" decoding="async" />
                       <img className="avatar-skin-costume" src={skin.imagePath} alt="" loading="lazy" decoding="async" />
                       <span className="avatar-skin-lock" />
                     </span>

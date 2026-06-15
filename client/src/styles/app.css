@@ -8204,7 +8204,7 @@ textarea { min-height: 42px; resize: vertical; }
 .avatar-option {
   border: 1px solid rgba(255, 255, 255, 0.11);
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.055);
+  background: rgba(232, 232, 232, 0.12);
   color: var(--text);
   cursor: pointer;
   display: grid;
@@ -8212,6 +8212,12 @@ textarea { min-height: 42px; resize: vertical; }
   min-height: 118px;
   padding: 14px 10px;
   text-align: center;
+}
+
+.avatar-current-preview .flim-avatar,
+.avatar-option .flim-avatar {
+  background: linear-gradient(180deg, #ececec, #cfcfcf);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.38), 0 14px 28px rgba(0, 0, 0, 0.22);
 }
 
 
@@ -8238,11 +8244,11 @@ textarea { min-height: 42px; resize: vertical; }
   align-items: center;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.065), rgba(255, 255, 255, 0.032));
+  background: linear-gradient(180deg, rgba(232, 232, 232, 0.14), rgba(255, 255, 255, 0.052));
   display: grid;
   gap: 8px;
   justify-items: center;
-  min-height: 178px;
+  min-height: 184px;
   padding: 10px 8px 12px;
   text-align: center;
 }
@@ -8252,17 +8258,34 @@ textarea { min-height: 42px; resize: vertical; }
 }
 
 .avatar-skin-art {
-  background: transparent;
-  border: 0;
-  border-radius: 0;
+  background: linear-gradient(180deg, #e8e8e8, #cfcfcf);
+  border: 1px solid rgba(255, 255, 255, 0.46);
+  border-radius: 18px;
   display: grid;
-  height: 126px;
+  height: 132px;
   justify-items: center;
-  overflow: visible;
+  overflow: hidden;
   position: relative;
-  width: 112px;
+  width: 126px;
 }
 
+.avatar-skin-base {
+  height: 58%;
+  left: 50%;
+  object-fit: contain;
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 58%;
+  z-index: 0;
+}
+
+.avatar-skin-art-rex .avatar-skin-base {
+  height: 52%;
+  left: 62%;
+  top: 45%;
+  width: 52%;
+}
 
 .avatar-skin-costume {
   height: 100%;
