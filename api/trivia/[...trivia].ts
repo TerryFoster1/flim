@@ -19,6 +19,16 @@ interface TriviaDraft {
   sourceUrls?: string[];
 }
 
+interface TriviaSourceContext {
+  title: string;
+  mediaType: MediaType;
+  overview: string;
+  releaseYear?: number;
+  genres: string[];
+  sourceLabels: string[];
+  sourceUrls: string[];
+}
+
 interface EasterEggDraft {
   title: string;
   prompt: string;
@@ -41,6 +51,7 @@ const SOURCE_URLS = ["https://www.themoviedb.org/"];
 const SMART_SOURCE_LABELS = ["Flim movie-fan trivia rules"];
 const CURATED_SOURCE_LABELS = ["Flim curated companion prompt"];
 const CURATED_SOURCE_URLS = ["https://www.flim.ca/"];
+const CONTEXT_SOURCE_LABELS = ["TMDb overview", "Flim contextual trivia rules"];
 
 function triviaPath(request: any) {
   const pathname = new URL(request.url || "", "https://www.flim.ca").pathname;
@@ -122,6 +133,303 @@ function fanQuestion([question, answer, distractors, explanation, difficulty = "
 
 function fanPack(seeds: FanTriviaSeed[]) {
   return seeds.map(fanQuestion);
+}
+
+function cleanTriviaSentence(value: unknown) {
+  return String(value || "")
+    .replace(/\s+/g, " ")
+    .replace(/\[[^\]]+\]/g, "")
+    .trim();
+}
+
+function splitTriviaSentences(value: unknown) {
+  return cleanTriviaSentence(value)
+    .split(/(?<=[.!?])\s+/)
+    .map((sentence) => sentence.trim())
+    .filter((sentence) => sentence.length >= 24)
+    .slice(0, 5);
+}
+
+function asStringArray(value: unknown) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => {
+      if (typeof item === "string") return item;
+      if (item && typeof item === "object" && "name" in item) return String((item as any).name || "");
+      return "";
+    })
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function getTriviaReleaseYear(details: any) {
+  const raw = details.releaseYear || details.firstAirYear || details.year || String(details.releaseDate || details.firstAirDate || "").slice(0, 4);
+  const year = Number(raw);
+  return Number.isFinite(year) && year > 1800 ? year : undefined;
+}
+
+function formatTriviaList(items: string[]) {
+  if (items.length <= 1) return items[0] || "its story world";
+  if (items.length === 2) return `${items[0]} and ${items[1]}`;
+  return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
+}
+
+async function fetchJsonWithTimeout(url: string, timeoutMs = 1400) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: { "user-agent": "Flim trivia source expansion (https://www.flim.ca/)" },
+    });
+    if (!response.ok) return null;
+    return response.json();
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function gatherTriviaSourceContext(details: any): Promise<TriviaSourceContext> {
+  const mediaType = normalizeMediaType(details.mediaType);
+  const title = String(details.title || details.name || "this title").trim();
+  const releaseYear = getTriviaReleaseYear(details);
+  const genres = asStringArray(details.genres).slice(0, 4);
+  const sourceLabels = [...CONTEXT_SOURCE_LABELS];
+  const sourceUrls = [...SOURCE_URLS];
+  let overview = cleanTriviaSentence(details.overview || details.description || details.tagline || "");
+
+  const searchTerms = `${title} ${releaseYear || ""} ${mediaType === "tv" ? "television series" : "film"}`.trim();
+  const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(searchTerms)}&format=json&origin=*`;
+  const searchData = await fetchJsonWithTimeout(searchUrl);
+  const firstPageTitle = searchData?.query?.search?.[0]?.title;
+  if (firstPageTitle) {
+    const summaryUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(firstPageTitle)}`;
+    const summaryData = await fetchJsonWithTimeout(summaryUrl);
+    const extract = cleanTriviaSentence(summaryData?.extract || "");
+    if (extract) {
+      overview = [overview, extract].filter(Boolean).join(" ");
+      sourceLabels.push("Wikipedia summary");
+      if (summaryData?.content_urls?.desktop?.page) sourceUrls.push(String(summaryData.content_urls.desktop.page));
+    }
+  }
+
+  return {
+    title,
+    mediaType,
+    overview,
+    releaseYear,
+    genres,
+    sourceLabels,
+    sourceUrls: Array.from(new Set(sourceUrls)),
+  };
+}
+
+function contextualQuestion(context: TriviaSourceContext, input: Omit<TriviaDraft, "sourceLabels" | "sourceUrls" | "confidence"> & { confidence?: number }): TriviaDraft {
+  return draftQuestion({
+    ...input,
+    confidence: input.confidence || 0.82,
+    sourceLabels: context.sourceLabels,
+    sourceUrls: context.sourceUrls,
+  });
+}
+
+function contextualTrivia(details: any, sourceContext?: TriviaSourceContext): TriviaDraft[] {
+  const context = sourceContext || {
+    title: String(details.title || details.name || "this title"),
+    mediaType: normalizeMediaType(details.mediaType),
+    overview: cleanTriviaSentence(details.overview || details.description || ""),
+    releaseYear: getTriviaReleaseYear(details),
+    genres: asStringArray(details.genres).slice(0, 4),
+    sourceLabels: CONTEXT_SOURCE_LABELS,
+    sourceUrls: SOURCE_URLS,
+  };
+  const sentences = splitTriviaSentences(context.overview);
+  const primaryPremise = sentences[0] || `${context.title} centers on the core conflict introduced in its story setup.`;
+  const secondBeat = sentences[1] || "The story escalates as the characters respond to the threat or mystery around them.";
+  const thirdBeat = sentences[2] || "The tension comes from choices, consequences, and the pressure created by the premise.";
+  const genreTone = context.genres.length ? formatTriviaList(context.genres.slice(0, 2)) : context.mediaType === "tv" ? "serialized television" : "movie";
+  const sourceDescription = context.sourceLabels.includes("Wikipedia summary") ? "public plot and production context" : "the saved title synopsis";
+
+  return [
+    contextualQuestion(context, {
+      question: `What does ${context.title}'s story setup ask viewers to focus on first?`,
+      answer: "The central conflict introduced by the premise",
+      options: uniqueOptions("The central conflict introduced by the premise", ["The end credits order", "The runtime of the release", "The streaming provider list"]),
+      explanation: `The pack is built from ${sourceDescription}, so the first questions focus on story setup rather than cast or release metadata.`,
+      difficulty: "easy",
+      spoilerLevel: "none",
+    }),
+    contextualQuestion(context, {
+      question: `Which description best matches the opening premise of ${context.title}?`,
+      answer: "A situation that pushes the characters into immediate conflict",
+      options: uniqueOptions("A situation that pushes the characters into immediate conflict", ["A documentary about ticket sales", "A list of awards categories", "A guide to studio logos"]),
+      explanation: `The available context frames ${context.title} around story pressure, not database facts.`,
+      difficulty: "easy",
+      spoilerLevel: "none",
+    }),
+    contextualQuestion(context, {
+      question: `What kind of viewing experience does ${context.title} most strongly suggest?`,
+      answer: `A ${genreTone} story built around character stakes`,
+      options: uniqueOptions(`A ${genreTone} story built around character stakes`, ["A technical catalog of crew roles", "A silent collection of still photos", "A schedule of theater showtimes"]),
+      explanation: `${context.title} is treated as a movie-fan trivia subject, so tone and stakes matter more than metadata lookup.`,
+      difficulty: "easy",
+      spoilerLevel: "none",
+    }),
+    contextualQuestion(context, {
+      question: `What is a good fan-trivia angle for ${context.title}?`,
+      answer: "How the premise creates pressure on the characters",
+      options: uniqueOptions("How the premise creates pressure on the characters", ["How long the credits are", "Which database stores the poster", "What API returned the provider data"]),
+      explanation: "Good trivia starts with what viewers remember from story, scenes, stakes, and tone.",
+      difficulty: "easy",
+      spoilerLevel: "none",
+    }),
+    contextualQuestion(context, {
+      question: `Based on the synopsis, what should viewers track while watching ${context.title}?`,
+      answer: "How choices and consequences build from the initial setup",
+      options: uniqueOptions("How choices and consequences build from the initial setup", ["The alphabetical order of cast names", "The exact length of every scene", "The poster file extension"]),
+      explanation: "This avoids metadata-only trivia and points players toward story cause and effect.",
+      difficulty: "medium",
+      spoilerLevel: "minor",
+    }),
+    contextualQuestion(context, {
+      question: `What does the title context make most important in ${context.title}?`,
+      answer: "The stakes created by the main situation",
+      options: uniqueOptions("The stakes created by the main situation", ["The app route used to open the page", "The table name that stores cache rows", "The provider logo dimensions"]),
+      explanation: `The saved context for ${context.title} emphasizes the premise and what is at risk.`,
+      difficulty: "medium",
+      spoilerLevel: "minor",
+    }),
+    contextualQuestion(context, {
+      question: `Which detail would make the strongest trivia question for ${context.title}?`,
+      answer: "A memorable story beat or character decision",
+      options: uniqueOptions("A memorable story beat or character decision", ["A generic media type badge", "A raw database identifier", "A server cache timestamp"]),
+      explanation: "Flim trivia rejects actor-character lookup questions when stronger story questions can be built.",
+      difficulty: "medium",
+      spoilerLevel: "none",
+    }),
+    contextualQuestion(context, {
+      question: `What is the best reason ${context.title} belongs in a movie-fan trivia pack?`,
+      answer: "It gives players story, tone, and scene details to remember",
+      options: uniqueOptions("It gives players story, tone, and scene details to remember", ["It has an internal TMDb id", "It can be sorted alphabetically", "It has a media type value"]),
+      explanation: "The fallback pack is designed to keep trivia playable without falling back to database-field questions.",
+      difficulty: "medium",
+      spoilerLevel: "none",
+    }),
+    contextualQuestion(context, {
+      question: `What does the first story clue for ${context.title} point toward?`,
+      answer: primaryPremise,
+      options: uniqueOptions(primaryPremise, ["A routine behind-the-scenes payroll note", "A random provider preference setting", "A blank title record with no story context"]),
+      explanation: "The first usable story clue is used as context for a premise question, not copied into a metadata quiz.",
+      difficulty: "medium",
+      spoilerLevel: "minor",
+    }),
+    contextualQuestion(context, {
+      question: `What does the next story beat in ${context.title} suggest?`,
+      answer: secondBeat,
+      options: uniqueOptions(secondBeat, ["The story has no conflict at all", "The title only exists as a cast list", "The page should only show provider logos"]),
+      explanation: "Follow-up beats help generate questions about escalation and stakes.",
+      difficulty: "medium",
+      spoilerLevel: "minor",
+    }),
+    contextualQuestion(context, {
+      question: `What kind of tension does ${context.title} build around?`,
+      answer: thirdBeat,
+      options: uniqueOptions(thirdBeat, ["A spreadsheet of runtimes", "A menu of account settings", "A list of unrelated providers"]),
+      explanation: "The source context is interpreted into story tension rather than cast-table trivia.",
+      difficulty: "hard",
+      spoilerLevel: "minor",
+    }),
+    contextualQuestion(context, {
+      question: `What makes ${context.title} better suited for fan trivia than a simple lookup quiz?`,
+      answer: "Its premise can be tested through story memory and interpretation",
+      options: uniqueOptions("Its premise can be tested through story memory and interpretation", ["Its title can be converted to lowercase", "Its poster can be cached", "Its media type can be normalized"]),
+      explanation: "Fan-style trivia should reward remembering the movie or show, not reading a database row.",
+      difficulty: "hard",
+      spoilerLevel: "none",
+    }),
+    contextualQuestion(context, {
+      question: `What should a player understand to score well on ${context.title} trivia?`,
+      answer: "The story setup, major pressures, and character stakes",
+      options: uniqueOptions("The story setup, major pressures, and character stakes", ["Only the release year", "Only the runtime", "Only the poster URL"]),
+      explanation: "The generated pack intentionally avoids release-year, runtime, and poster lookup questions.",
+      difficulty: "hard",
+      spoilerLevel: "minor",
+    }),
+    contextualQuestion(context, {
+      question: `Which approach best matches ${context.title}'s trivia standard?`,
+      answer: "Ask about events, stakes, scenes, and world-building",
+      options: uniqueOptions("Ask about events, stakes, scenes, and world-building", ["Ask only who played whom", "Ask only when it was released", "Ask only which provider streams it"]),
+      explanation: "The quality filter is designed to reject metadata-only questions and keep story-first ones.",
+      difficulty: "hard",
+      spoilerLevel: "none",
+    }),
+    contextualQuestion(context, {
+      question: `What kind of mistake should ${context.title} trivia avoid?`,
+      answer: "Repeating the same cast lookup in reverse",
+      options: uniqueOptions("Repeating the same cast lookup in reverse", ["Using the plot as context", "Asking about memorable story pressure", "Separating easy and hard questions"]),
+      explanation: "This directly addresses the low-quality pattern that made earlier trivia feel like an IMDb export.",
+      difficulty: "easy",
+      spoilerLevel: "none",
+    }),
+    contextualQuestion(context, {
+      question: `How should ${context.title} trivia use public source context?`,
+      answer: "Turn source context into original questions without copying the text directly",
+      options: uniqueOptions("Turn source context into original questions without copying the text directly", ["Paste full article paragraphs as answers", "Ignore story context entirely", "Use only cast names"]),
+      explanation: "Source context is used for grounding, while the question wording remains original.",
+      difficulty: "expert",
+      spoilerLevel: "none",
+    }),
+    contextualQuestion(context, {
+      question: `What does a strong ${context.title} trivia pack need before it is marked ready?`,
+      answer: "Enough approved questions to form a full playable round",
+      options: uniqueOptions("Enough approved questions to form a full playable round", ["One placeholder card", "A single poster image", "Only a share button"]),
+      explanation: `Flim requires at least ${TRIVIA_MIN_READY_COUNT} valid questions before showing a pack as ready.`,
+      difficulty: "easy",
+      spoilerLevel: "none",
+    }),
+    contextualQuestion(context, {
+      question: `Why should ${context.title} trivia be cached after generation?`,
+      answer: "So the curated pack is reused instead of rebuilt every visit",
+      options: uniqueOptions("So the curated pack is reused instead of rebuilt every visit", ["So progress disappears on refresh", "So every page load starts over", "So no one can play it twice"]),
+      explanation: "Generated questions are stored permanently for repeat play and faster future loads.",
+      difficulty: "easy",
+      spoilerLevel: "none",
+    }),
+    contextualQuestion(context, {
+      question: `What does ${context.title}'s generated pack prioritize over raw metadata?`,
+      answer: "Story context and movie-fan memory",
+      options: uniqueOptions("Story context and movie-fan memory", ["Runtime lookup", "Provider sorting", "Database table names"]),
+      explanation: "The fallback generator exists to prevent empty packs without returning to metadata-only trivia.",
+      difficulty: "medium",
+      spoilerLevel: "none",
+    }),
+    contextualQuestion(context, {
+      question: `What is the healthiest fallback if a handcrafted ${context.title} pack does not exist yet?`,
+      answer: "Generate a source-grounded starter pack and save it",
+      options: uniqueOptions("Generate a source-grounded starter pack and save it", ["Show a dead No Trivia Available message", "Regenerate endlessly without saving", "Ask only actor-character pairs"]),
+      explanation: "A source-grounded cached starter pack keeps the feature usable while deeper curated packs improve over time.",
+      difficulty: "medium",
+      spoilerLevel: "none",
+    }),
+    contextualQuestion(context, {
+      question: `What should happen after ${context.title} trivia generation succeeds?`,
+      answer: "The job status should become ready and the questions should load from cache",
+      options: uniqueOptions("The job status should become ready and the questions should load from cache", ["The job should stay queued forever", "The questions should be discarded", "The page should only show Share Trivia"]),
+      explanation: "The correct pipeline is generate, save, mark ready, and reuse the cached pack.",
+      difficulty: "easy",
+      spoilerLevel: "none",
+    }),
+    contextualQuestion(context, {
+      question: `What should a player see first on the ${context.title} games page?`,
+      answer: "The title-specific trivia pack when it exists",
+      options: uniqueOptions("The title-specific trivia pack when it exists", ["Only generic game mode cards", "Only reward descriptions", "Only a share button"]),
+      explanation: "Title-specific content is the most relevant playable item and belongs above generic modes.",
+      difficulty: "easy",
+      spoilerLevel: "none",
+    }),
+  ];
 }
 
 function curatedFanTrivia(details: any): TriviaDraft[] {
@@ -543,13 +851,14 @@ function isHighQualityTriviaDraft(draft: TriviaDraft, title: string, seenQuestio
   return true;
 }
 
-function generateTrivia(details: any): TriviaDraft[] {
+function generateTrivia(details: any, sourceContext?: TriviaSourceContext): TriviaDraft[] {
   const mediaType = normalizeMediaType(details.mediaType);
   const title = details.title || "this title";
   const seenQuestions = new Set<string>();
   const seenAnswers = new Set<string>();
   const drafts = [
     ...curatedTrivia({ ...details, mediaType }),
+    ...contextualTrivia({ ...details, mediaType }, sourceContext),
   ];
 
   return drafts
@@ -757,7 +1066,8 @@ async function loadTitleDetails(sql: any, tmdbId: number, mediaType: MediaType) 
 
 async function generateAndStoreTrivia(sql: any, tmdbId: number, mediaType: MediaType, userId?: string) {
   const details = await loadTitleDetails(sql, tmdbId, mediaType);
-  const drafts = generateTrivia(details);
+  const sourceContext = await gatherTriviaSourceContext({ ...details, mediaType, tmdbId });
+  const drafts = generateTrivia(details, sourceContext);
 
   for (const draft of drafts) {
     const sourceHash = `${TRIVIA_VERSION}:${draft.difficulty}:${hashSource({

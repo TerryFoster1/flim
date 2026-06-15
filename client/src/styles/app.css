@@ -6434,6 +6434,27 @@ textarea { min-height: 42px; resize: vertical; }
   flex-wrap: wrap;
   padding: 12px 14px;
 }
+.trivia-pack-ready-strip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  border: 1px solid rgba(255, 184, 77, .2);
+  border-radius: 16px;
+  padding: 10px 12px;
+  background: linear-gradient(135deg, rgba(255, 184, 77, .12), rgba(255, 92, 92, .08));
+}
+.trivia-pack-ready-strip span,
+.trivia-pack-ready-strip small {
+  color: var(--muted);
+  font-size: .78rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+.trivia-pack-ready-strip strong {
+  color: #ffe2a6;
+  font-size: .92rem;
+}
 .trivia-score-strip strong,
 .friend-challenge-card h3,
 .friend-challenge-result h2,

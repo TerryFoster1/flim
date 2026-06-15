@@ -618,7 +618,7 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
   );
 }
 
-function ClassicTriviaPanel({ mediaType, tmdbId, title, artworkUrl, gameTitle = "Classic Trivia" }: { mediaType: MediaType; tmdbId: number; title: string; artworkUrl?: string; gameTitle?: string }) {
+function ClassicTriviaPanel({ mediaType, tmdbId, title, artworkUrl, gameTitle = "Classic Trivia", sectionLabel = "Title-specific pack" }: { mediaType: MediaType; tmdbId: number; title: string; artworkUrl?: string; gameTitle?: string; sectionLabel?: string }) {
   const [feed, setFeed] = useState<TriviaFeed | null>(null);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [status, setStatus] = useState<TriviaLoadStatus>("loading");
@@ -945,7 +945,12 @@ function ClassicTriviaPanel({ mediaType, tmdbId, title, artworkUrl, gameTitle = 
     <section className="title-games-section classic-trivia-play">
       <div className="actor-section-heading">
         <h2>{gameTitle}</h2>
-        <span>{triviaModeConfig[mode].label} mode</span>
+        <span>{questions.length} questions ready</span>
+      </div>
+      <div className="trivia-pack-ready-strip">
+        <span>{sectionLabel}</span>
+        <strong>Play Now</strong>
+        <small>{triviaModeConfig[mode].label} mode</small>
       </div>
       <div className="trivia-score-strip">
         <strong>{completed ? `${score.score} points` : `Question ${currentIndex + 1} of ${questions.length}`}</strong>
@@ -1101,7 +1106,6 @@ function TitleGamesPage({ mediaType = "movie", tmdbId = 0, returnTo, onNavigate 
   const [selectedGameId, setSelectedGameId] = useState(titleGameCards[0].id);
   const targetPath = Number.isFinite(tmdbId) && tmdbId > 0 ? gameTargetPath(mediaType, tmdbId) : "/playlists";
   const genres = useMemo(() => title?.genres?.filter(Boolean) || [], [title]);
-  const selectedGame = titleGameCards.find((game) => game.id === selectedGameId) || titleGameCards[0];
   const recommendationReason = genres[0] ? `Because this is ${genres[0]}` : `Because this is ${mediaType === "tv" ? "TV" : "Movies"}`;
   const recommendedGames = useMemo(() => {
     const genre = genres[0] || (mediaType === "tv" ? "TV" : "Movie");
@@ -1184,12 +1188,12 @@ function TitleGamesPage({ mediaType = "movie", tmdbId = 0, returnTo, onNavigate 
             tmdbId={tmdbId}
             title={title.title}
             artworkUrl={title.backdropUrl || title.posterUrl}
-            gameTitle={selectedGame.title}
+            gameTitle={`${title.title} Trivia Pack`}
           />
 
           <section className="title-games-section">
             <div className="actor-section-heading">
-              <h2>Available Games & Challenges</h2>
+              <h2>Classic Trivia & Alternate Modes</h2>
               <span>{titleGameCards.length} modes</span>
             </div>
             <div className="title-game-grid">
@@ -1197,7 +1201,7 @@ function TitleGamesPage({ mediaType = "movie", tmdbId = 0, returnTo, onNavigate 
                 <GameCard
                   key={game.id}
                   game={game}
-                  selected={game.id === selectedGame.id}
+                  selected={game.id === selectedGameId}
                   onPlay={() => setSelectedGameId(game.id)}
                 />
               ))}
