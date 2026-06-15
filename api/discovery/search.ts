@@ -173,6 +173,77 @@ const broadTitleSearchSeeds: Array<{
       { tmdbId: 403119, mediaType: "movie", title: "47 Meters Down", releaseYear: "2017" },
     ],
   },
+  {
+    triggers: ["blue people planet", "blue aliens planet", "blue people", "pandora planet"],
+    titles: [
+      { tmdbId: 19995, mediaType: "movie", title: "Avatar", releaseYear: "2009" },
+      { tmdbId: 76600, mediaType: "movie", title: "Avatar: The Way of Water", releaseYear: "2022" },
+    ],
+  },
+  {
+    triggers: ["toys come alive", "toys are alive", "toy comes alive", "living toys"],
+    titles: [
+      { tmdbId: 862, mediaType: "movie", title: "Toy Story", releaseYear: "1995" },
+      { tmdbId: 863, mediaType: "movie", title: "Toy Story 2", releaseYear: "1999" },
+      { tmdbId: 10193, mediaType: "movie", title: "Toy Story 3", releaseYear: "2010" },
+      { tmdbId: 301528, mediaType: "movie", title: "Toy Story 4", releaseYear: "2019" },
+    ],
+  },
+  {
+    triggers: ["tom cruise airplane", "tom cruise jet", "fighter pilot", "navy pilot"],
+    titles: [
+      { tmdbId: 744, mediaType: "movie", title: "Top Gun", releaseYear: "1986" },
+      { tmdbId: 361743, mediaType: "movie", title: "Top Gun: Maverick", releaseYear: "2022" },
+    ],
+  },
+  {
+    triggers: ["korean revenge thriller", "korean revenge", "revenge thriller korean"],
+    titles: [
+      { tmdbId: 670, mediaType: "movie", title: "Oldboy", releaseYear: "2003" },
+      { tmdbId: 49797, mediaType: "movie", title: "I Saw the Devil", releaseYear: "2010" },
+      { tmdbId: 4550, mediaType: "movie", title: "Lady Vengeance", releaseYear: "2005" },
+      { tmdbId: 51608, mediaType: "movie", title: "The Man from Nowhere", releaseYear: "2010" },
+      { tmdbId: 290098, mediaType: "movie", title: "The Handmaiden", releaseYear: "2016" },
+    ],
+  },
+];
+
+const naturalLanguageSearchProfiles = [
+  {
+    triggers: ["tv show about neighbors who are aliens", "show about neighbors who are aliens", "neighbors who are aliens", "alien neighbors", "aliens next door"],
+    titleQueries: ["The Neighbors"],
+    terms: ["the neighbors", "alien neighbors", "alien sitcom", "neighbors aliens", "sitcom"],
+  },
+  {
+    triggers: ["movie with tornado chasers", "tornado chasers", "storm chasers movie", "storm chasing movie"],
+    titleQueries: ["Twister", "Twisters", "Into the Storm"],
+    terms: ["tornado", "twister", "storm chaser", "storm chasing", "disaster"],
+  },
+  {
+    triggers: ["tom cruise airplane movie", "tom cruise jet movie", "tom cruise fighter pilot", "tom cruise pilot"],
+    titleQueries: ["Top Gun", "Top Gun: Maverick"],
+    terms: ["tom cruise", "top gun", "fighter pilot", "airplane", "jet"],
+  },
+  {
+    triggers: ["blue people planet movie", "blue people planet", "blue aliens planet movie", "movie with blue people"],
+    titleQueries: ["Avatar", "Avatar: The Way of Water"],
+    terms: ["avatar", "pandora", "blue aliens", "sci-fi", "science fiction"],
+  },
+  {
+    triggers: ["movie where toys come alive", "toys come alive", "movie about toys coming alive", "living toys movie"],
+    titleQueries: ["Toy Story"],
+    terms: ["toy story", "toys come alive", "pixar", "animation", "family"],
+  },
+  {
+    triggers: ["korean revenge thriller", "korean revenge movie", "korean revenge movies"],
+    titleQueries: ["Oldboy", "I Saw the Devil", "Lady Vengeance"],
+    terms: ["korean revenge thriller", "revenge thriller", "korean thriller", "oldboy"],
+  },
+  {
+    triggers: ["shark movie", "shark movies", "movie about sharks"],
+    titleQueries: ["Jaws", "The Shallows", "Deep Blue Sea"],
+    terms: ["shark", "sharks", "creature feature", "jaws"],
+  },
 ];
 
 function firstQueryValue(value: unknown) {
@@ -195,6 +266,25 @@ function normalizeSearchText(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 }
 
+function matchingNaturalLanguageProfiles(query: string) {
+  const normalized = normalizeSearchText(query);
+  return naturalLanguageSearchProfiles.filter((profile) => profile.triggers.some((trigger) => {
+    const normalizedTrigger = normalizeSearchText(trigger);
+    return normalized.includes(normalizedTrigger) || (normalized.length >= 8 && normalizedTrigger.includes(normalized));
+  }));
+}
+
+function naturalLanguageTerms(query: string) {
+  return matchingNaturalLanguageProfiles(query).flatMap((profile) => [...profile.titleQueries, ...profile.terms]);
+}
+
+function alternateTitleSearchQueries(query: string) {
+  const normalizedQuery = normalizeSearchText(query);
+  const alternates = naturalLanguageTerms(query)
+    .filter((term) => normalizeSearchText(term) && normalizeSearchText(term) !== normalizedQuery);
+  return Array.from(new Set(alternates)).slice(0, 4);
+}
+
 function expandedSearchTerms(query: string) {
   const normalized = normalizeSearchText(query);
   const stripped = normalized
@@ -202,6 +292,7 @@ function expandedSearchTerms(query: string) {
     .replace(/\s+/g, " ")
     .trim();
   const terms = new Set([normalized, stripped].filter(Boolean));
+  naturalLanguageTerms(query).forEach((term) => terms.add(normalizeSearchText(term) || term));
   if (normalized.includes("sci fi") || normalized.includes("scifi")) {
     terms.add("sci-fi");
     terms.add("science fiction");
@@ -270,6 +361,7 @@ function collectionSearchTerms(query: string) {
     .replace(/\s+/g, " ")
     .trim();
   const terms = new Set([normalized, stripped].filter(Boolean));
+  naturalLanguageTerms(query).forEach((term) => terms.add(normalizeSearchText(term) || term));
   if (normalized.includes("sci fi") || normalized.includes("scifi")) {
     terms.add("sci-fi");
     terms.add("science fiction");
@@ -835,8 +927,10 @@ export default async function handler(request: any, response: any) {
     });
 
     const user = await getCurrentUser(sql, request);
-    const [titleResults, seedTitles, playlists, profiles, collections, actors] = await Promise.all([
+    const alternateQueries = alternateTitleSearchQueries(query);
+    const [titleResults, alternateTitleResults, seedTitles, playlists, profiles, collections, actors] = await Promise.all([
       searchTitles(sql, query),
+      Promise.all(alternateQueries.map((alternateQuery) => searchTitles(sql, alternateQuery))),
       searchBroadSeedTitles(sql, query),
       searchPublicPlaylists(sql, query, user?.id),
       searchProfiles(sql, query),
@@ -844,7 +938,8 @@ export default async function handler(request: any, response: any) {
       searchActors(sql, query),
     ]);
     const personTitles = actors.length > 0 && seedTitles.length === 0 ? await titleResultsForPerson(sql, actors, query) : [];
-    const mergedTitles = mergeTitleResults(seedTitles, mergeTitleResults(personTitles, titleResults.items));
+    const expandedTitleItems = mergeTitleResults(titleResults.items, alternateTitleResults.flatMap((result) => result.items || []));
+    const mergedTitles = mergeTitleResults(seedTitles, mergeTitleResults(personTitles, expandedTitleItems));
     const hubs = searchHubs(query);
     const availability = availableOnMyServices
       ? await prioritizeTitlesByAvailability(sql, mergedTitles, availabilityRegion, preferredProviders).catch((error) => {

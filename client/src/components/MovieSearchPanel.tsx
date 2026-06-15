@@ -6,7 +6,6 @@ import { enqueueTitleTrivia } from "../services/triviaService";
 import { getProviderAvailabilityForTitle, normalizeStreamingRegion } from "../services/watchProviderService";
 import type { MovieSearchResult, Playlist } from "../types";
 import { AddToPlaylistControl } from "./AddToPlaylistControl";
-import { SearchAutocomplete } from "./SearchAutocomplete";
 
 interface MovieSearchPanelProps {
   playlists: Playlist[];
@@ -171,14 +170,15 @@ export function MovieSearchPanel({ playlists, addToPlaylist, onNavigate, variant
   return (
     <section className={variant === "hero" ? "search-panel hero-search-panel" : "search-panel"} id="movie-search">
       <form className="search-form" onSubmit={submitSearch}>
-        <SearchAutocomplete
-          label="Search"
-          onNavigate={onNavigate}
-          onQueryChange={setQuery}
-          onSubmitQuery={(nextQuery) => void runSearch(nextQuery)}
-          placeholder="Search movies or TV shows"
-          query={query}
-        />
+        <label className="autocomplete-search">
+          <span className="autocomplete-label">Search</span>
+          <input
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search movies or TV shows"
+            type="search"
+            value={query}
+          />
+        </label>
         <div className="search-type-toggle" aria-label="Search media type">
           {(["both", "movie", "tv"] as MediaSearchMode[]).map((option) => (
             <button className={mediaType === option ? "is-active" : ""} key={option} onClick={() => setMediaType(option)} type="button">

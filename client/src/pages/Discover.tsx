@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { DiscoveryRecommendationShelf } from "../components/DiscoveryRecommendationShelf";
 import { FlimAvatar } from "../components/FlimAvatar";
 import { PlaylistGrid } from "../components/PlaylistGrid";
-import { SearchAutocomplete } from "../components/SearchAutocomplete";
 import { getDidYouMeanSuggestion, searchDiscovery, searchLabelMatchesQuery } from "../services/discoveryService";
 import { getCurrentProfile } from "../services/profileService";
 import { getProviderAvailabilityForTitle, normalizeStreamingRegion } from "../services/watchProviderService";
@@ -252,14 +251,15 @@ export function Discover({ onNavigate }: DiscoverProps) {
           </button>
         </div>
         <form className="discover-search-form" onSubmit={submit}>
-          <SearchAutocomplete
-            label="Search Flim"
-            onNavigate={onNavigate}
-            onQueryChange={setQuery}
-            onSubmitQuery={(nextQuery) => void submit(undefined, nextQuery)}
-            placeholder="Try Anime, Horror, Sci-Fi, Marvel..."
-            query={query}
-          />
+          <label className="autocomplete-search">
+            <span className="autocomplete-label">Search Flim</span>
+            <input
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Try Anime, Horror, Sci-Fi, Marvel..."
+              type="search"
+              value={query}
+            />
+          </label>
           <button className="primary-button" disabled={!query.trim() || status === "loading"} type="submit">
             {status === "loading" ? "Searching..." : "Search"}
           </button>
@@ -407,8 +407,8 @@ export function Discover({ onNavigate }: DiscoverProps) {
 
       {results && !hasResults ? (
         <section className="discovery-empty-panel">
-          <h2>No matches yet.</h2>
-          <p>Try a broader playlist theme like anime, horror, sci-fi, Christmas, Marvel, or Pixar.</p>
+          <h2>Best matches are still warming up.</h2>
+          <p>Try a broader description like shark movies, Korean revenge thriller, blue people planet movie, or Tom Cruise airplane movie.</p>
         </section>
       ) : null}
     </section>
