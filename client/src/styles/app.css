@@ -6384,6 +6384,9 @@ textarea { min-height: 42px; resize: vertical; }
   border-color: rgba(255, 184, 77, .58);
   box-shadow: 0 0 0 1px rgba(255, 184, 77, .14), 0 18px 42px rgba(0, 0, 0, .28);
 }
+.title-game-card.is-disabled {
+  opacity: 0.72;
+}
 .title-game-card-copy span {
   color: #ffcf8a;
   font-size: .78rem;
@@ -6402,6 +6405,9 @@ textarea { min-height: 42px; resize: vertical; }
   gap: 10px;
 }
 .title-game-score-row .primary-button.compact {
+  min-height: 42px;
+}
+.title-game-score-row .secondary-button.compact {
   min-height: 42px;
 }
 .classic-trivia-play {

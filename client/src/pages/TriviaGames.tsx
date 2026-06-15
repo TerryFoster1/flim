@@ -20,6 +20,7 @@ interface GameCardDefinition {
   description: string;
   difficulty: "Easy" | "Medium" | "Hard";
   estimatedTime: string;
+  status: "playable" | "placeholder";
 }
 
 type TriviaRoundMode = "casual" | "timed";
@@ -131,6 +132,7 @@ const titleGameCards: GameCardDefinition[] = [
     description: "Answer source-grounded questions about the title, cast, release, and story.",
     difficulty: "Easy",
     estimatedTime: "3 min",
+    status: "playable",
   },
   {
     id: "poster-guess",
@@ -138,6 +140,7 @@ const titleGameCards: GameCardDefinition[] = [
     description: "Identify titles from cropped poster art and visual clues.",
     difficulty: "Medium",
     estimatedTime: "2 min",
+    status: "placeholder",
   },
   {
     id: "quote-challenge",
@@ -145,6 +148,7 @@ const titleGameCards: GameCardDefinition[] = [
     description: "Match memorable lines to characters and scenes.",
     difficulty: "Medium",
     estimatedTime: "4 min",
+    status: "placeholder",
   },
   {
     id: "scene-challenge",
@@ -152,6 +156,7 @@ const titleGameCards: GameCardDefinition[] = [
     description: "Place key moments in the right order without spoiling the ending.",
     difficulty: "Hard",
     estimatedTime: "5 min",
+    status: "placeholder",
   },
   {
     id: "timeline-challenge",
@@ -159,6 +164,7 @@ const titleGameCards: GameCardDefinition[] = [
     description: "Build the release, story, or franchise timeline from clues.",
     difficulty: "Hard",
     estimatedTime: "5 min",
+    status: "placeholder",
   },
   {
     id: "character-match",
@@ -166,6 +172,7 @@ const titleGameCards: GameCardDefinition[] = [
     description: "Pair characters, actors, roles, and relationships.",
     difficulty: "Easy",
     estimatedTime: "3 min",
+    status: "placeholder",
   },
   {
     id: "soundtrack-challenge",
@@ -173,6 +180,7 @@ const titleGameCards: GameCardDefinition[] = [
     description: "Spot songs, scores, and music cues connected to the title.",
     difficulty: "Medium",
     estimatedTime: "4 min",
+    status: "placeholder",
   },
   {
     id: "speed-round",
@@ -180,6 +188,7 @@ const titleGameCards: GameCardDefinition[] = [
     description: "A fast set of short questions for a quick score run.",
     difficulty: "Medium",
     estimatedTime: "90 sec",
+    status: "placeholder",
   },
 ];
 
@@ -270,17 +279,18 @@ function ticketTotal(awards: TicketAward[]) {
 }
 
 function GameCard({ game, selected, onPlay }: { game: GameCardDefinition; selected?: boolean; onPlay: () => void }) {
+  const playable = game.status === "playable";
   return (
-    <article className={`title-game-card${selected ? " is-selected" : ""}`}>
+    <article className={`title-game-card${selected ? " is-selected" : ""}${!playable ? " is-disabled" : ""}`}>
       <div className="title-game-card-copy">
-        <span>{game.difficulty} / {game.estimatedTime}</span>
+        <span>{playable ? `${game.difficulty} / ${game.estimatedTime}` : "Planned mode"}</span>
         <h3>{game.title}</h3>
         <p>{game.description}</p>
       </div>
       <div className="title-game-score-row">
-        <small>{highScoreText()}</small>
-        <button className="primary-button compact" onClick={onPlay} type="button">
-          {selected ? "Selected" : "Play"}
+        <small>{playable ? highScoreText() : "Not playable yet"}</small>
+        <button className={playable ? "primary-button compact" : "secondary-button compact"} disabled={!playable} onClick={playable ? onPlay : undefined} type="button">
+          {playable ? selected ? "Selected" : "Play" : "Coming Later"}
         </button>
       </div>
     </article>
@@ -725,6 +735,12 @@ function ClassicTriviaPanel({ mediaType, tmdbId, title, artworkUrl, gameTitle = 
   }, [pollAttempt, status, mediaType, tmdbId]);
 
   useEffect(() => {
+    if (status === "building" && pollAttempt >= TRIVIA_PACK_MAX_POLLS) {
+      setStatus("error");
+    }
+  }, [pollAttempt, status]);
+
+  useEffect(() => {
     if (showSubmitChoice || completed) {
       setSecondsRemaining(null);
       return;
@@ -890,16 +906,19 @@ function ClassicTriviaPanel({ mediaType, tmdbId, title, artworkUrl, gameTitle = 
   if (status === "error" || questions.length === 0) {
     return (
       <section className="title-games-section trivia-building-pack">
-        <span className="title-game-kicker">{isBuildingPack ? "Queued" : "Preparing"}</span>
-        <h2>Building Trivia Pack</h2>
-        <p>Creating movie-fan questions...</p>
+        <span className="title-game-kicker">Generation Failed</span>
+        <h2>Trivia Pack Did Not Finish</h2>
+        <p>{feed?.error || feed?.notes || "The trivia generator did not return a playable pack. Retry the pack generation when you are ready."}</p>
         <div className="trivia-building-detail">
-          <span>Expected</span>
-          <strong>25-50 questions</strong>
+          <span>Status</span>
+          <strong>{feed?.generationStatus === "failed" ? "Failed" : pollAttempt >= TRIVIA_PACK_MAX_POLLS ? "Timed out" : "Unavailable"}</strong>
         </div>
-        <p className="helper-text">This title will be ready shortly.</p>
+        <div className="trivia-building-detail">
+          <span>Last check</span>
+          <strong>{lastPackCheck || "No successful check"}</strong>
+        </div>
         <button className="secondary-button compact" onClick={() => loadTriviaPack({ reset: true })} type="button">
-          Try Again
+          Retry
         </button>
       </section>
     );
@@ -1152,6 +1171,7 @@ function TitleGamesPage({ mediaType = "movie", tmdbId = 0, returnTo, onNavigate 
   return (
     <section className="route-page title-games-page">
       <header className="title-games-header title-games-header-close-only">
+        <strong>Trivia & Games</strong>
         <button className="title-games-close" onClick={closePage} type="button" aria-label="Close Trivia and Games">
           X
         </button>

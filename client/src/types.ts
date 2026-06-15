@@ -1197,6 +1197,7 @@ export interface TriviaFeed {
   unlockedAchievements?: CompanionAchievement[];
   authenticated?: boolean;
   notes: string;
+  error?: string;
 }
 
 export interface FriendChallengeQuestion {
