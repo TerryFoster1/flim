@@ -1100,7 +1100,6 @@ function TitleGamesPage({ mediaType = "movie", tmdbId = 0, returnTo, onNavigate 
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [selectedGameId, setSelectedGameId] = useState(titleGameCards[0].id);
   const targetPath = Number.isFinite(tmdbId) && tmdbId > 0 ? gameTargetPath(mediaType, tmdbId) : "/playlists";
-  const gamePath = `/games/title/${mediaType}/${tmdbId}`;
   const genres = useMemo(() => title?.genres?.filter(Boolean) || [], [title]);
   const selectedGame = titleGameCards.find((game) => game.id === selectedGameId) || titleGameCards[0];
   const recommendationReason = genres[0] ? `Because this is ${genres[0]}` : `Because this is ${mediaType === "tv" ? "TV" : "Movies"}`;
@@ -1177,18 +1176,16 @@ function TitleGamesPage({ mediaType = "movie", tmdbId = 0, returnTo, onNavigate 
                 {title.releaseYear ? <span>{title.releaseYear}</span> : null}
                 {genres.slice(0, 3).map((genre) => <span key={genre}>{genre}</span>)}
               </div>
-              <div className="share-inline-row">
-                <ShareAssetButton
-                  label="Share Challenge"
-                  title={`${title.title} Trivia & Games`}
-                  text="Share a Flim challenge card."
-                  url={gamePath}
-                  cardUrl={`/api/og/title/${mediaType}/${tmdbId}?card=game`}
-                  downloadName={`${title.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || `${mediaType}-${tmdbId}`}-challenge-card.png`}
-                />
-              </div>
             </div>
           </section>
+
+          <ClassicTriviaPanel
+            mediaType={mediaType}
+            tmdbId={tmdbId}
+            title={title.title}
+            artworkUrl={title.backdropUrl || title.posterUrl}
+            gameTitle={selectedGame.title}
+          />
 
           <section className="title-games-section">
             <div className="actor-section-heading">
@@ -1206,14 +1203,6 @@ function TitleGamesPage({ mediaType = "movie", tmdbId = 0, returnTo, onNavigate 
               ))}
             </div>
           </section>
-
-          <ClassicTriviaPanel
-            mediaType={mediaType}
-            tmdbId={tmdbId}
-            title={title.title}
-            artworkUrl={title.backdropUrl || title.posterUrl}
-            gameTitle={selectedGame.title}
-          />
 
           <section className="title-games-section">
             <div className="actor-section-heading">
