@@ -37,6 +37,7 @@ import { SharedPlaylist } from "./pages/SharedPlaylist";
 import { PublicProfile } from "./pages/PublicProfile";
 import { Roulette } from "./pages/Roulette";
 import { Settings } from "./pages/Settings";
+import { FilmCritterRig } from "./pages/FilmCritterRig";
 import { PrivacyPolicy } from "./pages/PrivacyPolicy";
 import { TermsOfUse } from "./pages/TermsOfUse";
 import { Contact } from "./pages/Contact";
@@ -96,6 +97,7 @@ function routeFromPath(path = window.location.pathname): RouteState {
   if (pathname === "/upcoming") return { route: "/upcoming" };
   if (pathname === "/providers") return { route: "/providers" };
   if (pathname === "/settings") return { route: "/settings" };
+  if (pathname === "/film-critter-rig") return { route: "/film-critter-rig" };
   if (pathname === "/signin") return { route: "/signin" };
   if (pathname === "/signup") return { route: "/signup" };
   if (pathname.startsWith("/@")) return { route: "/@handle", handle: pathname.slice(2) };
@@ -352,6 +354,7 @@ export default function App() {
     "/upcoming": <UpcomingReleases playlists={ownedPlaylists} addToPlaylist={addToPlaylist} onNavigate={navigate} />,
     "/providers": playlistsPage("my"),
     "/settings": <Settings currentUser={currentUser} onNavigate={navigate} playlists={ownedPlaylists} />,
+    "/film-critter-rig": <FilmCritterRig />,
     "/signin": <AuthPage mode="signin" onAuth={handleAuthenticated} onNavigate={navigate} />,
     "/signup": <AuthPage mode="signup" onAuth={handleAuthenticated} onNavigate={navigate} />,
     "/@handle": <PublicProfile handle={routeState.handle || ""} onNavigate={navigate} />,

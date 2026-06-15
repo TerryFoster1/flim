@@ -8309,109 +8309,39 @@ textarea { min-height: 42px; resize: vertical; }
 }
 
 .avatar-skin-art {
-  --skin-face-x: 50%;
-  --skin-face-y: 40%;
-  --skin-face-w: 44%;
-  --skin-face-h: 36%;
-  --skin-avatar-scale: 138%;
-  --skin-avatar-x: 50%;
-  --skin-avatar-y: 56%;
   background: linear-gradient(180deg, #e8e8e8, #cfcfcf);
   border: 1px solid rgba(255, 255, 255, 0.46);
   border-radius: 18px;
   display: grid;
   height: 132px;
-  justify-items: center;
+  place-items: center;
   overflow: hidden;
   position: relative;
   width: 126px;
 }
 
-.avatar-skin-face-window {
-  border-radius: 999px;
-  height: var(--skin-face-h);
-  left: var(--skin-face-x);
+.film-critter-composite {
+  aspect-ratio: 1;
+  display: block;
   overflow: hidden;
-  position: absolute;
-  top: var(--skin-face-y);
-  transform: translate(-50%, -50%);
-  width: var(--skin-face-w);
-  z-index: 0;
+  position: relative;
+  width: 100%;
 }
 
-.avatar-skin-base {
-  height: var(--skin-avatar-scale);
-  left: var(--skin-avatar-x);
-  object-fit: contain;
-  position: absolute;
-  top: var(--skin-avatar-y);
-  transform: translate(-50%, -50%);
-  width: var(--skin-avatar-scale);
-}
-
-.avatar-skin-art-rex {
-  --skin-face-x: 62%;
-  --skin-face-y: 45%;
-  --skin-face-w: 45%;
-  --skin-face-h: 36%;
-}
-
-.avatar-skin-art-spaceman {
-  --skin-face-x: 50%;
-  --skin-face-y: 36%;
-  --skin-face-w: 47%;
-  --skin-face-h: 36%;
-}
-
-.avatar-skin-art-gearbox {
-  --skin-face-x: 50%;
-  --skin-face-y: 40%;
-  --skin-face-w: 43%;
-  --skin-face-h: 35%;
-}
-
-.avatar-skin-art-spook {
-  --skin-face-x: 50%;
-  --skin-face-y: 39%;
-  --skin-face-w: 36%;
-  --skin-face-h: 34%;
-}
-
-.avatar-skin-art-peg-leg {
-  --skin-face-x: 50%;
-  --skin-face-y: 42%;
-  --skin-face-w: 45%;
-  --skin-face-h: 36%;
-}
-
-.avatar-skin-art-hocus {
-  --skin-face-x: 50%;
-  --skin-face-y: 42%;
-  --skin-face-w: 43%;
-  --skin-face-h: 35%;
-}
-
-.avatar-skin-art-ninjin {
-  --skin-face-x: 50%;
-  --skin-face-y: 42%;
-  --skin-face-w: 42%;
-  --skin-face-h: 34%;
-}
-
-.avatar-skin-art-magnifico {
-  --skin-face-x: 50%;
-  --skin-face-y: 42%;
-  --skin-face-w: 42%;
-  --skin-face-h: 36%;
-}
-
-.avatar-skin-costume {
+.film-critter-layer {
   height: 100%;
   inset: 0;
   object-fit: contain;
   object-position: center center;
   position: absolute;
   width: 100%;
+}
+
+.film-critter-base-layer {
+  z-index: 0;
+}
+
+.film-critter-skin-layer {
   z-index: 1;
 }
 
@@ -8455,6 +8385,134 @@ textarea { min-height: 42px; resize: vertical; }
   color: var(--text);
   font-size: 0.88rem;
   line-height: 1.2;
+}
+
+.film-critter-rig-page {
+  display: grid;
+  gap: 18px;
+}
+
+.rig-spec-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  margin: 0;
+}
+
+.rig-spec-grid div {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 10px;
+}
+
+.rig-spec-grid dt {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.rig-spec-grid dd {
+  margin: 4px 0 0;
+  font-weight: 900;
+}
+
+.rig-warning,
+.rig-success {
+  border-radius: 12px;
+  font-weight: 800;
+  margin: 12px 0 0;
+  padding: 10px 12px;
+}
+
+.rig-warning {
+  background: rgba(255, 191, 52, 0.12);
+  border: 1px solid rgba(255, 191, 52, 0.28);
+  color: var(--gold);
+}
+
+.rig-success {
+  background: rgba(104, 225, 181, 0.12);
+  border: 1px solid rgba(104, 225, 181, 0.28);
+  color: var(--mint);
+}
+
+.rig-asset-grid,
+.rig-combination-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.rig-asset-grid {
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+}
+
+.rig-combination-grid {
+  grid-template-columns: repeat(auto-fit, minmax(108px, 1fr));
+}
+
+.rig-asset-card,
+.rig-combo-card {
+  align-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.045);
+  display: grid;
+  gap: 7px;
+  justify-items: center;
+  padding: 10px;
+  text-align: center;
+}
+
+.rig-asset-card .film-critter-composite {
+  background: linear-gradient(180deg, #e8e8e8, #cfcfcf);
+  border-radius: 14px;
+  width: min(118px, 100%);
+}
+
+.rig-combo-card .film-critter-composite {
+  background: linear-gradient(180deg, #e8e8e8, #cfcfcf);
+  border-radius: 12px;
+  width: min(96px, 100%);
+}
+
+.rig-combo-card.is-invalid {
+  border-color: rgba(255, 191, 52, 0.32);
+}
+
+.rig-asset-card strong,
+.rig-combo-card span {
+  font-size: 0.82rem;
+  line-height: 1.2;
+}
+
+.rig-combo-card small {
+  color: var(--muted);
+  font-size: 0.7rem;
+  line-height: 1.2;
+}
+
+.rig-badge {
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 900;
+  padding: 4px 8px;
+}
+
+.rig-badge.is-loading {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--muted);
+}
+
+.rig-badge.is-valid {
+  background: rgba(104, 225, 181, 0.16);
+  color: var(--mint);
+}
+
+.rig-badge.is-invalid {
+  background: rgba(255, 191, 52, 0.16);
+  color: var(--gold);
 }
 
 .public-profile-page {

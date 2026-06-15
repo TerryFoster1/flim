@@ -31,6 +31,7 @@ export type AppRoute =
   | "/followed-titles"
   | "/providers"
   | "/settings"
+  | "/film-critter-rig"
   | "/signin"
   | "/signup"
   | "/@handle"

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { InstallFlimPrompt } from "../components/InstallFlimPrompt";
 import { FlimAvatar } from "../components/FlimAvatar";
+import { FilmCritterComposite } from "../components/FilmCritterComposite";
 import { ProviderLogo } from "../components/ProviderLogo";
 import { PushNotificationSettings } from "../components/PushNotificationSettings";
 import { avatarSkins, defaultAvatarKey, flimAvatars, getFlimAvatar } from "../avatarCatalog";
@@ -231,12 +232,8 @@ export function Settings({ currentUser, onNavigate, playlists = [] }: SettingsPr
               <div className="avatar-skin-grid" aria-label="Locked Film Critter skins">
                 {avatarSkins.map((skin) => (
                   <span className={`avatar-skin-chip avatar-skin-${skin.rarity} is-locked`} key={skin.id} title={`${skin.name} skin locked`}>
-                    <span className={`avatar-skin-art avatar-skin-art-${skin.id}`} aria-hidden="true">
-                      <span className="avatar-skin-face-window">
-                        <img className="avatar-skin-base" src={selectedAvatar.imagePath} alt="" loading="lazy" decoding="async" />
-                      </span>
-                      <img className="avatar-skin-costume" src={skin.imagePath} alt="" loading="lazy" decoding="async" />
-                      <span className="avatar-skin-lock" />
+                    <span className="avatar-skin-art">
+                      <FilmCritterComposite avatar={selectedAvatar} skin={skin} locked />
                     </span>
                     <strong>{skin.name}</strong>
                   </span>
