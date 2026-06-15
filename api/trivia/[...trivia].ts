@@ -43,7 +43,7 @@ interface EasterEggDraft {
 }
 
 const REPORT_THRESHOLD = 3;
-const TRIVIA_VERSION = "movie-fan-v5";
+const TRIVIA_VERSION = "movie-fan-v6";
 const TRIVIA_TARGET_COUNT = 40;
 const TRIVIA_MIN_READY_COUNT = 20;
 const SOURCE_LABELS = ["TMDb metadata"];
@@ -475,6 +475,31 @@ function contextualTrivia(details: any, sourceContext?: TriviaSourceContext): Tr
 function curatedFanTrivia(details: any): TriviaDraft[] {
   const mediaType = normalizeMediaType(details.mediaType);
 
+  if (mediaType === "tv" && titleMatches(details, [198178], ["Wonder Man"])) {
+    return fanPack([
+      ["In Marvel lore, what is Wonder Man's civilian name?", "Simon Williams", ["Eric Williams", "Simon Stroud", "Trevor Slattery"], "Wonder Man is the superhero identity most associated with Simon Williams.", "easy"],
+      ["What kind of energy is central to Wonder Man's powers?", "Ionic energy", ["Gamma radiation", "Cosmic rays", "Vibranium resonance"], "Wonder Man's powers are traditionally tied to ionic energy and an altered ionic body.", "easy"],
+      ["Which superhero team is Wonder Man most famously associated with?", "The Avengers", ["The Fantastic Four", "The Guardians of the Galaxy", "The Defenders"], "Wonder Man has a long comic-book history as an Avenger.", "easy"],
+      ["What villainous identity is used by Simon Williams's brother Eric?", "Grim Reaper", ["Whirlwind", "The Hood", "Crossfire"], "Eric Williams, Simon's brother, is better known in Marvel comics as Grim Reaper.", "medium"],
+      ["Which classic Avengers villain originally manipulates Simon Williams in Wonder Man's origin?", "Baron Zemo", ["Doctor Doom", "Kingpin", "Red Skull"], "Early Wonder Man stories connect Simon's transformation to Baron Zemo's schemes against the Avengers.", "medium"],
+      ["What failing part of Simon Williams's life helps push him into danger before becoming Wonder Man?", "His business empire", ["His space program", "His sorcery school", "His detective agency"], "Simon is often portrayed as a businessman whose failed company and resentment make him vulnerable to manipulation.", "medium"],
+      ["Which synthezoid has a famous connection to Wonder Man's brain patterns?", "Vision", ["Ultron", "Machine Man", "Jocasta"], "Marvel lore ties Vision's mind patterns to Simon Williams, creating one of Wonder Man's most important relationships.", "medium"],
+      ["Which Avenger is central to the emotional triangle involving Wonder Man and Vision?", "Scarlet Witch", ["Black Widow", "She-Hulk", "Wasp"], "Scarlet Witch, Vision, and Wonder Man share a complicated emotional history in Avengers comics.", "hard"],
+      ["What entertainment career does Simon Williams pursue in many Wonder Man stories?", "Acting", ["Professional boxing", "Stage magic", "News anchoring"], "Wonder Man's Hollywood and acting ambitions are a major part of his character identity.", "easy"],
+      ["What makes Wonder Man physically unusual compared with many human heroes?", "His body is powered by ionic energy", ["He is made of adamantium", "He is a clone of Thor", "He is permanently invisible"], "Wonder Man's ionic body is a key part of his durability and power set.", "medium"],
+      ["What tension often defines Wonder Man as a character?", "Celebrity ambition versus superhero responsibility", ["Time travel versus ancient prophecy", "Royal duty versus ocean politics", "Secret magic versus school exams"], "Wonder Man stories often play with fame, performance, and the responsibility of being a hero.", "medium"],
+      ["Which Marvel robot villain is indirectly tied to Wonder Man through Vision's history?", "Ultron", ["M.O.D.O.K.", "Arnim Zola", "Sentinel Prime"], "Vision's creation and history connect Wonder Man's lore to Ultron and the wider Avengers mythology.", "hard"],
+      ["What is Wonder Man often afraid of despite his great power?", "Dying again", ["Flying too high", "Losing his costume", "Speaking on camera"], "Wonder Man's relationship with death and resurrection has been an important recurring element in his stories.", "hard"],
+      ["What kind of Marvel story does Wonder Man naturally support?", "A superhero satire about fame and performance", ["A medieval dragon quest", "A courtroom-only procedural", "A silent nature documentary"], "The character's Hollywood identity gives Wonder Man room to explore superhero celebrity and show business.", "medium"],
+      ["Which part of Wonder Man's comic history makes him useful for stories about identity?", "His links to Vision's mind and Simon's public persona", ["His ownership of Wakanda", "His command of the Nova Corps", "His role as Spider-Man's uncle"], "Wonder Man sits at a strange intersection of personhood, celebrity, and Avengers lore.", "expert"],
+      ["What is the name of Wonder Man's brother before he becomes Grim Reaper?", "Eric Williams", ["Eddie Brock", "Emil Blonsky", "Eli Bradley"], "Eric Williams is Simon's brother and one of the personal ties that complicates Wonder Man's story.", "hard"],
+      ["What role does Hollywood usually play in Wonder Man stories?", "It reflects Simon's desire to be seen as a star", ["It hides the Infinity Stones", "It trains sorcerers", "It replaces Avengers Tower"], "Simon's show-business life is not just decoration; it is part of how the character explores image and ambition.", "hard"],
+      ["What kind of origin mistake does Simon Williams make in early Wonder Man lore?", "He lets resentment make him useful to villains", ["He destroys Asgard by accident", "He steals Captain America's shield", "He opens a portal to the Dark Dimension"], "Wonder Man begins with compromised choices before becoming a more heroic figure.", "expert"],
+      ["Which relationship makes Wonder Man more than a simple powerhouse?", "His connection to Vision's identity", ["His rivalry with J. Jonah Jameson", "His mentorship of Rocket Raccoon", "His ownership of the Daily Bugle"], "The Vision connection gives Wonder Man lore a deeper question about memory, identity, and personhood.", "expert"],
+      ["What makes Wonder Man a good fit for Flim-style trivia?", "His stories combine Avengers lore, Hollywood satire, and character history", ["His only known fact is a release date", "His story has no comic background", "His lore is limited to runtime metadata"], "Wonder Man has enough character and franchise context for actual fan trivia without relying on synopsis questions.", "easy"],
+    ]);
+  }
+
   if (mediaType === "movie" && titleMatches(details, [865], ["The Running Man"])) {
     return fanPack([
       ["What crime is Ben Richards framed for before he is forced into the game?", "Massacring civilians during a food riot", ["Stealing government secrets", "Assassinating a network executive", "Blowing up a prison transport"], "Ben is turned into a public villain through edited footage that blames him for refusing an order.", "easy"],
@@ -876,6 +901,21 @@ function isHighQualityTriviaDraft(draft: TriviaDraft, title: string, seenQuestio
     "which director",
     "which performer",
     "is credited as",
+    "viewing experience",
+    "story setup",
+    "opening premise",
+    "best matches",
+    "based on the synopsis",
+    "title context",
+    "good fan trivia angle",
+    "source context",
+    "source grounded",
+    "generated pack",
+    "fallback",
+    "cache",
+    "app diagnostics",
+    "difficulty curve",
+    "question feel",
   ];
 
   if (draft.confidence < 0.74) return false;
@@ -891,14 +931,13 @@ function isHighQualityTriviaDraft(draft: TriviaDraft, title: string, seenQuestio
   return true;
 }
 
-function generateTrivia(details: any, sourceContext?: TriviaSourceContext): TriviaDraft[] {
+function generateTrivia(details: any): TriviaDraft[] {
   const mediaType = normalizeMediaType(details.mediaType);
   const title = details.title || "this title";
   const seenQuestions = new Set<string>();
   const seenAnswers = new Set<string>();
   const drafts = [
     ...curatedTrivia({ ...details, mediaType }),
-    ...contextualTrivia({ ...details, mediaType }, sourceContext),
   ];
 
   return drafts
@@ -1106,8 +1145,7 @@ async function loadTitleDetails(sql: any, tmdbId: number, mediaType: MediaType) 
 
 async function generateAndStoreTrivia(sql: any, tmdbId: number, mediaType: MediaType, userId?: string) {
   const details = await loadTitleDetails(sql, tmdbId, mediaType);
-  const sourceContext = await gatherTriviaSourceContext({ ...details, mediaType, tmdbId });
-  const drafts = generateTrivia(details, sourceContext);
+  const drafts = generateTrivia(details);
 
   for (const draft of drafts) {
     const sourceHash = `${TRIVIA_VERSION}:${draft.difficulty}:${hashSource({
