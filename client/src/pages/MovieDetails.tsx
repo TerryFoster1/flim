@@ -452,20 +452,6 @@ export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addTo
               <WhereToWatch movie={normalizedMovie} />
             </Suspense>
           </OptionalSectionBoundary>
-          {mediaType === "tv" ? (
-            <OptionalSectionBoundary key={`progress-${detailsKey}`} label="TV progress">
-              <Suspense fallback={<OptionalLoading label="TV progress" />}>
-                <TvProgressTracker show={normalizedMovie} />
-              </Suspense>
-            </OptionalSectionBoundary>
-          ) : null}
-          <OptionalSectionBoundary key={`extensions-${detailsKey}`} label="Trailers and extras">
-            <Suspense fallback={<OptionalLoading label="Trailers and extras" />}>
-              <MediaExtensions media={normalizedMovie} onNavigate={onNavigate} />
-            </Suspense>
-          </OptionalSectionBoundary>
-          <TitleTriviaGamesCard movie={normalizedMovie} onNavigate={onNavigate} />
-          <TitleSoundtrackCard movie={normalizedMovie} />
           {normalizedMovie.cast && normalizedMovie.cast.length > 0 ? (
             <section className="cast-section">
               <div className="actor-section-heading">
@@ -488,6 +474,20 @@ export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addTo
               </div>
             </section>
           ) : null}
+          {mediaType === "tv" ? (
+            <OptionalSectionBoundary key={`progress-${detailsKey}`} label="TV progress">
+              <Suspense fallback={<OptionalLoading label="TV progress" />}>
+                <TvProgressTracker show={normalizedMovie} />
+              </Suspense>
+            </OptionalSectionBoundary>
+          ) : null}
+          <OptionalSectionBoundary key={`extensions-${detailsKey}`} label="Trailers and extras">
+            <Suspense fallback={<OptionalLoading label="Trailers and extras" />}>
+              <MediaExtensions media={normalizedMovie} onNavigate={onNavigate} />
+            </Suspense>
+          </OptionalSectionBoundary>
+          <TitleTriviaGamesCard movie={normalizedMovie} onNavigate={onNavigate} />
+          <TitleSoundtrackCard movie={normalizedMovie} />
           {onNavigate ? (
             <OptionalSectionBoundary key={`recommendations-${detailsKey}`} label="Recommendations">
               <RecommendationShelf
