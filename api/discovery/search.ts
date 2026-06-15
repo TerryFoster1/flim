@@ -401,7 +401,7 @@ function matchingTitleSeeds(query: string) {
   for (const seed of broadTitleSearchSeeds) {
     const hit = seed.triggers.some((trigger) => {
       const normalizedTrigger = normalizeSearchText(trigger);
-      return normalized.includes(normalizedTrigger) || terms.some((term) => term.includes(normalizedTrigger) || normalizedTrigger.includes(term));
+      return normalized.includes(normalizedTrigger) || terms.some((term) => term === normalizedTrigger || term.includes(normalizedTrigger));
     });
     if (!hit) continue;
     for (const title of seed.titles) {
