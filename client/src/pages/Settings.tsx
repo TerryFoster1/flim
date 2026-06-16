@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { InstallFlimPrompt } from "../components/InstallFlimPrompt";
 import { FlimAvatar } from "../components/FlimAvatar";
-import { FilmCritterComposite } from "../components/FilmCritterComposite";
 import { ProviderLogo } from "../components/ProviderLogo";
 import { PushNotificationSettings } from "../components/PushNotificationSettings";
-import { avatarSkins, defaultAvatarKey, flimAvatars, getFlimAvatar } from "../avatarCatalog";
+import { defaultAvatarKey, flimAvatars, getFlimAvatar } from "../avatarCatalog";
 import { getCurrentProfile, saveCurrentProfile } from "../services/profileService";
 import { normalizeStreamingRegion, supportedStreamingRegions, watchProviders } from "../services/watchProviderService";
 import type { CurrentUser, Playlist, UserProfile } from "../types";
@@ -234,22 +233,6 @@ export function Settings({ currentUser, onNavigate, playlists = [] }: SettingsPr
                   </button>
                 );
               })}
-            </div>
-            <div className="avatar-skin-preview" aria-label="Avatar skins">
-              <div>
-                <h3>Skins</h3>
-                <p>Play trivia, challenges, and events to unlock exclusive Film Critter skins.</p>
-              </div>
-              <div className="avatar-skin-grid" aria-label="Locked Film Critter skins">
-                {avatarSkins.map((skin) => (
-                  <span className={`avatar-skin-chip avatar-skin-${skin.rarity} is-locked`} key={skin.id} title={`${skin.name} skin locked`}>
-                    <span className="avatar-skin-art">
-                      <FilmCritterComposite avatar={selectedAvatar} skin={skin} locked />
-                    </span>
-                    <strong>{skin.name}</strong>
-                  </span>
-                ))}
-              </div>
             </div>
           </div>
           <div className="profile-favorites-form">
