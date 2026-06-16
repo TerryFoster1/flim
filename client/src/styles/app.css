@@ -5966,14 +5966,18 @@ textarea { min-height: 42px; resize: vertical; }
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center 34%;
   opacity: .9;
+  transform: scale(1.18);
 }
 
 .arcade-featured-trivia-card::after {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(0deg, rgba(8,9,13,.94), rgba(8,9,13,.18) 54%, rgba(8,9,13,.1));
+  background:
+    linear-gradient(0deg, rgba(8,9,13,.98) 0%, rgba(8,9,13,.94) 34%, rgba(8,9,13,.32) 68%, rgba(8,9,13,.16) 100%),
+    linear-gradient(90deg, rgba(8,9,13,.86), transparent 58%);
 }
 
 .arcade-featured-trivia-card > div {
@@ -5981,6 +5985,7 @@ textarea { min-height: 42px; resize: vertical; }
   inset: auto 0 0;
   z-index: 1;
   padding: clamp(16px, 3vw, 24px);
+  background: linear-gradient(0deg, rgba(8,9,13,.98), rgba(8,9,13,.88) 74%, transparent);
 }
 
 .arcade-featured-trivia-card span,

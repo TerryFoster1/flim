@@ -2,10 +2,9 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react"
 import { ShareAssetButton } from "../components/ShareAssetButton";
 import { createFriendChallenge, getFriendChallengeHistory } from "../services/friendChallengeService";
 import { getSeasonalChallenges } from "../services/seasonalChallengeService";
-import { getTicketFeed } from "../services/ticketService";
 import { getMovieDetails, getTvDetails } from "../services/tmdbService";
 import { completeCompanionItem, getTitleTrivia, notifyTitleTriviaReady } from "../services/triviaService";
-import type { CompanionAchievement, FriendChallengeHistoryAttempt, FriendTriviaChallenge, MediaType, MovieDetails, SeasonalChallengeEvent, TicketAward, TicketFeed, TriviaFeed, TriviaQuestion } from "../types";
+import type { CompanionAchievement, FriendChallengeHistoryAttempt, FriendTriviaChallenge, MediaType, MovieDetails, SeasonalChallengeEvent, TicketAward, TriviaFeed, TriviaQuestion } from "../types";
 
 interface TriviaGamesProps {
   onNavigate: (path: string) => void;
@@ -32,29 +31,6 @@ const triviaModeConfig: Record<TriviaRoundMode, { label: string; detail: string;
   casual: { label: "Casual", detail: "No timer. Best for relaxed play." },
   timed: { label: "Timed", detail: "20 seconds/question. Chase a personal best.", secondsPerQuestion: 20 },
 };
-
-const arcadeRewardCards = [
-  {
-    title: "Film Critters",
-    description: "Avatar identity for players, collectors, and movie-night regulars.",
-    image: "/avatars/base/classic.png",
-  },
-  {
-    title: "Tickets",
-    description: "Earned through play and challenge participation. Never purchased.",
-    image: "/avatars/skins/magnifico.png",
-  },
-  {
-    title: "Concession Stand",
-    description: "A home for cosmetics, profile themes, and event rewards as Arcade grows.",
-    image: "/avatars/skins/rex.png",
-  },
-  {
-    title: "Partner Rewards",
-    description: "Reserved for tasteful entertainment rewards that fit the Flim experience.",
-    image: "/avatars/skins/spaceman.png",
-  },
-];
 
 const popularTriviaTitles: Array<{ title: string; mediaType: MediaType; tmdbId: number; questionCount: number; badge: string }> = [
   {
@@ -367,128 +343,6 @@ function FeaturedChallengeCard({ event, onNavigate }: { event: SeasonalChallenge
   );
 }
 
-function TicketSummaryPanel() {
-  const [feed, setFeed] = useState<TicketFeed | null>(null);
-  const [status, setStatus] = useState<"loading" | "ready" | "signed_out" | "error">("loading");
-
-  useEffect(() => {
-    let mounted = true;
-    getTicketFeed()
-      .then((result) => {
-        if (!mounted) return;
-        setFeed(result);
-        setStatus("ready");
-      })
-      .catch((error) => {
-        if (!mounted) return;
-        setStatus(error instanceof Error && error.message.toLowerCase().includes("sign in") ? "signed_out" : "error");
-      });
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  if (status === "loading") {
-    return (
-      <section className="title-games-section ticket-summary-panel">
-        <p className="empty-state">Loading Tickets...</p>
-      </section>
-    );
-  }
-
-  if (status === "signed_out") {
-    return (
-      <section className="title-games-section ticket-summary-panel">
-        <div>
-          <span>Tickets</span>
-          <h2>Earn Tickets by playing Flim.</h2>
-          <p>Sign in to track ticket rewards from trivia, friend challenges, and seasonal events.</p>
-        </div>
-      </section>
-    );
-  }
-
-  if (status === "error" || !feed) return null;
-
-  return (
-    <section className="title-games-section ticket-summary-panel">
-      <div className="ticket-balance-card">
-        <span>Ticket Balance</span>
-        <strong>{feed.wallet.ticketBalance}</strong>
-        <small>{feed.wallet.lifetimeTicketsEarned} lifetime earned / never purchasable</small>
-        <p>Tickets are Flim's earned reward currency for future Film Critter skins, the Concession Stand, seasonal rewards, and partner rewards.</p>
-      </div>
-      <div className="ticket-earning-card">
-        <div className="actor-section-heading">
-          <h2>How To Earn Tickets</h2>
-          <span>Earned only</span>
-        </div>
-        <div className="ticket-rule-list">
-          {feed.earningRules.slice(0, 5).map((rule) => (
-            <article key={rule.ruleKey}>
-              <strong>{rule.name}</strong>
-              <span>{rule.ticketAmount} Tickets</span>
-              <small>{rule.description}</small>
-            </article>
-          ))}
-        </div>
-      </div>
-      <div className="ticket-purpose-card">
-        <span>What Tickets Unlock</span>
-        <strong>Concession Stand Coming Soon</strong>
-        <p>Skins, profile cosmetics, event rewards, and tasteful partner rewards will live here. Tickets are earned through play, not purchased.</p>
-      </div>
-      {feed.history.length > 0 ? (
-        <div className="ticket-history-card">
-          <div className="actor-section-heading">
-            <h2>Recent Earnings</h2>
-            <span>{feed.history.length}</span>
-          </div>
-          <div className="ticket-history-list">
-            {feed.history.slice(0, 5).map((transaction) => (
-              <article key={transaction.id}>
-                <strong>+{transaction.amount} Tickets</strong>
-                <span>{String(transaction.metadata?.ruleName || transaction.transactionType).replace(/_/g, " ")}</span>
-              </article>
-            ))}
-          </div>
-        </div>
-      ) : null}
-    </section>
-  );
-}
-
-function FriendsFamilyModePanel() {
-  return (
-    <section className="title-games-section friends-family-panel">
-      <div className="actor-section-heading">
-        <h2>Friends & Family</h2>
-        <span>Separate scoreboard</span>
-      </div>
-      <div className="friends-family-grid">
-        <article>
-          <span>Local Group Mode</span>
-          <h3>Movie Night</h3>
-          <p>Host a room for family nights, parties, and couch trivia with one shared scoreboard.</p>
-          <small>Architecture ready / live room hosting later</small>
-        </article>
-        <article>
-          <span>Online Friend Mode</span>
-          <h3>Beat My Score</h3>
-          <p>Finish trivia, share the same question set, and compare remote scores with friends.</p>
-          <small>Available through Challenge Friends after a completed pack</small>
-        </article>
-        <article>
-          <span>Rankings Stay Separate</span>
-          <h3>Personal / Public / Friends</h3>
-          <p>Personal bests, public challenge standings, and friend scoreboards are tracked separately.</p>
-          <small>No social feed, comments, or likes</small>
-        </article>
-      </div>
-    </section>
-  );
-}
-
 function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void }) {
   const [notifyMessage, setNotifyMessage] = useState("");
   const [featuredChallenges, setFeaturedChallenges] = useState<SeasonalChallengeEvent[]>([]);
@@ -599,34 +453,6 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
           ))}
         </div>
       </section>
-
-      <TicketSummaryPanel />
-
-      <section className="title-games-section arcade-reward-section">
-        <div className="actor-section-heading">
-          <h2>Rewards</h2>
-          <span>Earned by playing</span>
-        </div>
-        <div className="arcade-reward-grid">
-          {arcadeRewardCards.map((reward) => (
-            <article className="arcade-reward-card" key={reward.title}>
-              <img
-                alt=""
-                src={reward.image}
-                onError={(event) => {
-                  event.currentTarget.style.display = "none";
-                }}
-              />
-              <div>
-                <h3>{reward.title}</h3>
-                <p>{reward.description}</p>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <FriendsFamilyModePanel />
 
       <FriendChallengeHistory onNavigate={onNavigate} />
     </section>
