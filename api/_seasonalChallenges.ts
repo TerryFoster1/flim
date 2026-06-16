@@ -92,6 +92,42 @@ const defaultEvents = [
     ],
   },
   {
+    slug: "time-travel-challenge",
+    seasonKey: "time_travel",
+    name: "Time Travel Challenge",
+    description: "A 100-question movie challenge about paradoxes, loops, alternate timelines, and clock-bending adventures.",
+    startDate: "2026-01-01",
+    endDate: "2035-12-31",
+    badge: "Time Traveler",
+    banner: "time travel",
+    challengeType: "special_event",
+    isFeatured: true,
+    questionCount: 100,
+    difficulty: "hard",
+    points: 300,
+    requirements: [
+      { type: "trivia_completed", label: "Complete the Time Travel Challenge", target: 100, genre: "Sci-Fi" },
+    ],
+  },
+  {
+    slug: "adventure-pack",
+    seasonKey: "adventure",
+    name: "Adventure Pack",
+    description: "A 100-question expedition through treasure hunts, lost worlds, cursed artifacts, pirates, quests, and big-screen adventure.",
+    startDate: "2026-01-01",
+    endDate: "2035-12-31",
+    badge: "Explorer",
+    banner: "adventure",
+    challengeType: "special_event",
+    isFeatured: true,
+    questionCount: 100,
+    difficulty: "medium",
+    points: 300,
+    requirements: [
+      { type: "trivia_completed", label: "Complete the Adventure Pack", target: 100, genre: "Adventure" },
+    ],
+  },
+  {
     slug: "oscar-challenge-2026",
     seasonKey: "oscars",
     name: "Oscar Challenge",
@@ -394,6 +430,582 @@ evergreenChallengeQuestions.push(
   q("summer-blockbuster-2026", "Twister", 664, "scene", "hard", "In Twister, what flies through the air during a memorable roadside sequence?", "A cow", ["A shark", "A piano", "A dinosaur"], "The flying cow became one of Twister's most quoted images."),
 );
 
+interface EvergreenPackSeed {
+  slug: string;
+  title: string;
+  tmdbId: number;
+  facts: Array<{
+    category: string;
+    difficulty: EvergreenDifficulty;
+    question: string;
+    answer: string;
+    wrong: string[];
+    explanation: string;
+  }>;
+}
+
+function addEvergreenPackQuestions(seeds: EvergreenPackSeed[]) {
+  for (const seed of seeds) {
+    for (const fact of seed.facts) {
+      evergreenChallengeQuestions.push(
+        q(seed.slug, seed.title, seed.tmdbId, fact.category, fact.difficulty, fact.question, fact.answer, fact.wrong, fact.explanation),
+      );
+    }
+  }
+}
+
+addEvergreenPackQuestions([
+  {
+    slug: "time-travel-challenge",
+    title: "Back to the Future",
+    tmdbId: 105,
+    facts: [
+      { category: "vehicle", difficulty: "easy", question: "In Back to the Future, what car does Doc Brown turn into a time machine?", answer: "A DeLorean", wrong: ["A Ferrari", "A Volkswagen Beetle", "A Ford Mustang"], explanation: "The DeLorean is fitted with Doc's time-travel hardware." },
+      { category: "story", difficulty: "medium", question: "In Back to the Future, what must Marty make sure happens between George and Lorraine?", answer: "They fall in love", wrong: ["They leave Hill Valley", "They join a band", "They buy the DeLorean"], explanation: "Marty risks erasing himself unless his parents get together." },
+      { category: "setting", difficulty: "medium", question: "In Back to the Future, where does lightning need to strike for Marty to return home?", answer: "The clock tower", wrong: ["The high school gym", "Doc's garage", "Twin Pines Mall"], explanation: "Doc uses the clock tower lightning strike to power the DeLorean." },
+      { category: "villain", difficulty: "easy", question: "In Back to the Future, who bullies George McFly in 1955?", answer: "Biff Tannen", wrong: ["Mr. Strickland", "Goldie Wilson", "Marvin Berry"], explanation: "Biff is George's tormentor in both timelines." },
+      { category: "music", difficulty: "hard", question: "In Back to the Future, what song does Marty perform at the Enchantment Under the Sea dance?", answer: "Johnny B. Goode", wrong: ["Earth Angel", "Power of Love", "Blue Suede Shoes"], explanation: "Marty's performance gets a little ahead of 1955's musical taste." },
+    ],
+  },
+  {
+    slug: "time-travel-challenge",
+    title: "Back to the Future Part II",
+    tmdbId: 165,
+    facts: [
+      { category: "object", difficulty: "easy", question: "In Back to the Future Part II, what book does old Biff steal to change history?", answer: "A sports almanac", wrong: ["A spellbook", "A police file", "A stock ledger"], explanation: "The almanac lets Biff profit from future sports results." },
+      { category: "timeline", difficulty: "medium", question: "In Back to the Future Part II, what creates the dark alternate 1985?", answer: "Biff using future sports results", wrong: ["Doc losing the DeLorean", "Marty missing the dance", "A lightning storm hitting early"], explanation: "Old Biff gives young Biff the almanac and changes the timeline." },
+      { category: "setting", difficulty: "easy", question: "In Back to the Future Part II, what future year do Marty and Doc visit?", answer: "2015", wrong: ["2005", "2025", "2035"], explanation: "The film's future segment is set in 2015." },
+      { category: "object", difficulty: "medium", question: "In Back to the Future Part II, what futuristic board does Marty ride?", answer: "A hoverboard", wrong: ["A jet scooter", "A magnetic bike", "A rocket sled"], explanation: "The hoverboard chase is one of the sequel's signature scenes." },
+      { category: "story", difficulty: "hard", question: "In Back to the Future Part II, where must Marty recover the almanac in 1955?", answer: "At the school dance", wrong: ["At Twin Pines Mall", "At the courthouse roof", "At Doc's mansion"], explanation: "Marty returns to the night of the first film to fix the timeline." },
+    ],
+  },
+  {
+    slug: "time-travel-challenge",
+    title: "The Terminator",
+    tmdbId: 218,
+    facts: [
+      { category: "mission", difficulty: "easy", question: "In The Terminator, why is the Terminator sent back to 1984?", answer: "To kill Sarah Connor", wrong: ["To protect John Connor", "To steal Cyberdyne files", "To rescue Kyle Reese"], explanation: "Skynet tries to prevent John Connor from being born." },
+      { category: "protector", difficulty: "easy", question: "In The Terminator, who is sent back to protect Sarah Connor?", answer: "Kyle Reese", wrong: ["Miles Dyson", "John Connor", "T-1000"], explanation: "Kyle is sent by the human resistance." },
+      { category: "future", difficulty: "medium", question: "In The Terminator, what future computer system creates the machines?", answer: "Skynet", wrong: ["WOPR", "Mother", "VIKI"], explanation: "Skynet becomes self-aware and starts the war against humanity." },
+      { category: "scene", difficulty: "medium", question: "In The Terminator, where does Sarah first encounter Kyle during the chase?", answer: "Tech Noir", wrong: ["The police station", "A factory", "A motel"], explanation: "Kyle reveals himself in the nightclub Tech Noir." },
+      { category: "ending", difficulty: "hard", question: "In The Terminator, how does Sarah finally destroy the Terminator?", answer: "She crushes it in a hydraulic press", wrong: ["She freezes it", "She shoots it with a rocket", "She traps it in molten steel"], explanation: "Sarah uses the factory press to end the attack." },
+    ],
+  },
+  {
+    slug: "time-travel-challenge",
+    title: "Terminator 2: Judgment Day",
+    tmdbId: 280,
+    facts: [
+      { category: "mission", difficulty: "easy", question: "In Terminator 2: Judgment Day, what is the T-800 sent back to do?", answer: "Protect John Connor", wrong: ["Kill Sarah Connor", "Build Skynet", "Replace Miles Dyson"], explanation: "The reprogrammed T-800 protects young John." },
+      { category: "villain", difficulty: "easy", question: "In Terminator 2: Judgment Day, what liquid-metal model hunts John?", answer: "T-1000", wrong: ["T-800", "T-X", "Rev-9"], explanation: "The T-1000 can mimic people and reshape itself." },
+      { category: "location", difficulty: "medium", question: "In Terminator 2: Judgment Day, where is Sarah Connor held at the beginning?", answer: "Pescadero State Hospital", wrong: ["Cyberdyne Systems", "Skynet Prison", "Norris Labs"], explanation: "Sarah is institutionalized because of her warnings." },
+      { category: "story", difficulty: "medium", question: "In Terminator 2: Judgment Day, whose research is key to Skynet's creation?", answer: "Miles Dyson", wrong: ["Peter Silberman", "Danny Dyson", "Enrique Salceda"], explanation: "Dyson's Cyberdyne work leads toward Judgment Day." },
+      { category: "ending", difficulty: "hard", question: "In Terminator 2: Judgment Day, where is the T-1000 destroyed?", answer: "In molten steel", wrong: ["In a hydraulic press", "Inside a police car", "Under a freeway"], explanation: "The steel mill finale destroys the T-1000." },
+    ],
+  },
+  {
+    slug: "time-travel-challenge",
+    title: "Looper",
+    tmdbId: 59967,
+    facts: [
+      { category: "premise", difficulty: "easy", question: "In Looper, what do loopers do for future criminals?", answer: "Kill targets sent back in time", wrong: ["Repair time machines", "Guard a prison", "Erase memories"], explanation: "Victims are sent to the past where loopers execute them." },
+      { category: "story", difficulty: "medium", question: "In Looper, what does it mean when a looper closes his loop?", answer: "He kills his future self", wrong: ["He destroys the city", "He joins the mob", "He forgets his past"], explanation: "Closing the loop gives the looper a payout but seals his fate." },
+      { category: "character", difficulty: "medium", question: "In Looper, what is young Joe's older self trying to prevent?", answer: "The rise of the Rainmaker", wrong: ["A bank robbery", "A space launch", "A zombie outbreak"], explanation: "Old Joe hunts the child who may become the Rainmaker." },
+      { category: "power", difficulty: "hard", question: "In Looper, what ability does Cid possess?", answer: "Powerful telekinesis", wrong: ["Mind reading", "Invisibility", "Time freezing"], explanation: "Cid's TK power makes him frighteningly dangerous." },
+      { category: "ending", difficulty: "hard", question: "In Looper, how does young Joe break the cycle?", answer: "He kills himself", wrong: ["He steals a time machine", "He sends Cid away", "He traps Old Joe in the future"], explanation: "Young Joe sacrifices himself to stop Old Joe's violence." },
+    ],
+  },
+  {
+    slug: "time-travel-challenge",
+    title: "12 Monkeys",
+    tmdbId: 63,
+    facts: [
+      { category: "mission", difficulty: "easy", question: "In 12 Monkeys, why is James Cole sent into the past?", answer: "To gather information about a deadly virus", wrong: ["To win a war", "To rescue his brother", "To steal a cure"], explanation: "Cole is sent back to investigate the plague's origin." },
+      { category: "group", difficulty: "medium", question: "In 12 Monkeys, what group does Cole believe is connected to the outbreak?", answer: "The Army of the Twelve Monkeys", wrong: ["The Time Variance Authority", "The Resistance", "The Lazarus Group"], explanation: "The group appears to be a key clue in the mystery." },
+      { category: "character", difficulty: "medium", question: "In 12 Monkeys, which eccentric character is linked to the animal-rights group?", answer: "Jeffrey Goines", wrong: ["Jose", "Dr. Peters", "Leland Goines"], explanation: "Jeffrey's behavior misdirects Cole's investigation." },
+      { category: "setting", difficulty: "hard", question: "In 12 Monkeys, where does the recurring childhood memory take place?", answer: "An airport", wrong: ["A subway tunnel", "A zoo", "A hospital ward"], explanation: "The airport scene becomes central to the time loop." },
+      { category: "theme", difficulty: "hard", question: "In 12 Monkeys, what does Cole struggle to distinguish during his mission?", answer: "Memory, madness, and reality", wrong: ["Dreams and cloning", "Robots and humans", "Magic and science"], explanation: "The film keeps Cole's perception unstable." },
+    ],
+  },
+  {
+    slug: "time-travel-challenge",
+    title: "Edge of Tomorrow",
+    tmdbId: 137113,
+    facts: [
+      { category: "loop", difficulty: "easy", question: "In Edge of Tomorrow, what happens to Cage every time he dies?", answer: "He wakes up at the start of the same day", wrong: ["He changes bodies", "He becomes invisible", "He loses a year"], explanation: "Cage is trapped in a combat time loop." },
+      { category: "character", difficulty: "easy", question: "In Edge of Tomorrow, what nickname is Rita Vrataski known by?", answer: "Full Metal Bitch", wrong: ["Angel of Verdun", "Iron Lady", "Omega Queen"], explanation: "Rita earned the nickname after her battlefield victory." },
+      { category: "enemy", difficulty: "medium", question: "In Edge of Tomorrow, what alien force is humanity fighting?", answer: "Mimics", wrong: ["Xenomorphs", "Tripods", "Kaiju"], explanation: "The Mimics can manipulate the war through time-loop power." },
+      { category: "story", difficulty: "medium", question: "In Edge of Tomorrow, why does Rita understand Cage's looping experience?", answer: "She once had the same power", wrong: ["She built the loop", "She is from the future", "She reads his mind"], explanation: "Rita lost the looping ability after a blood transfusion." },
+      { category: "location", difficulty: "hard", question: "In Edge of Tomorrow, where do Cage and Rita seek the Omega?", answer: "The Louvre", wrong: ["The Eiffel Tower", "Buckingham Palace", "The Pentagon"], explanation: "The final assault targets the Omega beneath the Louvre." },
+    ],
+  },
+  {
+    slug: "time-travel-challenge",
+    title: "Groundhog Day",
+    tmdbId: 137,
+    facts: [
+      { category: "loop", difficulty: "easy", question: "In Groundhog Day, what day does Phil Connors keep repeating?", answer: "Groundhog Day", wrong: ["Christmas Eve", "New Year's Day", "Thanksgiving"], explanation: "Phil relives February 2 again and again." },
+      { category: "setting", difficulty: "easy", question: "In Groundhog Day, what town traps Phil in the time loop?", answer: "Punxsutawney", wrong: ["Bedford Falls", "Hill Valley", "Kingston Falls"], explanation: "Phil travels to Punxsutawney for the Groundhog Day broadcast." },
+      { category: "job", difficulty: "medium", question: "In Groundhog Day, what is Phil Connors' job?", answer: "TV weatherman", wrong: ["Radio host", "Newspaper editor", "Mayor"], explanation: "Phil covers the annual groundhog ceremony." },
+      { category: "character", difficulty: "medium", question: "In Groundhog Day, who gradually becomes Phil's emotional anchor?", answer: "Rita", wrong: ["Nancy", "Debbie", "Mrs. Lancaster"], explanation: "Phil's connection with Rita helps him change." },
+      { category: "growth", difficulty: "hard", question: "In Groundhog Day, what finally changes Phil's repeated day?", answer: "He becomes genuinely selfless", wrong: ["He breaks the clock", "He leaves town early", "He catches the groundhog"], explanation: "The loop ends after Phil grows into a better person." },
+    ],
+  },
+  {
+    slug: "time-travel-challenge",
+    title: "Bill & Ted's Excellent Adventure",
+    tmdbId: 1648,
+    facts: [
+      { category: "object", difficulty: "easy", question: "In Bill & Ted's Excellent Adventure, what do Bill and Ted use to travel through time?", answer: "A phone booth", wrong: ["A DeLorean", "A hot tub", "A police box"], explanation: "Rufus gives them access to a time-traveling phone booth." },
+      { category: "goal", difficulty: "easy", question: "In Bill & Ted's Excellent Adventure, why do Bill and Ted collect historical figures?", answer: "For their history presentation", wrong: ["To win a battle", "To rob a museum", "To start a band tour"], explanation: "They need to pass history to keep their future intact." },
+      { category: "character", difficulty: "medium", question: "In Bill & Ted's Excellent Adventure, who guides Bill and Ted from the future?", answer: "Rufus", wrong: ["Socrates", "De Nomolos", "Station"], explanation: "Rufus helps them understand their importance." },
+      { category: "history", difficulty: "medium", question: "In Bill & Ted's Excellent Adventure, which military leader goes wild at a water park?", answer: "Napoleon", wrong: ["Genghis Khan", "Billy the Kid", "Caesar"], explanation: "Napoleon's modern adventures include the water park." },
+      { category: "catchphrase", difficulty: "hard", question: "In Bill & Ted's Excellent Adventure, what advice sums up the duo's philosophy?", answer: "Be excellent to each other", wrong: ["Never cross the streams", "No fate but what we make", "There can be only one"], explanation: "The phrase becomes the film's good-natured credo." },
+    ],
+  },
+  {
+    slug: "time-travel-challenge",
+    title: "Primer",
+    tmdbId: 14337,
+    facts: [
+      { category: "device", difficulty: "medium", question: "In Primer, what do Abe and Aaron accidentally create?", answer: "A time machine", wrong: ["A teleportation gate", "A fusion reactor", "A cloning pod"], explanation: "Their garage experiment produces a box that enables time travel." },
+      { category: "method", difficulty: "hard", question: "In Primer, how does the time machine's travel window work?", answer: "Users travel back to when the box was turned on", wrong: ["Users jump to any date", "Users freeze everyone else", "Users swap universes"], explanation: "The box creates a bounded loop tied to its activation time." },
+      { category: "story", difficulty: "hard", question: "In Primer, why do the timelines become difficult to track?", answer: "Multiple versions and secret loops overlap", wrong: ["The world resets every day", "Aliens alter memories", "The machine erases all evidence"], explanation: "The characters create competing loops and doubles." },
+      { category: "setting", difficulty: "medium", question: "In Primer, where do the inventors begin their project?", answer: "A garage", wrong: ["A university lab", "A military base", "A spaceship"], explanation: "The film's low-key setting emphasizes garage invention." },
+      { category: "theme", difficulty: "hard", question: "In Primer, what mainly damages Abe and Aaron's partnership?", answer: "Distrust over hidden time loops", wrong: ["A public trial", "A romantic rivalry", "A monster attack"], explanation: "Their secrecy and manipulation fracture the partnership." },
+    ],
+  },
+  {
+    slug: "time-travel-challenge",
+    title: "Source Code",
+    tmdbId: 45612,
+    facts: [
+      { category: "mission", difficulty: "easy", question: "In Source Code, what disaster is Colter Stevens repeatedly investigating?", answer: "A train bombing", wrong: ["A plane hijacking", "A bridge collapse", "A bank explosion"], explanation: "Colter relives minutes before a commuter train explodes." },
+      { category: "system", difficulty: "medium", question: "In Source Code, how much time does Colter relive during each attempt?", answer: "Eight minutes", wrong: ["One hour", "Twenty minutes", "One day"], explanation: "The Source Code simulation gives him eight-minute windows." },
+      { category: "goal", difficulty: "medium", question: "In Source Code, what must Colter identify before another attack happens?", answer: "The bomber", wrong: ["A hidden treasure", "A missing astronaut", "A corrupt judge"], explanation: "The mission is to prevent a second attack." },
+      { category: "character", difficulty: "hard", question: "In Source Code, whose body does Colter experience on the train?", answer: "Sean Fentress", wrong: ["Derek Frost", "Goodwin", "Rutledge"], explanation: "Colter sees himself as Sean inside the Source Code." },
+      { category: "emotion", difficulty: "hard", question: "In Source Code, what personal truth is Colter forced to confront?", answer: "He is being kept alive after a fatal injury", wrong: ["He caused the bombing", "He is a robot", "He is from the future"], explanation: "The program depends on Colter's remaining consciousness." },
+    ],
+  },
+  {
+    slug: "time-travel-challenge",
+    title: "About Time",
+    tmdbId: 122906,
+    facts: [
+      { category: "power", difficulty: "easy", question: "In About Time, what ability do the men in Tim's family have?", answer: "They can travel through time within their own lives", wrong: ["They can stop aging", "They can read minds", "They can predict lottery numbers"], explanation: "Tim learns he can revisit moments from his own past." },
+      { category: "relationship", difficulty: "easy", question: "In About Time, who becomes Tim's romantic partner?", answer: "Mary", wrong: ["Charlotte", "Kit Kat", "Joanna"], explanation: "Tim and Mary's relationship drives much of the story." },
+      { category: "rule", difficulty: "medium", question: "In About Time, what limitation makes changing the past emotionally risky after having children?", answer: "It can change which child is born", wrong: ["It destroys the house", "It erases all memories", "It stops time forever"], explanation: "Small changes can alter conception and rewrite Tim's children." },
+      { category: "family", difficulty: "medium", question: "In About Time, who teaches Tim about the family ability?", answer: "His father", wrong: ["His uncle", "His mother", "His sister"], explanation: "Tim's father explains the family's time-travel secret." },
+      { category: "theme", difficulty: "hard", question: "In About Time, what does Tim ultimately learn to value without changing it?", answer: "Ordinary daily life", wrong: ["Fame", "A perfect job title", "Winning every argument"], explanation: "The film uses time travel to celebrate everyday moments." },
+    ],
+  },
+  {
+    slug: "time-travel-challenge",
+    title: "X-Men: Days of Future Past",
+    tmdbId: 127585,
+    facts: [
+      { category: "mission", difficulty: "easy", question: "In X-Men: Days of Future Past, whose consciousness is sent into the past?", answer: "Wolverine", wrong: ["Professor X", "Mystique", "Magneto"], explanation: "Wolverine's mind is sent back because he can survive the strain." },
+      { category: "threat", difficulty: "medium", question: "In X-Men: Days of Future Past, what machines dominate the dark future?", answer: "Sentinels", wrong: ["Ultrons", "Terminators", "Jaegers"], explanation: "Sentinels hunt mutants and humans who may carry mutant genes." },
+      { category: "story", difficulty: "medium", question: "In X-Men: Days of Future Past, whose assassination must be prevented?", answer: "Bolivar Trask", wrong: ["William Stryker", "Senator Kelly", "Sebastian Shaw"], explanation: "Mystique's killing of Trask accelerates the Sentinel program." },
+      { category: "scene", difficulty: "hard", question: "In X-Men: Days of Future Past, which mutant's speed is showcased during the Pentagon escape?", answer: "Quicksilver", wrong: ["Nightcrawler", "Beast", "Havok"], explanation: "Quicksilver's slow-motion rescue became a standout sequence." },
+      { category: "timeline", difficulty: "hard", question: "In X-Men: Days of Future Past, what is the main result of changing 1973?", answer: "A new timeline replaces the doomed future", wrong: ["Mutants lose all powers", "Earth leaves the solar system", "The school is destroyed"], explanation: "The mission rewrites the franchise timeline." },
+    ],
+  },
+  {
+    slug: "time-travel-challenge",
+    title: "Avengers: Endgame",
+    tmdbId: 299534,
+    facts: [
+      { category: "plan", difficulty: "easy", question: "In Avengers: Endgame, what is the Avengers' time-travel plan called?", answer: "The Time Heist", wrong: ["The Infinity Job", "Project Pegasus", "Operation Chronos"], explanation: "The team travels to earlier moments to gather the Stones." },
+      { category: "object", difficulty: "medium", question: "In Avengers: Endgame, what particles make the time travel possible?", answer: "Pym particles", wrong: ["Gamma particles", "Vibranium particles", "Quantum dust"], explanation: "Pym particles allow travel through the Quantum Realm." },
+      { category: "location", difficulty: "medium", question: "In Avengers: Endgame, which earlier Avengers battle do Tony, Steve, Scott, and Bruce revisit?", answer: "The Battle of New York", wrong: ["The Battle of Sokovia", "The airport fight", "The Wakanda battle"], explanation: "The team returns to 2012 New York." },
+      { category: "sacrifice", difficulty: "hard", question: "In Avengers: Endgame, who sacrifices herself on Vormir?", answer: "Black Widow", wrong: ["Nebula", "Gamora", "Scarlet Witch"], explanation: "Natasha gives her life for the Soul Stone." },
+      { category: "ending", difficulty: "hard", question: "In Avengers: Endgame, what does Steve Rogers do after returning the Stones?", answer: "He stays in the past with Peggy", wrong: ["He joins the Guardians", "He becomes Sorcerer Supreme", "He destroys the shield"], explanation: "Steve returns as an old man after living a life with Peggy." },
+    ],
+  },
+  {
+    slug: "time-travel-challenge",
+    title: "Interstellar",
+    tmdbId: 157336,
+    facts: [
+      { category: "science", difficulty: "medium", question: "In Interstellar, why does Miller's planet cause huge time loss?", answer: "It is close to Gargantua's gravity", wrong: ["It spins backward", "It has no sun", "It is a simulation"], explanation: "Extreme gravity near the black hole slows time relative to Earth." },
+      { category: "object", difficulty: "easy", question: "In Interstellar, what object carries Cooper's message to Murph?", answer: "A watch", wrong: ["A compass", "A baseball glove", "A radio"], explanation: "Cooper manipulates the watch hand from the tesseract." },
+      { category: "ship", difficulty: "easy", question: "In Interstellar, what is the main spacecraft called?", answer: "Endurance", wrong: ["Hermes", "Nostromo", "Discovery"], explanation: "The Endurance carries the crew through the wormhole." },
+      { category: "character", difficulty: "hard", question: "In Interstellar, which scientist falsifies data about his planet?", answer: "Dr. Mann", wrong: ["Dr. Brand", "Romilly", "Doyle"], explanation: "Mann lies so someone will rescue him." },
+      { category: "ending", difficulty: "hard", question: "In Interstellar, where does Cooper perceive Murph's bedroom across time?", answer: "Inside the tesseract", wrong: ["On Miller's planet", "Inside a cryo pod", "At NASA headquarters"], explanation: "The tesseract lets Cooper communicate through gravity." },
+    ],
+  },
+  {
+    slug: "time-travel-challenge",
+    title: "Tenet",
+    tmdbId: 577922,
+    facts: [
+      { category: "concept", difficulty: "medium", question: "In Tenet, what happens to inverted objects?", answer: "They move backward through time", wrong: ["They become invisible", "They split into clones", "They teleport"], explanation: "Inversion reverses an object's entropy." },
+      { category: "phrase", difficulty: "easy", question: "In Tenet, what word is both the title and an operational password?", answer: "Tenet", wrong: ["Sator", "Opera", "Rotas"], explanation: "The word opens doors into the film's secret operation." },
+      { category: "scene", difficulty: "hard", question: "In Tenet, where does a major heist sequence involve crashing a plane?", answer: "A freeport", wrong: ["A train station", "A museum", "A submarine base"], explanation: "The freeport sequence uses a plane crash as cover." },
+      { category: "villain", difficulty: "medium", question: "In Tenet, who is the arms dealer tied to the algorithm?", answer: "Andrei Sator", wrong: ["Neil", "Priya", "Fay"], explanation: "Sator is the film's central antagonist." },
+      { category: "object", difficulty: "hard", question: "In Tenet, what dangerous device are the characters trying to keep from being assembled?", answer: "The Algorithm", wrong: ["The Tesseract", "The Source Code", "The Flux Capacitor"], explanation: "The Algorithm could invert the world." },
+    ],
+  },
+  {
+    slug: "time-travel-challenge",
+    title: "The Adam Project",
+    tmdbId: 696806,
+    facts: [
+      { category: "premise", difficulty: "easy", question: "In The Adam Project, who does adult Adam team up with?", answer: "His younger self", wrong: ["His future son", "His clone", "His teacher"], explanation: "Adult Adam meets his younger self after crash-landing in the past." },
+      { category: "family", difficulty: "medium", question: "In The Adam Project, whose research is central to time travel?", answer: "Adam's father", wrong: ["Adam's mother", "Maya's brother", "Laura's captain"], explanation: "Louis Reed's work makes time travel possible." },
+      { category: "object", difficulty: "medium", question: "In The Adam Project, what kind of weapon does Adam use in combat?", answer: "A magnetic staff", wrong: ["A whip", "A proton pack", "A lightsaber"], explanation: "Adam's staff is one of the film's signature gadgets." },
+      { category: "villain", difficulty: "hard", question: "In The Adam Project, who exploits time travel for power?", answer: "Maya Sorian", wrong: ["Laura", "Louis Reed", "Ray Dollarhyde"], explanation: "Sorian uses future knowledge to control the technology." },
+      { category: "theme", difficulty: "medium", question: "In The Adam Project, what relationship does Adam have to repair emotionally?", answer: "His relationship with his parents and younger self", wrong: ["A rivalry with aliens", "A feud with a pirate crew", "A courtroom case"], explanation: "The film blends time travel with family reconciliation." },
+    ],
+  },
+  {
+    slug: "time-travel-challenge",
+    title: "Donnie Darko",
+    tmdbId: 141,
+    facts: [
+      { category: "figure", difficulty: "easy", question: "In Donnie Darko, what is the name of the rabbit-suited figure Donnie sees?", answer: "Frank", wrong: ["Harvey", "Eddie", "Bunny"], explanation: "Frank becomes one of the film's most recognizable images." },
+      { category: "event", difficulty: "medium", question: "In Donnie Darko, what object crashes into Donnie's bedroom?", answer: "A jet engine", wrong: ["A meteor", "A car", "A satellite dish"], explanation: "The jet engine incident launches the film's mystery." },
+      { category: "concept", difficulty: "hard", question: "In Donnie Darko, what book helps explain the film's time-travel mythology?", answer: "The Philosophy of Time Travel", wrong: ["A Brief History of Time", "The Time Machine", "The Tangent Bible"], explanation: "Roberta Sparrow's book gives clues to the tangent universe." },
+      { category: "character", difficulty: "medium", question: "In Donnie Darko, what nickname is Roberta Sparrow known by?", answer: "Grandma Death", wrong: ["Mother Time", "Rabbit Lady", "Aunt Doom"], explanation: "The neighborhood calls her Grandma Death." },
+      { category: "ending", difficulty: "hard", question: "In Donnie Darko, what does Donnie's final choice prevent?", answer: "The deaths caused by the tangent timeline", wrong: ["A bank robbery", "A school fire only", "An alien invasion"], explanation: "Donnie accepts his fate to collapse the tangent timeline." },
+    ],
+  },
+  {
+    slug: "time-travel-challenge",
+    title: "Hot Tub Time Machine",
+    tmdbId: 23048,
+    facts: [
+      { category: "device", difficulty: "easy", question: "In Hot Tub Time Machine, what sends the friends into the past?", answer: "A hot tub", wrong: ["A ski lift", "A phone booth", "A jukebox"], explanation: "The malfunctioning hot tub becomes the time machine." },
+      { category: "setting", difficulty: "medium", question: "In Hot Tub Time Machine, what decade do the friends revisit?", answer: "The 1980s", wrong: ["The 1960s", "The 1970s", "The 1990s"], explanation: "They are thrown back into their younger 1980s lives." },
+      { category: "story", difficulty: "medium", question: "In Hot Tub Time Machine, what do the friends worry will happen if they change events?", answer: "They will alter their futures", wrong: ["They will turn into robots", "They will lose their voices", "They will freeze the mountain"], explanation: "The comedy plays with the fear of changing the timeline." },
+      { category: "running gag", difficulty: "hard", question: "In Hot Tub Time Machine, what injury is repeatedly foreshadowed for a bellhop?", answer: "Losing an arm", wrong: ["Losing an eye", "Breaking a leg", "Losing a tooth"], explanation: "The film repeatedly teases how the bellhop loses his arm." },
+      { category: "tone", difficulty: "easy", question: "In Hot Tub Time Machine, what is the film's main approach to time travel?", answer: "Raunchy comedy", wrong: ["Silent drama", "Courtroom mystery", "Historical documentary"], explanation: "The movie treats time travel as a broad comedy setup." },
+    ],
+  },
+]);
+
+addEvergreenPackQuestions([
+  {
+    slug: "adventure-pack",
+    title: "Raiders of the Lost Ark",
+    tmdbId: 85,
+    facts: [
+      { category: "artifact", difficulty: "easy", question: "In Raiders of the Lost Ark, what artifact is Indiana Jones searching for?", answer: "The Ark of the Covenant", wrong: ["The Holy Grail", "The Sankara Stones", "The Crystal Skull"], explanation: "The Ark is the adventure's central prize." },
+      { category: "fear", difficulty: "easy", question: "In Raiders of the Lost Ark, what animal does Indiana Jones famously fear?", answer: "Snakes", wrong: ["Spiders", "Rats", "Bats"], explanation: "The Well of Souls makes Indy's fear impossible to ignore." },
+      { category: "opening", difficulty: "medium", question: "In Raiders of the Lost Ark, what does Indy swap for the golden idol?", answer: "A bag of sand", wrong: ["A stone skull", "A whip", "A compass"], explanation: "The swap triggers the temple trap." },
+      { category: "character", difficulty: "medium", question: "In Raiders of the Lost Ark, who owns the Nepal bar where Indy finds the headpiece?", answer: "Marion Ravenwood", wrong: ["Elsa Schneider", "Willie Scott", "Irina Spalko"], explanation: "Marion keeps the artifact after her father's death." },
+      { category: "scene", difficulty: "hard", question: "In Raiders of the Lost Ark, how does Indy deal with the Cairo swordsman?", answer: "He shoots him", wrong: ["He duels him", "He traps him", "He uses the idol"], explanation: "The quick gag became one of the series' most famous moments." },
+    ],
+  },
+  {
+    slug: "adventure-pack",
+    title: "Indiana Jones and the Last Crusade",
+    tmdbId: 89,
+    facts: [
+      { category: "artifact", difficulty: "easy", question: "In Indiana Jones and the Last Crusade, what artifact is Indy seeking?", answer: "The Holy Grail", wrong: ["The Ark of the Covenant", "Excalibur", "The Spear of Destiny"], explanation: "The Grail quest drives the third Indiana Jones film." },
+      { category: "family", difficulty: "easy", question: "In Indiana Jones and the Last Crusade, who joins Indy on the adventure?", answer: "His father", wrong: ["His son", "His sister", "His uncle"], explanation: "Henry Jones Sr. is central to the story." },
+      { category: "test", difficulty: "medium", question: "In Indiana Jones and the Last Crusade, what must Indy spell during one Grail trial?", answer: "Jehovah", wrong: ["Grail", "Henry", "Nazis"], explanation: "The lettered floor punishes the wrong spelling." },
+      { category: "choice", difficulty: "hard", question: "In Indiana Jones and the Last Crusade, why does the villain die after choosing a cup?", answer: "He chooses the wrong grail", wrong: ["He drinks poison intentionally", "He falls into lava", "He is bitten by snakes"], explanation: "The false grail rapidly ages him to death." },
+      { category: "relationship", difficulty: "medium", question: "In Indiana Jones and the Last Crusade, what does Henry Sr. call Indiana?", answer: "Junior", wrong: ["Professor", "Dr. Jones", "Kid"], explanation: "The nickname annoys Indy and reveals family dynamics." },
+    ],
+  },
+  {
+    slug: "adventure-pack",
+    title: "The Mummy",
+    tmdbId: 564,
+    facts: [
+      { category: "setting", difficulty: "easy", question: "In The Mummy, what lost city are the characters searching for?", answer: "Hamunaptra", wrong: ["Agrabah", "El Dorado", "Atlantis"], explanation: "Hamunaptra is the City of the Dead." },
+      { category: "villain", difficulty: "easy", question: "In The Mummy, what ancient priest is awakened?", answer: "Imhotep", wrong: ["Seti", "Ardeth Bay", "Anck-su-namun"], explanation: "Imhotep returns after being cursed alive." },
+      { category: "object", difficulty: "medium", question: "In The Mummy, what book can bring the dead back to life?", answer: "The Book of the Dead", wrong: ["The Book of Amun-Ra", "The Necronomicon", "The Sun Scroll"], explanation: "Reading from the book awakens Imhotep." },
+      { category: "character", difficulty: "medium", question: "In The Mummy, what is Evelyn's scholarly passion?", answer: "Egyptology and ancient texts", wrong: ["Dinosaur fossils", "Pirate maps", "Greek theater"], explanation: "Evelyn's knowledge helps drive the adventure." },
+      { category: "creature", difficulty: "hard", question: "In The Mummy, what swarming insects attack the explorers?", answer: "Scarab beetles", wrong: ["Locusts", "Fire ants", "Wasps"], explanation: "The scarabs are one of the film's most memorable dangers." },
+    ],
+  },
+  {
+    slug: "adventure-pack",
+    title: "National Treasure",
+    tmdbId: 2059,
+    facts: [
+      { category: "object", difficulty: "easy", question: "In National Treasure, what document does Ben Gates steal to protect it?", answer: "The Declaration of Independence", wrong: ["The Constitution", "The Bill of Rights", "The Magna Carta"], explanation: "Ben steals it before Ian can." },
+      { category: "clue", difficulty: "medium", question: "In National Treasure, where is a hidden clue found on the Declaration?", answer: "On the back", wrong: ["Inside the frame only", "In a watermark", "In the signature ink"], explanation: "The back of the Declaration contains a key clue." },
+      { category: "family", difficulty: "easy", question: "In National Treasure, what family has long chased the treasure?", answer: "The Gates family", wrong: ["The Riley family", "The Sadusky family", "The Templar family"], explanation: "The Gates family legacy drives Ben." },
+      { category: "ally", difficulty: "medium", question: "In National Treasure, who is Ben's tech-savvy friend?", answer: "Riley Poole", wrong: ["Ian Howe", "Patrick Gates", "Agent Sadusky"], explanation: "Riley helps with hacking, planning, and comic relief." },
+      { category: "location", difficulty: "hard", question: "In National Treasure, which historic bell is connected to the glasses clue?", answer: "The Liberty Bell", wrong: ["Big Ben", "The Old North Church bell", "The Bell of Independence Hall"], explanation: "The clue leads Ben through Philadelphia history." },
+    ],
+  },
+  {
+    slug: "adventure-pack",
+    title: "Pirates of the Caribbean: The Curse of the Black Pearl",
+    tmdbId: 22,
+    facts: [
+      { category: "ship", difficulty: "easy", question: "In The Curse of the Black Pearl, what ship does Jack Sparrow want back?", answer: "The Black Pearl", wrong: ["The Interceptor", "The Dauntless", "The Flying Dutchman"], explanation: "Jack's goal is to reclaim his ship." },
+      { category: "curse", difficulty: "medium", question: "In The Curse of the Black Pearl, what reveals the pirates' skeletal forms?", answer: "Moonlight", wrong: ["Sunlight", "Rain", "Candlelight"], explanation: "The curse is visible under moonlight." },
+      { category: "object", difficulty: "medium", question: "In The Curse of the Black Pearl, what item does Elizabeth possess?", answer: "An Aztec gold medallion", wrong: ["A cursed compass", "A royal ring", "A pearl necklace"], explanation: "The medallion is part of the cursed treasure." },
+      { category: "villain", difficulty: "easy", question: "In The Curse of the Black Pearl, who captains the Black Pearl at the start?", answer: "Barbossa", wrong: ["Jack Sparrow", "Will Turner", "Norrington"], explanation: "Barbossa leads the cursed crew." },
+      { category: "character", difficulty: "hard", question: "In The Curse of the Black Pearl, what trade is Will Turner trained in?", answer: "Blacksmithing", wrong: ["Sailing", "Medicine", "Cartography"], explanation: "Will works as a blacksmith in Port Royal." },
+    ],
+  },
+  {
+    slug: "adventure-pack",
+    title: "Jumanji",
+    tmdbId: 8844,
+    facts: [
+      { category: "object", difficulty: "easy", question: "In Jumanji, what object unleashes the jungle dangers?", answer: "A board game", wrong: ["A video game", "A treasure chest", "A magic mirror"], explanation: "The board game brings hazards into the real world." },
+      { category: "character", difficulty: "easy", question: "In Jumanji, who is trapped inside the game for years?", answer: "Alan Parrish", wrong: ["Peter Shepherd", "Carl Bentley", "Van Pelt"], explanation: "Alan is released when the game is played again." },
+      { category: "villain", difficulty: "medium", question: "In Jumanji, what hunter pursues Alan?", answer: "Van Pelt", wrong: ["Mola Ram", "Captain Hook", "Imhotep"], explanation: "Van Pelt emerges from the game as a relentless hunter." },
+      { category: "rule", difficulty: "medium", question: "In Jumanji, how can the chaos be stopped?", answer: "Finish the game", wrong: ["Burn the board", "Leave town", "Trap Van Pelt"], explanation: "The players must complete Jumanji." },
+      { category: "creature", difficulty: "hard", question: "In Jumanji, what large animal stampede runs through the house and town?", answer: "Rhinos and other jungle animals", wrong: ["Dinosaurs only", "Horses", "Polar bears"], explanation: "The stampede is one of the film's biggest set pieces." },
+    ],
+  },
+  {
+    slug: "adventure-pack",
+    title: "Jurassic Park",
+    tmdbId: 329,
+    facts: [
+      { category: "science", difficulty: "easy", question: "In Jurassic Park, what is used to fill gaps in dinosaur DNA?", answer: "Frog DNA", wrong: ["Human DNA", "Fish DNA", "Bird DNA"], explanation: "Frog DNA helps explain the park's unexpected breeding problem." },
+      { category: "character", difficulty: "easy", question: "In Jurassic Park, which mathematician warns that the park will fail?", answer: "Ian Malcolm", wrong: ["Alan Grant", "John Hammond", "Dennis Nedry"], explanation: "Malcolm's chaos theory warnings prove correct." },
+      { category: "scene", difficulty: "medium", question: "In Jurassic Park, what object ripples before the T. rex appears?", answer: "A cup of water", wrong: ["A flashlight", "A rearview mirror", "A walkie-talkie"], explanation: "The rippling water signals the T. rex footsteps." },
+      { category: "villain", difficulty: "medium", question: "In Jurassic Park, who shuts down the park systems to steal embryos?", answer: "Dennis Nedry", wrong: ["Ray Arnold", "Robert Muldoon", "Donald Gennaro"], explanation: "Nedry's sabotage unleashes disaster." },
+      { category: "creature", difficulty: "hard", question: "In Jurassic Park, what dinosaurs stalk the children in the kitchen?", answer: "Velociraptors", wrong: ["Dilophosaurs", "Compsognathus", "Pteranodons"], explanation: "The kitchen raptor scene is one of the film's most tense moments." },
+    ],
+  },
+  {
+    slug: "adventure-pack",
+    title: "Romancing the Stone",
+    tmdbId: 9326,
+    facts: [
+      { category: "object", difficulty: "medium", question: "In Romancing the Stone, what valuable item is at the center of the adventure?", answer: "A large emerald", wrong: ["A cursed idol", "A golden skull", "A pirate coin"], explanation: "The gemstone is the treasure everyone wants." },
+      { category: "character", difficulty: "easy", question: "In Romancing the Stone, what kind of writer is Joan Wilder?", answer: "Romance novelist", wrong: ["Travel journalist", "Archaeologist", "Lawyer"], explanation: "Joan's adventure mirrors the stories she writes." },
+      { category: "setting", difficulty: "medium", question: "In Romancing the Stone, where does Joan's adventure take her?", answer: "Colombia", wrong: ["Egypt", "India", "Peru"], explanation: "Joan travels to Colombia after her sister is kidnapped." },
+      { category: "ally", difficulty: "medium", question: "In Romancing the Stone, who becomes Joan's rugged guide?", answer: "Jack Colton", wrong: ["Ralph", "Ira", "Zolo"], explanation: "Jack helps Joan survive the jungle." },
+      { category: "tone", difficulty: "hard", question: "In Romancing the Stone, what genre mix defines the film?", answer: "Adventure, comedy, and romance", wrong: ["Courtroom drama and horror", "Silent western", "War documentary"], explanation: "The film blends treasure adventure with romantic comedy." },
+    ],
+  },
+  {
+    slug: "adventure-pack",
+    title: "The Goonies",
+    tmdbId: 9340,
+    facts: [
+      { category: "treasure", difficulty: "easy", question: "In The Goonies, whose treasure map launches the adventure?", answer: "One-Eyed Willy's", wrong: ["Blackbeard's", "Captain Kidd's", "Long John Silver's"], explanation: "The kids follow a map tied to One-Eyed Willy." },
+      { category: "group", difficulty: "easy", question: "In The Goonies, what do the kids call themselves?", answer: "The Goonies", wrong: ["The Lost Boys", "The Explorers", "The Fratellis"], explanation: "The group name comes from their neighborhood, the Goon Docks." },
+      { category: "villain", difficulty: "medium", question: "In The Goonies, what criminal family chases the kids?", answer: "The Fratellis", wrong: ["The Tannens", "The Wet Bandits", "The Russos"], explanation: "The Fratellis pursue the kids through the tunnels." },
+      { category: "character", difficulty: "medium", question: "In The Goonies, which character befriends Sloth?", answer: "Chunk", wrong: ["Mikey", "Data", "Mouth"], explanation: "Chunk and Sloth form one of the film's sweetest bonds." },
+      { category: "location", difficulty: "hard", question: "In The Goonies, what pirate ship do the kids discover underground?", answer: "The Inferno", wrong: ["The Black Pearl", "The Revenge", "The Hispaniola"], explanation: "The Inferno holds One-Eyed Willy's treasure." },
+    ],
+  },
+  {
+    slug: "adventure-pack",
+    title: "The Princess Bride",
+    tmdbId: 2493,
+    facts: [
+      { category: "identity", difficulty: "easy", question: "In The Princess Bride, what masked identity does Westley take on?", answer: "The Dread Pirate Roberts", wrong: ["The Man in Blackbeard", "The Six-Fingered Man", "Prince Humperdinck"], explanation: "Westley returns under the Dread Pirate Roberts name." },
+      { category: "quote", difficulty: "easy", question: "In The Princess Bride, what word does Vizzini keep saying?", answer: "Inconceivable", wrong: ["Assemble", "Unbelievable", "Impossible"], explanation: "Vizzini's repeated word becomes a running gag." },
+      { category: "revenge", difficulty: "medium", question: "In The Princess Bride, who is Inigo Montoya seeking revenge against?", answer: "The six-fingered man", wrong: ["Vizzini", "Fezzik", "The Albino"], explanation: "Inigo's father was killed by Count Rugen." },
+      { category: "location", difficulty: "medium", question: "In The Princess Bride, what dangerous area do Westley and Buttercup cross?", answer: "The Fire Swamp", wrong: ["The Mines of Moria", "The Bog of Doom", "The Dead Marshes"], explanation: "The Fire Swamp includes flame spurts, lightning sand, and ROUSes." },
+      { category: "creature", difficulty: "hard", question: "In The Princess Bride, what does ROUS stand for?", answer: "Rodents of Unusual Size", wrong: ["Rats of Underworld Swamps", "Royal Order of Unseen Soldiers", "Riders of Upper Storm"], explanation: "The ROUS attack is one of the Fire Swamp hazards." },
+    ],
+  },
+  {
+    slug: "adventure-pack",
+    title: "The Lord of the Rings: The Fellowship of the Ring",
+    tmdbId: 120,
+    facts: [
+      { category: "object", difficulty: "easy", question: "In The Fellowship of the Ring, what must Frodo carry to Mordor?", answer: "The One Ring", wrong: ["The Arkenstone", "The Elder Wand", "The Horn of Gondor"], explanation: "The Ring must be destroyed in Mount Doom." },
+      { category: "group", difficulty: "easy", question: "In The Fellowship of the Ring, what group forms to protect the Ring-bearer?", answer: "The Fellowship", wrong: ["The Rohirrim", "The White Council", "The Rangers"], explanation: "The Fellowship includes hobbits, men, a dwarf, an elf, and a wizard." },
+      { category: "location", difficulty: "medium", question: "In The Fellowship of the Ring, where is the Council of Elrond held?", answer: "Rivendell", wrong: ["Lothlorien", "Minas Tirith", "Isengard"], explanation: "The Council decides the fate of the Ring." },
+      { category: "creature", difficulty: "medium", question: "In The Fellowship of the Ring, what creature does Gandalf battle in Moria?", answer: "A Balrog", wrong: ["A dragon", "A troll only", "A Nazgul"], explanation: "Gandalf confronts the Balrog on the bridge." },
+      { category: "ending", difficulty: "hard", question: "In The Fellowship of the Ring, who dies defending Merry and Pippin?", answer: "Boromir", wrong: ["Aragorn", "Legolas", "Gimli"], explanation: "Boromir is redeemed while protecting the hobbits." },
+    ],
+  },
+  {
+    slug: "adventure-pack",
+    title: "King Kong",
+    tmdbId: 254,
+    facts: [
+      { category: "creature", difficulty: "easy", question: "In King Kong, what giant creature is taken from Skull Island?", answer: "A giant ape", wrong: ["A dinosaur", "A sea monster", "A dragon"], explanation: "Kong is captured and brought to New York." },
+      { category: "setting", difficulty: "easy", question: "In King Kong, what island is Kong discovered on?", answer: "Skull Island", wrong: ["Monster Island", "Isla Nublar", "Treasure Island"], explanation: "Skull Island is Kong's dangerous home." },
+      { category: "character", difficulty: "medium", question: "In King Kong, who becomes emotionally connected to Kong?", answer: "Ann Darrow", wrong: ["Marion Ravenwood", "Evelyn Carnahan", "Sarah Harding"], explanation: "Ann's bond with Kong gives the spectacle emotional weight." },
+      { category: "location", difficulty: "medium", question: "In King Kong, what New York landmark does Kong climb?", answer: "The Empire State Building", wrong: ["The Chrysler Building", "The Statue of Liberty", "Madison Square Garden"], explanation: "The skyscraper finale is iconic." },
+      { category: "theme", difficulty: "hard", question: "In King Kong, what human flaw helps doom Kong?", answer: "Exploitation for spectacle", wrong: ["A search for immortality", "A curse from pirates", "A feud between wizards"], explanation: "Kong is turned into a showpiece and destroyed by human ambition." },
+    ],
+  },
+  {
+    slug: "adventure-pack",
+    title: "The Mask of Zorro",
+    tmdbId: 9342,
+    facts: [
+      { category: "identity", difficulty: "easy", question: "In The Mask of Zorro, what masked hero identity is passed on?", answer: "Zorro", wrong: ["El Mariachi", "The Phantom", "The Shadow"], explanation: "The older Zorro trains a successor." },
+      { category: "mentor", difficulty: "medium", question: "In The Mask of Zorro, who trains Alejandro to become the new Zorro?", answer: "Don Diego de la Vega", wrong: ["Captain Love", "Don Rafael", "Three-Fingered Jack"], explanation: "Don Diego prepares Alejandro for revenge and justice." },
+      { category: "villain", difficulty: "medium", question: "In The Mask of Zorro, who is Don Diego's old enemy?", answer: "Don Rafael Montero", wrong: ["Captain Hook", "Barbossa", "Imhotep"], explanation: "Montero stole Diego's life and family." },
+      { category: "weapon", difficulty: "easy", question: "In The Mask of Zorro, what weapon is Zorro most associated with?", answer: "A sword", wrong: ["A hammer", "A bow", "A laser pistol"], explanation: "Swordplay defines the Zorro adventure style." },
+      { category: "relationship", difficulty: "hard", question: "In The Mask of Zorro, who is Elena revealed to be?", answer: "Don Diego's daughter", wrong: ["Alejandro's sister", "Montero's niece", "A royal spy"], explanation: "Elena's identity ties the revenge story to family restoration." },
+    ],
+  },
+  {
+    slug: "adventure-pack",
+    title: "Uncharted",
+    tmdbId: 335787,
+    facts: [
+      { category: "character", difficulty: "easy", question: "In Uncharted, what treasure hunter does Nathan Drake team up with?", answer: "Victor Sullivan", wrong: ["Indiana Jones", "Ben Gates", "Jack Colton"], explanation: "Sully recruits Nate into the treasure hunt." },
+      { category: "treasure", difficulty: "medium", question: "In Uncharted, whose lost fortune are Nate and Sully chasing?", answer: "Magellan's expedition", wrong: ["One-Eyed Willy's treasure", "Blackbeard's chest", "The Ark of the Covenant"], explanation: "The treasure is tied to Ferdinand Magellan's voyage." },
+      { category: "scene", difficulty: "medium", question: "In Uncharted, what cargo-plane set piece echoes the video games?", answer: "Nate falling through airborne cargo", wrong: ["A submarine chase", "A dinosaur stampede", "A train on the moon"], explanation: "The airborne cargo sequence is a major action scene." },
+      { category: "motivation", difficulty: "hard", question: "In Uncharted, what personal mystery motivates Nate?", answer: "Finding clues about his brother Sam", wrong: ["Clearing his father's name", "Rescuing his daughter", "Breaking a family curse"], explanation: "Sam's disappearance motivates Nate beyond the treasure." },
+      { category: "object", difficulty: "easy", question: "In Uncharted, what kind of clues help unlock the hunt?", answer: "Ancient crosses and keys", wrong: ["Dinosaur eggs", "Magic rings", "Crystal skulls only"], explanation: "The treasure hunt depends on paired artifacts and symbols." },
+    ],
+  },
+  {
+    slug: "adventure-pack",
+    title: "The Adventures of Tintin",
+    tmdbId: 17578,
+    facts: [
+      { category: "character", difficulty: "easy", question: "In The Adventures of Tintin, what is Tintin's dog named?", answer: "Snowy", wrong: ["Snoopy", "Toto", "Max"], explanation: "Snowy accompanies Tintin through the adventure." },
+      { category: "object", difficulty: "medium", question: "In The Adventures of Tintin, what model ship contains an important clue?", answer: "The Unicorn", wrong: ["The Black Pearl", "The Inferno", "The Hispaniola"], explanation: "The model ship begins the treasure mystery." },
+      { category: "ally", difficulty: "easy", question: "In The Adventures of Tintin, which sea captain becomes Tintin's ally?", answer: "Captain Haddock", wrong: ["Captain Hook", "Captain Nemo", "Captain Barbossa"], explanation: "Haddock's family history is tied to the treasure." },
+      { category: "villain", difficulty: "medium", question: "In The Adventures of Tintin, who hunts the Unicorn clues?", answer: "Sakharine", wrong: ["Red Rackham", "Rastapopoulos", "Mola Ram"], explanation: "Sakharine seeks the secret hidden in the models." },
+      { category: "set piece", difficulty: "hard", question: "In The Adventures of Tintin, what city chase turns into an elaborate downhill action sequence?", answer: "Bagghar", wrong: ["Paris", "London", "Marrakesh"], explanation: "The Bagghar chase is a major animated set piece." },
+    ],
+  },
+  {
+    slug: "adventure-pack",
+    title: "Hook",
+    tmdbId: 879,
+    facts: [
+      { category: "identity", difficulty: "easy", question: "In Hook, who has Peter Banning forgotten he used to be?", answer: "Peter Pan", wrong: ["Captain Hook", "Tinker Bell", "Smee"], explanation: "Peter must rediscover his identity as Pan." },
+      { category: "villain", difficulty: "easy", question: "In Hook, who kidnaps Peter's children?", answer: "Captain Hook", wrong: ["Rufio", "Smee", "The Crocodile"], explanation: "Hook forces Peter to return to Neverland." },
+      { category: "group", difficulty: "medium", question: "In Hook, who must Peter win back as their leader?", answer: "The Lost Boys", wrong: ["The Goonies", "The Fellowship", "The Pirates"], explanation: "The Lost Boys test whether Peter is still Pan." },
+      { category: "character", difficulty: "medium", question: "In Hook, who leads the Lost Boys before Peter returns?", answer: "Rufio", wrong: ["Tootles", "Smee", "Jack"], explanation: "Rufio challenges Peter's claim to leadership." },
+      { category: "theme", difficulty: "hard", question: "In Hook, what helps Peter fly again?", answer: "A happy thought", wrong: ["Pixie dust alone", "A magic sword", "A pirate map"], explanation: "Peter's happy thought reconnects him with his lost childhood." },
+    ],
+  },
+  {
+    slug: "adventure-pack",
+    title: "The NeverEnding Story",
+    tmdbId: 34584,
+    facts: [
+      { category: "world", difficulty: "easy", question: "In The NeverEnding Story, what fantasy realm is threatened?", answer: "Fantasia", wrong: ["Narnia", "Middle-earth", "Oz"], explanation: "Fantasia is disappearing because of the Nothing." },
+      { category: "threat", difficulty: "medium", question: "In The NeverEnding Story, what force is destroying Fantasia?", answer: "The Nothing", wrong: ["The Shadow", "The Dark One", "The Void King"], explanation: "The Nothing consumes the fantasy world." },
+      { category: "hero", difficulty: "easy", question: "In The NeverEnding Story, who is the young warrior sent on the quest?", answer: "Atreyu", wrong: ["Bastian", "Falkor", "Gmork"], explanation: "Atreyu journeys to save the Childlike Empress." },
+      { category: "creature", difficulty: "medium", question: "In The NeverEnding Story, what kind of creature is Falkor?", answer: "A luckdragon", wrong: ["A griffin", "A unicorn", "A sandworm"], explanation: "Falkor helps Atreyu survive the quest." },
+      { category: "ending", difficulty: "hard", question: "In The NeverEnding Story, what must Bastian give the Childlike Empress?", answer: "A new name", wrong: ["A magic sword", "A golden crown", "A secret map"], explanation: "Bastian's naming of the Empress helps restore Fantasia." },
+    ],
+  },
+]);
+
+addEvergreenPackQuestions([
+  {
+    slug: "time-travel-challenge",
+    title: "The Time Machine",
+    tmdbId: 2135,
+    facts: [
+      { category: "device", difficulty: "easy", question: "In The Time Machine, what invention lets the traveler visit distant eras?", answer: "A time machine", wrong: ["A stargate", "A submarine", "A dream recorder"], explanation: "The machine carries the traveler far into Earth's future." },
+      { category: "future", difficulty: "medium", question: "In The Time Machine, what surface people does the traveler encounter in the far future?", answer: "Eloi", wrong: ["Morlocks", "Fremen", "Na'vi"], explanation: "The Eloi live above ground in the future world." },
+      { category: "threat", difficulty: "medium", question: "In The Time Machine, what underground species preys on the Eloi?", answer: "Morlocks", wrong: ["Mimics", "Sentinels", "Heptapods"], explanation: "The Morlocks represent the darker side of the future society." },
+      { category: "theme", difficulty: "hard", question: "In The Time Machine, what social idea is explored through the Eloi and Morlocks?", answer: "Class division taken to an extreme", wrong: ["A superhero civil war", "Pirate law", "Robot romance"], explanation: "The future species reflect separated social classes." },
+      { category: "journey", difficulty: "hard", question: "In The Time Machine, what makes the adventure more than a simple rescue story?", answer: "It explores humanity's possible future", wrong: ["It stays in one room", "It ignores time travel", "It is only a courtroom case"], explanation: "The time journey becomes a warning about civilization." },
+    ],
+  },
+  {
+    slug: "time-travel-challenge",
+    title: "Palm Springs",
+    tmdbId: 587792,
+    facts: [
+      { category: "loop", difficulty: "easy", question: "In Palm Springs, what kind of event are Nyles and Sarah trapped repeating?", answer: "A wedding day", wrong: ["A school exam", "A bank robbery", "A space launch"], explanation: "The time loop repeats the same wedding day in Palm Springs." },
+      { category: "character", difficulty: "medium", question: "In Palm Springs, who is already stuck in the loop before Sarah joins him?", answer: "Nyles", wrong: ["Roy", "Abe", "Howard"], explanation: "Nyles has been looping long enough to stop caring about consequences." },
+      { category: "threat", difficulty: "medium", question: "In Palm Springs, who keeps hunting Nyles during the loop?", answer: "Roy", wrong: ["Abe", "Trevor", "Ted"], explanation: "Roy is dragged into the loop and takes revenge on Nyles." },
+      { category: "solution", difficulty: "hard", question: "In Palm Springs, what scientific idea does Sarah pursue to escape the loop?", answer: "Blowing up the cave during the time reset", wrong: ["Freezing the wedding cake", "Hypnotizing Nyles", "Stealing a plane"], explanation: "Sarah studies the loop and tests an explosive escape plan." },
+      { category: "theme", difficulty: "hard", question: "In Palm Springs, what changes the loop from pure comedy into a relationship story?", answer: "Sarah choosing accountability and connection", wrong: ["A treasure map", "A superhero team", "A pirate curse"], explanation: "The film uses the loop to explore growth and commitment." },
+    ],
+  },
+  {
+    slug: "time-travel-challenge",
+    title: "Predestination",
+    tmdbId: 206487,
+    facts: [
+      { category: "job", difficulty: "easy", question: "In Predestination, what kind of agent travels through time?", answer: "A temporal agent", wrong: ["A dream detective", "A pirate captain", "A museum guard"], explanation: "The agent works to prevent crimes through time travel." },
+      { category: "target", difficulty: "medium", question: "In Predestination, who is the elusive bomber the agent pursues?", answer: "The Fizzle Bomber", wrong: ["The Rainmaker", "The Zodiac", "The Joker"], explanation: "The Fizzle Bomber is the mission's central target." },
+      { category: "structure", difficulty: "hard", question: "In Predestination, what makes the story's identity twist so unusual?", answer: "Multiple key identities are tied to the same person", wrong: ["Everyone is a robot", "The story has no time travel", "The villain is a dinosaur"], explanation: "The film is built around a closed-loop identity paradox." },
+      { category: "setting", difficulty: "medium", question: "In Predestination, where does the agent hear the life story that drives the plot?", answer: "A bar", wrong: ["A spaceship", "A school gym", "A pirate ship"], explanation: "The bar conversation frames much of the film." },
+      { category: "theme", difficulty: "hard", question: "In Predestination, what paradox is most central to the story?", answer: "A self-creating causal loop", wrong: ["A simple treasure hunt", "A multiverse tournament", "A haunted house"], explanation: "The plot depends on causes and identities looping back on themselves." },
+    ],
+  },
+  {
+    slug: "time-travel-challenge",
+    title: "The Butterfly Effect",
+    tmdbId: 1954,
+    facts: [
+      { category: "power", difficulty: "easy", question: "In The Butterfly Effect, how does Evan revisit moments from his past?", answer: "By reading his journals", wrong: ["By entering a phone booth", "By using a DeLorean", "By drinking a potion"], explanation: "Evan's journals trigger trips into his own past." },
+      { category: "consequence", difficulty: "medium", question: "In The Butterfly Effect, what happens when Evan changes past events?", answer: "His present changes in unexpected ways", wrong: ["Nothing changes", "Only the weather changes", "He becomes invisible"], explanation: "Small changes create large and often tragic consequences." },
+      { category: "relationship", difficulty: "medium", question: "In The Butterfly Effect, who is central to Evan's attempts to fix the past?", answer: "Kayleigh", wrong: ["Rita", "Mary", "Sarah Connor"], explanation: "Evan repeatedly tries to improve Kayleigh's life." },
+      { category: "theme", difficulty: "hard", question: "In The Butterfly Effect, what idea gives the movie its title?", answer: "Small actions can create huge consequences", wrong: ["Butterflies can time travel", "Dreams predict insects", "A superhero controls weather"], explanation: "The title references chaos theory's butterfly effect." },
+      { category: "tone", difficulty: "hard", question: "In The Butterfly Effect, how is time travel mainly treated?", answer: "As a source of trauma and unintended consequences", wrong: ["As a carefree vacation", "As a sports competition", "As a musical fantasy"], explanation: "Each fix tends to damage another part of Evan's life." },
+    ],
+  },
+  {
+    slug: "time-travel-challenge",
+    title: "Time After Time",
+    tmdbId: 24750,
+    facts: [
+      { category: "premise", difficulty: "easy", question: "In Time After Time, which famous author uses a time machine?", answer: "H. G. Wells", wrong: ["Jules Verne", "Mary Shelley", "Arthur Conan Doyle"], explanation: "The film imagines Wells pursuing a killer into the future." },
+      { category: "villain", difficulty: "medium", question: "In Time After Time, which infamous killer escapes into the future?", answer: "Jack the Ripper", wrong: ["The Zodiac Killer", "Sweeney Todd", "Professor Moriarty"], explanation: "Jack the Ripper uses Wells' machine to flee Victorian London." },
+      { category: "setting", difficulty: "medium", question: "In Time After Time, what modern city does Wells arrive in?", answer: "San Francisco", wrong: ["New York", "London", "Chicago"], explanation: "The future setting contrasts with Wells' Victorian ideals." },
+      { category: "theme", difficulty: "hard", question: "In Time After Time, what surprises Wells about the future?", answer: "It is more violent than he expected", wrong: ["It has no technology", "It is ruled by pirates", "It has no cities"], explanation: "The future challenges Wells' utopian expectations." },
+      { category: "genre", difficulty: "hard", question: "In Time After Time, what genre blend defines the film?", answer: "Time-travel thriller and romance", wrong: ["Animated musical", "Silent western", "Sports documentary"], explanation: "The film mixes pursuit, time travel, and romantic connection." },
+    ],
+  },
+]);
+
+addEvergreenPackQuestions([
+  {
+    slug: "adventure-pack",
+    title: "Lara Croft: Tomb Raider",
+    tmdbId: 1995,
+    facts: [
+      { category: "hero", difficulty: "easy", question: "In Lara Croft: Tomb Raider, what is Lara Croft best known as?", answer: "An adventurer and tomb raider", wrong: ["A weather reporter", "A pirate queen", "A space pilot"], explanation: "Lara explores tombs and hunts ancient artifacts." },
+      { category: "object", difficulty: "medium", question: "In Lara Croft: Tomb Raider, what ancient object is tied to planetary alignment?", answer: "The Triangle of Light", wrong: ["The Ark of the Covenant", "The Holy Grail", "The One Ring"], explanation: "The artifact can control time when assembled." },
+      { category: "home", difficulty: "easy", question: "In Lara Croft: Tomb Raider, where does Lara train and store her gear?", answer: "Croft Manor", wrong: ["Wayne Manor", "Rivendell", "The Black Pearl"], explanation: "Croft Manor is Lara's base of operations." },
+      { category: "villain", difficulty: "hard", question: "In Lara Croft: Tomb Raider, what secret society is after the artifact?", answer: "The Illuminati", wrong: ["The Fratellis", "The IMF", "The Lost Boys"], explanation: "The Illuminati want the Triangle's power." },
+      { category: "style", difficulty: "medium", question: "In Lara Croft: Tomb Raider, what defines Lara's adventure style?", answer: "Acrobatics, gadgets, and artifact hunting", wrong: ["Courtroom speeches", "Cooking contests", "Submarine diplomacy"], explanation: "The film adapts the action-adventure style of the games." },
+    ],
+  },
+  {
+    slug: "adventure-pack",
+    title: "Journey to the Center of the Earth",
+    tmdbId: 88751,
+    facts: [
+      { category: "destination", difficulty: "easy", question: "In Journey to the Center of the Earth, where does the expedition travel?", answer: "Beneath Earth's surface", wrong: ["To Mars", "Across the ocean only", "Into cyberspace"], explanation: "The adventure is built around a hidden world underground." },
+      { category: "source", difficulty: "medium", question: "In Journey to the Center of the Earth, what classic author inspires the adventure?", answer: "Jules Verne", wrong: ["H. G. Wells", "Mary Shelley", "Bram Stoker"], explanation: "The story draws from Verne's adventure novel." },
+      { category: "creature", difficulty: "medium", question: "In Journey to the Center of the Earth, what prehistoric creatures add danger underground?", answer: "Dinosaurs", wrong: ["Xenomorphs", "Dragons only", "Werewolves"], explanation: "The hidden world contains prehistoric threats." },
+      { category: "setting", difficulty: "hard", question: "In Journey to the Center of the Earth, what kind of landscape makes the underground world feel fantastical?", answer: "A vast subterranean environment", wrong: ["A normal office", "A single courtroom", "A city bus"], explanation: "The underground world is treated as an enormous lost realm." },
+      { category: "tone", difficulty: "easy", question: "In Journey to the Center of the Earth, what kind of adventure is emphasized?", answer: "Family-friendly exploration", wrong: ["Political satire", "Crime noir", "Medical drama"], explanation: "The film is designed as a broad exploration adventure." },
+    ],
+  },
+  {
+    slug: "adventure-pack",
+    title: "Sahara",
+    tmdbId: 7364,
+    facts: [
+      { category: "hero", difficulty: "easy", question: "In Sahara, who leads the treasure-hunting adventure?", answer: "Dirk Pitt", wrong: ["Indiana Jones", "Ben Gates", "Allan Quatermain"], explanation: "Dirk Pitt is the film's adventurous lead." },
+      { category: "mystery", difficulty: "medium", question: "In Sahara, what historical object is Dirk searching for?", answer: "A lost Civil War ironclad", wrong: ["The Holy Grail", "A pirate crown", "A moon rock"], explanation: "The mystery involves a Confederate ironclad rumored to be in Africa." },
+      { category: "setting", difficulty: "easy", question: "In Sahara, what desert region gives the adventure its title?", answer: "The Sahara", wrong: ["The Gobi", "The Mojave", "The Kalahari only"], explanation: "The adventure unfolds across desert terrain." },
+      { category: "ally", difficulty: "medium", question: "In Sahara, who is Dirk Pitt's close friend and partner?", answer: "Al Giordino", wrong: ["Riley Poole", "Short Round", "Sallah"], explanation: "Al joins Dirk through the film's action and comedy beats." },
+      { category: "threat", difficulty: "hard", question: "In Sahara, what broader crisis intersects with the treasure hunt?", answer: "A toxic contamination threat", wrong: ["A dinosaur outbreak", "A wizard war", "A vampire plague"], explanation: "The adventure connects treasure hunting with environmental danger." },
+    ],
+  },
+  {
+    slug: "adventure-pack",
+    title: "The Treasure of the Sierra Madre",
+    tmdbId: 3090,
+    facts: [
+      { category: "goal", difficulty: "easy", question: "In The Treasure of the Sierra Madre, what are the prospectors searching for?", answer: "Gold", wrong: ["Diamonds", "Oil", "A pirate map"], explanation: "The hunt for gold drives the story." },
+      { category: "theme", difficulty: "medium", question: "In The Treasure of the Sierra Madre, what emotion corrodes the prospectors' partnership?", answer: "Greed", wrong: ["Stage fright", "Homesickness", "Romantic jealousy only"], explanation: "Greed and suspicion destroy trust." },
+      { category: "character", difficulty: "medium", question: "In The Treasure of the Sierra Madre, which character becomes increasingly paranoid?", answer: "Fred C. Dobbs", wrong: ["Howard", "Curtin", "Gold Hat"], explanation: "Dobbs' paranoia is central to the tragedy." },
+      { category: "quote", difficulty: "hard", question: "In The Treasure of the Sierra Madre, what line about badges became famous?", answer: "We don't need no stinking badges", wrong: ["Here's looking at you", "Rosebud", "I'll be back"], explanation: "The bandit line became one of classic cinema's most quoted moments." },
+      { category: "ending", difficulty: "hard", question: "In The Treasure of the Sierra Madre, what happens to much of the gold dust?", answer: "It is blown away by the wind", wrong: ["It is locked in a museum", "It becomes a crown", "It sinks with a ship"], explanation: "The ending underlines the futility of the characters' greed." },
+    ],
+  },
+]);
+
 function safeJson(value: unknown) {
   return JSON.stringify(value || []);
 }
@@ -658,27 +1270,37 @@ export async function ensureSeasonalChallengeTables(sql: any) {
         when 'christmas-movie-2026' then case when season_key = 'general' then 'christmas' else season_key end
         when 'summer-blockbuster-2026' then case when season_key = 'general' then 'summer_blockbusters' else season_key end
         when 'out-of-this-world' then 'space_movies'
+        when 'time-travel-challenge' then 'time_travel'
+        when 'adventure-pack' then 'adventure'
         when 'oscar-challenge-2026' then case when season_key = 'general' then 'oscars' else season_key end
         else season_key
       end,
       challenge_type = case slug
         when 'oscar-challenge-2026' then 'special_event'
         when 'out-of-this-world' then 'special_event'
+        when 'time-travel-challenge' then 'special_event'
+        when 'adventure-pack' then 'special_event'
         else coalesce(nullif(challenge_type, ''), 'seasonal')
       end,
       is_featured = case slug
         when 'summer-blockbuster-2026' then true
         when 'out-of-this-world' then true
+        when 'time-travel-challenge' then true
+        when 'adventure-pack' then true
         else is_featured
       end,
       question_count = case slug
         when 'summer-blockbuster-2026' then greatest(question_count, 75)
         when 'out-of-this-world' then greatest(question_count, 100)
+        when 'time-travel-challenge' then greatest(question_count, 100)
+        when 'adventure-pack' then greatest(question_count, 100)
         else case when question_count < 1 then 10 else question_count end
       end,
       points = case slug
         when 'summer-blockbuster-2026' then greatest(points, 250)
         when 'out-of-this-world' then greatest(points, 300)
+        when 'time-travel-challenge' then greatest(points, 300)
+        when 'adventure-pack' then greatest(points, 300)
         else points
       end,
       start_date = case slug
@@ -686,10 +1308,14 @@ export async function ensureSeasonalChallengeTables(sql: any) {
         when 'christmas-movie-2026' then case when start_date = date '2026-12-01' then date '2026-11-15' else start_date end
         when 'summer-blockbuster-2026' then case when start_date = date '2026-06-01' then date '2026-05-15' else start_date end
         when 'out-of-this-world' then date '2026-01-01'
+        when 'time-travel-challenge' then date '2026-01-01'
+        when 'adventure-pack' then date '2026-01-01'
         else start_date
       end,
       end_date = case slug
         when 'out-of-this-world' then date '2035-12-31'
+        when 'time-travel-challenge' then date '2035-12-31'
+        when 'adventure-pack' then date '2035-12-31'
         else end_date
       end,
       updated_at = now()
@@ -698,6 +1324,8 @@ export async function ensureSeasonalChallengeTables(sql: any) {
       'christmas-movie-2026',
       'summer-blockbuster-2026',
       'out-of-this-world',
+      'time-travel-challenge',
+      'adventure-pack',
       'oscar-challenge-2026'
     )
   `;

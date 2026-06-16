@@ -340,18 +340,24 @@ function FeaturedChallengeCard({ event, onNavigate }: { event: SeasonalChallenge
     : event.dateStatus === "upcoming"
       ? "Scheduled event"
       : "Completed event";
+  const questionCount = Number(event.playableQuestionCount || event.questionCount || 0);
+  const themeKey = String(event.banner || event.seasonKey || "challenge").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "challenge";
 
   return (
-    <article className={`arcade-featured-challenge is-${event.dateStatus}`}>
-      <div className="arcade-challenge-badge" aria-hidden="true">{event.banner || event.badge}</div>
+    <article className={`arcade-featured-challenge is-${event.dateStatus} theme-${themeKey}`}>
+      <div className="arcade-challenge-artwork">
+        <img alt="" src={`/api/og/seasonal-challenge/${event.slug}`} />
+        <span>{event.banner || event.badge}</span>
+      </div>
       <div>
         <span>{event.challengeType === "weekly" ? "Weekly Challenge" : event.challengeType === "special_event" ? "Special Event" : "Featured Challenge"}</span>
         <h3>{event.name}</h3>
         <p>{event.description}</p>
         <div className="challenge-card-meta">
-          <strong>{event.points} pts</strong>
+          <strong>{questionCount} questions</strong>
+          <span>{event.badge}</span>
+          <span>{event.points} pts</span>
           <span>{status}</span>
-          <span>{event.participantCount || 0} players</span>
         </div>
       </div>
       <button className="primary-button compact" onClick={() => onNavigate(`/challenges/${event.slug}`)} type="button">

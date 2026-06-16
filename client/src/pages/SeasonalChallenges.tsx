@@ -31,13 +31,19 @@ export function SeasonalChallengeCard({
   event: SeasonalChallengeEvent;
   onNavigate?: (path: string) => void;
 }) {
+  const questionCount = Number(event.playableQuestionCount || event.questionCount || 0);
+  const themeKey = String(event.banner || event.seasonKey || "challenge").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "challenge";
+
   return (
-    <article className={`seasonal-challenge-card is-${event.dateStatus} user-${event.userStatus}`}>
-      <div className="seasonal-banner-mark" aria-hidden="true">{event.banner || event.badge}</div>
+    <article className={`seasonal-challenge-card is-${event.dateStatus} user-${event.userStatus} theme-${themeKey}`}>
+      <div className="seasonal-banner-artwork">
+        <img alt="" src={`/api/og/seasonal-challenge/${event.slug}`} />
+        <span>{event.banner || event.badge}</span>
+      </div>
       <div className="seasonal-challenge-copy">
         <div className="challenge-card-topline">
           <span className="challenge-badge-mark">{event.badge}</span>
-          <span>{challengeTypeLabel(event.challengeType)} - {event.points} points</span>
+          <span>{challengeTypeLabel(event.challengeType)} - {questionCount} questions - {event.points} points</span>
         </div>
         <h3>{event.name}</h3>
         <p>{event.description}</p>

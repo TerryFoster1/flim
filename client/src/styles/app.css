@@ -6234,20 +6234,52 @@ textarea { min-height: 42px; resize: vertical; }
 }
 .arcade-featured-challenge {
   display: grid;
-  grid-template-columns: 76px minmax(0, 1fr);
+  grid-template-columns: 112px minmax(0, 1fr);
   align-items: center;
   gap: 14px;
 }
 .arcade-featured-challenge .primary-button {
   grid-column: 1 / -1;
 }
-.arcade-featured-challenge > div:not(.arcade-challenge-badge) > span,
+.arcade-featured-challenge > div:not(.arcade-challenge-artwork):not(.arcade-challenge-badge) > span,
 .arcade-trivia-card > span {
   color: #ffcf8a;
   font-size: .78rem;
   font-weight: 950;
   text-transform: uppercase;
   letter-spacing: .06em;
+}
+.arcade-challenge-artwork {
+  position: relative;
+  min-width: 0;
+  width: 112px;
+  aspect-ratio: 1200 / 630;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 14px;
+  background: rgba(255,255,255,.06);
+  box-shadow: 0 16px 32px rgba(0,0,0,.26);
+}
+.arcade-challenge-artwork img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+.arcade-challenge-artwork span {
+  position: absolute;
+  left: 8px;
+  bottom: 7px;
+  max-width: calc(100% - 16px);
+  border-radius: 999px;
+  padding: 4px 7px;
+  background: rgba(0,0,0,.58);
+  color: #fff6dc;
+  font-size: .58rem;
+  font-weight: 950;
+  letter-spacing: .05em;
+  line-height: 1;
+  text-transform: uppercase;
 }
 .arcade-challenge-badge {
   width: 76px;
@@ -7671,6 +7703,36 @@ textarea { min-height: 42px; resize: vertical; }
   background:
     radial-gradient(circle at 16% 8%, rgba(62,226,160,.18), transparent 16rem),
     rgba(255,255,255,.06);
+}
+.seasonal-banner-artwork {
+  position: relative;
+  min-height: 132px;
+  overflow: hidden;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--seasonal-accent) 24%, transparent), color-mix(in srgb, var(--seasonal-accent-2) 18%, transparent)),
+    rgba(0,0,0,.28);
+}
+.seasonal-banner-artwork img {
+  width: 100%;
+  height: 100%;
+  min-height: 132px;
+  display: block;
+  object-fit: cover;
+}
+.seasonal-banner-artwork span {
+  position: absolute;
+  left: 14px;
+  bottom: 12px;
+  max-width: calc(100% - 28px);
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: rgba(0,0,0,.58);
+  color: #fff6dc;
+  font-size: .72rem;
+  font-weight: 950;
+  letter-spacing: .06em;
+  line-height: 1;
+  text-transform: uppercase;
 }
 .seasonal-banner-mark {
   min-height: 92px;
