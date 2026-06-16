@@ -20,6 +20,7 @@ const emptyProfile: UserProfile = {
   favoriteMovie: "",
   favoriteGenre: "",
   favoriteDirector: "",
+  profileStatus: "",
   featuredPlaylistIds: [],
   countryCode: "",
   region: "",
@@ -197,6 +198,16 @@ export function Settings({ currentUser, onNavigate, playlists = [] }: SettingsPr
               onChange={(event) => updateProfile("bio", event.target.value)}
               placeholder="Tell people about yourself"
             />
+          </label>
+          <label>
+            Status
+            <input
+              maxLength={150}
+              value={profile.profileStatus || ""}
+              onChange={(event) => updateProfile("profileStatus", event.target.value)}
+              placeholder="Currently building a movie night playlist"
+            />
+            <small>One lightweight profile status. No feed, no history.</small>
           </label>
             <div className="avatar-picker">
             <div>

@@ -589,6 +589,7 @@ export interface UserProfile {
   favoriteMovie?: string;
   favoriteGenre?: string;
   favoriteDirector?: string;
+  profileStatus?: string;
   featuredPlaylistIds?: string[];
   countryCode: string;
   region?: string;
@@ -779,6 +780,7 @@ export interface PublicUserProfile {
   favoriteMovie?: string;
   favoriteGenre?: string;
   favoriteDirector?: string;
+  profileStatus?: string;
   featuredPlaylistIds?: string[];
   joinedAt?: string;
   isOwnProfile?: boolean;
@@ -819,6 +821,10 @@ export interface PublicUserProfile {
     titleTriviaQuestionCount: number;
     publicChallengesCompleted: number;
     seasonalChallengesCompleted: number;
+    friendChallengesCompleted?: number;
+    friendChallengeWins?: number;
+    friendChallengeLosses?: number;
+    friendChallengeAverageScore?: number;
     perfectScores: number;
     totalTicketsEarned?: number;
     recentTitleTrivia: Array<{
@@ -836,6 +842,17 @@ export interface PublicUserProfile {
       title: string;
       type: "Public Challenge" | "Weekly Challenge" | "Seasonal Challenge";
       score?: number;
+      completedAt?: string;
+      path: string;
+    }>;
+    recentFriendChallenges?: Array<{
+      id: string;
+      title: string;
+      score?: number;
+      challengeScore?: number;
+      correctCount?: number;
+      totalCount?: number;
+      result?: "won" | "lost" | "tie";
       completedAt?: string;
       path: string;
     }>;

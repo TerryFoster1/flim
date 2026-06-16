@@ -7,6 +7,7 @@ import {
   ensureNotificationsTable,
   ensurePlaylistFollowsTable,
   ensurePlaylistLikesTable,
+  ensureTriviaTables,
   ensureUserFollowsTable,
   ensureUserProfilesTable,
   errorStatus,
@@ -24,6 +25,7 @@ import {
   validateProfileHandle,
   verifyPassword,
 } from "../_db.js";
+import { ensureTicketTables } from "../_arcadeEconomy.js";
 import { directorHandle, ensureDirectorSeed } from "../_director.js";
 
 const defaultProfile = {
@@ -105,6 +107,7 @@ function cleanProfileInput(body: any) {
     favoriteMovie: String(body.favoriteMovie || "").trim().slice(0, 120),
     favoriteGenre: String(body.favoriteGenre || "").trim().slice(0, 80),
     favoriteDirector: String(body.favoriteDirector || "").trim().slice(0, 120),
+    profileStatus: String(body.profileStatus || "").trim().slice(0, 150),
     featuredPlaylistIds,
   };
 }
@@ -185,6 +188,7 @@ async function handleCurrentProfile(request: any, response: any, sql: any) {
         favorite_movie,
         favorite_genre,
         favorite_director,
+        profile_status,
         featured_playlist_ids
       )
       values (
@@ -206,6 +210,7 @@ async function handleCurrentProfile(request: any, response: any, sql: any) {
         ${input.favoriteMovie || null},
         ${input.favoriteGenre || null},
         ${input.favoriteDirector || null},
+        ${input.profileStatus || null},
         ${JSON.stringify(input.featuredPlaylistIds)}::jsonb
       )
       on conflict (user_id) do update set
@@ -226,6 +231,7 @@ async function handleCurrentProfile(request: any, response: any, sql: any) {
         favorite_movie = excluded.favorite_movie,
         favorite_genre = excluded.favorite_genre,
         favorite_director = excluded.favorite_director,
+        profile_status = excluded.profile_status,
         featured_playlist_ids = excluded.featured_playlist_ids,
         updated_at = now()
       returning *
@@ -457,6 +463,8 @@ export default async function handler(request: any, response: any) {
     await ensurePlaylistLikesTable(sql);
     await ensureUserFollowsTable(sql);
     await ensureNotificationsTable(sql);
+    await ensureTriviaTables(sql);
+    await ensureTicketTables(sql);
 
     if (segment === "auth") {
       const action = Array.isArray(request.query.action) ? request.query.action[0] : request.query.action;
@@ -599,21 +607,48 @@ export default async function handler(request: any, response: any) {
         select jsonb_build_object(
           'titleTriviaCompleted', count(distinct concat(utp.media_type, ':', utp.tmdb_id))::int,
           'titleTriviaQuestionCount', count(utp.id)::int,
+          'totalTicketsEarned', coalesce((select aw.lifetime_tickets_earned::int from arcade_wallets aw where aw.user_id::text = up.user_id limit 1), 0),
           'perfectScores', (
             (select count(*)::int from seasonal_challenge_attempts sca where sca.user_id::text = up.user_id and sca.total_count > 0 and sca.correct_count = sca.total_count) +
             (select count(*)::int from friend_trivia_attempts fta where fta.user_id::text = up.user_id and fta.total_count > 0 and fta.correct_count = fta.total_count)
           ),
           'publicChallengesCompleted', (
-            select count(*)::int
-            from user_collection_challenges ucc
-            where ucc.user_id::text = up.user_id
-              and ucc.status = 'completed'
+            (select count(*)::int
+             from user_collection_challenges ucc
+             where ucc.user_id::text = up.user_id
+               and ucc.status = 'completed') +
+            (select count(*)::int
+             from user_seasonal_challenges usc
+             where usc.user_id::text = up.user_id
+               and usc.status = 'completed')
           ),
           'seasonalChallengesCompleted', (
             select count(*)::int
             from user_seasonal_challenges usc
             where usc.user_id::text = up.user_id
               and usc.status = 'completed'
+          ),
+          'friendChallengesCompleted', (
+            select count(*)::int
+            from friend_trivia_attempts fta
+            where fta.user_id::text = up.user_id
+          ),
+          'friendChallengeWins', (
+            select count(*)::int
+            from friend_trivia_attempts fta
+            where fta.user_id::text = up.user_id
+              and fta.result = 'won'
+          ),
+          'friendChallengeLosses', (
+            select count(*)::int
+            from friend_trivia_attempts fta
+            where fta.user_id::text = up.user_id
+              and fta.result = 'lost'
+          ),
+          'friendChallengeAverageScore', (
+            select coalesce(round(avg(fta.score)), 0)::int
+            from friend_trivia_attempts fta
+            where fta.user_id::text = up.user_id
           ),
           'recentTitleTrivia', coalesce((
             select jsonb_agg(to_jsonb(recent_title))
@@ -624,6 +659,7 @@ export default async function handler(request: any, response: any) {
                 coalesce(mi.title, concat(case when recent.media_type = 'tv' then 'TV' else 'Movie' end, ' #', recent.tmdb_id::text)) as title,
                 recent.completed_count as "correctCount",
                 recent.completed_count as "totalCount",
+                recent.completed_count * 100 as score,
                 recent.completed_at as "completedAt",
                 case when recent.media_type = 'tv' then concat('/tv/', recent.tmdb_id::text) else concat('/movies/', recent.tmdb_id::text) end as path
               from (
@@ -675,6 +711,26 @@ export default async function handler(request: any, response: any) {
               order by "completedAt" desc nulls last
               limit 5
             ) recent_challenge
+          ), '[]'::jsonb),
+          'recentFriendChallenges', coalesce((
+            select jsonb_agg(to_jsonb(recent_friend))
+            from (
+              select
+                fta.id::text as id,
+                ftc.title,
+                fta.score,
+                ftc.score as "challengeScore",
+                fta.correct_count as "correctCount",
+                fta.total_count as "totalCount",
+                fta.result,
+                fta.completed_at as "completedAt",
+                concat('/challenge/', ftc.token) as path
+              from friend_trivia_attempts fta
+              inner join friend_trivia_challenges ftc on ftc.id = fta.challenge_id
+              where fta.user_id::text = up.user_id
+              order by fta.completed_at desc
+              limit 5
+            ) recent_friend
           ), '[]'::jsonb)
         ) as summary
         from user_trivia_progress utp

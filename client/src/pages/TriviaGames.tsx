@@ -245,6 +245,25 @@ function ticketTotal(awards: TicketAward[]) {
   return awards.filter((award) => award.awarded).reduce((sum, award) => sum + award.amount, 0);
 }
 
+const triviaDownloadSteps = [
+  "Collecting movie knowledge...",
+  "Building questions...",
+  "Preparing challenge...",
+  "Almost ready...",
+];
+
+function triviaDownloadStep(pollAttempt: number) {
+  if (pollAttempt < 2) return triviaDownloadSteps[0];
+  if (pollAttempt < 6) return triviaDownloadSteps[1];
+  if (pollAttempt < 10) return triviaDownloadSteps[2];
+  return triviaDownloadSteps[3];
+}
+
+function triviaDownloadProgress(status: TriviaLoadStatus, pollAttempt: number) {
+  if (status === "loading") return 18;
+  return Math.min(92, 28 + pollAttempt * 4);
+}
+
 function GameCard({ game, selected, onPlay }: { game: GameCardDefinition; selected?: boolean; onPlay: () => void }) {
   return (
     <article className={`title-game-card${selected ? " is-selected" : ""}`}>
@@ -396,6 +415,7 @@ function TicketSummaryPanel() {
         <span>Ticket Balance</span>
         <strong>{feed.wallet.ticketBalance}</strong>
         <small>{feed.wallet.lifetimeTicketsEarned} lifetime earned / never purchasable</small>
+        <p>Tickets are Flim's earned reward currency for future Film Critter skins, the Concession Stand, seasonal rewards, and partner rewards.</p>
       </div>
       <div className="ticket-earning-card">
         <div className="actor-section-heading">
@@ -411,6 +431,11 @@ function TicketSummaryPanel() {
             </article>
           ))}
         </div>
+      </div>
+      <div className="ticket-purpose-card">
+        <span>What Tickets Unlock</span>
+        <strong>Concession Stand Coming Soon</strong>
+        <p>Skins, profile cosmetics, event rewards, and tasteful partner rewards will live here. Tickets are earned through play, not purchased.</p>
       </div>
       {feed.history.length > 0 ? (
         <div className="ticket-history-card">
@@ -428,6 +453,37 @@ function TicketSummaryPanel() {
           </div>
         </div>
       ) : null}
+    </section>
+  );
+}
+
+function FriendsFamilyModePanel() {
+  return (
+    <section className="title-games-section friends-family-panel">
+      <div className="actor-section-heading">
+        <h2>Friends & Family</h2>
+        <span>Separate scoreboard</span>
+      </div>
+      <div className="friends-family-grid">
+        <article>
+          <span>Local Group Mode</span>
+          <h3>Movie Night</h3>
+          <p>Host a room for family nights, parties, and couch trivia with one shared scoreboard.</p>
+          <small>Architecture ready / live room hosting later</small>
+        </article>
+        <article>
+          <span>Online Friend Mode</span>
+          <h3>Beat My Score</h3>
+          <p>Finish trivia, share the same question set, and compare remote scores with friends.</p>
+          <small>Available through Challenge Friends after a completed pack</small>
+        </article>
+        <article>
+          <span>Rankings Stay Separate</span>
+          <h3>Personal / Public / Friends</h3>
+          <p>Personal bests, public challenge standings, and friend scoreboards are tracked separately.</p>
+          <small>No social feed, comments, or likes</small>
+        </article>
+      </div>
     </section>
   );
 }
@@ -587,6 +643,8 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
           ))}
         </div>
       </section>
+
+      <FriendsFamilyModePanel />
 
       <FriendChallengeHistory onNavigate={onNavigate} />
     </section>
@@ -844,19 +902,18 @@ function ClassicTriviaPanel({ mediaType, tmdbId, title, artworkUrl, gameTitle = 
   }
 
   if (status === "loading" || status === "building") {
+    const downloadProgress = triviaDownloadProgress(status, pollAttempt);
     return (
       <section className="title-games-section trivia-building-pack">
-        <span className="title-game-kicker">{status === "loading" ? "Checking cache" : "Building"}</span>
-        <h2>{status === "loading" ? "Loading Trivia Pack" : "Building Trivia Pack"}</h2>
-        <p>{feed?.notes || "Creating movie-fan questions for this title."}</p>
-        <div className="trivia-pack-activity" aria-label="Trivia pack loading progress">
-          <span />
-          <span />
-          <span />
+        <span className="title-game-kicker">Download Trivia Pack</span>
+        <h2>Downloading {title} Trivia Pack</h2>
+        <p>{triviaDownloadStep(pollAttempt)}</p>
+        <div className="trivia-pack-download-track" aria-label={`Trivia pack ${downloadProgress}% downloaded`}>
+          <span style={{ width: `${downloadProgress}%` }} />
         </div>
         <div className="trivia-building-detail">
           <span>Status</span>
-          <strong>{feed?.generationStatus === "queued" ? "Queued" : feed?.generationStatus === "generating" ? "Generating" : "Checking saved pack"}</strong>
+          <strong>{feed?.generationStatus === "queued" ? "Queued" : feed?.generationStatus === "generating" ? "Downloading" : "Checking saved pack"}</strong>
         </div>
         <div className="trivia-building-detail">
           <span>Expected</span>
@@ -864,7 +921,7 @@ function ClassicTriviaPanel({ mediaType, tmdbId, title, artworkUrl, gameTitle = 
         </div>
         <p className="helper-text">
           {lastPackCheck ? `Last checked ${lastPackCheck}. ` : ""}
-          Still working after {elapsedSeconds || 1}s. This will refresh automatically.
+          Still downloading after {elapsedSeconds || 1}s. This refreshes automatically and the pack is cached when ready.
         </p>
         <button className="secondary-button compact" onClick={() => loadTriviaPack({ reset: true })} type="button">
           Check Now
@@ -940,6 +997,19 @@ function ClassicTriviaPanel({ mediaType, tmdbId, title, artworkUrl, gameTitle = 
         <strong>Play Now</strong>
         <small>{triviaModeConfig[mode].label} mode</small>
       </div>
+      <div className="trivia-rules-strip" aria-label="Trivia scoring rules">
+        <span><strong>100</strong>per correct answer</span>
+        <span><strong>+25</strong>timed bonus when available</span>
+        <span><strong>+500</strong>perfect round</span>
+        <span><strong>+250</strong>challenge completion</span>
+      </div>
+      {feed?.progress && feed.progress.triviaCompleted > 0 ? (
+        <div className="trivia-completed-history">
+          <span>Completed</span>
+          <strong>{feed.progress.triviaCompleted}/{Math.max(feed.progress.triviaTotal, questions.length)} questions saved</strong>
+          <small>Best pack progress stays cached on Flim. Play again or challenge friends from your result screen.</small>
+        </div>
+      ) : null}
       <div className="trivia-score-strip">
         <strong>{completed ? `${score.score} points` : `Question ${currentIndex + 1} of ${questions.length}`}</strong>
         <span>

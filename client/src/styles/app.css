@@ -6105,6 +6105,50 @@ textarea { min-height: 42px; resize: vertical; }
   font-size: clamp(3rem, 9vw, 5.5rem);
   line-height: .9;
 }
+.ticket-balance-card p,
+.ticket-purpose-card p,
+.friends-family-grid p,
+.friends-family-grid small {
+  color: var(--muted);
+  line-height: 1.45;
+  margin: 0;
+}
+.ticket-purpose-card {
+  display: grid;
+  gap: 6px;
+}
+.ticket-purpose-card span,
+.friends-family-grid span {
+  color: var(--gold);
+  font-size: .76rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+.ticket-purpose-card strong,
+.friends-family-grid h3 {
+  color: #fff7df;
+}
+.friends-family-panel {
+  background:
+    radial-gradient(circle at 12% 0%, rgba(255,184,77,.12), transparent 16rem),
+    linear-gradient(145deg, rgba(255,255,255,.07), rgba(255,255,255,.028));
+}
+.friends-family-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.friends-family-grid article {
+  display: grid;
+  gap: 8px;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 16px;
+  background: rgba(0,0,0,.18);
+  padding: 14px;
+}
+.friends-family-grid h3 {
+  margin: 0;
+}
 .ticket-balance-card small,
 .ticket-history-list span,
 .ticket-rule-list small,
@@ -6443,6 +6487,22 @@ textarea { min-height: 42px; resize: vertical; }
 .trivia-pack-activity span:nth-child(3) {
   animation-delay: .28s;
 }
+.trivia-pack-download-track {
+  overflow: hidden;
+  height: 12px;
+  border: 1px solid rgba(255,184,77,.22);
+  border-radius: 999px;
+  background: rgba(0,0,0,.28);
+  box-shadow: inset 0 1px 8px rgba(0,0,0,.35);
+}
+.trivia-pack-download-track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #ffb84d, #ff4f6d);
+  box-shadow: 0 0 18px rgba(255,184,77,.32);
+  transition: width .32s ease;
+}
 @keyframes trivia-pack-pulse {
   0%, 100% {
     opacity: .32;
@@ -6567,7 +6627,7 @@ textarea { min-height: 42px; resize: vertical; }
 }
 .trivia-mode-row {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
 .trivia-mode-row button {
@@ -6602,6 +6662,35 @@ textarea { min-height: 42px; resize: vertical; }
   border-radius: inherit;
   background: linear-gradient(90deg, #ffb84d, #ff4f6d);
   transition: width .24s ease;
+}
+.trivia-rules-strip,
+.trivia-completed-history {
+  display: grid;
+  gap: 8px;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 16px;
+  background: rgba(0,0,0,.18);
+  padding: 12px;
+}
+.trivia-rules-strip {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.trivia-rules-strip span,
+.trivia-completed-history span {
+  color: var(--muted);
+  font-size: .78rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+.trivia-rules-strip strong,
+.trivia-completed-history strong {
+  color: #ffe2a6;
+  display: block;
+  font-size: 1.08rem;
+}
+.trivia-completed-history small {
+  color: var(--muted);
+  line-height: 1.45;
 }
 .trivia-question-kicker {
   display: flex;
@@ -8826,6 +8915,12 @@ textarea { min-height: 42px; resize: vertical; }
 .profile-badge-list small {
   color: var(--muted);
 }
+.profile-status-line {
+  border-left: 3px solid rgba(255, 184, 58, 0.6);
+  color: #ffe7b8;
+  font-weight: 850;
+  padding-left: 10px;
+}
 
 .profile-games-summary-count {
   flex: 0 0 auto;
@@ -8840,7 +8935,7 @@ textarea { min-height: 42px; resize: vertical; }
 
 .profile-games-summary-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
   gap: 8px;
   padding: 0 18px 18px;
 }
@@ -8864,7 +8959,7 @@ textarea { min-height: 42px; resize: vertical; }
 
 .profile-games-detail-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
   gap: 14px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   padding: 18px;
@@ -10487,6 +10582,8 @@ textarea { min-height: 42px; resize: vertical; }
     white-space: normal;
   }
   .trivia-mode-row,
+  .trivia-rules-strip,
+  .friends-family-grid,
   .trivia-question-actions,
   .trivia-round-summary .share-inline-row {
     grid-template-columns: 1fr;
