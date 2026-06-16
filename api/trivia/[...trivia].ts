@@ -66,7 +66,7 @@ interface EasterEggDraft {
 const REPORT_THRESHOLD = 3;
 const TRIVIA_VERSION = "movie-fan-v8-openai";
 const TRIVIA_TARGET_COUNT = 25;
-const TRIVIA_CANDIDATE_COUNT = 30;
+const TRIVIA_CANDIDATE_COUNT = 40;
 const TRIVIA_MIN_READY_COUNT = 20;
 const TRIVIA_SOURCE_MIN_OVERVIEW_CHARS = 220;
 const SOURCE_LABELS = ["TMDb metadata"];
@@ -525,12 +525,12 @@ function validateGeneratedTriviaPack(payload: any, expected: { tmdbId: number; m
       return true;
     });
 
-  const selected = questions.slice(0, expected.questionCount);
-  if (selected.length < expected.questionCount) throw new Error(`OpenAI returned only ${selected.length} valid trivia questions.`);
+  if (questions.length < TRIVIA_MIN_READY_COUNT) throw new Error(`OpenAI returned only ${questions.length} valid trivia questions.`);
+  const selected = questions.slice(0, Math.min(expected.questionCount, questions.length));
   const metadataRatio = selected.filter((question) => isMetadataStyleQuestion(question.question)).length / selected.length;
   if (metadataRatio > 0.4) throw new Error("Trivia pack used too many metadata-style questions.");
   const maxCategoryCount = Math.max(0, ...Array.from(categoryCounts.values()));
-  if (maxCategoryCount / selected.length > 0.45) throw new Error("Trivia pack repeated one category too often.");
+  if (maxCategoryCount / selected.length > 0.65) throw new Error("Trivia pack repeated one category too often.");
 
   return {
     title: cleanTriviaSentence(payload.title || expected.title),
