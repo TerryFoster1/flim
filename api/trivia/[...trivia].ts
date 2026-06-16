@@ -48,6 +48,8 @@ interface OpenAITriviaPack {
   questions: OpenAITriviaQuestion[];
 }
 
+type TriviaGenerationStatus = "queued" | "generating" | "ready" | "failed" | "insufficient_source";
+
 interface EasterEggDraft {
   title: string;
   prompt: string;
@@ -66,12 +68,17 @@ const TRIVIA_VERSION = "movie-fan-v8-openai";
 const TRIVIA_TARGET_COUNT = 25;
 const TRIVIA_CANDIDATE_COUNT = 30;
 const TRIVIA_MIN_READY_COUNT = 20;
+const TRIVIA_SOURCE_MIN_OVERVIEW_CHARS = 220;
 const SOURCE_LABELS = ["TMDb metadata"];
 const SOURCE_URLS = ["https://www.themoviedb.org/"];
 const SMART_SOURCE_LABELS = ["Flim movie-fan trivia rules"];
 const CURATED_SOURCE_LABELS = ["Flim curated companion prompt"];
 const CURATED_SOURCE_URLS = ["https://www.flim.ca/"];
 const CONTEXT_SOURCE_LABELS = ["TMDb overview", "Flim contextual trivia rules"];
+
+function triviaProviderApiKey() {
+  return process.env.FLIM_Trivia_API_KEY || process.env.Flim_Trivia_API_KEY || "";
+}
 
 function logTriviaPipeline(event: string, data: Record<string, unknown> = {}) {
   const safeData = Object.fromEntries(
@@ -272,6 +279,79 @@ function getTriviaReleaseYear(details: any) {
   return Number.isFinite(year) && year > 1800 ? year : undefined;
 }
 
+function getReleaseDateValue(details: any) {
+  const raw = String(details.releaseDate || details.release_date || details.firstAirDate || details.first_air_date || "").trim();
+  if (!/^\d{4}-\d{2}-\d{2}/.test(raw)) return null;
+  const value = new Date(`${raw.slice(0, 10)}T00:00:00.000Z`).getTime();
+  return Number.isFinite(value) ? value : null;
+}
+
+function isUnreleasedTitle(details: any) {
+  const releaseTime = getReleaseDateValue(details);
+  if (!releaseTime) return false;
+  const today = new Date();
+  const todayUtc = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate());
+  return releaseTime > todayUtc;
+}
+
+function evaluateTriviaSourceAvailability(details: any) {
+  const mediaType = normalizeMediaType(details.mediaType);
+  const tmdbId = Number(details.tmdbId);
+  const curatedCount = generateTrivia({ ...details, mediaType, tmdbId }).length;
+  const overview = cleanTriviaSentence(details.overview || details.description || details.tagline || "");
+  const castCount = Array.isArray(details.cast) ? details.cast.length : 0;
+  const crewCount = Array.isArray(details.crew) ? details.crew.length : 0;
+  const released = !isUnreleasedTitle(details);
+  const hasProviderGeneration = Boolean(triviaProviderApiKey());
+
+  if (curatedCount >= TRIVIA_MIN_READY_COUNT) {
+    return {
+      sufficient: true,
+      reason: "curated_pack_available",
+      curatedCount,
+      released,
+      overviewLength: overview.length,
+      castCount,
+      crewCount,
+    };
+  }
+
+  if (!released) {
+    return {
+      sufficient: false,
+      reason: "unreleased_title",
+      curatedCount,
+      released,
+      overviewLength: overview.length,
+      castCount,
+      crewCount,
+    };
+  }
+
+  if (!hasProviderGeneration) {
+    return {
+      sufficient: false,
+      reason: "provider_not_configured",
+      curatedCount,
+      released,
+      overviewLength: overview.length,
+      castCount,
+      crewCount,
+    };
+  }
+
+  const enoughPublicContext = overview.length >= TRIVIA_SOURCE_MIN_OVERVIEW_CHARS || castCount + crewCount >= 12;
+  return {
+    sufficient: enoughPublicContext,
+    reason: enoughPublicContext ? "public_context_available" : "limited_public_context",
+    curatedCount,
+    released,
+    overviewLength: overview.length,
+    castCount,
+    crewCount,
+  };
+}
+
 function formatTriviaList(items: string[]) {
   if (items.length <= 1) return items[0] || "its story world";
   if (items.length === 2) return `${items[0]} and ${items[1]}`;
@@ -462,7 +542,7 @@ function validateGeneratedTriviaPack(payload: any, expected: { tmdbId: number; m
 }
 
 async function callOpenAITrivia(details: any, options: { questionCount: number; spoilerMode: boolean }) {
-  const apiKey = process.env.OPENAI_API_KEY;
+  const apiKey = triviaProviderApiKey();
   if (!apiKey) throw new Error("OpenAI trivia generation is not configured.");
 
   const mediaType = normalizeMediaType(details.mediaType);
@@ -553,6 +633,13 @@ function publicTriviaGenerationMessage(error?: unknown) {
   if (lower.includes("returned only") || lower.includes("valid trivia") || lower.includes("metadata-style") || lower.includes("category")) {
     return "This trivia pack needs more movie-fan questions before it can be played. Please try again later.";
   }
+  return "Trivia Pack Temporarily Unavailable. Please try again later.";
+}
+
+function triviaFeedNote(status: unknown, hasCompanionContent: boolean) {
+  if (hasCompanionContent) return "Cached movie-fan companion content for this title.";
+  if (status === "insufficient_source") return "Trivia for this title is not ready yet. We'll build it when more information is available.";
+  if (status === "queued" || status === "generating" || status === "missing") return "Building trivia pack. Usually ready in 1-5 minutes.";
   return "Trivia Pack Temporarily Unavailable. Please try again later.";
 }
 
@@ -1460,7 +1547,7 @@ async function readCachedTrivia(sql: any, tmdbId: number, mediaType: MediaType, 
     order by confidence desc, created_at asc
     limit ${TRIVIA_TARGET_COUNT}
   `;
-  if (rows.length < TRIVIA_MIN_READY_COUNT && !process.env.OPENAI_API_KEY) {
+  if (rows.length < TRIVIA_MIN_READY_COUNT && !triviaProviderApiKey()) {
     rows = await sql`
       select *
       from title_trivia
@@ -1753,7 +1840,7 @@ async function generateAndStoreTrivia(sql: any, tmdbId: number, mediaType: Media
   let pack: OpenAITriviaPack | null = null;
   let providerError: unknown = null;
 
-  if (process.env.OPENAI_API_KEY) {
+  if (triviaProviderApiKey()) {
     try {
       pack = await callOpenAITrivia({ ...details, mediaType, tmdbId }, { questionCount, spoilerMode });
     } catch (error) {
@@ -1769,7 +1856,7 @@ async function generateAndStoreTrivia(sql: any, tmdbId: number, mediaType: Media
     logTriviaPipeline("generation_provider_unconfigured", {
       tmdbId,
       mediaType,
-      requiredEnv: "OPENAI_API_KEY",
+      requiredEnv: "FLIM_Trivia_API_KEY",
     });
   }
 
@@ -1798,7 +1885,7 @@ async function generateAndStoreTrivia(sql: any, tmdbId: number, mediaType: Media
         and status = 'auto_generated'
     `;
   }
-  const isCuratedFallback = !process.env.OPENAI_API_KEY || Boolean(providerError);
+  const isCuratedFallback = !triviaProviderApiKey() || Boolean(providerError);
   await saveGeneratedTriviaSet(sql, pack, details, {
     questionCount: pack.questions.length,
     spoilerMode,
@@ -1811,7 +1898,7 @@ async function generateAndStoreTrivia(sql: any, tmdbId: number, mediaType: Media
   return readCachedTrivia(sql, tmdbId, mediaType, userId, details);
 }
 
-async function updateTriviaJob(sql: any, tmdbId: number, mediaType: MediaType, status: "queued" | "generating" | "ready" | "failed", input: { interestSource?: string; questionCount?: number; error?: string | null } = {}) {
+async function updateTriviaJob(sql: any, tmdbId: number, mediaType: MediaType, status: TriviaGenerationStatus, input: { interestSource?: string; questionCount?: number; error?: string | null } = {}) {
   logTriviaPipeline("status_update", {
     tmdbId,
     mediaType,
@@ -1879,6 +1966,39 @@ async function ensureTriviaPack(sql: any, tmdbId: number, mediaType: MediaType, 
   });
   if (!input.forceRefresh && existing.length >= TRIVIA_MIN_READY_COUNT) {
     await updateTriviaJob(sql, tmdbId, mediaType, "ready", { interestSource: input.interestSource, questionCount: existing.length, error: null });
+    return existing;
+  }
+
+  const currentJob = await readTriviaJob(sql, tmdbId, mediaType);
+  if (!input.forceRefresh && currentJob && ["queued", "generating", "ready", "insufficient_source"].includes(String(currentJob.status))) {
+    logTriviaPipeline("generation_skipped_existing_status", {
+      tmdbId,
+      mediaType,
+      status: currentJob.status,
+      questionCount: existing.length,
+    });
+    return existing;
+  }
+
+  const details = await loadTitleDetails(sql, tmdbId, mediaType);
+  const sourceAvailability = evaluateTriviaSourceAvailability({ ...details, mediaType, tmdbId });
+  logTriviaPipeline("source_sufficiency_checked", {
+    tmdbId,
+    mediaType,
+    sufficient: sourceAvailability.sufficient,
+    reason: sourceAvailability.reason,
+    curatedCount: sourceAvailability.curatedCount,
+    released: sourceAvailability.released,
+    overviewLength: sourceAvailability.overviewLength,
+    castCount: sourceAvailability.castCount,
+    crewCount: sourceAvailability.crewCount,
+  });
+  if (!sourceAvailability.sufficient) {
+    await updateTriviaJob(sql, tmdbId, mediaType, "insufficient_source", {
+      interestSource: input.interestSource,
+      questionCount: existing.length,
+      error: sourceAvailability.reason,
+    });
     return existing;
   }
 
@@ -2073,6 +2193,7 @@ async function handleGet(request: any, response: any) {
     const completedTriviaCount = questions.filter((question: any) => question.completed).length;
     const completedHuntCount = hunts.filter((hunt: any) => hunt.completed).length;
     const achievementState = await readAchievementState(sql, user?.id);
+    const generationStatus = questions.length >= TRIVIA_MIN_READY_COUNT ? "ready" : job?.status || "missing";
     response.setHeader("X-Flim-Trivia-Cache", source === "cache" ? "HIT" : "MISS");
     response.setHeader("X-Flim-Trivia-Version", TRIVIA_VERSION);
     return sendJson(response, 200, {
@@ -2080,14 +2201,14 @@ async function handleGet(request: any, response: any) {
       mediaType,
       availabilityKnown: questions.length > 0 || hunts.length > 0,
       source,
-      generationStatus: questions.length >= TRIVIA_MIN_READY_COUNT ? "ready" : job?.status || "missing",
+      generationStatus,
       questions,
       easterEggs: hunts,
       progress: progressSummary(questions.length, completedTriviaCount, hunts.length, completedHuntCount),
       achievements: achievementState.achievements,
       unlockedAchievements: achievementState.unlocked,
       authenticated: Boolean(user),
-      notes: questions.length >= TRIVIA_MIN_READY_COUNT || hunts.length ? "Cached movie-fan companion content for this title." : "Please wait while we load trivia for this title.",
+      notes: triviaFeedNote(generationStatus, questions.length >= TRIVIA_MIN_READY_COUNT || hunts.length > 0),
     });
   } catch (error) {
     console.warn("[trivia] feed generation failed", {
@@ -2132,7 +2253,7 @@ async function handleGet(request: any, response: any) {
       achievements: [],
       unlockedAchievements: [],
       authenticated: Boolean(user),
-      notes: "Trivia Pack Temporarily Unavailable. Please try again later.",
+      notes: publicTriviaGenerationMessage(error),
       error: publicTriviaGenerationMessage(error),
     });
   }

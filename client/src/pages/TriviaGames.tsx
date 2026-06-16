@@ -147,6 +147,7 @@ function highScoreText() {
 function safeTriviaStatusCopy(feed: TriviaFeed | null, pollAttempt: number) {
   if (feed?.generationStatus === "queued") return "Queued";
   if (feed?.generationStatus === "generating") return "Building";
+  if (feed?.generationStatus === "insufficient_source") return "Not ready yet";
   if (pollAttempt >= TRIVIA_PACK_MAX_POLLS) return "Longer than usual";
   return "Temporarily unavailable";
 }
@@ -154,6 +155,9 @@ function safeTriviaStatusCopy(feed: TriviaFeed | null, pollAttempt: number) {
 function safeTriviaUnavailableCopy(feed: TriviaFeed | null, pollAttempt: number) {
   const notes = `${feed?.error || ""} ${feed?.notes || ""}`.toLowerCase();
   const providerName = ["open", "ai"].join("");
+  if (feed?.generationStatus === "insufficient_source" || notes.includes("not ready yet")) {
+    return "Trivia for this title is not ready yet. We'll build it when more information is available.";
+  }
   if (notes.includes("not configured") || notes.includes(providerName) || notes.includes("api key") || notes.includes("model")) {
     return "Trivia Pack Temporarily Unavailable. Please try again later.";
   }
@@ -658,6 +662,10 @@ function ClassicTriviaPanel({ mediaType, tmdbId, title, artworkUrl, gameTitle = 
         setLastPackCheck(new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }));
         if (result.generationStatus === "ready" && result.questions.length > 0) {
           setStatus("ready");
+          return;
+        }
+        if (result.generationStatus === "insufficient_source" && result.questions.length === 0) {
+          setStatus("error");
           return;
         }
         if (result.generationStatus === "failed" && result.questions.length === 0) {

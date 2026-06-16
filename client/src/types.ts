@@ -1215,7 +1215,7 @@ export interface TriviaFeed {
   mediaType: MediaType;
   availabilityKnown: boolean;
   source: "cache" | "curated_pack" | "none";
-  generationStatus?: "missing" | "queued" | "generating" | "ready" | "failed";
+  generationStatus?: "missing" | "queued" | "generating" | "ready" | "failed" | "insufficient_source";
   questions: TriviaQuestion[];
   easterEggs?: EasterEggHunt[];
   progress?: CompanionProgress;
