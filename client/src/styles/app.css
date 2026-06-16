@@ -617,7 +617,7 @@ button { color: inherit; font: inherit; }
   border-radius: 999px;
 }
 .page-container {
-  --floating-nav-clearance: calc(168px + env(safe-area-inset-bottom, 0px));
+  --floating-nav-clearance: calc(224px + env(safe-area-inset-bottom, 0px));
   width: min(1480px, 100%);
   max-width: 100%;
   margin: 0 auto;
@@ -8384,8 +8384,9 @@ textarea { min-height: 42px; resize: vertical; }
   z-index: 0;
 }
 
-.film-critter-composite.has-skin .film-critter-base-layer {
-  clip-path: inset(34.18% 31.45% 32.62% 31.45% round 999px);
+.film-critter-face-layer {
+  clip-path: circle(18.75% at 50% 57.03125%);
+  z-index: 0;
 }
 
 .film-critter-skin-layer {
@@ -9440,7 +9441,7 @@ textarea { min-height: 42px; resize: vertical; }
     width: 100%;
   }
   .page-container {
-    --floating-nav-clearance: calc(190px + env(safe-area-inset-bottom, 0px));
+    --floating-nav-clearance: calc(270px + env(safe-area-inset-bottom, 0px));
     padding: 16px;
     padding-bottom: var(--floating-nav-clearance);
   }
