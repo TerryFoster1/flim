@@ -8,12 +8,15 @@ async function parseJson<T>(response: Response): Promise<T> {
   return payload as T;
 }
 
-export async function getTitleTrivia(input: { mediaType?: MediaType; tmdbId: number }) {
+export async function getTitleTrivia(input: { mediaType?: MediaType; tmdbId: number; questionCount?: number; spoilerMode?: boolean; forceRefresh?: boolean }) {
   const mediaType = input.mediaType || "movie";
   const params = new URLSearchParams({
     mediaType,
     tmdbId: String(input.tmdbId),
+    questionCount: String(input.questionCount || 25),
   });
+  if (input.spoilerMode) params.set("spoilerMode", "true");
+  if (input.forceRefresh) params.set("forceRefresh", "true");
   const response = await fetch(`/api/trivia?${params.toString()}`, { cache: "no-store" });
   return parseJson<TriviaFeed>(response);
 }

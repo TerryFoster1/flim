@@ -681,6 +681,75 @@ export async function ensureTriviaTables(sql: any) {
   await sql`create unique index if not exists title_trivia_media_source_question_unique on title_trivia (media_type, tmdb_id, source_hash, question)`;
 
   await sql`
+    create table if not exists trivia_sets (
+      id uuid primary key default gen_random_uuid(),
+      tmdb_id integer not null,
+      media_type text not null check (media_type in ('movie', 'tv')),
+      title text not null,
+      year integer,
+      spoiler_mode boolean not null default false,
+      question_count integer not null default 25,
+      prompt_version text not null,
+      generated_by text not null default 'openai',
+      model text,
+      status text not null default 'ready' check (status in ('ready', 'failed', 'archived')),
+      error text,
+      created_at timestamptz not null default now(),
+      updated_at timestamptz not null default now()
+    )
+  `;
+  await sql`alter table trivia_sets add column if not exists year integer`;
+  await sql`alter table trivia_sets add column if not exists spoiler_mode boolean not null default false`;
+  await sql`alter table trivia_sets add column if not exists question_count integer not null default 25`;
+  await sql`alter table trivia_sets add column if not exists prompt_version text not null default 'movie-fan-v8-openai'`;
+  await sql`alter table trivia_sets add column if not exists generated_by text not null default 'openai'`;
+  await sql`alter table trivia_sets add column if not exists model text`;
+  await sql`alter table trivia_sets add column if not exists status text not null default 'ready'`;
+  await sql`alter table trivia_sets add column if not exists error text`;
+  await sql`
+    create unique index if not exists trivia_sets_title_settings_unique
+    on trivia_sets (tmdb_id, media_type, spoiler_mode, question_count, prompt_version)
+  `;
+  await sql`create index if not exists trivia_sets_title_lookup_idx on trivia_sets (media_type, tmdb_id, status, updated_at desc)`;
+
+  await sql`
+    create table if not exists trivia_questions (
+      id uuid primary key default gen_random_uuid(),
+      trivia_set_id uuid not null references trivia_sets(id) on delete cascade,
+      tmdb_id integer not null,
+      media_type text not null check (media_type in ('movie', 'tv')),
+      question_order integer not null,
+      category text not null,
+      difficulty text not null check (difficulty in ('easy', 'medium', 'hard')),
+      question text not null,
+      choices jsonb not null default '[]'::jsonb,
+      correct_answer text not null,
+      explanation text not null,
+      spoiler boolean not null default false,
+      source_hash text not null,
+      created_at timestamptz not null default now(),
+      updated_at timestamptz not null default now()
+    )
+  `;
+  await sql`alter table trivia_questions add column if not exists question_order integer not null default 0`;
+  await sql`alter table trivia_questions add column if not exists category text not null default 'story'`;
+  await sql`alter table trivia_questions add column if not exists difficulty text not null default 'medium'`;
+  await sql`alter table trivia_questions add column if not exists choices jsonb not null default '[]'::jsonb`;
+  await sql`alter table trivia_questions add column if not exists correct_answer text not null default ''`;
+  await sql`alter table trivia_questions add column if not exists explanation text not null default ''`;
+  await sql`alter table trivia_questions add column if not exists spoiler boolean not null default false`;
+  await sql`alter table trivia_questions add column if not exists source_hash text not null default ''`;
+  await sql`
+    create unique index if not exists trivia_questions_set_order_unique
+    on trivia_questions (trivia_set_id, question_order)
+  `;
+  await sql`
+    create unique index if not exists trivia_questions_set_question_unique
+    on trivia_questions (trivia_set_id, question)
+  `;
+  await sql`create index if not exists trivia_questions_title_idx on trivia_questions (media_type, tmdb_id, difficulty, category)`;
+
+  await sql`
     create table if not exists trivia_generation_jobs (
       id uuid primary key default gen_random_uuid(),
       tmdb_id integer not null,

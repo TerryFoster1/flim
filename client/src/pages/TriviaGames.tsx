@@ -689,7 +689,7 @@ function ClassicTriviaPanel({ mediaType, tmdbId, title, artworkUrl, gameTitle = 
       setLastPackCheck("");
     }
     setStatus(options.poll ? "building" : "loading");
-    getTitleTrivia({ mediaType, tmdbId })
+    getTitleTrivia({ mediaType, tmdbId, questionCount: 25 })
       .then((result) => {
         if (activeTriviaRequest.current !== requestId) return;
         setFeed(result);
@@ -878,7 +878,7 @@ function ClassicTriviaPanel({ mediaType, tmdbId, title, artworkUrl, gameTitle = 
       <section className="title-games-section trivia-building-pack">
         <span className="title-game-kicker">{status === "loading" ? "Checking cache" : "Building"}</span>
         <h2>{status === "loading" ? "Loading Trivia Pack" : "Building Trivia Pack"}</h2>
-        <p>{feed?.notes || "Creating movie-fan questions and checking the saved pack."}</p>
+        <p>{feed?.notes || "Please wait while we load trivia for this title."}</p>
         <div className="trivia-pack-activity" aria-label="Trivia pack loading progress">
           <span />
           <span />

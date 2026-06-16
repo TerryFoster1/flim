@@ -4,6 +4,7 @@ import { evaluateAchievements, readAchievementState } from "../_achievements.js"
 import { checkRateLimit, db, ensureTriviaTables, errorStatus, getCurrentUser, readBody, sendJson } from "../_db.js";
 import { getCatalogMediaItem, mapCatalogDetails, upsertMediaItem } from "../_mediaCatalog.js";
 import { ensureTmdbCacheTables, fetchTmdbMovieDetails } from "../_tmdb.js";
+import { buildTriviaPrompt } from "../../src/prompts/triviaPrompt.js";
 
 type MediaType = "movie" | "tv";
 
@@ -29,6 +30,24 @@ interface TriviaSourceContext {
   sourceUrls: string[];
 }
 
+interface OpenAITriviaQuestion {
+  question: string;
+  choices: string[];
+  correctAnswer: string;
+  difficulty: "easy" | "medium" | "hard";
+  category: string;
+  explanation: string;
+  spoiler: boolean;
+}
+
+interface OpenAITriviaPack {
+  title: string;
+  mediaType: MediaType;
+  tmdbId: number;
+  spoilerMode: boolean;
+  questions: OpenAITriviaQuestion[];
+}
+
 interface EasterEggDraft {
   title: string;
   prompt: string;
@@ -43,9 +62,10 @@ interface EasterEggDraft {
 }
 
 const REPORT_THRESHOLD = 3;
-const TRIVIA_VERSION = "movie-fan-v7-title-context";
-const TRIVIA_TARGET_COUNT = 40;
-const TRIVIA_MIN_READY_COUNT = 20;
+const TRIVIA_VERSION = "movie-fan-v8-openai";
+const TRIVIA_TARGET_COUNT = 25;
+const TRIVIA_CANDIDATE_COUNT = 30;
+const TRIVIA_MIN_READY_COUNT = 25;
 const SOURCE_LABELS = ["TMDb metadata"];
 const SOURCE_URLS = ["https://www.themoviedb.org/"];
 const SMART_SOURCE_LABELS = ["Flim movie-fan trivia rules"];
@@ -212,6 +232,29 @@ function asStringArray(value: unknown) {
     .filter(Boolean);
 }
 
+function peopleNames(value: unknown, limit = 12) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => {
+      if (typeof item === "string") return item;
+      if (item && typeof item === "object") {
+        const person = item as any;
+        const role = person.character || person.job || person.department;
+        return [person.name, role ? `(${role})` : ""].filter(Boolean).join(" ");
+      }
+      return "";
+    })
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .slice(0, limit);
+}
+
+function extractCrewNames(details: any) {
+  const crew = Array.isArray(details?.crew) ? details.crew : [];
+  const directors = peopleNames(crew.filter((member: any) => /director|writer|screenplay|composer|creator|showrunner/i.test(String(member?.job || member?.department || ""))), 10);
+  return directors.length ? directors : peopleNames(crew, 10);
+}
+
 function getTriviaReleaseYear(details: any) {
   const raw = details.releaseYear || details.firstAirYear || details.year || String(details.releaseDate || details.firstAirDate || "").slice(0, 4);
   const year = Number(raw);
@@ -274,6 +317,179 @@ async function gatherTriviaSourceContext(details: any): Promise<TriviaSourceCont
     sourceLabels,
     sourceUrls: Array.from(new Set(sourceUrls)),
   };
+}
+
+function safeJsonObject(text: string) {
+  const clean = String(text || "").trim().replace(/^```(?:json)?/i, "").replace(/```$/i, "").trim();
+  const start = clean.indexOf("{");
+  const end = clean.lastIndexOf("}");
+  if (start < 0 || end <= start) throw new Error("OpenAI did not return a JSON object.");
+  return JSON.parse(clean.slice(start, end + 1));
+}
+
+function normalizeDifficulty(value: unknown): OpenAITriviaQuestion["difficulty"] | null {
+  const clean = String(value || "").toLowerCase().trim();
+  return clean === "easy" || clean === "medium" || clean === "hard" ? clean : null;
+}
+
+function normalizeGeneratedQuestion(value: any): OpenAITriviaQuestion | null {
+  const question = cleanTriviaSentence(value?.question);
+  const correctAnswer = cleanTriviaSentence(value?.correctAnswer);
+  const choices: string[] = Array.isArray(value?.choices) ? value.choices.map(cleanTriviaSentence).filter(Boolean) : [];
+  const difficulty = normalizeDifficulty(value?.difficulty);
+  const category = cleanTriviaSentence(value?.category || "story").toLowerCase().replace(/[^a-z0-9 _-]+/g, "").slice(0, 40) || "story";
+  const explanation = cleanTriviaSentence(value?.explanation);
+  if (!question || !correctAnswer || !difficulty || !explanation || choices.length !== 4) return null;
+  const matchingChoice = choices.find((choice) => normalizeAnswer(choice) === normalizeAnswer(correctAnswer));
+  if (!matchingChoice) return null;
+  const uniqueChoices: string[] = Array.from(new Map<string, string>(choices.map((choice) => [normalizeAnswer(choice), choice])).values());
+  if (uniqueChoices.length !== 4) return null;
+  return {
+    question,
+    choices: uniqueChoices.map((choice) => normalizeAnswer(choice) === normalizeAnswer(correctAnswer) ? correctAnswer : choice),
+    correctAnswer,
+    difficulty,
+    category,
+    explanation,
+    spoiler: Boolean(value?.spoiler),
+  };
+}
+
+function isMetadataStyleQuestion(question: string) {
+  const normalized = normalizeTriviaText(question);
+  const metadataPatterns = [
+    "what year",
+    "release year",
+    "runtime",
+    "how long",
+    "who directed",
+    "which director",
+    "who plays",
+    "which actor plays",
+    "which character is played",
+    "genre",
+    "budget",
+    "box office",
+    "tmdb",
+    "database",
+    "provider",
+    "streaming",
+  ];
+  return metadataPatterns.some((pattern) => normalized.includes(pattern));
+}
+
+function isSynopsisComprehensionQuestion(question: string) {
+  const normalized = normalizeTriviaText(question);
+  const weakPatterns = [
+    "viewing experience",
+    "story setup",
+    "opening premise",
+    "best matches",
+    "based on the synopsis",
+    "what kind of story",
+    "what does the overview",
+    "what should viewers focus",
+    "which description",
+  ];
+  return weakPatterns.some((pattern) => normalized.includes(pattern));
+}
+
+function validateGeneratedTriviaPack(payload: any, expected: { tmdbId: number; mediaType: MediaType; title: string; spoilerMode: boolean; questionCount: number }) {
+  if (!payload || typeof payload !== "object") throw new Error("Trivia generation returned an empty payload.");
+  if (normalizeMediaType(payload.mediaType) !== expected.mediaType) throw new Error("Trivia generation returned the wrong media type.");
+  if (Number(payload.tmdbId) !== expected.tmdbId) throw new Error("Trivia generation returned the wrong TMDb ID.");
+
+  const seenQuestions = new Set<string>();
+  const seenAnswers = new Set<string>();
+  const categoryCounts = new Map<string, number>();
+  const questions = (Array.isArray(payload.questions) ? payload.questions : [])
+    .map(normalizeGeneratedQuestion)
+    .filter((question): question is OpenAITriviaQuestion => Boolean(question))
+    .filter((question) => {
+      const normalizedQuestion = normalizeTriviaText(question.question);
+      const normalizedAnswer = normalizeAnswer(question.correctAnswer);
+      if (!normalizedQuestion || !normalizedAnswer) return false;
+      if (seenQuestions.has(normalizedQuestion)) return false;
+      if (seenAnswers.has(normalizedAnswer)) return false;
+      if (isSynopsisComprehensionQuestion(question.question)) return false;
+      seenQuestions.add(normalizedQuestion);
+      seenAnswers.add(normalizedAnswer);
+      categoryCounts.set(question.category, (categoryCounts.get(question.category) || 0) + 1);
+      return true;
+    });
+
+  const selected = questions.slice(0, expected.questionCount);
+  if (selected.length < expected.questionCount) throw new Error(`OpenAI returned only ${selected.length} valid trivia questions.`);
+  const metadataRatio = selected.filter((question) => isMetadataStyleQuestion(question.question)).length / selected.length;
+  if (metadataRatio > 0.4) throw new Error("Trivia pack used too many metadata-style questions.");
+  const maxCategoryCount = Math.max(0, ...Array.from(categoryCounts.values()));
+  if (maxCategoryCount / selected.length > 0.45) throw new Error("Trivia pack repeated one category too often.");
+
+  return {
+    title: cleanTriviaSentence(payload.title || expected.title),
+    mediaType: expected.mediaType,
+    tmdbId: expected.tmdbId,
+    spoilerMode: expected.spoilerMode,
+    questions: selected,
+  } satisfies OpenAITriviaPack;
+}
+
+async function callOpenAITrivia(details: any, options: { questionCount: number; spoilerMode: boolean }) {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) throw new Error("OpenAI trivia generation is not configured.");
+
+  const mediaType = normalizeMediaType(details.mediaType);
+  const tmdbId = Number(details.tmdbId);
+  const title = String(details.title || details.name || "Untitled").trim();
+  const context = await gatherTriviaSourceContext({ ...details, mediaType });
+  const prompt = buildTriviaPrompt({
+    tmdbId,
+    mediaType,
+    title,
+    year: getTriviaReleaseYear(details),
+    overview: context.overview || details.overview,
+    genres: context.genres.length ? context.genres : asStringArray(details.genres),
+    cast: peopleNames(details.cast, 14),
+    crew: extractCrewNames(details),
+    runtime: details.runtime,
+    releaseDate: details.releaseDate,
+    firstAirDate: details.firstAirDate,
+    spoilerMode: options.spoilerMode,
+    questionCount: options.questionCount,
+    candidateCount: TRIVIA_CANDIDATE_COUNT,
+  });
+  const model = process.env.OPENAI_TRIVIA_MODEL || "gpt-4.1-mini";
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "authorization": `Bearer ${apiKey}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      model,
+      temperature: 0.7,
+      response_format: { type: "json_object" },
+      messages: [
+        { role: "system", content: "You return strict JSON only for premium movie and TV trivia." },
+        { role: "user", content: prompt },
+      ],
+    }),
+  });
+
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const message = payload?.error?.message || `OpenAI trivia generation failed with status ${response.status}.`;
+    throw new Error(message);
+  }
+  const content = payload?.choices?.[0]?.message?.content;
+  if (!content) throw new Error("OpenAI returned no trivia content.");
+  return validateGeneratedTriviaPack(safeJsonObject(content), {
+    tmdbId,
+    mediaType,
+    title,
+    spoilerMode: options.spoilerMode,
+    questionCount: options.questionCount,
+  });
 }
 
 function contextualQuestion(context: TriviaSourceContext, input: Omit<TriviaDraft, "sourceLabels" | "sourceUrls" | "confidence"> & { confidence?: number }): TriviaDraft {
@@ -1103,7 +1319,7 @@ function mapEasterEgg(row: any, completedIds = new Set<string>()) {
 
 async function readCachedTrivia(sql: any, tmdbId: number, mediaType: MediaType, userId?: string, details?: any) {
   const completedIds = await readCompletedIds(sql, userId, "user_trivia_progress", "trivia_id");
-  const rows = await sql`
+  let rows = await sql`
     select *
     from title_trivia
     where tmdb_id = ${tmdbId}
@@ -1115,8 +1331,31 @@ async function readCachedTrivia(sql: any, tmdbId: number, mediaType: MediaType, 
     order by confidence desc, created_at asc
     limit ${TRIVIA_TARGET_COUNT}
   `;
+  if (rows.length < TRIVIA_MIN_READY_COUNT && !process.env.OPENAI_API_KEY) {
+    rows = await sql`
+      select *
+      from title_trivia
+      where tmdb_id = ${tmdbId}
+        and media_type = ${mediaType}
+        and status in ('approved', 'auto_generated')
+        and report_count < ${REPORT_THRESHOLD}
+        and options ? answer
+      order by
+        case when source_hash like ${`${TRIVIA_VERSION}:%`} then 0 else 1 end,
+        confidence desc,
+        created_at asc
+      limit ${TRIVIA_TARGET_COUNT}
+    `;
+  }
   const needsContext = details && titleNeedsExplicitTriviaContext({ ...details, mediaType, tmdbId });
-  return rows.map((row: any) => mapTrivia(row, completedIds, needsContext ? { ...details, mediaType, tmdbId } : undefined));
+  const seen = new Set<string>();
+  const uniqueRows = rows.filter((row: any) => {
+    const key = `${normalizeTriviaText(row.question)}:${normalizeAnswer(row.answer || "")}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  return uniqueRows.map((row: any) => mapTrivia(row, completedIds, needsContext ? { ...details, mediaType, tmdbId } : undefined));
 }
 
 async function readCompletedIds(sql: any, userId: string | undefined, table: "user_trivia_progress" | "user_easter_egg_progress", idColumn: "trivia_id" | "easter_egg_id"): Promise<Set<string>> {
@@ -1198,19 +1437,96 @@ async function loadTitleDetails(sql: any, tmdbId: number, mediaType: MediaType) 
   return details;
 }
 
-async function generateAndStoreTrivia(sql: any, tmdbId: number, mediaType: MediaType, userId?: string) {
-  const details = await loadTitleDetails(sql, tmdbId, mediaType);
-  const drafts = generateTrivia(details);
+async function saveGeneratedTriviaSet(sql: any, pack: OpenAITriviaPack, details: any, options: { questionCount: number; spoilerMode: boolean; model?: string }) {
+  const year = getTriviaReleaseYear(details);
+  const model = options.model || process.env.OPENAI_TRIVIA_MODEL || "gpt-4.1-mini";
+  const setRows = await sql`
+    insert into trivia_sets (
+      tmdb_id,
+      media_type,
+      title,
+      year,
+      spoiler_mode,
+      question_count,
+      prompt_version,
+      generated_by,
+      model,
+      status,
+      error,
+      updated_at
+    )
+    values (
+      ${pack.tmdbId},
+      ${pack.mediaType},
+      ${pack.title},
+      ${year || null},
+      ${options.spoilerMode},
+      ${options.questionCount},
+      ${TRIVIA_VERSION},
+      'openai',
+      ${model},
+      'ready',
+      null,
+      now()
+    )
+    on conflict (tmdb_id, media_type, spoiler_mode, question_count, prompt_version)
+    do update set
+      title = excluded.title,
+      year = excluded.year,
+      generated_by = excluded.generated_by,
+      model = excluded.model,
+      status = 'ready',
+      error = null,
+      updated_at = now()
+    returning id
+  `;
+  const triviaSetId = setRows[0]?.id;
+  if (!triviaSetId) throw new Error("Unable to save trivia set.");
 
-  for (const draft of drafts) {
-    const sourceHash = `${TRIVIA_VERSION}:${draft.difficulty}:${hashSource({
-      mediaType,
-      tmdbId,
-      title: details.title,
-      question: draft.question,
-      answer: draft.answer,
+  await sql`delete from trivia_questions where trivia_set_id = ${triviaSetId}`;
+
+  for (const [index, question] of pack.questions.entries()) {
+    const sourceHash = `${TRIVIA_VERSION}:${question.difficulty}:${hashSource({
+      mediaType: pack.mediaType,
+      tmdbId: pack.tmdbId,
+      title: pack.title,
+      question: question.question,
+      answer: question.correctAnswer,
       version: TRIVIA_VERSION,
     })}`;
+    await sql`
+      insert into trivia_questions (
+        trivia_set_id,
+        tmdb_id,
+        media_type,
+        question_order,
+        category,
+        difficulty,
+        question,
+        choices,
+        correct_answer,
+        explanation,
+        spoiler,
+        source_hash,
+        updated_at
+      )
+      values (
+        ${triviaSetId},
+        ${pack.tmdbId},
+        ${pack.mediaType},
+        ${index + 1},
+        ${question.category},
+        ${question.difficulty},
+        ${question.question},
+        ${JSON.stringify(question.choices)}::jsonb,
+        ${question.correctAnswer},
+        ${question.explanation},
+        ${question.spoiler},
+        ${sourceHash},
+        now()
+      )
+    `;
+
     await sql`
       insert into title_trivia (
         tmdb_id,
@@ -1229,18 +1545,18 @@ async function generateAndStoreTrivia(sql: any, tmdbId: number, mediaType: Media
         updated_at
       )
       values (
-        ${tmdbId},
-        ${mediaType},
+        ${pack.tmdbId},
+        ${pack.mediaType},
         ${sourceHash},
-        ${draft.question},
-        ${draft.answer},
-        ${JSON.stringify(draft.options)}::jsonb,
-        ${draft.explanation},
-        ${draft.difficulty},
-        ${draft.spoilerLevel},
-        ${JSON.stringify(draft.sourceUrls || SOURCE_URLS)}::jsonb,
-        ${JSON.stringify(draft.sourceLabels || SMART_SOURCE_LABELS)}::jsonb,
-        ${draft.confidence},
+        ${question.question},
+        ${question.correctAnswer},
+        ${JSON.stringify(question.choices)}::jsonb,
+        ${question.explanation},
+        ${question.difficulty},
+        ${question.spoiler ? "minor" : "none"},
+        ${JSON.stringify(SOURCE_URLS)}::jsonb,
+        ${JSON.stringify(["OpenAI generated", "Flim trivia specialist prompt"])}::jsonb,
+        0.88,
         'auto_generated',
         now()
       )
@@ -1254,11 +1570,31 @@ async function generateAndStoreTrivia(sql: any, tmdbId: number, mediaType: Media
         source_urls = excluded.source_urls,
         source_labels = excluded.source_labels,
         confidence = excluded.confidence,
+        status = excluded.status,
         updated_at = now()
       where title_trivia.status <> 'approved'
     `;
   }
 
+  return triviaSetId;
+}
+
+async function generateAndStoreTrivia(sql: any, tmdbId: number, mediaType: MediaType, userId?: string, input: { questionCount?: number; spoilerMode?: boolean; forceRefresh?: boolean } = {}) {
+  const details = await loadTitleDetails(sql, tmdbId, mediaType);
+  const questionCount = Math.max(TRIVIA_MIN_READY_COUNT, Math.min(100, Number(input.questionCount || TRIVIA_TARGET_COUNT)));
+  const spoilerMode = Boolean(input.spoilerMode);
+  const pack = await callOpenAITrivia({ ...details, mediaType, tmdbId }, { questionCount, spoilerMode });
+  if (input.forceRefresh) {
+    await sql`
+      update title_trivia
+      set status = 'hidden', updated_at = now()
+      where tmdb_id = ${tmdbId}
+        and media_type = ${mediaType}
+        and source_hash like ${`${TRIVIA_VERSION}:%`}
+        and status = 'auto_generated'
+    `;
+  }
+  await saveGeneratedTriviaSet(sql, pack, details, { questionCount, spoilerMode });
   return readCachedTrivia(sql, tmdbId, mediaType, userId, details);
 }
 
@@ -1312,16 +1648,20 @@ async function readTriviaJob(sql: any, tmdbId: number, mediaType: MediaType) {
   return rows[0] || null;
 }
 
-async function ensureTriviaPack(sql: any, tmdbId: number, mediaType: MediaType, input: { userId?: string; interestSource?: string } = {}) {
+async function ensureTriviaPack(sql: any, tmdbId: number, mediaType: MediaType, input: { userId?: string; interestSource?: string; questionCount?: number; spoilerMode?: boolean; forceRefresh?: boolean } = {}) {
   const existing = await readCachedTrivia(sql, tmdbId, mediaType, input.userId);
-  if (existing.length >= TRIVIA_MIN_READY_COUNT) {
+  if (!input.forceRefresh && existing.length >= TRIVIA_MIN_READY_COUNT) {
     await updateTriviaJob(sql, tmdbId, mediaType, "ready", { interestSource: input.interestSource, questionCount: existing.length, error: null });
     return existing;
   }
 
   await updateTriviaJob(sql, tmdbId, mediaType, "generating", { interestSource: input.interestSource, questionCount: existing.length, error: null });
   try {
-    const generated = await generateAndStoreTrivia(sql, tmdbId, mediaType, input.userId);
+    const generated = await generateAndStoreTrivia(sql, tmdbId, mediaType, input.userId, {
+      questionCount: input.questionCount,
+      spoilerMode: input.spoilerMode,
+      forceRefresh: input.forceRefresh,
+    });
     await updateTriviaJob(sql, tmdbId, mediaType, generated.length >= TRIVIA_MIN_READY_COUNT ? "ready" : "failed", {
       interestSource: input.interestSource,
       questionCount: generated.length,
@@ -1458,6 +1798,9 @@ async function readHuntResponse(sql: any, userId: string, tmdbId: number, mediaT
 async function handleGet(request: any, response: any) {
   const mediaType = normalizeMediaType(Array.isArray(request.query.mediaType) ? request.query.mediaType[0] : request.query.mediaType);
   const tmdbId = Number(Array.isArray(request.query.tmdbId) ? request.query.tmdbId[0] : request.query.tmdbId);
+  const questionCount = Math.max(TRIVIA_MIN_READY_COUNT, Math.min(100, Number(Array.isArray(request.query.questionCount) ? request.query.questionCount[0] : request.query.questionCount) || TRIVIA_TARGET_COUNT));
+  const spoilerMode = String(Array.isArray(request.query.spoilerMode) ? request.query.spoilerMode[0] : request.query.spoilerMode || "false") === "true";
+  const forceRefresh = String(Array.isArray(request.query.forceRefresh) ? request.query.forceRefresh[0] : request.query.forceRefresh || "false") === "true";
   if (!Number.isFinite(tmdbId)) return sendJson(response, 400, { error: "A valid tmdbId is required." });
 
   const sql = db();
@@ -1473,10 +1816,10 @@ async function handleGet(request: any, response: any) {
   let generatedTriviaThisRequest = false;
 
   try {
-    if (questions.length < TRIVIA_MIN_READY_COUNT || hunts.length === 0) {
+    if (forceRefresh || questions.length < TRIVIA_MIN_READY_COUNT || hunts.length === 0) {
       const details = await loadTitleDetails(sql, tmdbId, mediaType);
-      if (questions.length < TRIVIA_MIN_READY_COUNT) {
-        questions = await ensureTriviaPack(sql, tmdbId, mediaType, { userId: user?.id, interestSource: "trivia_page" });
+      if (forceRefresh || questions.length < TRIVIA_MIN_READY_COUNT) {
+        questions = await ensureTriviaPack(sql, tmdbId, mediaType, { userId: user?.id, interestSource: "trivia_page", questionCount, spoilerMode, forceRefresh });
         generatedTriviaThisRequest = true;
       }
       if (hunts.length === 0) hunts = await generateAndStoreEasterEggs(sql, tmdbId, mediaType, details, user?.id);
@@ -1500,7 +1843,7 @@ async function handleGet(request: any, response: any) {
       achievements: achievementState.achievements,
       unlockedAchievements: achievementState.unlocked,
       authenticated: Boolean(user),
-      notes: questions.length >= TRIVIA_MIN_READY_COUNT || hunts.length ? "Cached movie-fan companion content for this title." : "Building your trivia pack. Try again shortly.",
+      notes: questions.length >= TRIVIA_MIN_READY_COUNT || hunts.length ? "Cached movie-fan companion content for this title." : "Please wait while we load trivia for this title.",
     });
   } catch (error) {
     console.warn("[trivia] feed generation failed", {
@@ -1509,6 +1852,28 @@ async function handleGet(request: any, response: any) {
       version: TRIVIA_VERSION,
       error: error instanceof Error ? error.message : "Unknown trivia generation error",
     });
+    const completedTriviaCount = questions.filter((question: any) => question.completed).length;
+    const completedHuntCount = hunts.filter((hunt: any) => hunt.completed).length;
+    if (questions.length > 0 || hunts.length > 0) {
+      const achievementState = await readAchievementState(sql, user?.id);
+      response.setHeader("X-Flim-Trivia-Cache", "STALE");
+      response.setHeader("X-Flim-Trivia-Version", TRIVIA_VERSION);
+      return sendJson(response, 200, {
+        tmdbId,
+        mediaType,
+        availabilityKnown: true,
+        source: "cache",
+        generationStatus: questions.length > 0 ? "ready" : "failed",
+        questions,
+        easterEggs: hunts,
+        progress: progressSummary(questions.length, completedTriviaCount, hunts.length, completedHuntCount),
+        achievements: achievementState.achievements,
+        unlockedAchievements: achievementState.unlocked,
+        authenticated: Boolean(user),
+        notes: "Using cached trivia while the latest pack is being prepared.",
+        error: error instanceof Error ? error.message : "Trivia generation failed.",
+      });
+    }
     response.setHeader("X-Flim-Trivia-Cache", "MISS");
     response.setHeader("X-Flim-Trivia-Version", TRIVIA_VERSION);
     return sendJson(response, 200, {
@@ -1523,7 +1888,7 @@ async function handleGet(request: any, response: any) {
       achievements: [],
       unlockedAchievements: [],
       authenticated: Boolean(user),
-      notes: "Trivia is still being prepared for this title. Try again soon.",
+      notes: "Trivia generation failed. Please try again shortly.",
       error: error instanceof Error ? error.message : "Trivia generation failed.",
     });
   }
