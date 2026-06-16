@@ -119,9 +119,7 @@ function TitleStatusBanner({ movie, region }: { movie: MovieDetails; region: str
   let detail = countdown || (dateText ? "Follow this title for release updates." : "Follow this title for release updates.");
 
   if (streamingProvider) {
-    eyebrow = "Now Streaming";
-    title = `Available on ${streamingProvider.provider.name}`;
-    detail = "Watch availability is confirmed in your region.";
+    return null;
   } else if (windowState === "theaters") {
     eyebrow = "In Theaters Now";
     title = primaryTicket ? "Tickets available" : "In theaters now";
@@ -145,11 +143,6 @@ function TitleStatusBanner({ movie, region }: { movie: MovieDetails; region: str
         {primaryTicket ? (
           <a className="primary-button compact" href={primaryTicket.url} rel="noreferrer" target="_blank">
             {windowState === "upcoming" ? "Buy Advance Tickets" : "Buy Tickets"}
-          </a>
-        ) : null}
-        {streamingProvider?.url ? (
-          <a className="secondary-button compact" href={streamingProvider.url} rel="noreferrer" target="_blank">
-            Watch on {streamingProvider.provider.name}
           </a>
         ) : null}
       </div>
@@ -507,7 +500,7 @@ export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addTo
   }
 
   return (
-    <section className="route-page">
+    <section className="route-page movie-details-page">
       <div className="movie-detail-hero" style={normalizedMovie.backdropUrl ? { "--movie-backdrop": `url("${normalizedMovie.backdropUrl}")` } as CSSProperties : undefined}>
         {normalizedMovie.backdropUrl ? <div className="movie-detail-backdrop" aria-hidden="true" /> : null}
         {normalizedMovie.posterUrl ? <img className="movie-detail-poster" src={normalizedMovie.posterUrl} alt={`${normalizedMovie.title} poster`} /> : <div className="poster tone-blue" />}

@@ -634,6 +634,7 @@ button { color: inherit; font: inherit; }
   overflow: hidden;
 }
 .route-page { width: 100%; max-width: 100%; min-width: 0; overflow-x: clip; animation: pageIn 0.28s ease; padding-bottom: var(--floating-nav-clearance, 168px); }
+.movie-details-page { padding-bottom: clamp(28px, 7vw, 72px); }
 @keyframes pageIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 .cinema-hero {
   min-height: clamp(560px, 74vh, 820px);
