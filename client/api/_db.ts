@@ -283,6 +283,10 @@ export function mapPublicUserProfile(row: any) {
     bio: row.bio || "",
     countryCode: row.show_country_publicly ? row.country_code || undefined : undefined,
     stats: row.stats || undefined,
+    achievements: row.achievement_summary || undefined,
+    challenges: row.challenge_summary || undefined,
+    seasonalChallenges: row.seasonal_challenge_summary || undefined,
+    triviaAndChallenges: row.trivia_and_challenges_summary || undefined,
     publicPlaylists,
   };
 }

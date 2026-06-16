@@ -1,6 +1,5 @@
 export type AppRoute =
   | "/"
-  | "/discover"
   | "/curators"
   | "/playlists"
   | "/playlists/:id"
@@ -814,6 +813,32 @@ export interface PublicUserProfile {
     seasonalPoints: number;
     featuredBadges: CollectionChallengeBadge[];
     recentUnlocks: CollectionChallengeBadge[];
+  };
+  triviaAndChallenges?: {
+    titleTriviaCompleted: number;
+    titleTriviaQuestionCount: number;
+    publicChallengesCompleted: number;
+    seasonalChallengesCompleted: number;
+    perfectScores: number;
+    totalTicketsEarned?: number;
+    recentTitleTrivia: Array<{
+      mediaType: MediaType;
+      tmdbId: number;
+      title: string;
+      score?: number;
+      correctCount?: number;
+      totalCount?: number;
+      completedAt?: string;
+      path: string;
+    }>;
+    recentPublicChallenges: Array<{
+      id: string;
+      title: string;
+      type: "Public Challenge" | "Weekly Challenge" | "Seasonal Challenge";
+      score?: number;
+      completedAt?: string;
+      path: string;
+    }>;
   };
   hallOfFame?: {
     appearanceCount: number;

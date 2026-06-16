@@ -176,7 +176,7 @@ export function Progress({ onNavigate }: ProgressProps) {
         <div className="progress-panel">
           <div className="progress-panel-heading">
             <h2>Collections In Progress</h2>
-            <button onClick={() => onNavigate("/discover")} type="button">Discover</button>
+            <button onClick={() => onNavigate("/public")} type="button">Public Playlists</button>
           </div>
           <div className="progress-stack">
             {feed.collections.length > 0 ? feed.collections.map((collection) => (

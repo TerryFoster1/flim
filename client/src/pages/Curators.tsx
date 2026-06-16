@@ -138,8 +138,8 @@ export function Curators({ onNavigate }: CuratorsProps) {
           <h1>Discover Curators</h1>
           <p>Find people whose playlists match your taste. Follow the taste, then discover the titles.</p>
         </div>
-        <button className="secondary-button" onClick={() => onNavigate("/discover")} type="button">
-          Search Everything
+        <button className="secondary-button" onClick={() => onNavigate("/public")} type="button">
+          Browse Playlists
         </button>
       </div>
 

@@ -107,8 +107,8 @@ const playlistTriviaCards = [
     title: "Space Operas",
     meta: "24 titles",
     image: "/api/og/title/movie/11?card=game",
-    action: "Explore Discovery",
-    path: "/discover",
+    action: "Browse Public Playlists",
+    path: "/public",
   },
   {
     title: "80s Action",

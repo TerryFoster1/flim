@@ -46,7 +46,6 @@ import { About } from "./pages/About";
 import { AuthPage } from "./pages/AuthPage";
 import { DirectorAdmin } from "./pages/DirectorAdmin";
 import { LandingPage } from "./pages/LandingPage";
-import { Discover } from "./pages/Discover";
 import { DiscoveryHub } from "./pages/DiscoveryHub";
 import { Curators } from "./pages/Curators";
 import { createSystemPlaylists } from "./services/systemPlaylists";
@@ -57,7 +56,7 @@ function routeFromPath(path = window.location.pathname): RouteState {
   const url = new URL(path, window.location.origin);
   const pathname = url.pathname;
   if (pathname === "/") return { route: "/" };
-  if (pathname === "/discover") return { route: "/discover" };
+  if (pathname === "/discover") return { route: "/public" };
   if (pathname === "/curators") return { route: "/curators" };
   if (pathname === "/playlists") return { route: "/playlists" };
   if (pathname.startsWith("/playlists/")) return { route: "/playlists/:id", playlistId: pathname.split("/")[2] };
@@ -132,6 +131,9 @@ export default function App() {
   const isHomeRoute = activeRoute === "/";
 
   useEffect(() => {
+    if (window.location.pathname === "/discover") {
+      window.history.replaceState({}, "", "/public");
+    }
     getSession().then((result) => setCurrentUser(result.user)).catch(() => setCurrentUser(null));
     refreshPlaylists();
   }, []);
@@ -176,13 +178,14 @@ export default function App() {
   }, [activeSeasonalTheme, isHomeRoute]);
 
   function navigate(path: string) {
+    const nextPath = path === "/discover" ? "/public" : path;
     setIsRouletteOpen(false);
     setRoulettePlaylists(null);
-    if (path !== "/playlists") {
+    if (nextPath !== "/playlists") {
       setPlaylistNotice("");
     }
-    window.history.pushState({}, "", path);
-    setRouteState(routeFromPath(path));
+    window.history.pushState({}, "", nextPath);
+    setRouteState(routeFromPath(nextPath));
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -289,7 +292,6 @@ export default function App() {
   );
   const pages: Partial<Record<AppRoute, ReactNode>> = {
     "/": <LandingPage currentUser={currentUser} onNavigate={navigate} />,
-    "/discover": <Discover onNavigate={navigate} />,
     "/curators": <Curators onNavigate={navigate} />,
     "/playlists": playlistsPage("my"),
     "/playlists/:id": detailPlaylist ? (
@@ -389,7 +391,7 @@ export default function App() {
       <InstallFlimPrompt />
       {!isDirectorAdminRoute && !isTitleGameRoute ? <div className="playlist-bottom-control" role="navigation" aria-label="Playlist controls">
         <button
-          className={`bottom-control-tab ${activeRoute === "/playlists" || activeRoute === "/playlists/:id" || activeRoute === "/discover" || activeRoute === "/curators" ? "is-active" : ""}`}
+          className={`bottom-control-tab ${activeRoute === "/playlists" || activeRoute === "/playlists/:id" || activeRoute === "/curators" ? "is-active" : ""}`}
           onClick={() => navigate("/playlists")}
           type="button"
         >

@@ -1265,6 +1265,7 @@ export function mapPublicUserProfile(row: any) {
     achievements: row.achievement_summary || undefined,
     challenges: row.challenge_summary || undefined,
     seasonalChallenges: row.seasonal_challenge_summary || undefined,
+    triviaAndChallenges: row.trivia_and_challenges_summary || undefined,
     hallOfFame: row.hall_of_fame_summary || undefined,
     publicPlaylists,
   };

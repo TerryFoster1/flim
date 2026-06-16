@@ -20,6 +20,25 @@ function bannerPosters(profile: PublicUserProfile, playlists: Playlist[]) {
   return [...new Set(posters)].slice(0, 6);
 }
 
+function formatProfileNumber(value?: number) {
+  return new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(Number(value || 0));
+}
+
+function formatProfileDate(value?: string) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return "";
+  return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
+
+function scoreLabel(item: { score?: number; correctCount?: number; totalCount?: number }) {
+  if (typeof item.correctCount === "number" && typeof item.totalCount === "number" && item.totalCount > 0) {
+    return `${item.correctCount}/${item.totalCount}`;
+  }
+  if (typeof item.score === "number") return `${formatProfileNumber(item.score)} pts`;
+  return "Completed";
+}
+
 export function PublicProfile({ handle, onNavigate }: PublicProfileProps) {
   const [profile, setProfile] = useState<PublicUserProfile | null>(null);
   const [publicPlaylists, setPublicPlaylists] = useState<Playlist[]>([]);
@@ -121,6 +140,37 @@ export function PublicProfile({ handle, onNavigate }: PublicProfileProps) {
     : "";
   const posters = bannerPosters(profile, publicPlaylists);
   const tasteLabel = profile.favoriteGenre ? `${profile.favoriteGenre} Curator` : "Movie Curator";
+  const gameStats = profile.triviaAndChallenges;
+  const legacyChallengeCount = (profile.challenges?.challengeCount || 0) + (profile.seasonalChallenges?.seasonalBadgeCount || 0);
+  const challengesCompleted = gameStats?.publicChallengesCompleted ?? legacyChallengeCount;
+  const titleTriviaCompleted = gameStats?.titleTriviaCompleted || 0;
+  const perfectScores = gameStats?.perfectScores || 0;
+  const badgeCount = (profile.achievements?.achievementCount || 0) +
+    (profile.challenges?.featuredBadges?.length || 0) +
+    (profile.seasonalChallenges?.featuredBadges?.length || 0);
+  const badgeRows = [
+    ...(profile.achievements?.featuredBadges || []).map((badge) => ({
+      id: badge.id,
+      name: badge.name,
+      detail: badge.description,
+      mark: badge.badgeIcon || "star",
+      earnedAt: badge.unlockedAt,
+    })),
+    ...(profile.challenges?.featuredBadges || []).map((badge) => ({
+      id: badge.id,
+      name: badge.name,
+      detail: badge.description,
+      mark: badge.badge || "star",
+      earnedAt: badge.earnedAt,
+    })),
+    ...(profile.seasonalChallenges?.featuredBadges || []).map((badge) => ({
+      id: badge.id,
+      name: badge.name,
+      detail: badge.description,
+      mark: badge.badge || "star",
+      earnedAt: badge.earnedAt,
+    })),
+  ].slice(0, 6);
 
   return (
     <section className="route-page public-profile-page">
@@ -186,6 +236,83 @@ export function PublicProfile({ handle, onNavigate }: PublicProfileProps) {
           {profile.favoriteDirector ? <span><strong>Favorite Director</strong>{profile.favoriteDirector}</span> : null}
         </section>
       ) : null}
+
+      <details className="settings-panel public-profile-games-panel">
+        <summary>
+          <span>
+            <strong>Trivia & Challenges</strong>
+            <small>Completed games, public challenges, and badges</small>
+          </span>
+          <span className="profile-games-summary-count">{formatProfileNumber(titleTriviaCompleted + challengesCompleted)} completed</span>
+        </summary>
+
+        <div className="profile-games-summary-grid" aria-label="Trivia and challenge summary">
+          <span><strong>{formatProfileNumber(challengesCompleted)}</strong>Challenges completed</span>
+          <span><strong>{formatProfileNumber(titleTriviaCompleted)}</strong>Title trivia completed</span>
+          <span><strong>{formatProfileNumber(perfectScores)}</strong>Perfect scores</span>
+          {typeof gameStats?.totalTicketsEarned === "number" ? <span><strong>{formatProfileNumber(gameStats.totalTicketsEarned)}</strong>Tickets earned</span> : null}
+          <span><strong>{formatProfileNumber(badgeCount)}</strong>Badges earned</span>
+        </div>
+
+        <div className="profile-games-detail-grid">
+          <section>
+            <h3>Title Trivia Completed</h3>
+            {gameStats?.recentTitleTrivia?.length ? (
+              <div className="profile-games-list">
+                {gameStats.recentTitleTrivia.slice(0, 5).map((item) => (
+                  <button key={`${item.mediaType}-${item.tmdbId}-${item.completedAt || ""}`} onClick={() => onNavigate(item.path)} type="button">
+                    <span>
+                      <strong>{item.title}</strong>
+                      <small>Title Trivia{formatProfileDate(item.completedAt) ? ` • ${formatProfileDate(item.completedAt)}` : ""}</small>
+                    </span>
+                    <em>{scoreLabel(item)}</em>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="empty-state">No title trivia completed yet.</p>
+            )}
+          </section>
+
+          <section>
+            <h3>Public Challenges Completed</h3>
+            {gameStats?.recentPublicChallenges?.length ? (
+              <div className="profile-games-list">
+                {gameStats.recentPublicChallenges.slice(0, 5).map((item) => (
+                  <button key={`${item.id}-${item.completedAt || ""}`} onClick={() => onNavigate(item.path)} type="button">
+                    <span>
+                      <strong>{item.title}</strong>
+                      <small>{item.type}{formatProfileDate(item.completedAt) ? ` • ${formatProfileDate(item.completedAt)}` : ""}</small>
+                    </span>
+                    <em>{typeof item.score === "number" ? `${formatProfileNumber(item.score)} pts` : "Completed"}</em>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="empty-state">No public challenges completed yet.</p>
+            )}
+          </section>
+
+          <section>
+            <h3>Badges</h3>
+            {badgeRows.length ? (
+              <div className="profile-badge-list">
+                {badgeRows.map((badge) => (
+                  <article key={`${badge.id}-${badge.earnedAt || ""}`}>
+                    <span>{badge.mark}</span>
+                    <div>
+                      <strong>{badge.name}</strong>
+                      {badge.detail ? <small>{badge.detail}</small> : null}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <p className="empty-state">No badges earned yet.</p>
+            )}
+          </section>
+        </div>
+      </details>
 
       {useSinglePlaylistSection ? (
         <section className="settings-panel">

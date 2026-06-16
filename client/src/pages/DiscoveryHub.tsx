@@ -146,7 +146,7 @@ export function DiscoveryHub({ kind, hubId, onNavigate }: DiscoveryHubProps) {
     return (
       <section className="route-page discover-page">
         <p className="error-message">{message || "Discovery hub unavailable."}</p>
-        <button className="secondary-button" onClick={() => onNavigate("/discover")} type="button">Back to Discover</button>
+        <button className="secondary-button" onClick={() => onNavigate("/public")} type="button">Public Playlists</button>
       </section>
     );
   }
@@ -159,7 +159,6 @@ export function DiscoveryHub({ kind, hubId, onNavigate }: DiscoveryHubProps) {
           <h1>{hub.title}</h1>
           <p>{hub.description}</p>
           <div className="discovery-hub-actions">
-            <button className="secondary-button" onClick={() => onNavigate("/discover")} type="button">Back to Discover</button>
             <button className="secondary-button" onClick={() => onNavigate("/public")} type="button">Public Playlists</button>
           </div>
         </div>

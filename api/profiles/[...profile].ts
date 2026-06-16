@@ -564,7 +564,11 @@ export default async function handler(request: any, response: any) {
             )
           ) filter (where p.id is not null),
           '[]'
-        ) as public_playlists
+        ) as public_playlists,
+        trivia_rows.summary as trivia_and_challenges_summary,
+        achievement_rows.summary as achievement_summary,
+        challenge_rows.summary as challenge_summary,
+        seasonal_rows.summary as seasonal_challenge_summary
       from user_profiles up
       left join playlists p on p.owner_user_id::text = up.user_id and p.visibility = 'public'
       left join playlist_movies pm on pm.playlist_id = p.id
@@ -591,8 +595,185 @@ export default async function handler(request: any, response: any) {
         from playlist_likes pl
         where pl.playlist_id = p.id
       ) like_rows on true
+      left join lateral (
+        select jsonb_build_object(
+          'titleTriviaCompleted', count(distinct concat(utp.media_type, ':', utp.tmdb_id))::int,
+          'titleTriviaQuestionCount', count(utp.id)::int,
+          'perfectScores', (
+            (select count(*)::int from seasonal_challenge_attempts sca where sca.user_id::text = up.user_id and sca.total_count > 0 and sca.correct_count = sca.total_count) +
+            (select count(*)::int from friend_trivia_attempts fta where fta.user_id::text = up.user_id and fta.total_count > 0 and fta.correct_count = fta.total_count)
+          ),
+          'publicChallengesCompleted', (
+            select count(*)::int
+            from user_collection_challenges ucc
+            where ucc.user_id::text = up.user_id
+              and ucc.status = 'completed'
+          ),
+          'seasonalChallengesCompleted', (
+            select count(*)::int
+            from user_seasonal_challenges usc
+            where usc.user_id::text = up.user_id
+              and usc.status = 'completed'
+          ),
+          'recentTitleTrivia', coalesce((
+            select jsonb_agg(to_jsonb(recent_title))
+            from (
+              select
+                recent.media_type as "mediaType",
+                recent.tmdb_id as "tmdbId",
+                coalesce(mi.title, concat(case when recent.media_type = 'tv' then 'TV' else 'Movie' end, ' #', recent.tmdb_id::text)) as title,
+                recent.completed_count as "correctCount",
+                recent.completed_count as "totalCount",
+                recent.completed_at as "completedAt",
+                case when recent.media_type = 'tv' then concat('/tv/', recent.tmdb_id::text) else concat('/movies/', recent.tmdb_id::text) end as path
+              from (
+                select
+                  utp2.media_type,
+                  utp2.tmdb_id,
+                  count(*)::int as completed_count,
+                  max(utp2.completed_at) as completed_at
+                from user_trivia_progress utp2
+                where utp2.user_id::text = up.user_id
+                group by utp2.media_type, utp2.tmdb_id
+                order by max(utp2.completed_at) desc
+                limit 5
+              ) recent
+              left join media_items mi on mi.media_type = recent.media_type and mi.tmdb_id = recent.tmdb_id
+            ) recent_title
+          ), '[]'::jsonb),
+          'recentPublicChallenges', coalesce((
+            select jsonb_agg(to_jsonb(recent_challenge))
+            from (
+              select *
+              from (
+                select
+                  ucc.challenge_id as id,
+                  cc.name as title,
+                  'Public Challenge' as type,
+                  ucc.points_awarded as score,
+                  ucc.completed_at as "completedAt",
+                  concat('/collection/', cc.collection_slug) as path
+                from user_collection_challenges ucc
+                inner join collection_challenges cc on cc.id = ucc.challenge_id
+                where ucc.user_id::text = up.user_id
+                  and ucc.status = 'completed'
+
+                union all
+
+                select
+                  sce.id::text as id,
+                  sce.name as title,
+                  case when sce.challenge_type = 'weekly' then 'Weekly Challenge' else 'Seasonal Challenge' end as type,
+                  usc.points_awarded as score,
+                  usc.completed_at as "completedAt",
+                  concat('/challenges/', sce.slug) as path
+                from user_seasonal_challenges usc
+                inner join seasonal_challenge_events sce on sce.id = usc.event_id
+                where usc.user_id::text = up.user_id
+                  and usc.status = 'completed'
+              ) all_challenges
+              order by "completedAt" desc nulls last
+              limit 5
+            ) recent_challenge
+          ), '[]'::jsonb)
+        ) as summary
+        from user_trivia_progress utp
+        where utp.user_id::text = up.user_id
+      ) trivia_rows on true
+      left join lateral (
+        select jsonb_build_object(
+          'achievementCount', count(*)::int,
+          'totalPoints', coalesce(sum(a.points), 0)::int,
+          'featuredBadges', coalesce(jsonb_agg(jsonb_build_object(
+            'id', a.id,
+            'name', a.name,
+            'description', a.description,
+            'badgeIcon', a.badge_icon,
+            'category', a.category,
+            'rarity', a.rarity,
+            'tier', a.tier,
+            'points', a.points,
+            'unlockedAt', coalesce(ua.unlocked_at, ua.earned_at)
+          ) order by coalesce(ua.unlocked_at, ua.earned_at) desc) filter (where a.id is not null), '[]'::jsonb),
+          'recentUnlocks', coalesce(jsonb_agg(jsonb_build_object(
+            'id', a.id,
+            'name', a.name,
+            'description', a.description,
+            'badgeIcon', a.badge_icon,
+            'category', a.category,
+            'rarity', a.rarity,
+            'tier', a.tier,
+            'points', a.points,
+            'unlockedAt', coalesce(ua.unlocked_at, ua.earned_at)
+          ) order by coalesce(ua.unlocked_at, ua.earned_at) desc) filter (where a.id is not null), '[]'::jsonb)
+        ) as summary
+        from user_achievements ua
+        inner join achievements a on a.id = ua.achievement_id
+        where ua.user_id::text = up.user_id
+          and coalesce(ua.unlocked_at, ua.earned_at) is not null
+      ) achievement_rows on true
+      left join lateral (
+        select jsonb_build_object(
+          'challengeCount', count(*)::int,
+          'challengePoints', coalesce(sum(ucc.points_awarded), 0)::int,
+          'featuredBadges', coalesce(jsonb_agg(jsonb_build_object(
+            'id', cc.id,
+            'name', cc.name,
+            'description', cc.description,
+            'badge', cc.badge,
+            'points', cc.points,
+            'difficulty', cc.difficulty,
+            'category', cc.category,
+            'earnedAt', ucc.completed_at
+          ) order by ucc.completed_at desc) filter (where cc.id is not null), '[]'::jsonb),
+          'recentUnlocks', coalesce(jsonb_agg(jsonb_build_object(
+            'id', cc.id,
+            'name', cc.name,
+            'description', cc.description,
+            'badge', cc.badge,
+            'points', cc.points,
+            'difficulty', cc.difficulty,
+            'category', cc.category,
+            'earnedAt', ucc.completed_at
+          ) order by ucc.completed_at desc) filter (where cc.id is not null), '[]'::jsonb)
+        ) as summary
+        from user_collection_challenges ucc
+        inner join collection_challenges cc on cc.id = ucc.challenge_id
+        where ucc.user_id::text = up.user_id
+          and ucc.status = 'completed'
+      ) challenge_rows on true
+      left join lateral (
+        select jsonb_build_object(
+          'seasonalBadgeCount', count(*)::int,
+          'seasonalPoints', coalesce(sum(usc.points_awarded), 0)::int,
+          'featuredBadges', coalesce(jsonb_agg(jsonb_build_object(
+            'id', sce.id::text,
+            'name', sce.name,
+            'description', sce.description,
+            'badge', sce.badge,
+            'points', sce.points,
+            'difficulty', sce.difficulty,
+            'category', sce.challenge_type,
+            'earnedAt', usc.completed_at
+          ) order by usc.completed_at desc) filter (where sce.id is not null), '[]'::jsonb),
+          'recentUnlocks', coalesce(jsonb_agg(jsonb_build_object(
+            'id', sce.id::text,
+            'name', sce.name,
+            'description', sce.description,
+            'badge', sce.badge,
+            'points', sce.points,
+            'difficulty', sce.difficulty,
+            'category', sce.challenge_type,
+            'earnedAt', usc.completed_at
+          ) order by usc.completed_at desc) filter (where sce.id is not null), '[]'::jsonb)
+        ) as summary
+        from user_seasonal_challenges usc
+        inner join seasonal_challenge_events sce on sce.id = usc.event_id
+        where usc.user_id::text = up.user_id
+          and usc.status = 'completed'
+      ) seasonal_rows on true
       where up.handle = ${handle}
-      group by up.id
+      group by up.id, trivia_rows.summary, achievement_rows.summary, challenge_rows.summary, seasonal_rows.summary
       limit 1
     `;
     if (!rows[0]) return sendJson(response, 404, { error: "Profile not found." });
