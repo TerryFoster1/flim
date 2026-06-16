@@ -125,11 +125,9 @@ function TitleStatusBanner({ movie, region }: { movie: MovieDetails; region: str
   } else if (windowState === "theaters") {
     eyebrow = "In Theaters Now";
     title = primaryTicket ? "Tickets available" : "In theaters now";
-    detail = dateText ? `Released ${dateText}. Follow for streaming availability.` : "Follow for streaming availability.";
+    detail = "Follow for streaming availability.";
   } else if (windowState === "released") {
-    eyebrow = "Released";
-    title = dateText ? `Released ${dateText}` : "Now Available";
-    detail = "Follow for streaming availability updates.";
+    return null;
   } else if (windowState === "unknown") {
     eyebrow = "Release Date TBA";
     title = mediaType === "tv" ? "Season date not announced yet" : "Theatrical date not announced yet";

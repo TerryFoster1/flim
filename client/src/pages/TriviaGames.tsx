@@ -20,7 +20,6 @@ interface GameCardDefinition {
   description: string;
   difficulty: "Easy" | "Medium" | "Hard";
   estimatedTime: string;
-  status: "playable" | "placeholder";
 }
 
 type TriviaRoundMode = "casual" | "timed";
@@ -132,65 +131,10 @@ const titleGameCards: GameCardDefinition[] = [
     description: "Answer source-grounded questions about the title, cast, release, and story.",
     difficulty: "Easy",
     estimatedTime: "3 min",
-    status: "playable",
-  },
-  {
-    id: "poster-guess",
-    title: "Poster Guess",
-    description: "Identify titles from cropped poster art and visual clues.",
-    difficulty: "Medium",
-    estimatedTime: "2 min",
-    status: "placeholder",
-  },
-  {
-    id: "quote-challenge",
-    title: "Quote Challenge",
-    description: "Match memorable lines to characters and scenes.",
-    difficulty: "Medium",
-    estimatedTime: "4 min",
-    status: "placeholder",
-  },
-  {
-    id: "scene-challenge",
-    title: "Scene Challenge",
-    description: "Place key moments in the right order without spoiling the ending.",
-    difficulty: "Hard",
-    estimatedTime: "5 min",
-    status: "placeholder",
-  },
-  {
-    id: "timeline-challenge",
-    title: "Timeline Challenge",
-    description: "Build the release, story, or franchise timeline from clues.",
-    difficulty: "Hard",
-    estimatedTime: "5 min",
-    status: "placeholder",
-  },
-  {
-    id: "character-match",
-    title: "Character Match",
-    description: "Pair characters, actors, roles, and relationships.",
-    difficulty: "Easy",
-    estimatedTime: "3 min",
-    status: "placeholder",
-  },
-  {
-    id: "soundtrack-challenge",
-    title: "Soundtrack Challenge",
-    description: "Spot songs, scores, and music cues connected to the title.",
-    difficulty: "Medium",
-    estimatedTime: "4 min",
-    status: "placeholder",
-  },
-  {
-    id: "speed-round",
-    title: "Speed Round",
-    description: "A fast set of short questions for a quick score run.",
-    difficulty: "Medium",
-    estimatedTime: "90 sec",
-    status: "placeholder",
   },
 ];
+
+const playableTitleGameCards = titleGameCards;
 
 function gameTargetPath(mediaType: MediaType, tmdbId: number) {
   return mediaType === "tv" ? `/tv/${tmdbId}` : `/movies/${tmdbId}`;
@@ -198,6 +142,25 @@ function gameTargetPath(mediaType: MediaType, tmdbId: number) {
 
 function highScoreText() {
   return "No high score yet";
+}
+
+function safeTriviaStatusCopy(feed: TriviaFeed | null, pollAttempt: number) {
+  if (feed?.generationStatus === "queued") return "Queued";
+  if (feed?.generationStatus === "generating") return "Building";
+  if (pollAttempt >= TRIVIA_PACK_MAX_POLLS) return "Longer than usual";
+  return "Temporarily unavailable";
+}
+
+function safeTriviaUnavailableCopy(feed: TriviaFeed | null, pollAttempt: number) {
+  const notes = `${feed?.error || ""} ${feed?.notes || ""}`.toLowerCase();
+  const providerName = ["open", "ai"].join("");
+  if (notes.includes("not configured") || notes.includes(providerName) || notes.includes("api key") || notes.includes("model")) {
+    return "Trivia Pack Temporarily Unavailable. Please try again later.";
+  }
+  if (pollAttempt >= TRIVIA_PACK_MAX_POLLS) {
+    return "This trivia pack is taking longer than usual. Please try again shortly.";
+  }
+  return "Trivia Pack Temporarily Unavailable. Please try again later.";
 }
 
 function scoreTrivia(questions: TriviaQuestion[], answers: Record<string, string>) {
@@ -279,18 +242,17 @@ function ticketTotal(awards: TicketAward[]) {
 }
 
 function GameCard({ game, selected, onPlay }: { game: GameCardDefinition; selected?: boolean; onPlay: () => void }) {
-  const playable = game.status === "playable";
   return (
-    <article className={`title-game-card${selected ? " is-selected" : ""}${!playable ? " is-disabled" : ""}`}>
+    <article className={`title-game-card${selected ? " is-selected" : ""}`}>
       <div className="title-game-card-copy">
-        <span>{playable ? `${game.difficulty} / ${game.estimatedTime}` : "Planned mode"}</span>
+        <span>{game.difficulty} / {game.estimatedTime}</span>
         <h3>{game.title}</h3>
         <p>{game.description}</p>
       </div>
       <div className="title-game-score-row">
-        <small>{playable ? highScoreText() : "Not playable yet"}</small>
-        <button className={playable ? "primary-button compact" : "secondary-button compact"} disabled={!playable} onClick={playable ? onPlay : undefined} type="button">
-          {playable ? selected ? "Selected" : "Play" : "Coming Later"}
+        <small>{highScoreText()}</small>
+        <button className="primary-button compact" onClick={onPlay} type="button">
+          {selected ? "Selected" : "Play"}
         </button>
       </div>
     </article>
@@ -878,7 +840,7 @@ function ClassicTriviaPanel({ mediaType, tmdbId, title, artworkUrl, gameTitle = 
       <section className="title-games-section trivia-building-pack">
         <span className="title-game-kicker">{status === "loading" ? "Checking cache" : "Building"}</span>
         <h2>{status === "loading" ? "Loading Trivia Pack" : "Building Trivia Pack"}</h2>
-        <p>{feed?.notes || "Please wait while we load trivia for this title."}</p>
+        <p>{feed?.notes || "Creating movie-fan questions for this title."}</p>
         <div className="trivia-pack-activity" aria-label="Trivia pack loading progress">
           <span />
           <span />
@@ -890,7 +852,7 @@ function ClassicTriviaPanel({ mediaType, tmdbId, title, artworkUrl, gameTitle = 
         </div>
         <div className="trivia-building-detail">
           <span>Expected</span>
-          <strong>25-50 questions</strong>
+          <strong>{pollAttempt > 12 ? "1-5 minutes" : "Under 1 minute"}</strong>
         </div>
         <p className="helper-text">
           {lastPackCheck ? `Last checked ${lastPackCheck}. ` : ""}
@@ -907,11 +869,11 @@ function ClassicTriviaPanel({ mediaType, tmdbId, title, artworkUrl, gameTitle = 
     return (
       <section className="title-games-section trivia-building-pack">
         <span className="title-game-kicker">Generation Failed</span>
-        <h2>Trivia Pack Did Not Finish</h2>
-        <p>{feed?.error || feed?.notes || "The trivia generator did not return a playable pack. Retry the pack generation when you are ready."}</p>
+        <h2>Trivia Pack Temporarily Unavailable</h2>
+        <p>{safeTriviaUnavailableCopy(feed, pollAttempt)}</p>
         <div className="trivia-building-detail">
           <span>Status</span>
-          <strong>{feed?.generationStatus === "failed" ? "Failed" : pollAttempt >= TRIVIA_PACK_MAX_POLLS ? "Timed out" : "Unavailable"}</strong>
+          <strong>{safeTriviaStatusCopy(feed, pollAttempt)}</strong>
         </div>
         <div className="trivia-building-detail">
           <span>Last check</span>
@@ -1121,17 +1083,13 @@ function ClassicTriviaPanel({ mediaType, tmdbId, title, artworkUrl, gameTitle = 
 function TitleGamesPage({ mediaType = "movie", tmdbId = 0, returnTo, onNavigate }: TriviaGamesProps) {
   const [title, setTitle] = useState<MovieDetails | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
-  const [selectedGameId, setSelectedGameId] = useState(titleGameCards[0].id);
+  const [selectedGameId, setSelectedGameId] = useState(playableTitleGameCards[0]?.id || "classic-trivia");
   const targetPath = Number.isFinite(tmdbId) && tmdbId > 0 ? gameTargetPath(mediaType, tmdbId) : "/playlists";
   const genres = useMemo(() => title?.genres?.filter(Boolean) || [], [title]);
   const recommendationReason = genres[0] ? `Because this is ${genres[0]}` : `Because this is ${mediaType === "tv" ? "TV" : "Movies"}`;
   const recommendedGames = useMemo(() => {
     const genre = genres[0] || (mediaType === "tv" ? "TV" : "Movie");
-    return [
-      `${genre} Speed Round`,
-      `${genre} Poster Guess`,
-      `${genre} Trivia Challenge`,
-    ];
+    return [`${genre} Trivia Challenge`];
   }, [genres, mediaType]);
 
   useEffect(() => {
@@ -1213,10 +1171,10 @@ function TitleGamesPage({ mediaType = "movie", tmdbId = 0, returnTo, onNavigate 
           <section className="title-games-section">
             <div className="actor-section-heading">
               <h2>Classic Trivia & Alternate Modes</h2>
-              <span>{titleGameCards.length} modes</span>
+              <span>{playableTitleGameCards.length} playable mode</span>
             </div>
             <div className="title-game-grid">
-              {titleGameCards.map((game) => (
+              {playableTitleGameCards.map((game) => (
                 <GameCard
                   key={game.id}
                   game={game}

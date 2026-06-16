@@ -492,6 +492,18 @@ async function callOpenAITrivia(details: any, options: { questionCount: number; 
   });
 }
 
+function publicTriviaGenerationMessage(error?: unknown) {
+  const message = error instanceof Error ? error.message : String(error || "");
+  const lower = message.toLowerCase();
+  if (lower.includes("not configured") || lower.includes("api key") || lower.includes("openai") || lower.includes("model")) {
+    return "Trivia Pack Temporarily Unavailable. Please try again later.";
+  }
+  if (lower.includes("returned only") || lower.includes("valid trivia") || lower.includes("metadata-style") || lower.includes("category")) {
+    return "This trivia pack needs more movie-fan questions before it can be played. Please try again later.";
+  }
+  return "Trivia Pack Temporarily Unavailable. Please try again later.";
+}
+
 function contextualQuestion(context: TriviaSourceContext, input: Omit<TriviaDraft, "sourceLabels" | "sourceUrls" | "confidence"> & { confidence?: number }): TriviaDraft {
   return draftQuestion({
     ...input,
@@ -1555,7 +1567,7 @@ async function saveGeneratedTriviaSet(sql: any, pack: OpenAITriviaPack, details:
         ${question.difficulty},
         ${question.spoiler ? "minor" : "none"},
         ${JSON.stringify(SOURCE_URLS)}::jsonb,
-        ${JSON.stringify(["OpenAI generated", "Flim trivia specialist prompt"])}::jsonb,
+        ${JSON.stringify(["Generated trivia pack", "Flim trivia specialist prompt"])}::jsonb,
         0.88,
         'auto_generated',
         now()
@@ -1672,7 +1684,7 @@ async function ensureTriviaPack(sql: any, tmdbId: number, mediaType: MediaType, 
     await updateTriviaJob(sql, tmdbId, mediaType, "failed", {
       interestSource: input.interestSource,
       questionCount: existing.length,
-      error: error instanceof Error ? error.message : "Trivia generation failed.",
+      error: publicTriviaGenerationMessage(error),
     });
     throw error;
   }
@@ -1871,7 +1883,7 @@ async function handleGet(request: any, response: any) {
         unlockedAchievements: achievementState.unlocked,
         authenticated: Boolean(user),
         notes: "Using cached trivia while the latest pack is being prepared.",
-        error: error instanceof Error ? error.message : "Trivia generation failed.",
+        error: publicTriviaGenerationMessage(error),
       });
     }
     response.setHeader("X-Flim-Trivia-Cache", "MISS");
@@ -1888,8 +1900,8 @@ async function handleGet(request: any, response: any) {
       achievements: [],
       unlockedAchievements: [],
       authenticated: Boolean(user),
-      notes: "Trivia generation failed. Please try again shortly.",
-      error: error instanceof Error ? error.message : "Trivia generation failed.",
+      notes: "Trivia Pack Temporarily Unavailable. Please try again later.",
+      error: publicTriviaGenerationMessage(error),
     });
   }
 }
