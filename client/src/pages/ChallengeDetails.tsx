@@ -190,13 +190,13 @@ export function ChallengeDetails({ slug, onNavigate }: ChallengeDetailsProps) {
                 ? "This challenge has not started yet."
                 : event.dateStatus === "ended"
                   ? "This challenge has ended."
-                  : "The cached trivia pack for this challenge is still being prepared."}
+                  : "This challenge pack is still being prepared."}
             </p>
           ) : (
             <>
               <div className="trivia-score-strip">
                 <strong>{completed ? `${score.score} points` : "Challenge Pack"}</strong>
-                <span>{completed ? `${score.correctCount}/${score.totalCount} correct` : "Answer the same cached pack as other players."}</span>
+                <span>{completed ? `${score.correctCount}/${score.totalCount} correct` : "Answer the same challenge pack as other players."}</span>
               </div>
               <div className="classic-trivia-list">
                 {questions.map((question, index) => (
