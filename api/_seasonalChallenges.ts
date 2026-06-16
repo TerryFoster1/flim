@@ -517,6 +517,7 @@ async function mapEvent(sql: any, row: any, userId?: string) {
     where event_id = ${row.id}
       and user_id = ${userId}
   `.catch(() => [{ personal_best: 0 }]) : [{ personal_best: 0 }];
+  const playableQuestionCount = (await challengeQuestions(sql, row)).length;
 
   if (userId && userStatus !== "not_started") {
     await sql`
@@ -617,6 +618,7 @@ async function mapEvent(sql: any, row: any, userId?: string) {
     isFeatured: row.is_featured === true,
     heroImageUrl: row.hero_image_url || "",
     questionCount: Number(row.question_count || 10),
+    playableQuestionCount,
     targetMedia,
     rewardMetadata: safeObject(row.reward_metadata),
     isActive: row.is_active !== false,

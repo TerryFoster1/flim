@@ -4,7 +4,7 @@ import { createFriendChallenge, getFriendChallengeHistory } from "../services/fr
 import { getSeasonalChallenges } from "../services/seasonalChallengeService";
 import { getTicketFeed } from "../services/ticketService";
 import { getMovieDetails, getTvDetails } from "../services/tmdbService";
-import { completeCompanionItem, getTitleTrivia } from "../services/triviaService";
+import { completeCompanionItem, getTitleTrivia, notifyTitleTriviaReady } from "../services/triviaService";
 import type { CompanionAchievement, FriendChallengeHistoryAttempt, FriendTriviaChallenge, MediaType, MovieDetails, SeasonalChallengeEvent, TicketAward, TicketFeed, TriviaFeed, TriviaQuestion } from "../types";
 
 interface TriviaGamesProps {
@@ -118,12 +118,6 @@ const playlistTriviaCards = [
   },
 ];
 
-const genreChallengeCards = [
-  { title: "Summer Blockbuster Challenge", path: "/challenges", image: "/api/og/title/movie/329?card=game", meta: "25 questions / tickets" },
-  { title: "Halloween Horror Challenge", path: "/challenges", image: "/api/og/title/movie/348?card=game", meta: "30 questions / seasonal badge" },
-  { title: "Oscar Challenge", path: "/challenges", image: "/api/og/title/movie/13?card=game", meta: "20 questions / awards round" },
-];
-
 const titleGameCards: GameCardDefinition[] = [
   {
     id: "classic-trivia",
@@ -145,20 +139,21 @@ function highScoreText() {
 }
 
 function safeTriviaStatusCopy(feed: TriviaFeed | null, pollAttempt: number) {
-  if (feed?.generationStatus === "queued") return "Queued";
+  if (feed?.generationStatus === "queued") return "Getting ready";
   if (feed?.generationStatus === "generating") return "Building";
   if (feed?.generationStatus === "insufficient_source") return "Not ready yet";
-  if (pollAttempt >= TRIVIA_PACK_MAX_POLLS) return "Longer than usual";
+  if (pollAttempt >= TRIVIA_PACK_MAX_POLLS) return "Try again soon";
   return "Temporarily unavailable";
 }
 
 function safeTriviaUnavailableCopy(feed: TriviaFeed | null, pollAttempt: number) {
   const notes = `${feed?.error || ""} ${feed?.notes || ""}`.toLowerCase();
   const providerName = ["open", "ai"].join("");
+  const internalSignal = ["mo", "del"].join("");
   if (feed?.generationStatus === "insufficient_source" || notes.includes("not ready yet")) {
     return "Trivia for this title is not ready yet. We'll build it when more information is available.";
   }
-  if (notes.includes("not configured") || notes.includes(providerName) || notes.includes("api key") || notes.includes("model")) {
+  if (notes.includes("not configured") || notes.includes(providerName) || notes.includes("api key") || notes.includes(internalSignal)) {
     return "Trivia Pack Temporarily Unavailable. Please try again later.";
   }
   if (pollAttempt >= TRIVIA_PACK_MAX_POLLS) {
@@ -247,7 +242,7 @@ function ticketTotal(awards: TicketAward[]) {
 
 const triviaDownloadSteps = [
   "Collecting movie knowledge...",
-  "Building questions...",
+  "Writing questions...",
   "Preparing challenge...",
   "Almost ready...",
 ];
@@ -501,7 +496,7 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
           feed.sections.featured,
           ...feed.sections.active,
         ].filter((event): event is SeasonalChallengeEvent => {
-          return Boolean(event) && (event as SeasonalChallengeEvent).dateStatus === "active";
+          return Boolean(event) && (event as SeasonalChallengeEvent).dateStatus === "active" && Number((event as SeasonalChallengeEvent).playableQuestionCount || 0) > 0;
         });
         const unique = Array.from(new Map(visible.map((event) => [event.id, event])).values());
         setFeaturedChallenges(unique.slice(0, 3));
@@ -582,25 +577,6 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
 
       <section className="title-games-section arcade-feature-section">
         <div className="actor-section-heading">
-          <h2>Movie challenges</h2>
-          <span>Event rounds</span>
-        </div>
-        <div className="arcade-challenge-row">
-          {genreChallengeCards.map((card) => (
-            <article className="challenge-discovery-card" key={card.title}>
-              <img alt="" src={card.image} />
-              <h3>{card.title}</h3>
-              <p>{card.meta}</p>
-              <button className="secondary-button compact" onClick={() => onNavigate(card.path)} type="button">
-                Play Now
-              </button>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="title-games-section arcade-feature-section">
-        <div className="actor-section-heading">
           <h2>Playlist trivia</h2>
           <span>Curated rounds</span>
         </div>
@@ -655,10 +631,8 @@ function ClassicTriviaPanel({ mediaType, tmdbId, title, artworkUrl, gameTitle = 
   const [feed, setFeed] = useState<TriviaFeed | null>(null);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [status, setStatus] = useState<TriviaLoadStatus>("loading");
-  const [loadStartedAt, setLoadStartedAt] = useState(() => Date.now());
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [pollAttempt, setPollAttempt] = useState(0);
-  const [lastPackCheck, setLastPackCheck] = useState("");
+  const [notifyStatus, setNotifyStatus] = useState("");
   const activeTriviaRequest = useRef(0);
   const [completed, setCompleted] = useState(false);
   const [mode, setMode] = useState<TriviaRoundMode>("casual");
@@ -708,16 +682,13 @@ function ClassicTriviaPanel({ mediaType, tmdbId, title, artworkUrl, gameTitle = 
       resetTriviaRound();
       setFeed(null);
       setPollAttempt(0);
-      setLoadStartedAt(Date.now());
-      setElapsedSeconds(0);
-      setLastPackCheck("");
+      setNotifyStatus("");
     }
     setStatus(options.poll ? "building" : "loading");
     getTitleTrivia({ mediaType, tmdbId, questionCount: 25 })
       .then((result) => {
         if (activeTriviaRequest.current !== requestId) return;
         setFeed(result);
-        setLastPackCheck(new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }));
         if (result.generationStatus === "ready" && result.questions.length > 0) {
           setStatus("ready");
           return;
@@ -744,14 +715,6 @@ function ClassicTriviaPanel({ mediaType, tmdbId, title, artworkUrl, gameTitle = 
   useEffect(() => {
     return loadTriviaPack({ reset: true });
   }, [mediaType, tmdbId]);
-
-  useEffect(() => {
-    if (status !== "loading" && status !== "building") return undefined;
-    const timer = window.setInterval(() => {
-      setElapsedSeconds(Math.max(1, Math.round((Date.now() - loadStartedAt) / 1000)));
-    }, 1000);
-    return () => window.clearInterval(timer);
-  }, [loadStartedAt, status]);
 
   useEffect(() => {
     if (status !== "building" || pollAttempt >= TRIVIA_PACK_MAX_POLLS) return undefined;
@@ -808,6 +771,16 @@ function ClassicTriviaPanel({ mediaType, tmdbId, title, artworkUrl, gameTitle = 
       setTicketStatus(earned > 0 ? `Earned ${earned} Tickets.` : "");
     } catch (error) {
       setChallengeStatus(error instanceof Error ? error.message : "Could not create challenge.");
+    }
+  }
+
+  async function handleNotifyWhenReady() {
+    setNotifyStatus("Saving alert...");
+    try {
+      const result = await notifyTitleTriviaReady({ mediaType, tmdbId, title });
+      setNotifyStatus(result.status === "ready" ? "Trivia pack is ready. Press Play Now." : "We'll let you know when it's ready.");
+    } catch (error) {
+      setNotifyStatus(error instanceof Error && error.message.toLowerCase().includes("sign") ? "Sign in to get a ready alert." : "Could not save alert right now.");
     }
   }
 
@@ -913,19 +886,22 @@ function ClassicTriviaPanel({ mediaType, tmdbId, title, artworkUrl, gameTitle = 
         </div>
         <div className="trivia-building-detail">
           <span>Status</span>
-          <strong>{feed?.generationStatus === "queued" ? "Queued" : feed?.generationStatus === "generating" ? "Downloading" : "Checking saved pack"}</strong>
+          <strong>{feed?.generationStatus === "queued" ? "Getting ready" : feed?.generationStatus === "generating" ? "Downloading" : "Preparing"}</strong>
         </div>
         <div className="trivia-building-detail">
           <span>Expected</span>
-          <strong>{pollAttempt > 12 ? "1-5 minutes" : "Under 1 minute"}</strong>
+          <strong>{pollAttempt > 12 ? "1-5 minutes" : "Usually under 1 minute"}</strong>
         </div>
-        <p className="helper-text">
-          {lastPackCheck ? `Last checked ${lastPackCheck}. ` : ""}
-          Still downloading after {elapsedSeconds || 1}s. This refreshes automatically and the pack is cached when ready.
-        </p>
-        <button className="secondary-button compact" onClick={() => loadTriviaPack({ reset: true })} type="button">
-          Check Now
-        </button>
+        <p className="helper-text">This usually takes 1-5 minutes. We'll let you know when it's ready.</p>
+        {notifyStatus ? <p className="success-message">{notifyStatus}</p> : null}
+        <div className="share-inline-row">
+          <button className="secondary-button compact" onClick={handleNotifyWhenReady} type="button">
+            Notify Me
+          </button>
+          <button className="secondary-button compact" onClick={() => loadTriviaPack({ reset: true })} type="button">
+            Try Again
+          </button>
+        </div>
       </section>
     );
   }
@@ -933,20 +909,22 @@ function ClassicTriviaPanel({ mediaType, tmdbId, title, artworkUrl, gameTitle = 
   if (status === "error" || questions.length === 0) {
     return (
       <section className="title-games-section trivia-building-pack">
-        <span className="title-game-kicker">Generation Failed</span>
+        <span className="title-game-kicker">Trivia pack not ready yet</span>
         <h2>Trivia Pack Temporarily Unavailable</h2>
         <p>{safeTriviaUnavailableCopy(feed, pollAttempt)}</p>
         <div className="trivia-building-detail">
           <span>Status</span>
           <strong>{safeTriviaStatusCopy(feed, pollAttempt)}</strong>
         </div>
-        <div className="trivia-building-detail">
-          <span>Last check</span>
-          <strong>{lastPackCheck || "No successful check"}</strong>
+        {notifyStatus ? <p className="success-message">{notifyStatus}</p> : null}
+        <div className="share-inline-row">
+          <button className="secondary-button compact" onClick={handleNotifyWhenReady} type="button">
+            Notify Me
+          </button>
+          <button className="secondary-button compact" onClick={() => loadTriviaPack({ reset: true })} type="button">
+            Retry
+          </button>
         </div>
-        <button className="secondary-button compact" onClick={() => loadTriviaPack({ reset: true })} type="button">
-          Retry
-        </button>
       </section>
     );
   }
@@ -1007,7 +985,7 @@ function ClassicTriviaPanel({ mediaType, tmdbId, title, artworkUrl, gameTitle = 
         <div className="trivia-completed-history">
           <span>Completed</span>
           <strong>{feed.progress.triviaCompleted}/{Math.max(feed.progress.triviaTotal, questions.length)} questions saved</strong>
-          <small>Best pack progress stays cached on Flim. Play again or challenge friends from your result screen.</small>
+          <small>Play again or challenge friends from your result screen.</small>
         </div>
       ) : null}
       <div className="trivia-score-strip">

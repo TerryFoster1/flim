@@ -235,6 +235,7 @@ export interface SeasonalChallengeEvent {
   isFeatured?: boolean;
   heroImageUrl?: string;
   questionCount?: number;
+  playableQuestionCount?: number;
   participantCount?: number;
   topScore?: number;
   personalBest?: number;
@@ -625,7 +626,8 @@ export type NotificationType =
   | "seasonal_challenge_started"
   | "seasonal_challenge_ending"
   | "seasonal_challenge_completed"
-  | "seasonal_badge_unlocked";
+  | "seasonal_badge_unlocked"
+  | "trivia_pack_ready";
 
 export interface AppNotification {
   id: string;

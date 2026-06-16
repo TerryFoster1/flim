@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { awardTickets } from "../_arcadeEconomy.js";
 import { evaluateAchievements, readAchievementState } from "../_achievements.js";
-import { checkRateLimit, db, ensureTriviaTables, errorStatus, getCurrentUser, readBody, sendJson } from "../_db.js";
+import { checkRateLimit, db, ensureNotificationsTable, ensureTriviaTables, errorStatus, getCurrentUser, readBody, sendJson } from "../_db.js";
 import { getCatalogMediaItem, mapCatalogDetails, upsertMediaItem } from "../_mediaCatalog.js";
 import { ensureTmdbCacheTables, fetchTmdbMovieDetails } from "../_tmdb.js";
 import { buildTriviaPrompt } from "../../src/prompts/triviaPrompt.js";
@@ -637,9 +637,9 @@ function publicTriviaGenerationMessage(error?: unknown) {
 }
 
 function triviaFeedNote(status: unknown, hasCompanionContent: boolean) {
-  if (hasCompanionContent) return "Cached movie-fan companion content for this title.";
+  if (hasCompanionContent) return "Movie-fan companion content is ready for this title.";
   if (status === "insufficient_source") return "Trivia for this title is not ready yet. We'll build it when more information is available.";
-  if (status === "queued" || status === "generating" || status === "missing") return "Building trivia pack. Usually ready in 1-5 minutes.";
+  if (status === "queued" || status === "generating" || status === "missing") return "Building your trivia pack. This usually takes 1-5 minutes.";
   return "Trivia Pack Temporarily Unavailable. Please try again later.";
 }
 
@@ -673,8 +673,8 @@ function contextualTrivia(details: any, sourceContext?: TriviaSourceContext): Tr
     contextualQuestion(context, {
       question: `What does ${context.title}'s story setup ask viewers to focus on first?`,
       answer: "The central conflict introduced by the premise",
-      options: uniqueOptions("The central conflict introduced by the premise", ["The end credits order", "The runtime of the release", "The streaming provider list"]),
-      explanation: `The pack is built from ${sourceDescription}, so the first questions focus on story setup rather than cast or release metadata.`,
+      options: uniqueOptions("The central conflict introduced by the premise", ["The end credits order", "The runtime of the release", "The color of the poster"]),
+      explanation: `The pack is built from ${sourceDescription}, so the first questions focus on story setup rather than cast or release facts.`,
       difficulty: "easy",
       spoilerLevel: "none",
     }),
@@ -682,7 +682,7 @@ function contextualTrivia(details: any, sourceContext?: TriviaSourceContext): Tr
       question: `Which description best matches the opening premise of ${context.title}?`,
       answer: "A situation that pushes the characters into immediate conflict",
       options: uniqueOptions("A situation that pushes the characters into immediate conflict", ["A documentary about ticket sales", "A list of awards categories", "A guide to studio logos"]),
-      explanation: `The available context frames ${context.title} around story pressure, not database facts.`,
+      explanation: `The available context frames ${context.title} around story pressure, not trivia shortcuts.`,
       difficulty: "easy",
       spoilerLevel: "none",
     }),
@@ -690,14 +690,14 @@ function contextualTrivia(details: any, sourceContext?: TriviaSourceContext): Tr
       question: `What kind of viewing experience does ${context.title} most strongly suggest?`,
       answer: `A ${genreTone} story built around character stakes`,
       options: uniqueOptions(`A ${genreTone} story built around character stakes`, ["A technical catalog of crew roles", "A silent collection of still photos", "A schedule of theater showtimes"]),
-      explanation: `${context.title} is treated as a movie-fan trivia subject, so tone and stakes matter more than metadata lookup.`,
+      explanation: `${context.title} is treated as a movie-fan trivia subject, so tone and stakes matter more than simple lookup facts.`,
       difficulty: "easy",
       spoilerLevel: "none",
     }),
     contextualQuestion(context, {
       question: `What is a good fan-trivia angle for ${context.title}?`,
       answer: "How the premise creates pressure on the characters",
-      options: uniqueOptions("How the premise creates pressure on the characters", ["How long the credits are", "Which database stores the poster", "What API returned the provider data"]),
+      options: uniqueOptions("How the premise creates pressure on the characters", ["How long the credits are", "Which poster color is dominant", "Which menu section shows the title"]),
       explanation: "Good trivia starts with what viewers remember from story, scenes, stakes, and tone.",
       difficulty: "easy",
       spoilerLevel: "none",
@@ -706,14 +706,14 @@ function contextualTrivia(details: any, sourceContext?: TriviaSourceContext): Tr
       question: `Based on the synopsis, what should viewers track while watching ${context.title}?`,
       answer: "How choices and consequences build from the initial setup",
       options: uniqueOptions("How choices and consequences build from the initial setup", ["The alphabetical order of cast names", "The exact length of every scene", "The poster file extension"]),
-      explanation: "This avoids metadata-only trivia and points players toward story cause and effect.",
+      explanation: "This avoids lookup-only trivia and points players toward story cause and effect.",
       difficulty: "medium",
       spoilerLevel: "minor",
     }),
     contextualQuestion(context, {
       question: `What does the title context make most important in ${context.title}?`,
       answer: "The stakes created by the main situation",
-      options: uniqueOptions("The stakes created by the main situation", ["The app route used to open the page", "The table name that stores cache rows", "The provider logo dimensions"]),
+      options: uniqueOptions("The stakes created by the main situation", ["The color of the poster frame", "The order of menu links", "The shape of the play button"]),
       explanation: `The saved context for ${context.title} emphasizes the premise and what is at risk.`,
       difficulty: "medium",
       spoilerLevel: "minor",
@@ -721,7 +721,7 @@ function contextualTrivia(details: any, sourceContext?: TriviaSourceContext): Tr
     contextualQuestion(context, {
       question: `Which detail would make the strongest trivia question for ${context.title}?`,
       answer: "A memorable story beat or character decision",
-      options: uniqueOptions("A memorable story beat or character decision", ["A generic media type badge", "A raw database identifier", "A server cache timestamp"]),
+      options: uniqueOptions("A memorable story beat or character decision", ["A generic title label", "A random catalog number", "A button color"]),
       explanation: "Flim trivia rejects actor-character lookup questions when stronger story questions can be built.",
       difficulty: "medium",
       spoilerLevel: "none",
@@ -730,14 +730,14 @@ function contextualTrivia(details: any, sourceContext?: TriviaSourceContext): Tr
       question: `What is the best reason ${context.title} belongs in a movie-fan trivia pack?`,
       answer: "It gives players story, tone, and scene details to remember",
       options: uniqueOptions("It gives players story, tone, and scene details to remember", ["It has an internal TMDb id", "It can be sorted alphabetically", "It has a media type value"]),
-      explanation: "The fallback pack is designed to keep trivia playable without falling back to database-field questions.",
+      explanation: "The starter pack is designed to keep trivia playable without falling back to lookup-only questions.",
       difficulty: "medium",
       spoilerLevel: "none",
     }),
     contextualQuestion(context, {
       question: `What does the first story clue for ${context.title} point toward?`,
       answer: primaryPremise,
-      options: uniqueOptions(primaryPremise, ["A routine behind-the-scenes payroll note", "A random provider preference setting", "A blank title record with no story context"]),
+      options: uniqueOptions(primaryPremise, ["A routine behind-the-scenes payroll note", "A random settings preference", "A blank title card with no story context"]),
       explanation: "The first usable story clue is used as context for a premise question, not copied into a metadata quiz.",
       difficulty: "medium",
       spoilerLevel: "minor",
@@ -745,7 +745,7 @@ function contextualTrivia(details: any, sourceContext?: TriviaSourceContext): Tr
     contextualQuestion(context, {
       question: `What does the next story beat in ${context.title} suggest?`,
       answer: secondBeat,
-      options: uniqueOptions(secondBeat, ["The story has no conflict at all", "The title only exists as a cast list", "The page should only show provider logos"]),
+      options: uniqueOptions(secondBeat, ["The story has no conflict at all", "The title only exists as a cast list", "The page should only show poster art"]),
       explanation: "Follow-up beats help generate questions about escalation and stakes.",
       difficulty: "medium",
       spoilerLevel: "minor",
@@ -753,7 +753,7 @@ function contextualTrivia(details: any, sourceContext?: TriviaSourceContext): Tr
     contextualQuestion(context, {
       question: `What kind of tension does ${context.title} build around?`,
       answer: thirdBeat,
-      options: uniqueOptions(thirdBeat, ["A spreadsheet of runtimes", "A menu of account settings", "A list of unrelated providers"]),
+      options: uniqueOptions(thirdBeat, ["A list of runtimes", "A menu of account settings", "A row of unrelated posters"]),
       explanation: "The source context is interpreted into story tension rather than cast-table trivia.",
       difficulty: "hard",
       spoilerLevel: "minor",
@@ -761,7 +761,7 @@ function contextualTrivia(details: any, sourceContext?: TriviaSourceContext): Tr
     contextualQuestion(context, {
       question: `What makes ${context.title} better suited for fan trivia than a simple lookup quiz?`,
       answer: "Its premise can be tested through story memory and interpretation",
-      options: uniqueOptions("Its premise can be tested through story memory and interpretation", ["Its title can be converted to lowercase", "Its poster can be cached", "Its media type can be normalized"]),
+      options: uniqueOptions("Its premise can be tested through story memory and interpretation", ["Its title can be alphabetized", "Its poster has an image size", "Its format can be labeled"]),
       explanation: "Fan-style trivia should reward remembering the movie or show, not reading a database row.",
       difficulty: "hard",
       spoilerLevel: "none",
@@ -777,8 +777,8 @@ function contextualTrivia(details: any, sourceContext?: TriviaSourceContext): Tr
     contextualQuestion(context, {
       question: `Which approach best matches ${context.title}'s trivia standard?`,
       answer: "Ask about events, stakes, scenes, and world-building",
-      options: uniqueOptions("Ask about events, stakes, scenes, and world-building", ["Ask only who played whom", "Ask only when it was released", "Ask only which provider streams it"]),
-      explanation: "The quality filter is designed to reject metadata-only questions and keep story-first ones.",
+      options: uniqueOptions("Ask about events, stakes, scenes, and world-building", ["Ask only who played whom", "Ask only when it was released", "Ask only which poster is used"]),
+      explanation: "The quality filter is designed to reject lookup-only questions and keep story-first ones.",
       difficulty: "hard",
       spoilerLevel: "none",
     }),
@@ -807,34 +807,34 @@ function contextualTrivia(details: any, sourceContext?: TriviaSourceContext): Tr
       spoilerLevel: "none",
     }),
     contextualQuestion(context, {
-      question: `Why should ${context.title} trivia be cached after generation?`,
-      answer: "So the curated pack is reused instead of rebuilt every visit",
-      options: uniqueOptions("So the curated pack is reused instead of rebuilt every visit", ["So progress disappears on refresh", "So every page load starts over", "So no one can play it twice"]),
-      explanation: "Generated questions are stored permanently for repeat play and faster future loads.",
+      question: `Why should ${context.title} trivia feel consistent when replayed?`,
+      answer: "So players can improve against a familiar set of movie-fan questions",
+      options: uniqueOptions("So players can improve against a familiar set of movie-fan questions", ["So progress disappears on refresh", "So every round starts with no questions", "So no one can play it twice"]),
+      explanation: "A reliable trivia pack lets players replay, improve, and challenge friends.",
       difficulty: "easy",
       spoilerLevel: "none",
     }),
     contextualQuestion(context, {
       question: `What does ${context.title}'s generated pack prioritize over raw metadata?`,
       answer: "Story context and movie-fan memory",
-      options: uniqueOptions("Story context and movie-fan memory", ["Runtime lookup", "Provider sorting", "Database table names"]),
-      explanation: "The fallback generator exists to prevent empty packs without returning to metadata-only trivia.",
+      options: uniqueOptions("Story context and movie-fan memory", ["Runtime lookup", "Poster sorting", "Menu labels"]),
+      explanation: "The starter pack exists to prevent empty rounds without returning to lookup-only trivia.",
       difficulty: "medium",
       spoilerLevel: "none",
     }),
     contextualQuestion(context, {
-      question: `What is the healthiest fallback if a handcrafted ${context.title} pack does not exist yet?`,
+      question: `What is the healthiest starter approach if a handcrafted ${context.title} pack does not exist yet?`,
       answer: "Generate a source-grounded starter pack and save it",
       options: uniqueOptions("Generate a source-grounded starter pack and save it", ["Show a dead No Trivia Available message", "Regenerate endlessly without saving", "Ask only actor-character pairs"]),
-      explanation: "A source-grounded cached starter pack keeps the feature usable while deeper curated packs improve over time.",
+      explanation: "A source-grounded starter pack keeps the feature usable while deeper curated packs improve over time.",
       difficulty: "medium",
       spoilerLevel: "none",
     }),
     contextualQuestion(context, {
-      question: `What should happen after ${context.title} trivia generation succeeds?`,
-      answer: "The job status should become ready and the questions should load from cache",
-      options: uniqueOptions("The job status should become ready and the questions should load from cache", ["The job should stay queued forever", "The questions should be discarded", "The page should only show Share Trivia"]),
-      explanation: "The correct pipeline is generate, save, mark ready, and reuse the cached pack.",
+      question: `What should happen after a ${context.title} trivia pack is ready?`,
+      answer: "The questions should appear as a playable round",
+      options: uniqueOptions("The questions should appear as a playable round", ["The title should stay unavailable forever", "The questions should be discarded", "The page should only show Share Trivia"]),
+      explanation: "A ready pack should turn into a playable trivia round.",
       difficulty: "easy",
       spoilerLevel: "none",
     }),
@@ -849,7 +849,7 @@ function contextualTrivia(details: any, sourceContext?: TriviaSourceContext): Tr
     contextualQuestion(context, {
       question: `What makes a ${context.title} question feel like movie trivia instead of app diagnostics?`,
       answer: "It asks about the story experience a viewer would remember",
-      options: uniqueOptions("It asks about the story experience a viewer would remember", ["It asks about an API response header", "It asks about a CSS class name", "It asks about a database migration filename"]),
+      options: uniqueOptions("It asks about the story experience a viewer would remember", ["It asks about a page setting", "It asks about a button style", "It asks about a file name"]),
       explanation: "The fallback pack keeps questions focused on the viewer's experience of the title.",
       difficulty: "medium",
       spoilerLevel: "none",
@@ -857,8 +857,8 @@ function contextualTrivia(details: any, sourceContext?: TriviaSourceContext): Tr
     contextualQuestion(context, {
       question: `What kind of answer should ${context.title} trivia reward?`,
       answer: "Remembering how the story is set up and why it matters",
-      options: uniqueOptions("Remembering how the story is set up and why it matters", ["Remembering the exact internal cache key", "Remembering the app's deployment URL", "Remembering the image file extension"]),
-      explanation: "The generated pack is meant to reward story comprehension rather than technical or metadata recall.",
+      options: uniqueOptions("Remembering how the story is set up and why it matters", ["Remembering a hidden system label", "Remembering a web address", "Remembering the image file extension"]),
+      explanation: "The generated pack is meant to reward story familiarity rather than technical or lookup recall.",
       difficulty: "medium",
       spoilerLevel: "minor",
     }),
@@ -882,7 +882,7 @@ function contextualTrivia(details: any, sourceContext?: TriviaSourceContext): Tr
       question: `What should happen when a better handcrafted ${context.title} pack is added later?`,
       answer: "It should coexist with or supersede the starter pack without losing saved progress",
       options: uniqueOptions("It should coexist with or supersede the starter pack without losing saved progress", ["It should delete user progress", "It should hide all playable trivia", "It should force the title back to queued forever"]),
-      explanation: "The cache model is versioned so starter packs can be improved while preserving a reliable playable baseline.",
+      explanation: "Starter packs can be improved while preserving a reliable playable baseline.",
       difficulty: "expert",
       spoilerLevel: "none",
     }),
@@ -1941,6 +1941,15 @@ async function updateTriviaJob(sql: any, tmdbId: number, mediaType: MediaType, s
       error = excluded.error,
       updated_at = now()
   `;
+  if (status === "ready") {
+    await notifyTriviaPackReady(sql, tmdbId, mediaType).catch((error: unknown) => {
+      logTriviaPipeline("ready_notification_failed", {
+        tmdbId,
+        mediaType,
+        reason: error instanceof Error ? error.message : "unknown_notification_error",
+      });
+    });
+  }
 }
 
 async function readTriviaJob(sql: any, tmdbId: number, mediaType: MediaType) {
@@ -1954,6 +1963,62 @@ async function readTriviaJob(sql: any, tmdbId: number, mediaType: MediaType) {
     limit 1
   `;
   return rows[0] || null;
+}
+
+async function ensureTriviaPackNotificationTables(sql: any) {
+  await ensureNotificationsTable(sql);
+  await sql`
+    create table if not exists trivia_pack_ready_subscriptions (
+      id uuid primary key default gen_random_uuid(),
+      user_id uuid not null references users(id) on delete cascade,
+      media_type text not null check (media_type in ('movie', 'tv')),
+      tmdb_id integer not null,
+      media_item_id uuid,
+      title text not null default '',
+      status text not null default 'subscribed' check (status in ('subscribed', 'notified')),
+      created_at timestamptz not null default now(),
+      updated_at timestamptz not null default now(),
+      notified_at timestamptz,
+      unique (user_id, media_type, tmdb_id)
+    )
+  `;
+  await sql`create index if not exists trivia_pack_ready_subscriptions_title_idx on trivia_pack_ready_subscriptions (media_type, tmdb_id, status)`;
+}
+
+async function notifyTriviaPackReady(sql: any, tmdbId: number, mediaType: MediaType) {
+  await ensureTriviaPackNotificationTables(sql);
+  const mediaItem = await getCatalogMediaItem(sql, tmdbId, mediaType).catch(() => null);
+  const subscribers = await sql`
+    select id, user_id, title, media_item_id
+    from trivia_pack_ready_subscriptions
+    where media_type = ${mediaType}
+      and tmdb_id = ${tmdbId}
+      and status = 'subscribed'
+  `;
+  if (subscribers.length === 0) return;
+  const title = String(mediaItem?.title || subscribers[0]?.title || "This title");
+  for (const subscriber of subscribers) {
+    await sql`
+      insert into notifications (recipient_user_id, type, entity_type, entity_id, title, message)
+      values (
+        ${subscriber.user_id},
+        'trivia_pack_ready',
+        'title',
+        ${mediaItem?.id || subscriber.media_item_id || null},
+        ${`${title} Trivia Pack is ready.`},
+        'Play Now'
+      )
+    `;
+  }
+  await sql`
+    update trivia_pack_ready_subscriptions
+    set status = 'notified',
+      notified_at = now(),
+      updated_at = now()
+    where media_type = ${mediaType}
+      and tmdb_id = ${tmdbId}
+      and status = 'subscribed'
+  `;
 }
 
 async function ensureTriviaPack(sql: any, tmdbId: number, mediaType: MediaType, input: { userId?: string; interestSource?: string; questionCount?: number; spoilerMode?: boolean; forceRefresh?: boolean } = {}) {
@@ -1970,7 +2035,7 @@ async function ensureTriviaPack(sql: any, tmdbId: number, mediaType: MediaType, 
   }
 
   const currentJob = await readTriviaJob(sql, tmdbId, mediaType);
-  if (!input.forceRefresh && currentJob && ["queued", "generating", "ready", "insufficient_source"].includes(String(currentJob.status))) {
+  if (!input.forceRefresh && currentJob && ["generating", "ready", "insufficient_source"].includes(String(currentJob.status))) {
     logTriviaPipeline("generation_skipped_existing_status", {
       tmdbId,
       mediaType,
@@ -2235,7 +2300,7 @@ async function handleGet(request: any, response: any) {
         achievements: achievementState.achievements,
         unlockedAchievements: achievementState.unlocked,
         authenticated: Boolean(user),
-        notes: "Using cached trivia while the latest pack is being prepared.",
+        notes: "Using the ready trivia pack while a fresh version is being prepared.",
         error: publicTriviaGenerationMessage(error),
       });
     }
@@ -2361,6 +2426,50 @@ async function handleInterest(request: any, response: any) {
       error: publicTriviaGenerationMessage(error),
     });
   }
+}
+
+async function handleNotifyReady(request: any, response: any) {
+  const body = await readBody(request);
+  const mediaType = normalizeMediaType(body.mediaType);
+  const tmdbId = Number(body.tmdbId);
+  if (!Number.isFinite(tmdbId)) return sendJson(response, 400, { error: "A valid title is required." });
+
+  const sql = db();
+  await ensureTmdbCacheTables(sql);
+  await ensureTriviaTables(sql);
+  await ensureTriviaPackNotificationTables(sql);
+  const user = await getCurrentUser(sql, request);
+  if (!user) return sendJson(response, 401, { error: "Sign in to get a ready alert." });
+  await checkRateLimit(sql, request, "trivia:notify-ready", user.id, 60, 60);
+
+  const cached = await readCachedTrivia(sql, tmdbId, mediaType, user.id);
+  if (cached.length >= TRIVIA_MIN_READY_COUNT) {
+    await updateTriviaJob(sql, tmdbId, mediaType, "ready", { interestSource: "notify_ready", questionCount: cached.length, error: null });
+    return sendJson(response, 200, { ok: true, status: "ready", message: "Trivia pack is ready. Press Play Now." });
+  }
+
+  const details = await loadTitleDetails(sql, tmdbId, mediaType).catch(() => null);
+  const mediaItem = details ? await upsertMediaItem(sql, { ...details, mediaType, tmdbId }).catch(() => null) : await getCatalogMediaItem(sql, tmdbId, mediaType).catch(() => null);
+  const title = String(body.title || details?.title || details?.name || mediaItem?.title || "This title").slice(0, 160);
+  await sql`
+    insert into trivia_pack_ready_subscriptions (user_id, media_type, tmdb_id, media_item_id, title, status, updated_at)
+    values (${user.id}, ${mediaType}, ${tmdbId}, ${mediaItem?.id || null}, ${title}, 'subscribed', now())
+    on conflict (user_id, media_type, tmdb_id)
+    do update set
+      media_item_id = coalesce(excluded.media_item_id, trivia_pack_ready_subscriptions.media_item_id),
+      title = excluded.title,
+      status = 'subscribed',
+      updated_at = now(),
+      notified_at = null
+  `;
+  ensureTriviaPack(sql, tmdbId, mediaType, { userId: user.id, interestSource: "notify_ready" }).catch((error: unknown) => {
+    logTriviaPipeline("notify_ready_generation_failed", {
+      tmdbId,
+      mediaType,
+      reason: error instanceof Error ? error.message : "unknown_generation_error",
+    });
+  });
+  return sendJson(response, 200, { ok: true, status: "subscribed", message: "We'll let you know when it's ready." });
 }
 
 async function handleHuntAction(request: any, response: any) {
@@ -2539,6 +2648,7 @@ export default async function handler(request: any, response: any) {
     const path = triviaPath(request);
     if (request.method === "GET") return handleGet(request, response);
     if (request.method === "POST" && path === "interest") return handleInterest(request, response);
+    if (request.method === "POST" && path === "notify") return handleNotifyReady(request, response);
     if (request.method === "POST" && path === "hunt") return handleHuntAction(request, response);
     if (request.method === "POST" && path === "complete") return handleComplete(request, response);
     if (request.method === "POST" && path === "report") return handleReport(request, response);

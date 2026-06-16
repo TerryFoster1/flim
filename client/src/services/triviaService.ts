@@ -33,6 +33,17 @@ export function enqueueTitleTrivia(input: { mediaType?: MediaType; tmdbId: numbe
   }).catch(() => undefined);
 }
 
+export async function notifyTitleTriviaReady(input: { mediaType?: MediaType; tmdbId: number; title?: string }) {
+  const mediaType = input.mediaType || "movie";
+  const response = await fetch("/api/trivia/notify", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ mediaType, tmdbId: input.tmdbId, title: input.title || "" }),
+    cache: "no-store",
+  });
+  return parseJson<{ ok: boolean; status: "subscribed" | "ready"; message: string }>(response);
+}
+
 export async function reportTriviaQuestion(triviaId: string, reason: TriviaReportReason) {
   const response = await fetch("/api/trivia/report", {
     method: "POST",
