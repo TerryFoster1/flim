@@ -855,7 +855,7 @@ function curatedFanTrivia(details: any): TriviaDraft[] {
     ]);
   }
 
-  if (mediaType === "movie" && titleMatches(details, [218], ["The Terminator"])) {
+  if (mediaType === "movie" && Number(details.tmdbId) === 218) {
     return fanPack([
       ["What is the Terminator sent back in time to do?", "Kill Sarah Connor", ["Protect John Connor", "Stop a police investigation", "Destroy Cyberdyne's offices"], "The machine's mission is to erase the future resistance leader by killing his mother.", "easy"],
       ["Who is sent back to protect Sarah Connor?", "Kyle Reese", ["Dr. Silberman", "Miles Dyson", "Ginger Ventura"], "Kyle Reese is the human soldier sent from the future to keep Sarah alive.", "easy"],
@@ -880,7 +880,7 @@ function curatedFanTrivia(details: any): TriviaDraft[] {
     ]);
   }
 
-  if (mediaType === "movie" && titleMatches(details, [280], ["Terminator 2", "Judgment Day"])) {
+  if (mediaType === "movie" && Number(details.tmdbId) === 280) {
     return fanPack([
       ["In Terminator 2: Judgment Day, who is the T-800 sent back to protect?", "John Connor", ["Sarah Connor", "Miles Dyson", "Kyle Reese"], "The sequel reverses the first film's premise by making a T-800 the protector of young John Connor.", "easy"],
       ["In Terminator 2: Judgment Day, what kind of Terminator hunts John Connor?", "The liquid-metal T-1000", ["The T-600", "The Rev-9", "A Hunter-Killer tank"], "The T-1000's mimetic polyalloy body lets it copy people and reshape itself into weapons.", "easy"],
