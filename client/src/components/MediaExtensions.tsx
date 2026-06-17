@@ -160,7 +160,7 @@ export function MediaExtensions({ media }: MediaExtensionsProps) {
         />
         <ShareAssetButton
           label="Share Trivia"
-          title={`${media.title} Trivia & Games`}
+          title={`${media.title} Flim Arcade`}
           text="Share a Flim challenge card."
           url={`/games/title/${mediaType}/${media.tmdbId}`}
           cardUrl={`/api/og/title/${mediaType}/${media.tmdbId}?card=game`}

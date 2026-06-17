@@ -75,7 +75,7 @@ export function FriendChallenge({ token, onNavigate }: FriendChallengeProps) {
         <div className="media-extension-card">
           <h1>Challenge unavailable</h1>
           <p>{error || "This challenge could not be loaded."}</p>
-          <button className="primary-button" onClick={() => onNavigate("/games")} type="button">Trivia & Games</button>
+          <button className="primary-button" onClick={() => onNavigate("/games")} type="button">Flim Arcade</button>
         </div>
       ) : null}
 

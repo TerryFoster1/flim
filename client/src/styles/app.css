@@ -10252,23 +10252,51 @@ textarea { min-height: 42px; resize: vertical; }
   }
   .arcade-preview-hero {
     width: 100vw;
-    min-height: calc(100svh - 82px);
+    min-height: auto;
     margin-left: calc(50% - 50vw);
     margin-right: 0;
     border-left: 0;
     border-right: 0;
     border-radius: 0;
-    padding: 22px 16px 34px;
-    align-items: flex-end;
+    padding: 18px 16px 32px;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 18px;
+  }
+  .arcade-preview-hero::before {
+    background:
+      radial-gradient(circle at 50% 22%, rgba(255,184,77,.13), transparent 18rem),
+      linear-gradient(180deg, rgba(8,9,13,.34) 0%, rgba(8,9,13,.72) 58%, rgba(8,9,13,.96) 100%);
+  }
+  .arcade-preview-hero::after {
+    height: 18%;
+  }
+  .arcade-hero-image {
+    position: relative;
+    z-index: 2;
+    inset: auto;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 9;
+    object-fit: contain;
+    object-position: center;
+    border: 1px solid rgba(255,255,255,.14);
+    border-radius: 22px;
+    background: rgba(0,0,0,.34);
+    box-shadow: 0 24px 70px rgba(0,0,0,.42);
   }
   .arcade-hero-copy h1 {
-    font-size: clamp(3rem, 14vw, 5.2rem);
+    font-size: clamp(2.8rem, 13vw, 4.9rem);
   }
   .arcade-hero-copy p {
     line-height: 1.45;
     font-size: .98rem;
   }
   .arcade-hero-copy {
+    z-index: 3;
+    width: 100%;
     transform: translateY(0);
     text-align: left;
   }

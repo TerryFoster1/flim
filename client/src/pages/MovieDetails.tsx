@@ -214,7 +214,7 @@ function TitleTriviaGamesCard({ movie, onNavigate }: { movie: MovieDetails; onNa
   }
 
   return (
-    <section className="title-games-entry-card" aria-label={`Trivia and games for ${movie.title}`}>
+    <section className="title-games-entry-card" aria-label={`Flim Arcade for ${movie.title}`}>
       <button className="reset-button title-games-entry-button" onClick={openGames} type="button">
         <div className="title-games-entry-art" aria-hidden="true">
           {movie.backdropUrl || movie.posterUrl ? <img alt="" src={movie.backdropUrl || movie.posterUrl} /> : <span />}
@@ -222,7 +222,7 @@ function TitleTriviaGamesCard({ movie, onNavigate }: { movie: MovieDetails; onNa
         </div>
         <div className="title-games-entry-copy">
           <span>Movie Companion</span>
-          <h2>Trivia & Games</h2>
+          <h2>Flim Arcade</h2>
           <p>Play title trivia, challenge friends, and explore Flim Arcade modes for {movie.title}.</p>
           <em>Play Now</em>
         </div>

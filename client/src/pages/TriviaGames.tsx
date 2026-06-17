@@ -552,14 +552,14 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
         <img aria-hidden="true" className="arcade-hero-image" src="/arcade/flim-arcade-hero.png" />
         <div className="arcade-hero-copy">
           <span>Flim Arcade</span>
-          <h1>Trivia and Games</h1>
+          <h1>Flim Arcade</h1>
           <p>Step inside for movie trivia, group challenges, and game-night showdowns.</p>
           <form className="arcade-search-form" onSubmit={(event) => event.preventDefault()}>
-            <label className="sr-only" htmlFor="arcade-search">Search Trivia and Games</label>
+            <label className="sr-only" htmlFor="arcade-search">Search Flim Arcade</label>
             <input
               id="arcade-search"
               onChange={(event) => setArcadeSearchQuery(event.target.value)}
-              placeholder="Search Trivia and Games"
+              placeholder="Search Flim Arcade"
               type="search"
               value={arcadeSearchQuery}
             />
@@ -1285,8 +1285,8 @@ function TitleGamesPage({ mediaType = "movie", tmdbId = 0, returnTo, onNavigate 
   return (
     <section className="route-page title-games-page">
       <header className="title-games-header title-games-header-close-only">
-        <strong>Trivia & Games</strong>
-        <button className="title-games-close" onClick={closePage} type="button" aria-label="Close Trivia and Games">
+        <strong>Flim Arcade</strong>
+        <button className="title-games-close" onClick={closePage} type="button" aria-label="Close Flim Arcade">
           X
         </button>
       </header>
@@ -1294,7 +1294,7 @@ function TitleGamesPage({ mediaType = "movie", tmdbId = 0, returnTo, onNavigate 
       {status === "loading" ? <p className="empty-state">Loading title games...</p> : null}
       {status === "error" ? (
         <div className="media-extension-card">
-          <h3>Trivia & Games are taking longer than expected.</h3>
+          <h3>Flim Arcade is taking longer than expected.</h3>
           <p>Return to the title page and try again.</p>
           <button className="primary-button" onClick={closePage} type="button">Back to Title</button>
         </div>

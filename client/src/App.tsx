@@ -402,7 +402,7 @@ export default function App() {
         </button>
         <button
           className={`bottom-arcade-button ${activeRoute === "/games" || activeRoute === "/challenges" || activeRoute === "/hall-of-fame" ? "is-active" : ""}`}
-          aria-label="Open Arcade"
+          aria-label="Open Flim Arcade"
           onClick={() => navigate("/games")}
           type="button"
         >
