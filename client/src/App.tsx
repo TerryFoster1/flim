@@ -407,7 +407,7 @@ export default function App() {
           type="button"
         >
           <span className="bottom-arcade-icon" aria-hidden="true">
-            <img alt="" src="/nav/arcade-ticket.png" />
+            <img alt="" src="/nav/arcade-ticket-nav.png" />
           </span>
         </button>
         <button

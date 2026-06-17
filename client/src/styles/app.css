@@ -9962,7 +9962,7 @@ textarea { min-height: 42px; resize: vertical; }
   left: 50%;
   bottom: max(14px, env(safe-area-inset-bottom));
   display: grid;
-  grid-template-columns: minmax(96px, 1fr) 92px minmax(106px, 1fr);
+  grid-template-columns: minmax(96px, 1fr) 118px minmax(106px, 1fr);
   align-items: center;
   gap: 6px;
   width: min(520px, calc(100vw - 24px));
@@ -10413,30 +10413,26 @@ textarea { min-height: 42px; resize: vertical; }
 }
 .bottom-now-playing-button,
 .bottom-arcade-button {
-  width: 92px;
-  height: 70px;
-  border: 1px solid rgba(255,184,77,.46);
+  width: 118px;
+  height: 76px;
+  border: 0;
   border-radius: 999px;
-  background:
-    radial-gradient(circle at 50% 16%, rgba(255,255,255,.28), transparent 32%),
-    rgba(11,8,10,.95);
-  box-shadow: 0 12px 34px rgba(0,0,0,.48), 0 0 38px rgba(255,184,77,.24);
+  background: transparent;
+  box-shadow: none;
   display: grid;
   place-items: center;
   cursor: pointer;
-  transform: translateY(-12px);
-  animation: reelButtonPulse 2.8s ease-in-out infinite;
+  transform: translateY(-10px);
 }
 .bottom-arcade-button {
   position: relative;
   isolation: isolate;
-  border-color: rgba(255,184,77,.34);
   background: transparent;
-  box-shadow: 0 14px 36px rgba(0,0,0,.44), 0 0 34px rgba(255,184,77,.18);
+  box-shadow: none;
   overflow: visible;
 }
 .bottom-arcade-button::before {
-  content: "";
+  content: none;
   position: absolute;
   inset: 8px 3px;
   border-radius: 999px;
@@ -10452,8 +10448,8 @@ textarea { min-height: 42px; resize: vertical; }
   z-index: 1;
   display: grid;
   place-items: center;
-  width: 86px;
-  height: 60px;
+  width: 118px;
+  height: 76px;
   background: transparent;
 }
 .bottom-arcade-icon .now-playing-ticket-svg {
@@ -10463,15 +10459,14 @@ textarea { min-height: 42px; resize: vertical; }
   filter: drop-shadow(0 12px 24px rgba(255,184,77,.34));
 }
 .bottom-arcade-icon img {
-  width: 116px;
-  height: 86px;
+  width: 118px;
+  height: auto;
   display: block;
   object-fit: contain;
-  filter: drop-shadow(0 12px 24px rgba(255,184,77,.34));
+  filter: drop-shadow(0 12px 22px rgba(255,184,77,.32));
 }
 .bottom-arcade-button.is-active {
-  border-color: rgba(255,224,150,.88);
-  box-shadow: 0 14px 36px rgba(0,0,0,.48), 0 0 52px rgba(255,184,77,.34);
+  filter: drop-shadow(0 0 18px rgba(255,184,77,.38));
 }
 .bottom-now-playing-button .now-playing-ticket-svg {
   width: 80px;
@@ -10482,7 +10477,7 @@ textarea { min-height: 42px; resize: vertical; }
 .bottom-now-playing-button:focus-visible,
 .bottom-arcade-button:hover,
 .bottom-arcade-button:focus-visible {
-  transform: translateY(-14px) scale(1.02);
+  transform: translateY(-12px) scale(1.03);
   outline: none;
 }
 @keyframes reelButtonPulse {
@@ -11066,7 +11061,7 @@ textarea { min-height: 42px; resize: vertical; }
     gap: 10px;
   }
   .playlist-bottom-control {
-    grid-template-columns: minmax(0, 1fr) 82px minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) 98px minmax(0, 1fr);
     width: min(100% - 18px, 430px);
     min-height: 66px;
     padding: 7px;
@@ -11078,16 +11073,16 @@ textarea { min-height: 42px; resize: vertical; }
   }
   .bottom-now-playing-button,
   .bottom-arcade-button {
-    width: 82px;
-    height: 62px;
+    width: 98px;
+    height: 64px;
     transform: translateY(-10px);
   }
   .bottom-now-playing-button .now-playing-ticket-svg,
   .bottom-arcade-icon,
   .bottom-arcade-icon .now-playing-ticket-svg,
   .bottom-arcade-icon img {
-    width: 104px;
-    height: 76px;
+    width: 98px;
+    height: auto;
   }
   .bottom-now-playing-button:hover,
   .bottom-now-playing-button:focus-visible,
