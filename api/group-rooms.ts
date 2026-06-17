@@ -1,10 +1,12 @@
 import { db, errorStatus, getCurrentUser, readBody, sendJson } from "./_db.js";
 import {
+  cancelGroupRoom,
   createGroupRoom,
   getGroupRoom,
   joinGroupRoom,
+  removeGroupRoomParticipant,
   startGroupRoom,
-  submitGroupRoomAnswers,
+  submitGroupRoomAnswer,
   type GroupRoomMode,
 } from "./_groupRooms.js";
 
@@ -17,8 +19,9 @@ export default async function handler(request: any, response: any) {
     if (request.method === "GET") {
       const url = new URL(request.url || "/api/group-rooms", "http://localhost");
       const roomCode = String(url.searchParams.get("roomCode") || "").trim();
+      const participantId = String(url.searchParams.get("participantId") || "").trim();
       if (!roomCode) return sendJson(response, 400, { error: "roomCode is required." });
-      const result = await getGroupRoom(sql, roomCode);
+      const result = await getGroupRoom(sql, roomCode, participantId);
       if (!result) return sendJson(response, 404, { error: "Group room not found." });
       return sendJson(response, 200, result);
     }
@@ -29,7 +32,7 @@ export default async function handler(request: any, response: any) {
       const eventId = typeof body.eventId === "string" ? body.eventId : "";
       if (!eventId) return sendJson(response, 400, { error: "eventId is required." });
       const mode: GroupRoomMode = body.mode === "online" ? "online" : "local";
-      const result = await createGroupRoom(sql, user?.id, eventId, mode);
+      const result = await createGroupRoom(sql, user?.id, eventId, mode, body.timerSeconds);
       if (!result) return sendJson(response, 404, { error: "Group room could not be created. Try again." });
       return sendJson(response, 200, result);
     }
@@ -50,12 +53,29 @@ export default async function handler(request: any, response: any) {
       if (!result) return sendJson(response, 403, { error: "Only the host can start this room." });
       return sendJson(response, 200, result);
     }
-    if (action === "submit") {
+    if (action === "answer") {
       const roomCode = typeof body.roomCode === "string" ? body.roomCode : "";
       const participantId = typeof body.participantId === "string" ? body.participantId : "";
       if (!roomCode || !participantId) return sendJson(response, 400, { error: "Player room session is required." });
-      const result = await submitGroupRoomAnswers(sql, roomCode, participantId, body);
-      if (!result) return sendJson(response, 404, { error: "Group room score could not be saved." });
+      const result = await submitGroupRoomAnswer(sql, roomCode, participantId, body);
+      if (!result) return sendJson(response, 404, { error: "Answer could not be saved for this round." });
+      return sendJson(response, 200, result);
+    }
+    if (action === "remove") {
+      const roomCode = typeof body.roomCode === "string" ? body.roomCode : "";
+      const hostToken = typeof body.hostToken === "string" ? body.hostToken : "";
+      const participantId = typeof body.participantId === "string" ? body.participantId : "";
+      if (!roomCode || !hostToken || !participantId) return sendJson(response, 400, { error: "Host access is required." });
+      const result = await removeGroupRoomParticipant(sql, roomCode, hostToken, participantId);
+      if (!result) return sendJson(response, 403, { error: "Player could not be removed." });
+      return sendJson(response, 200, result);
+    }
+    if (action === "cancel") {
+      const roomCode = typeof body.roomCode === "string" ? body.roomCode : "";
+      const hostToken = typeof body.hostToken === "string" ? body.hostToken : "";
+      if (!roomCode || !hostToken) return sendJson(response, 400, { error: "Host access is required." });
+      const result = await cancelGroupRoom(sql, roomCode, hostToken);
+      if (!result) return sendJson(response, 403, { error: "Room could not be cancelled." });
       return sendJson(response, 200, result);
     }
 

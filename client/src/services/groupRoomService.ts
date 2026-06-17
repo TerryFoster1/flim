@@ -19,14 +19,16 @@ async function groupRoomRequest<T>(path: string, options: RequestInit = {}): Pro
   return response.json() as Promise<T>;
 }
 
-export function getGroupRoom(roomCode: string) {
-  return groupRoomRequest<GroupRoomState>(`/api/group-rooms?roomCode=${encodeURIComponent(roomCode)}`);
+export function getGroupRoom(roomCode: string, participantId?: string) {
+  const search = new URLSearchParams({ roomCode });
+  if (participantId) search.set("participantId", participantId);
+  return groupRoomRequest<GroupRoomState>(`/api/group-rooms?${search.toString()}`);
 }
 
-export function createGroupRoom(input: { eventId: string; mode?: GroupRoomMode }) {
+export function createGroupRoom(input: { eventId: string; mode?: GroupRoomMode; timerSeconds?: number }) {
   return groupRoomRequest<CreatedGroupRoom>("/api/group-rooms", {
     method: "POST",
-    body: JSON.stringify({ action: "create", eventId: input.eventId, mode: input.mode || "local" }),
+    body: JSON.stringify({ action: "create", eventId: input.eventId, mode: input.mode || "local", timerSeconds: input.timerSeconds }),
   });
 }
 
@@ -44,14 +46,27 @@ export function startGroupRoom(input: { roomCode: string; hostToken: string }) {
   });
 }
 
-export function submitGroupRoomAnswers(input: {
+export function submitGroupRoomAnswer(input: {
   roomCode: string;
   participantId: string;
-  answers: Record<string, string>;
-  answerTimes?: Record<string, number>;
+  selectedAnswer: string;
 }) {
   return groupRoomRequest<GroupRoomState>("/api/group-rooms", {
     method: "POST",
-    body: JSON.stringify({ action: "submit", ...input }),
+    body: JSON.stringify({ action: "answer", ...input }),
+  });
+}
+
+export function removeGroupRoomParticipant(input: { roomCode: string; hostToken: string; participantId: string }) {
+  return groupRoomRequest<GroupRoomState>("/api/group-rooms", {
+    method: "POST",
+    body: JSON.stringify({ action: "remove", ...input }),
+  });
+}
+
+export function cancelGroupRoom(input: { roomCode: string; hostToken: string }) {
+  return groupRoomRequest<GroupRoomState>("/api/group-rooms", {
+    method: "POST",
+    body: JSON.stringify({ action: "cancel", ...input }),
   });
 }

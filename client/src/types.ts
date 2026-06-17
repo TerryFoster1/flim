@@ -351,8 +351,9 @@ export interface SeasonalChallengeFeed {
   };
 }
 
-export type GroupRoomStatus = "waiting" | "active" | "completed" | "expired";
+export type GroupRoomStatus = "lobby" | "countdown" | "active" | "completed" | "expired";
 export type GroupRoomMode = "local" | "online";
+export type GroupRoomPhase = "lobby" | "countdown" | "question" | "reveal" | "leaderboard" | "completed";
 
 export interface GroupRoomParticipant {
   id: string;
@@ -362,7 +363,10 @@ export interface GroupRoomParticipant {
   joinedAt: string;
   score: number;
   correctCount: number;
+  incorrectCount?: number;
   answeredCount: number;
+  averageAnswerTimeMs?: number;
+  longestCorrectStreak?: number;
   completedAt?: string;
   isWinner?: boolean;
 }
@@ -372,11 +376,19 @@ export interface GroupRoomState {
     id: string;
     roomCode: string;
     status: GroupRoomStatus;
+    phase: GroupRoomPhase;
     mode: GroupRoomMode;
     eventId: string;
     challengeName: string;
     challengeSlug: string;
     questionCount: number;
+    currentQuestionIndex: number;
+    phaseStartedAt?: string;
+    timerSeconds: number;
+    countdownSeconds: number;
+    revealSeconds: number;
+    leaderboardSeconds: number;
+    serverNow: string;
     createdAt: string;
     startedAt?: string;
     completedAt?: string;
@@ -384,6 +396,13 @@ export interface GroupRoomState {
   };
   questions: SeasonalChallengeQuestion[];
   participants: GroupRoomParticipant[];
+  currentQuestionAnsweredCount?: number;
+  currentQuestionAnswer?: {
+    selectedAnswer: string;
+    isCorrect: boolean;
+    score: number;
+    answerTimeMs: number;
+  } | null;
 }
 
 export interface CreatedGroupRoom extends GroupRoomState {

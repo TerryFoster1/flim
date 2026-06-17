@@ -8551,6 +8551,11 @@ textarea { min-height: 42px; resize: vertical; }
   background: #fff;
   padding: 7px;
 }
+.group-room-share-card strong {
+  color: #ffe7b8;
+  font-size: 1.5rem;
+  letter-spacing: .12em;
+}
 .group-room-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
@@ -8559,6 +8564,21 @@ textarea { min-height: 42px; resize: vertical; }
 }
 .group-room-play-panel {
   min-height: 380px;
+}
+.group-lobby-panel,
+.group-live-question,
+.group-leaderboard-panel,
+.group-countdown-panel,
+.group-reveal-panel,
+.group-final-panel {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+.group-host-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 .group-join-card {
   display: grid;
@@ -8581,6 +8601,127 @@ textarea { min-height: 42px; resize: vertical; }
   padding: 12px 14px;
   color: #fff;
   background: rgba(0,0,0,.28);
+}
+.group-avatar-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(52px, 1fr));
+  gap: 8px;
+}
+.group-avatar-picker button {
+  appearance: none;
+  display: grid;
+  place-items: center;
+  min-height: 58px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(255,255,255,.24), transparent 3rem),
+    rgba(255,255,255,.07);
+  cursor: pointer;
+}
+.group-avatar-picker button.is-selected {
+  border-color: rgba(255,184,77,.62);
+  box-shadow: 0 0 0 2px rgba(255,184,77,.14);
+}
+.group-avatar-picker .film-critter-composite {
+  width: 46px;
+  height: 46px;
+}
+.group-countdown-panel,
+.group-reveal-panel,
+.group-final-panel {
+  min-height: 340px;
+  place-content: center;
+  text-align: center;
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 50% 28%, rgba(255,184,77,.24), transparent 17rem),
+    radial-gradient(circle at 50% 70%, rgba(255,79,109,.14), transparent 16rem),
+    rgba(0,0,0,.22);
+}
+.group-countdown-panel span,
+.group-reveal-panel span,
+.group-final-panel span,
+.group-leaderboard-panel > span {
+  color: var(--amber);
+  font-weight: 950;
+  text-transform: uppercase;
+  font-size: .82rem;
+}
+.group-countdown-panel strong {
+  color: #fff7df;
+  font-size: clamp(5rem, 22vw, 12rem);
+  line-height: .9;
+  text-shadow: 0 0 30px rgba(255,184,77,.36);
+}
+.group-reveal-panel h2,
+.group-final-panel h2,
+.group-leaderboard-panel h2 {
+  margin: 0;
+  color: #fff8e8;
+  font-size: clamp(2rem, 7vw, 4rem);
+  line-height: 1;
+}
+.group-reveal-panel p,
+.group-final-panel p {
+  max-width: 680px;
+  margin: 0 auto;
+  color: rgba(255,255,255,.76);
+  line-height: 1.55;
+}
+.group-reveal-panel strong {
+  color: #ffe7b8;
+  font-size: 1.35rem;
+}
+.classic-trivia-options button.is-selected {
+  border-color: rgba(255,184,77,.68);
+  background:
+    radial-gradient(circle at 18% 14%, rgba(255,184,77,.24), transparent 12rem),
+    rgba(255,184,77,.12);
+}
+.group-player-avatar {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+}
+.group-player-avatar .film-critter-composite {
+  width: 36px;
+  height: 36px;
+}
+.group-player-list li {
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+}
+.group-player-list button {
+  appearance: none;
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 999px;
+  padding: 6px 9px;
+  color: #ffe7b8;
+  background: rgba(255,255,255,.06);
+  font-size: .72rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+.group-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.group-stat-grid span {
+  display: grid;
+  gap: 3px;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 14px;
+  padding: 10px;
+  color: #fff8e8;
+  background: rgba(0,0,0,.18);
+  font-size: 1.25rem;
+  font-weight: 950;
+}
+.group-stat-grid small {
+  color: var(--muted);
+  font-size: .7rem;
 }
 .group-player-list li.is-winner,
 .challenge-standing-list li.is-winner {
@@ -8675,6 +8816,13 @@ textarea { min-height: 42px; resize: vertical; }
   .group-room-share-card img {
     width: 132px;
     height: 132px;
+  }
+  .group-player-list li {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+  .group-player-list button {
+    grid-column: 2 / -1;
+    justify-self: start;
   }
 }
 .seasonal-admin-card {
