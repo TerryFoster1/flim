@@ -322,15 +322,22 @@ function FeaturedChallengeCard({ event, onNavigate }: { event: SeasonalChallenge
       : "Completed event";
   const themeKey = String(event.banner || event.seasonKey || "challenge").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "challenge";
   const artworkUrl = challengeArtworkUrl(event);
+  const artworkTheme = challengeArtworkTheme(event);
 
   return (
     <button
-      className={`arcade-featured-challenge is-${event.dateStatus} theme-${themeKey} ${event.isWeeklyFeatured ? "is-weekly-featured" : ""}`}
+      className={`arcade-featured-challenge is-${event.dateStatus} theme-${themeKey} artwork-${artworkTheme} ${event.isWeeklyFeatured ? "is-weekly-featured" : ""}`}
       onClick={() => onNavigate(`/challenges/${event.slug}`)}
       type="button"
     >
-      <div className="arcade-challenge-artwork">
-        <img alt="" src={artworkUrl} />
+      <div className="arcade-challenge-artwork" data-art-theme={artworkTheme}>
+        <img
+          alt=""
+          src={artworkUrl}
+          onError={(event) => {
+            event.currentTarget.hidden = true;
+          }}
+        />
         <span>{event.banner || event.badge}</span>
       </div>
       <div>
@@ -348,18 +355,40 @@ function FeaturedChallengeCard({ event, onNavigate }: { event: SeasonalChallenge
   );
 }
 
+function challengeArtworkTheme(event: SeasonalChallengeEvent) {
+  const text = `${event.slug} ${event.name} ${event.banner || ""} ${event.seasonKey || ""} ${event.badge || ""}`.toLowerCase();
+  if (text.includes("time")) return "time";
+  if (text.includes("zombie") || text.includes("apocalypse")) return "apocalypse";
+  if (text.includes("alien") || text.includes("space") || text.includes("world") || text.includes("sci-fi")) return "space";
+  if (text.includes("anime") || text.includes("animation") || text.includes("animated") || text.includes("disney") || text.includes("pixar")) return "animation";
+  if (text.includes("office") || text.includes("simpson") || text.includes("quote")) return "quote";
+  if (text.includes("jurassic") || text.includes("dinosaur") || text.includes("raptor")) return "jurassic";
+  if (text.includes("horror") || text.includes("slasher") || text.includes("halloween")) return "horror";
+  if (text.includes("christmas") || text.includes("holiday")) return "holiday";
+  if (text.includes("superhero") || text.includes("marvel") || text.includes("dc")) return "hero";
+  if (text.includes("adventure") || text.includes("explorer") || text.includes("mission") || text.includes("bond")) return "adventure";
+  return "cinema";
+}
+
 function challengeArtworkUrl(event: SeasonalChallengeEvent) {
   if (event.heroImageUrl) return event.heroImageUrl;
-  const slug = event.slug.toLowerCase();
+  const text = `${event.slug} ${event.name} ${event.banner || ""} ${event.seasonKey || ""}`.toLowerCase();
+  if (text.includes("time")) return "/api/og/title/movie/105?card=game";
+  if (text.includes("adventure") || text.includes("mission")) return "/api/og/title/movie/85?card=game";
+  if (text.includes("world") || text.includes("space") || text.includes("sci-fi") || text.includes("alien")) return "/api/og/title/movie/11?card=game";
+  if (text.includes("jurassic") || text.includes("dinosaur")) return "/api/og/title/movie/329?card=game";
+  if (text.includes("office") || text.includes("quote")) return "/api/og/title/tv/2316?card=game";
+  if (text.includes("wizard") || text.includes("harry")) return "/api/og/title/movie/671?card=game";
+  if (text.includes("simpson")) return "/api/og/title/tv/456?card=game";
+  if (text.includes("disney") || text.includes("pixar") || text.includes("animation")) return "/api/og/title/movie/862?card=game";
+  if (text.includes("superhero") || text.includes("marvel")) return "/api/og/title/movie/299536?card=game";
+  if (text.includes("zombie") || text.includes("apocalypse")) return "/api/og/title/movie/19908?card=game";
   const banner = String(event.banner || event.seasonKey || event.name).toLowerCase();
-  if (slug.includes("time") || banner.includes("time")) return "/api/og/title/movie/105?card=game";
-  if (slug.includes("adventure") || banner.includes("adventure")) return "/api/og/title/movie/85?card=game";
-  if (slug.includes("world") || banner.includes("space") || banner.includes("sci-fi")) return "/api/og/title/movie/11?card=game";
   if (banner.includes("horror")) return "/api/og/title/movie/348?card=game";
   if (banner.includes("holiday")) return "/api/og/title/movie/1585?card=game";
   if (banner.includes("awards")) return "/api/og/title/movie/238?card=game";
   if (banner.includes("blockbuster")) return "/api/og/title/movie/329?card=game";
-  return `/api/og/seasonal-challenge/${event.slug}`;
+  return "/arcade/flim-arcade-hero.png";
 }
 
 function formatChallengeWindowDate(value: string) {
@@ -589,8 +618,8 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
         {secondaryChallenges.length > 0 ? (
           <section className="title-games-section arcade-live-section">
             <div className="actor-section-heading">
-              <h2>Featured challenges</h2>
-              <span>Challenge picks</span>
+              <h2>Browse Flim Arcade Challenges</h2>
+              <span>Playable picks</span>
             </div>
             <div className="arcade-live-grid">
               {secondaryChallenges.map((event) => (

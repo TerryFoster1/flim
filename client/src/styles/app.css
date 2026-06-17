@@ -6674,20 +6674,95 @@ textarea { min-height: 42px; resize: vertical; }
   border: 0;
   border-bottom: 1px solid rgba(255,255,255,.12);
   border-radius: 0;
-  background: rgba(255,255,255,.06);
+  background:
+    radial-gradient(circle at 72% 34%, rgba(255,184,77,.34), transparent 9rem),
+    radial-gradient(circle at 30% 44%, rgba(255,79,109,.22), transparent 10rem),
+    linear-gradient(135deg, rgba(15,12,24,.96), rgba(45,26,17,.92));
   box-shadow: none;
 }
+.arcade-challenge-artwork::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background:
+    linear-gradient(90deg, rgba(255,184,77,.18) 1px, transparent 1px) 0 0 / 38px 100%,
+    radial-gradient(circle at 72% 32%, rgba(255,184,77,.26), transparent 7rem),
+    radial-gradient(circle at 24% 62%, rgba(101,167,255,.18), transparent 8rem);
+  opacity: .8;
+}
+.arcade-challenge-artwork[data-art-theme="time"]::before {
+  background:
+    repeating-conic-gradient(from 0deg at 72% 42%, rgba(255,184,77,.34) 0 2deg, transparent 2deg 16deg),
+    radial-gradient(circle at 72% 42%, rgba(255,184,77,.34), transparent 8rem),
+    linear-gradient(135deg, rgba(27,16,32,.96), rgba(56,31,16,.9));
+}
+.arcade-challenge-artwork[data-art-theme="space"]::before {
+  background:
+    radial-gradient(circle at 74% 34%, rgba(101,167,255,.36), transparent 8rem),
+    radial-gradient(circle at 46% 48%, rgba(255,255,255,.22), transparent .12rem),
+    radial-gradient(circle at 36% 28%, rgba(255,255,255,.24), transparent .1rem),
+    linear-gradient(135deg, rgba(5,8,24,.98), rgba(34,16,56,.9));
+}
+.arcade-challenge-artwork[data-art-theme="adventure"]::before {
+  background:
+    radial-gradient(circle at 74% 36%, rgba(255,184,77,.34), transparent 8rem),
+    linear-gradient(135deg, rgba(49,31,12,.96), rgba(13,38,31,.88)),
+    repeating-linear-gradient(25deg, rgba(255,255,255,.08) 0 1px, transparent 1px 16px);
+}
+.arcade-challenge-artwork[data-art-theme="jurassic"]::before {
+  background:
+    radial-gradient(circle at 70% 35%, rgba(132,255,94,.22), transparent 8rem),
+    radial-gradient(circle at 20% 80%, rgba(255,184,77,.18), transparent 8rem),
+    linear-gradient(135deg, rgba(8,38,22,.98), rgba(62,43,13,.9));
+}
+.arcade-challenge-artwork[data-art-theme="quote"]::before {
+  background:
+    radial-gradient(circle at 72% 30%, rgba(255,184,77,.3), transparent 8rem),
+    linear-gradient(135deg, rgba(24,22,22,.98), rgba(56,25,32,.9)),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.08) 0 1px, transparent 1px 28px);
+}
+.arcade-challenge-artwork[data-art-theme="animation"]::before {
+  background:
+    radial-gradient(circle at 72% 32%, rgba(255,184,77,.34), transparent 8rem),
+    radial-gradient(circle at 34% 58%, rgba(255,79,109,.2), transparent 9rem),
+    linear-gradient(135deg, rgba(30,18,50,.96), rgba(65,31,18,.9));
+}
+.arcade-challenge-artwork[data-art-theme="apocalypse"],
+.arcade-challenge-artwork[data-art-theme="horror"] {
+  background:
+    radial-gradient(circle at 72% 38%, rgba(255,79,109,.2), transparent 8rem),
+    linear-gradient(135deg, rgba(12,14,14,.98), rgba(48,18,22,.92));
+}
+.arcade-challenge-artwork[data-art-theme="holiday"]::before {
+  background:
+    radial-gradient(circle at 72% 34%, rgba(255,255,255,.22), transparent 8rem),
+    radial-gradient(circle at 28% 60%, rgba(255,79,109,.2), transparent 8rem),
+    linear-gradient(135deg, rgba(12,38,31,.96), rgba(62,16,24,.9));
+}
+.arcade-challenge-artwork[data-art-theme="hero"]::before {
+  background:
+    radial-gradient(circle at 72% 34%, rgba(255,184,77,.34), transparent 8rem),
+    radial-gradient(circle at 34% 64%, rgba(101,167,255,.22), transparent 8rem),
+    linear-gradient(135deg, rgba(10,20,46,.98), rgba(68,17,28,.9));
+}
 .arcade-challenge-artwork img {
+  position: relative;
+  z-index: 1;
   width: 100%;
   height: 100%;
   display: block;
   object-fit: cover;
   transform: scale(1.04);
 }
+.arcade-challenge-artwork img[hidden] {
+  display: none;
+}
 .arcade-challenge-artwork::after {
   content: "";
   position: absolute;
   inset: 0;
+  z-index: 2;
   background:
     linear-gradient(0deg, rgba(8,9,13,.72), rgba(8,9,13,.1) 58%, rgba(8,9,13,.08)),
     radial-gradient(circle at 16% 12%, rgba(255,184,77,.16), transparent 11rem);
@@ -6695,7 +6770,7 @@ textarea { min-height: 42px; resize: vertical; }
 }
 .arcade-challenge-artwork span {
   position: absolute;
-  z-index: 1;
+  z-index: 3;
   left: 14px;
   bottom: 12px;
   max-width: calc(100% - 28px);
@@ -6717,16 +6792,21 @@ textarea { min-height: 42px; resize: vertical; }
 .arcade-featured-challenge > div:not(.arcade-challenge-artwork):not(.arcade-challenge-badge) {
   display: grid;
   gap: 10px;
+  min-width: 0;
   padding: 0 20px 20px;
 }
 .arcade-featured-challenge h3 {
+  max-width: 100%;
+  overflow-wrap: anywhere;
   font-size: clamp(1.35rem, 3vw, 1.85rem);
+  line-height: 1.06;
 }
 .arcade-featured-challenge p {
   display: -webkit-box;
   overflow: hidden;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
+  max-width: 100%;
 }
 .arcade-challenge-badge {
   width: 76px;
@@ -10552,12 +10632,15 @@ textarea { min-height: 42px; resize: vertical; }
     inset: auto;
     width: 100%;
     height: auto;
-    aspect-ratio: 16 / 9;
+    max-height: min(42svh, 340px);
+    aspect-ratio: 1672 / 941;
     object-fit: contain;
-    object-position: center;
+    object-position: center center;
     border: 1px solid rgba(255,255,255,.14);
     border-radius: 22px;
-    background: rgba(0,0,0,.34);
+    background:
+      radial-gradient(circle at 50% 50%, rgba(255,184,77,.14), transparent 14rem),
+      #050608;
     box-shadow: 0 24px 70px rgba(0,0,0,.42);
   }
   .arcade-hero-copy h1 {
@@ -10585,6 +10668,23 @@ textarea { min-height: 42px; resize: vertical; }
   }
   .arcade-weekly-section > .arcade-featured-challenge {
     min-height: 0;
+  }
+  .arcade-featured-challenge > div:not(.arcade-challenge-artwork):not(.arcade-challenge-badge) {
+    padding: 0 14px 16px;
+  }
+  .arcade-featured-challenge h3 {
+    font-size: clamp(1.45rem, 8vw, 2rem);
+  }
+  .arcade-featured-challenge p {
+    -webkit-line-clamp: 4;
+  }
+  .challenge-card-meta {
+    align-items: flex-start;
+  }
+  .challenge-card-meta > * {
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
   .arcade-scoreboard-sheet {
     width: 100vw;
