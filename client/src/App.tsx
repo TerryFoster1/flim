@@ -402,12 +402,13 @@ export default function App() {
         </button>
         <button
           className={`bottom-arcade-button ${activeRoute === "/games" || activeRoute === "/challenges" || activeRoute === "/hall-of-fame" ? "is-active" : ""}`}
-          aria-label="Open Flim Arcade"
+          aria-label="Flim Arcade"
           onClick={() => navigate("/games")}
           type="button"
         >
-          <span className="bottom-arcade-icon" aria-hidden="true">F</span>
-          <span className="bottom-arcade-label">Arcade</span>
+          <span className="bottom-arcade-icon" aria-hidden="true">
+            <img alt="" src="/nav/arcade-ticket.png" />
+          </span>
         </button>
         <button
           className={`bottom-control-tab ${activeRoute === "/public" ? "is-active" : ""}`}

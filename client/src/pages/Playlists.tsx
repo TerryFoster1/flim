@@ -299,11 +299,11 @@ function PublicDiscovery({
 
   return (
     <div className="discovery-grid">
+      <DiscoveryShelf title="Followed Playlists" playlists={followedPlaylists} onNavigate={onNavigate} />
       <DiscoveryRecommendationShelf fallbackPlaylists={recommendedPlaylists} includeCurators={false} onNavigate={onNavigate} />
       <DiscoveryShelf title="Trending Playlists" playlists={trendingPlaylists} onNavigate={onNavigate} />
       <DiscoveryShelf title="Director's Cut" playlists={flimPicks} onNavigate={onNavigate} />
       <DiscoveryShelf title="Featured Playlists" playlists={featuredPlaylists} onNavigate={onNavigate} />
-      <DiscoveryShelf title="Followed Playlists" playlists={followedPlaylists} onNavigate={onNavigate} />
       <DiscoveryShelf title="Public Playlists" playlists={publicPlaylistResults} onNavigate={onNavigate} />
       {playlists.length === 0 ? (
         <p className="empty-state">Public playlists will appear here.</p>
@@ -337,7 +337,7 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
   const sourcePlaylists = useMemo(() => {
     if (view !== "public") {
       return playlists
-        .filter((playlist) => (playlist.isOwner || playlist.isFollowing || playlist.saved || playlist.clonedFromId) && !playlist.isSystem)
+        .filter((playlist) => (playlist.isOwner || playlist.saved || playlist.clonedFromId) && !playlist.isSystem)
         .sort((a, b) => {
           if (a.isOwner !== b.isOwner) return a.isOwner ? -1 : 1;
           return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
@@ -425,7 +425,6 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
 
   const normalizedQuery = query.trim();
   const ownedPreview = ownedPlaylists.slice(0, visibleCount);
-  const followedPreview = followedPlaylists.slice(0, Math.max(3, Math.min(visibleCount, 6)));
   const searchStatusLabel = normalizedQuery
     ? visiblePlaylists.length > 0
       ? `${visiblePlaylists.length} ${visiblePlaylists.length === 1 ? "result" : "results"} for ${normalizedQuery}`
@@ -448,7 +447,6 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
           />
         </picture>
         <div className="playlist-landing-hero-content">
-          <span>{view === "public" ? "Public collections" : "Your collections"}</span>
           <h1>{view === "public" ? "Public Playlists" : "My Playlists"}</h1>
           <p>
             {view === "public"
@@ -556,14 +554,6 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
                 <h2>Your Playlists</h2>
               </div>
               <PlaylistGrid onNavigate={onNavigate} playlists={ownedPreview} />
-            </section>
-          ) : null}
-          {followedPreview.length > 0 ? (
-            <section className="discovery-section">
-              <div className="discovery-section-heading">
-                <h2>Followed Playlists</h2>
-              </div>
-              <PlaylistGrid onNavigate={onNavigate} playlists={followedPreview} />
             </section>
           ) : null}
           {currentUser ? <ContinueWatchingRow includeFollowedFallback onNavigate={onNavigate} /> : null}

@@ -6094,7 +6094,6 @@ textarea { min-height: 42px; resize: vertical; }
   text-align: left;
   transform: translateY(clamp(18px, 7svh, 58px));
 }
-.arcade-hero-copy > span,
 .arcade-feature-card > span {
   color: #ffcf8a;
   font-size: .8rem;
@@ -6752,8 +6751,9 @@ textarea { min-height: 42px; resize: vertical; }
   width: 100%;
   height: 100%;
   display: block;
-  object-fit: cover;
-  transform: scale(1.04);
+  object-fit: contain;
+  object-position: center center;
+  transform: none;
 }
 .arcade-challenge-artwork img[hidden] {
   display: none;
@@ -6767,27 +6767,6 @@ textarea { min-height: 42px; resize: vertical; }
     linear-gradient(0deg, rgba(8,9,13,.72), rgba(8,9,13,.1) 58%, rgba(8,9,13,.08)),
     radial-gradient(circle at 16% 12%, rgba(255,184,77,.16), transparent 11rem);
   pointer-events: none;
-}
-.arcade-challenge-artwork span {
-  position: absolute;
-  z-index: 3;
-  left: 14px;
-  bottom: 12px;
-  max-width: calc(100% - 28px);
-  border-radius: 999px;
-  padding: 7px 10px;
-  background: rgba(0,0,0,.64);
-  color: #fff6dc;
-  font-size: .68rem;
-  font-weight: 950;
-  letter-spacing: .05em;
-  line-height: 1;
-  text-transform: uppercase;
-}
-.arcade-featured-challenge.is-weekly-featured .arcade-challenge-artwork span {
-  background: linear-gradient(135deg, rgba(255,79,109,.92), rgba(255,184,77,.9));
-  color: #18090c;
-  box-shadow: 0 12px 30px rgba(0,0,0,.26);
 }
 .arcade-featured-challenge > div:not(.arcade-challenge-artwork):not(.arcade-challenge-badge) {
   display: grid;
@@ -9940,7 +9919,7 @@ textarea { min-height: 42px; resize: vertical; }
   left: 50%;
   bottom: max(14px, env(safe-area-inset-bottom));
   display: grid;
-  grid-template-columns: minmax(96px, 1fr) 86px minmax(106px, 1fr);
+  grid-template-columns: minmax(96px, 1fr) 92px minmax(106px, 1fr);
   align-items: center;
   gap: 6px;
   width: min(520px, calc(100vw - 24px));
@@ -10391,8 +10370,8 @@ textarea { min-height: 42px; resize: vertical; }
 }
 .bottom-now-playing-button,
 .bottom-arcade-button {
-  width: 86px;
-  height: 68px;
+  width: 92px;
+  height: 70px;
   border: 1px solid rgba(255,184,77,.46);
   border-radius: 999px;
   background:
@@ -10408,61 +10387,48 @@ textarea { min-height: 42px; resize: vertical; }
 .bottom-arcade-button {
   position: relative;
   isolation: isolate;
-  gap: 2px;
-  color: #18090c;
-  font-size: .72rem;
-  font-weight: 1000;
-  text-transform: uppercase;
-  letter-spacing: .02em;
-  border-radius: 22px;
-  border-color: rgba(255,184,77,.72);
-  background:
-    radial-gradient(circle at 50% 7px, rgba(255,255,255,.5), transparent 17px),
-    linear-gradient(135deg, #ff4f6d, #ffb84d);
-  box-shadow: 0 14px 36px rgba(0,0,0,.48), 0 0 42px rgba(255,184,77,.28);
-  overflow: hidden;
+  border-color: rgba(255,184,77,.34);
+  background: transparent;
+  box-shadow: 0 14px 36px rgba(0,0,0,.44), 0 0 34px rgba(255,184,77,.18);
+  overflow: visible;
 }
 .bottom-arcade-button::before {
   content: "";
   position: absolute;
-  inset: 5px;
-  border-radius: 18px;
-  border: 1px dashed rgba(24,9,12,.42);
+  inset: 8px 3px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,184,77,.18);
+  background: radial-gradient(circle at 50% 50%, rgba(255,184,77,.20), rgba(255,184,77,.05) 48%, transparent 72%);
   pointer-events: none;
 }
 .bottom-arcade-button::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(circle at 12px 12px, rgba(255,255,255,.75) 0 2px, transparent 3px),
-    radial-gradient(circle at calc(100% - 12px) 12px, rgba(255,255,255,.75) 0 2px, transparent 3px),
-    radial-gradient(circle at 12px calc(100% - 12px), rgba(255,255,255,.6) 0 2px, transparent 3px),
-    radial-gradient(circle at calc(100% - 12px) calc(100% - 12px), rgba(255,255,255,.6) 0 2px, transparent 3px);
-  pointer-events: none;
-  opacity: .86;
+  content: none;
 }
 .bottom-arcade-icon {
   position: relative;
   z-index: 1;
   display: grid;
   place-items: center;
-  width: 26px;
-  height: 25px;
-  border-radius: 9px;
-  background: rgba(24,9,12,.9);
-  color: #ffcf8a;
-  font-size: .86rem;
-  line-height: 1;
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,.12);
+  width: 86px;
+  height: 60px;
+  background: transparent;
 }
-.bottom-arcade-label {
-  position: relative;
-  z-index: 1;
+.bottom-arcade-icon .now-playing-ticket-svg {
+  width: 86px;
+  height: 60px;
+  display: block;
+  filter: drop-shadow(0 12px 24px rgba(255,184,77,.34));
+}
+.bottom-arcade-icon img {
+  width: 116px;
+  height: 86px;
+  display: block;
+  object-fit: contain;
+  filter: drop-shadow(0 12px 24px rgba(255,184,77,.34));
 }
 .bottom-arcade-button.is-active {
   border-color: rgba(255,224,150,.88);
-  box-shadow: 0 14px 36px rgba(0,0,0,.48), 0 0 52px rgba(255,184,77,.45);
+  box-shadow: 0 14px 36px rgba(0,0,0,.48), 0 0 52px rgba(255,184,77,.34);
 }
 .bottom-now-playing-button .now-playing-ticket-svg {
   width: 80px;
@@ -11057,7 +11023,7 @@ textarea { min-height: 42px; resize: vertical; }
     gap: 10px;
   }
   .playlist-bottom-control {
-    grid-template-columns: minmax(0, 1fr) 78px minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) 82px minmax(0, 1fr);
     width: min(100% - 18px, 430px);
     min-height: 66px;
     padding: 7px;
@@ -11067,17 +11033,23 @@ textarea { min-height: 42px; resize: vertical; }
     padding: 0 8px;
     font-size: .76rem;
   }
-  .bottom-now-playing-button {
-    width: 78px;
+  .bottom-now-playing-button,
+  .bottom-arcade-button {
+    width: 82px;
     height: 62px;
     transform: translateY(-10px);
   }
-  .bottom-now-playing-button .now-playing-ticket-svg {
-    width: 74px;
-    height: 51px;
+  .bottom-now-playing-button .now-playing-ticket-svg,
+  .bottom-arcade-icon,
+  .bottom-arcade-icon .now-playing-ticket-svg,
+  .bottom-arcade-icon img {
+    width: 104px;
+    height: 76px;
   }
   .bottom-now-playing-button:hover,
-  .bottom-now-playing-button:focus-visible {
+  .bottom-now-playing-button:focus-visible,
+  .bottom-arcade-button:hover,
+  .bottom-arcade-button:focus-visible {
     transform: translateY(-12px) scale(1.02);
   }
   .playlist-page-actions {

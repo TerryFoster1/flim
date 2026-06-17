@@ -285,7 +285,6 @@ export function ChallengeDetails({ slug, onNavigate }: ChallengeDetailsProps) {
 
       <header className={`challenge-landing-hero theme-${event.banner || event.seasonKey || "general"}`}>
         <div className="challenge-landing-copy">
-          <span>{challengeTypeLabel(event.challengeType)}</span>
           <h1>{event.name}</h1>
           <p>{event.description}</p>
           <div className="challenge-landing-stats">

@@ -338,10 +338,8 @@ function FeaturedChallengeCard({ event, onNavigate }: { event: SeasonalChallenge
             event.currentTarget.hidden = true;
           }}
         />
-        <span>{event.banner || event.badge}</span>
       </div>
       <div>
-        <span>{event.isWeeklyFeatured ? "This Week's Featured Challenge" : event.challengeType === "weekly" ? "Weekly Challenge" : event.challengeType === "special_event" ? "Special Event" : "Featured Challenge"}</span>
         <h3>{event.name}</h3>
         <p>{event.description}</p>
         <div className="challenge-card-meta">
@@ -580,7 +578,6 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
       <header className="arcade-preview-hero">
         <img aria-hidden="true" className="arcade-hero-image" src="/arcade/flim-arcade-hero.png" />
         <div className="arcade-hero-copy">
-          <span>Flim Arcade</span>
           <h1>Flim Arcade</h1>
           <p>Step inside for movie trivia, group challenges, and game-night showdowns.</p>
           <form className="arcade-search-form" onSubmit={(event) => event.preventDefault()}>
@@ -609,7 +606,6 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
           <section className="title-games-section arcade-live-section arcade-weekly-section">
             <div className="actor-section-heading">
               <h2>Featured Trivia Pack</h2>
-              <span>Weekly competition</span>
             </div>
             <FeaturedChallengeCard event={featuredWeeklyChallenge} onNavigate={onNavigate} />
           </section>
@@ -619,7 +615,6 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
           <section className="title-games-section arcade-live-section">
             <div className="actor-section-heading">
               <h2>Browse Flim Arcade Challenges</h2>
-              <span>Playable picks</span>
             </div>
             <div className="arcade-live-grid">
               {secondaryChallenges.map((event) => (
@@ -632,7 +627,6 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
         <section className="title-games-section arcade-live-section">
           <div className="actor-section-heading">
             <h2>Trending trivia</h2>
-            <span>Movie rounds</span>
           </div>
           <div className="arcade-movie-row">
             {filteredTriviaTitles.map((title) => (
@@ -655,7 +649,6 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
         <section className="title-games-section arcade-feature-section">
           <div className="actor-section-heading">
             <h2>Playlist trivia</h2>
-            <span>Curated rounds</span>
           </div>
           <div className="arcade-challenge-row">
             {filteredPlaylistTrivia.map((card) => (

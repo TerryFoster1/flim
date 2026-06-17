@@ -100,12 +100,11 @@ export function SeasonalChallengeCard({
             <img alt="" className={`seasonal-art-tile tile-${index + 1}`} key={`${event.slug}-art-${url}`} src={url} />
           ))}
         </div>
-        <span>{event.banner || event.badge}</span>
       </div>
       <div className="seasonal-challenge-copy">
         <div className="challenge-card-topline">
           <span className="challenge-badge-mark">{event.badge}</span>
-          <span>{challengeTypeLabel(event.challengeType)} - {questionCount} questions - {event.points} points</span>
+          <span>{questionCount} questions - {event.points} points</span>
         </div>
         <h3>{event.name}</h3>
         <p>{event.description}</p>
