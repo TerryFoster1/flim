@@ -306,26 +306,28 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
       {notice ? <p className="success-message">{notice}</p> : null}
       {error ? <p className="error-message">{error}</p> : null}
 
-      <section className="playlist-roulette-launcher" aria-label="What are we watching tonight">
-        <div className="playlist-roulette-icon" aria-hidden="true">
-          <NowPlayingTicketIcon />
+      <section className={`playlist-landing-hero playlist-landing-hero-${view}`} aria-label={view === "public" ? "Public Playlists" : "My Playlists"}>
+        <picture className="playlist-landing-hero-picture" aria-hidden="true">
+          <img
+            alt=""
+            decoding="async"
+            src={view === "public" ? "/playlist-heroes/public-playlists-hero.png" : "/playlist-heroes/my-playlists-hero.png"}
+          />
+        </picture>
+        <div className="playlist-landing-hero-content">
+          <span>{view === "public" ? "Public collections" : "Your collections"}</span>
+          <h1>{view === "public" ? "Public Playlists" : "My Playlists"}</h1>
+          <p>
+            {view === "public"
+              ? "Discover collections created by movie fans."
+              : "Organize, discover, and revisit your collections."}
+          </p>
+          <label className="collection-search playlist-title-search playlist-hero-search">
+            <span>{view === "public" ? "Search Public Playlists" : "Search Playlists"}</span>
+            <input onChange={(event) => setQuery(event.target.value)} placeholder="Search playlists, titles, actors, or genres" type="search" value={query} />
+          </label>
         </div>
-        <div>
-          <span>{view === "public" ? "Playlist Discovery" : "Movie Night"}</span>
-          <h1>What Are We Watching Tonight?</h1>
-          <p>{view === "public" ? "Spin through public collections and curator picks." : "Spin through your own playlists and followed lists."}</p>
-        </div>
-        <button className="primary-button" onClick={() => onOpenRoulette?.(sourcePlaylists)} type="button">
-          Spin Tonight
-        </button>
       </section>
-
-      <div className="playlist-shelf-heading playlist-shelf-heading-with-search">
-        <label className="collection-search playlist-title-search">
-          <span>{view === "public" ? "Public Playlists" : "My Playlists"}</span>
-          <input onChange={(event) => setQuery(event.target.value)} placeholder="Search playlists, titles, actors, or genres" type="search" value={query} />
-        </label>
-      </div>
 
       {view === "my" ? (
         <div className="playlist-page-actions">
@@ -371,6 +373,19 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
             visibleCount={visibleCount}
             onLoadMore={() => setVisibleCount((count) => count + 7)}
           />
+          <section className="playlist-roulette-launcher playlist-roulette-compact" aria-label="Movie roulette">
+            <div className="playlist-roulette-icon" aria-hidden="true">
+              <NowPlayingTicketIcon />
+            </div>
+            <div>
+              <span>Movie Roulette</span>
+              <h2>Can't decide what to watch?</h2>
+              <p>Spin across public playlists and curator collections.</p>
+            </div>
+            <button className="secondary-button" onClick={() => onOpenRoulette?.(sourcePlaylists)} type="button">
+              Spin
+            </button>
+          </section>
         </>
       ) : visiblePagePlaylists.length > 0 ? (
         <>
@@ -382,6 +397,19 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
               </button>
             </div>
           ) : null}
+          <section className="playlist-roulette-launcher playlist-roulette-compact" aria-label="Movie roulette">
+            <div className="playlist-roulette-icon" aria-hidden="true">
+              <NowPlayingTicketIcon />
+            </div>
+            <div>
+              <span>Movie Roulette</span>
+              <h2>Can't decide what to watch?</h2>
+              <p>Spin across your playlists when movie night needs a nudge.</p>
+            </div>
+            <button className="secondary-button" onClick={() => onOpenRoulette?.(sourcePlaylists)} type="button">
+              Spin
+            </button>
+          </section>
         </>
       ) : (
         <div className="collection-empty-cinematic">
