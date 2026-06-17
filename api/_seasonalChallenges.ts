@@ -1749,7 +1749,7 @@ function mapChallengeQuestion(row: any) {
   };
 }
 
-async function challengeQuestions(sql: any, event: any) {
+export async function challengeQuestions(sql: any, event: any) {
   await ensureTriviaTables(sql);
   const limitCount = Math.max(1, Math.min(100, Number(event.question_count || 10)));
   const evergreenRows = await sql`

@@ -18,6 +18,7 @@ export type AppRoute =
   | "/challenge/:token"
   | "/challenges"
   | "/challenges/:slug"
+  | "/group/:roomCode"
   | "/progress"
   | "/hall-of-fame"
   | "/public"
@@ -60,6 +61,7 @@ export interface RouteState {
   returnTo?: string;
   challengeToken?: string;
   seasonalChallengeSlug?: string;
+  groupRoomCode?: string;
   actorId?: string;
   collectionId?: string;
   discoveryKind?: "genre" | "decade" | "franchise";
@@ -323,6 +325,53 @@ export interface SeasonalChallengeFeed {
     recentlyCompleted: SeasonalChallengeEvent[];
     featured: SeasonalChallengeEvent | null;
   };
+}
+
+export type GroupRoomStatus = "waiting" | "active" | "completed" | "expired";
+export type GroupRoomMode = "local" | "online";
+
+export interface GroupRoomParticipant {
+  id: string;
+  userId?: string;
+  displayName: string;
+  avatarId?: string;
+  joinedAt: string;
+  score: number;
+  correctCount: number;
+  answeredCount: number;
+  completedAt?: string;
+  isWinner?: boolean;
+}
+
+export interface GroupRoomState {
+  room: {
+    id: string;
+    roomCode: string;
+    status: GroupRoomStatus;
+    mode: GroupRoomMode;
+    eventId: string;
+    challengeName: string;
+    challengeSlug: string;
+    questionCount: number;
+    createdAt: string;
+    startedAt?: string;
+    completedAt?: string;
+    expiresAt: string;
+  };
+  questions: SeasonalChallengeQuestion[];
+  participants: GroupRoomParticipant[];
+}
+
+export interface CreatedGroupRoom extends GroupRoomState {
+  hostToken: string;
+}
+
+export interface JoinedGroupRoom extends GroupRoomState {
+  participant: {
+    id: string;
+    displayName: string;
+    avatarId?: string;
+  } | null;
 }
 
 export interface MediaCollection {

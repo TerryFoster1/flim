@@ -24,6 +24,7 @@ import { HallOfFame } from "./pages/HallOfFame";
 import { Progress } from "./pages/Progress";
 import { SeasonalChallenges } from "./pages/SeasonalChallenges";
 import { ChallengeDetails } from "./pages/ChallengeDetails";
+import { GroupRoom } from "./pages/GroupRoom";
 import { PlaylistDetails } from "./pages/PlaylistDetails";
 import { Playlists } from "./pages/Playlists";
 import { Profile } from "./pages/Profile";
@@ -84,6 +85,7 @@ function routeFromPath(path = window.location.pathname): RouteState {
   if (pathname === "/games" || pathname === "/trivia-games") return { route: "/games" };
   if (pathname === "/challenges") return { route: "/challenges" };
   if (pathname.startsWith("/challenges/")) return { route: "/challenges/:slug", seasonalChallengeSlug: pathname.split("/")[2] };
+  if (pathname.startsWith("/group/")) return { route: "/group/:roomCode", groupRoomCode: pathname.split("/")[2] };
   if (pathname === "/progress") return { route: "/progress" };
   if (pathname === "/hall-of-fame") return { route: "/hall-of-fame" };
   if (pathname === "/public" || pathname === "/public-playlists") return { route: "/public" };
@@ -344,6 +346,7 @@ export default function App() {
     "/challenge/:token": <FriendChallenge token={routeState.challengeToken || ""} onNavigate={navigate} />,
     "/challenges": <SeasonalChallenges onNavigate={navigate} />,
     "/challenges/:slug": <ChallengeDetails slug={routeState.seasonalChallengeSlug || ""} onNavigate={navigate} />,
+    "/group/:roomCode": <GroupRoom roomCode={routeState.groupRoomCode || ""} onNavigate={navigate} />,
     "/progress": <Progress onNavigate={navigate} />,
     "/hall-of-fame": <HallOfFame onNavigate={navigate} />,
     "/public": playlistsPage("public"),

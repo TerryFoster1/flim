@@ -7978,6 +7978,94 @@ textarea { min-height: 42px; resize: vertical; }
   background: #fff;
   padding: 6px;
 }
+.group-room-page {
+  display: grid;
+  gap: 18px;
+}
+.group-room-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+  border: 1px solid rgba(255,184,77,.18);
+  border-radius: 24px;
+  padding: clamp(18px, 4vw, 34px);
+  background:
+    radial-gradient(circle at 22% 12%, rgba(255,184,77,.22), transparent 22rem),
+    radial-gradient(circle at 88% 12%, rgba(255,79,109,.18), transparent 20rem),
+    linear-gradient(135deg, rgba(34,18,10,.9), rgba(9,10,15,.92));
+  box-shadow: 0 26px 86px rgba(0,0,0,.32);
+}
+.group-room-hero span {
+  color: var(--amber);
+  font-weight: 950;
+  text-transform: uppercase;
+  font-size: .78rem;
+}
+.group-room-hero h1 {
+  margin: 6px 0 8px;
+  font-size: clamp(2rem, 7vw, 4.2rem);
+  line-height: .95;
+  letter-spacing: 0;
+}
+.group-room-hero p {
+  margin: 0;
+  color: rgba(255,255,255,.76);
+}
+.group-room-share-card {
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 18px;
+  padding: 12px;
+  background: rgba(0,0,0,.22);
+}
+.group-room-share-card img {
+  width: 128px;
+  height: 128px;
+  border-radius: 14px;
+  background: #fff;
+  padding: 7px;
+}
+.group-room-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+  gap: 18px;
+  align-items: start;
+}
+.group-room-play-panel {
+  min-height: 380px;
+}
+.group-join-card {
+  display: grid;
+  gap: 14px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 18px;
+  padding: 16px;
+  background: rgba(255,255,255,.055);
+}
+.group-join-card label {
+  display: grid;
+  gap: 8px;
+  color: rgba(255,255,255,.78);
+  font-weight: 900;
+}
+.group-join-card input {
+  width: 100%;
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 14px;
+  padding: 12px 14px;
+  color: #fff;
+  background: rgba(0,0,0,.28);
+}
+.group-player-list li.is-winner,
+.challenge-standing-list li.is-winner {
+  border-color: rgba(255,184,77,.45);
+  background:
+    radial-gradient(circle at 8% 12%, rgba(255,184,77,.2), transparent 10rem),
+    rgba(255,255,255,.075);
+}
 .challenge-detail-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
@@ -8051,6 +8139,17 @@ textarea { min-height: 42px; resize: vertical; }
     grid-template-columns: minmax(0, 1fr);
   }
   .group-challenge-share img {
+    width: 132px;
+    height: 132px;
+  }
+  .group-room-hero,
+  .group-room-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .group-room-share-card {
+    justify-items: start;
+  }
+  .group-room-share-card img {
     width: 132px;
     height: 132px;
   }

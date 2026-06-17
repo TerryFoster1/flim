@@ -6,6 +6,7 @@ import {
   joinSeasonalChallenge,
   submitSeasonalChallengeAttempt,
 } from "../services/seasonalChallengeService";
+import { createGroupRoom } from "../services/groupRoomService";
 import type { SeasonalChallengeDetail, SeasonalChallengeQuestion, SeasonalChallengeScore } from "../types";
 
 interface ChallengeDetailsProps {
@@ -178,14 +179,19 @@ export function ChallengeDetails({ slug, onNavigate }: ChallengeDetailsProps) {
 
   async function handleGroupPlay() {
     if (!detail) return;
-    const token = (window.crypto?.randomUUID?.() || `${detail.event.slug}-${Date.now()}`).replace(/[^a-zA-Z0-9-]/g, "");
-    const url = `${window.location.origin}/challenges/${detail.event.slug}?group=${token}`;
-    setGroupUrl(url);
-    setActionMessage("Group link ready.");
     try {
-      setGroupQrCode(await QRCode.toDataURL(url, { margin: 1, width: 240, color: { dark: "#101014", light: "#ffffff" } }));
+      const result = await createGroupRoom({ eventId: detail.event.id, mode: "local" });
+      const url = `${window.location.origin}/group/${result.room.roomCode}`;
+      window.localStorage.setItem(`flim-group-host-${result.room.roomCode}`, result.hostToken);
+      setGroupUrl(url);
+      setActionMessage("Group room created.");
+      QRCode.toDataURL(url, { margin: 1, width: 240, color: { dark: "#101014", light: "#ffffff" } })
+        .then(setGroupQrCode)
+        .catch(() => setGroupQrCode(""));
+      onNavigate(`/group/${result.room.roomCode}?host=1`);
     } catch {
       setGroupQrCode("");
+      setActionMessage("Group room could not be created. Try again.");
     }
   }
 
