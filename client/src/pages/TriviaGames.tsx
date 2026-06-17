@@ -388,7 +388,7 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
       <header className="arcade-preview-hero">
         <div className="arcade-hero-copy">
           <span>Flim Arcade</span>
-          <img className="arcade-hero-image" alt="Flim Arcade movie trivia artwork" src="/arcade/flim-arcade-hero.svg" />
+          <img className="arcade-hero-image" alt="A vintage cinema arcade entrance glowing with marquee lights" src="/arcade/flim-arcade-hero.png" />
           <h1 className="sr-only">Trivia and Games</h1>
           <form className="arcade-search-form" onSubmit={(event) => event.preventDefault()}>
             <label className="sr-only" htmlFor="arcade-search">Search Trivia and Games</label>
@@ -479,6 +479,14 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
               </button>
             </article>
           ))}
+        </div>
+      </section>
+
+      <section className="title-games-section arcade-concession-preview">
+        <div>
+          <span>Coming Soon</span>
+          <h2>Concession Stand</h2>
+          <p>Earned rewards, Film Critter extras, and event prizes will live here when the reward system is ready.</p>
         </div>
       </section>
 
