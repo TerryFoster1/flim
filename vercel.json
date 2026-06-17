@@ -45,7 +45,7 @@
       "destination": "/api/collection-page/:slug"
     },
     {
-      "source": "/((?!api/|assets/|provider-icons/|avatars/|brand/|favicon.ico|favicon.png|manifest.json|sw.js).*)",
+      "source": "/((?!api/|assets/|provider-icons/|avatars/|brand/|nav/|favicon.ico|favicon.png|manifest.json|sw.js).*)",
       "destination": "/index.html"
     }
   ]
