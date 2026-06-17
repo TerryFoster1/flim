@@ -6065,7 +6065,9 @@ textarea { min-height: 42px; resize: vertical; }
   border-radius: 0;
   padding: clamp(28px, 6vw, 78px) clamp(16px, 5vw, 76px);
   overflow: hidden;
-  background: #08090d;
+  background:
+    radial-gradient(circle at 50% 44%, rgba(255,184,77,.14), transparent 32rem),
+    linear-gradient(180deg, #15100c 0%, #08090d 72%);
   box-shadow: inset 0 -130px 150px rgba(0,0,0,.74);
 }
 .arcade-preview-hero::before {
@@ -6076,8 +6078,8 @@ textarea { min-height: 42px; resize: vertical; }
   opacity: 1;
   background:
     radial-gradient(circle at 50% 48%, rgba(255,184,77,.16), transparent 23rem),
-    linear-gradient(90deg, rgba(8,9,13,.92) 0%, rgba(8,9,13,.42) 34%, rgba(8,9,13,.38) 64%, rgba(8,9,13,.94) 100%),
-    linear-gradient(0deg, rgba(8,9,13,.92) 0%, rgba(8,9,13,.1) 42%, rgba(8,9,13,.3) 100%);
+    linear-gradient(90deg, rgba(8,9,13,.94) 0%, rgba(8,9,13,.5) 32%, rgba(8,9,13,.24) 68%, rgba(8,9,13,.9) 100%),
+    linear-gradient(0deg, rgba(8,9,13,.94) 0%, rgba(8,9,13,.16) 44%, rgba(8,9,13,.18) 100%);
 }
 .arcade-preview-hero::after {
   content: "";
@@ -6113,7 +6115,7 @@ textarea { min-height: 42px; resize: vertical; }
 }
 .arcade-hero-copy h1 {
   margin: 10px 0 14px;
-  font-size: clamp(3rem, 9vw, 7.7rem);
+  font-size: clamp(3rem, 8vw, 7rem);
   line-height: .94;
   color: #fff8e8;
   text-shadow: 0 12px 48px rgba(0,0,0,.72);
@@ -6131,8 +6133,8 @@ textarea { min-height: 42px; resize: vertical; }
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  object-position: center;
+  object-fit: contain;
+  object-position: center top;
   border: 0;
   border-radius: 0;
   box-shadow: none;
@@ -10686,7 +10688,7 @@ textarea { min-height: 42px; resize: vertical; }
     inset: auto;
     width: 100%;
     height: auto;
-    max-height: min(42svh, 340px);
+    max-height: min(44svh, 360px);
     aspect-ratio: 1672 / 941;
     object-fit: contain;
     object-position: center center;
