@@ -482,14 +482,6 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
         </div>
       </section>
 
-      <section className="title-games-section arcade-concession-preview">
-        <div>
-          <span>Coming Soon</span>
-          <h2>Concession Stand</h2>
-          <p>Earned rewards, Film Critter extras, and event prizes will live here when the reward system is ready.</p>
-        </div>
-      </section>
-
       {normalizedArcadeSearch && !filteredChallenges.length && !filteredTriviaTitles.length && !filteredPlaylistTrivia.length ? (
         <section className="title-games-section">
           <p className="empty-state">No Arcade matches yet. Try a movie title, challenge theme, or playlist idea.</p>
