@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { CurrentUser, RouteAwareProps } from "../types";
 import { BrandMark } from "./BrandMark";
+import { FlimAvatar } from "./FlimAvatar";
 import { getNotifications, markAllNotificationsRead, markNotificationRead } from "../services/notificationService";
 import type { AppNotification, NotificationFeed } from "../types";
 
@@ -12,17 +13,9 @@ interface NavigationBarProps extends RouteAwareProps {
 export function NavigationBar({ currentUser, onNavigate, onLogout }: NavigationBarProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
-  const [isInstalled, setIsInstalled] = useState(false);
   const [notificationFeed, setNotificationFeed] = useState<NotificationFeed>({ unreadCount: 0, notifications: [] });
   const [notificationStatus, setNotificationStatus] = useState("");
   const menuHistoryArmed = useRef(false);
-
-  useEffect(() => {
-    const standalone =
-      window.matchMedia("(display-mode: standalone)").matches ||
-      ("standalone" in window.navigator && Boolean((window.navigator as Navigator & { standalone?: boolean }).standalone));
-    setIsInstalled(standalone);
-  }, []);
 
   useEffect(() => {
     if (!currentUser) {
@@ -135,6 +128,8 @@ export function NavigationBar({ currentUser, onNavigate, onLogout }: NavigationB
   }
 
   const unreadCount = notificationFeed.unreadCount;
+  const profileHandle = currentUser?.profile?.handle;
+  const profileLabel = profileHandle ? `@${profileHandle}` : currentUser?.profile?.displayName || currentUser?.email || "Profile";
 
   const notificationPanel = isNotificationsOpen ? (
     <>
@@ -227,25 +222,28 @@ export function NavigationBar({ currentUser, onNavigate, onLogout }: NavigationB
               </div>
               {currentUser ? (
                 <>
-                  <button onClick={() => navigate("/games")} type="button">Flim Arcade</button>
-                  <button onClick={() => navigate("/settings")} type="button">Profile & Settings</button>
-                  {currentUser.profile?.handle ? <button onClick={() => navigate(`/@${currentUser.profile?.handle}`)} type="button">View Public Profile</button> : null}
-                  <button onClick={() => navigate("/followed-titles")} type="button">My Followed Titles</button>
-                  <button onClick={() => navigate("/upcoming")} type="button">Upcoming Releases</button>
+                  <button
+                    className="hamburger-profile-card"
+                    onClick={() => navigate(profileHandle ? `/@${profileHandle}` : "/settings")}
+                    type="button"
+                  >
+                    <FlimAvatar avatarKey={currentUser.profile?.avatarKey} label={profileLabel} size="sm" />
+                    <span>{profileHandle ? `@${profileHandle}` : "Set up profile"}</span>
+                  </button>
+                  <button onClick={() => navigate("/games")} type="button">Arcade</button>
+                  <button onClick={() => navigate("/upcoming")} type="button">New Releases</button>
+                  <button onClick={() => navigate("/settings")} type="button">Settings</button>
                 </>
               ) : (
                 <>
-                  <button onClick={() => navigate("/games")} type="button">Flim Arcade</button>
+                  <button onClick={() => navigate("/games")} type="button">Arcade</button>
+                  <button onClick={() => navigate("/upcoming")} type="button">New Releases</button>
                   <button onClick={() => navigate("/signin")} type="button">Sign In</button>
                   <button onClick={() => navigate("/signup")} type="button">Create Account</button>
-                  <button onClick={() => navigate("/upcoming")} type="button">Upcoming Releases</button>
                 </>
               )}
-              {currentUser && !isInstalled ? <button onClick={() => navigate("/settings")} type="button">Install Flim</button> : null}
-              <button onClick={() => navigate("/help")} type="button">Help</button>
               <button onClick={() => navigate("/about")} type="button">About</button>
-              <button onClick={() => navigate("/privacy")} type="button">Privacy Policy</button>
-              <button onClick={() => navigate("/terms")} type="button">Terms of Use</button>
+              <button onClick={() => navigate("/help")} type="button">Help</button>
               {currentUser ? <button className="logout-menu-item" onClick={logout} type="button">Logout</button> : null}
             </div>
           </>

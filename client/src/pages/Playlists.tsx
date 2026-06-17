@@ -408,6 +408,19 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
         </div>
       )}
 
+      {view === "my" && currentUser ? (
+        <section className="followed-titles-playlist-link" aria-label="Followed titles">
+          <div>
+            <span>Release tracking</span>
+            <h2>My Followed Titles</h2>
+            <p>See the movies and shows you are tracking for release and streaming updates.</p>
+          </div>
+          <button className="secondary-button" onClick={() => onNavigate("/followed-titles")} type="button">
+            View Followed Titles
+          </button>
+        </section>
+      ) : null}
+
       {view === "my" && directorPlaylists.length > 0 ? (
         <section className="director-cut-section director-cut-secondary" aria-label="Director's Cut">
           <div className="director-cut-header">

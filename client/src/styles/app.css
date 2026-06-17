@@ -272,6 +272,26 @@ button { color: inherit; font: inherit; }
   padding: 0 12px;
   cursor: pointer;
 }
+.hamburger-panel .hamburger-profile-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  min-height: 54px;
+  margin: 4px 0 6px;
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 214, 151, 0.16);
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(255, 184, 77, 0.1), rgba(255, 255, 255, 0.04));
+}
+.hamburger-profile-card span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  color: #ffe7b0;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .hamburger-panel .hamburger-close-button {
   width: 38px;
   min-height: 38px;
@@ -282,6 +302,10 @@ button { color: inherit; font: inherit; }
 .hamburger-panel button:focus-visible {
   background: rgba(255,255,255,.08);
   outline: none;
+}
+.hamburger-panel .hamburger-profile-card:hover,
+.hamburger-panel .hamburger-profile-card:focus-visible {
+  background: linear-gradient(135deg, rgba(255, 184, 77, 0.16), rgba(255, 255, 255, 0.08));
 }
 .hamburger-panel button:disabled {
   color: rgba(247,244,238,.4);
@@ -4950,6 +4974,32 @@ textarea { min-height: 42px; resize: vertical; }
   font-size: 1.04rem;
 }
 .followed-title-card small {
+  color: var(--muted);
+}
+.followed-titles-playlist-link {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  padding: 18px;
+  background:
+    radial-gradient(circle at 10% 0%, rgba(255, 184, 77, 0.14), transparent 18rem),
+    rgba(255, 255, 255, 0.06);
+  box-shadow: var(--shadow-soft);
+}
+.followed-titles-playlist-link span {
+  color: #ffcf8a;
+  font-size: .75rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+.followed-titles-playlist-link h2,
+.followed-titles-playlist-link p {
+  margin: 0;
+}
+.followed-titles-playlist-link p {
   color: var(--muted);
 }
 .upcoming-page {
@@ -10356,6 +10406,12 @@ textarea { min-height: 42px; resize: vertical; }
     height: 64px;
   }
   .playlist-roulette-launcher .primary-button {
+    width: 100%;
+  }
+  .followed-titles-playlist-link {
+    grid-template-columns: 1fr;
+  }
+  .followed-titles-playlist-link .secondary-button {
     width: 100%;
   }
   .topbar {
