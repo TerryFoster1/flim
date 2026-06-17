@@ -34,6 +34,15 @@ function challengeArtworkUrls(event: SeasonalChallengeEvent) {
   if (key.includes("adventure")) {
     return [titleOg(85), titleOg(22), titleOg(564), titleOg(87)];
   }
+  if (key.includes("disney") || key.includes("animation")) {
+    return [titleOg(8587), titleOg(812), titleOg(277834), titleOg(109445)];
+  }
+  if (key.includes("simpsons") || key.includes("springfield")) {
+    return ["/api/og/title/tv/456?card=game", titleOg(35), titleOg(862), titleOg(12)];
+  }
+  if (key.includes("quote")) {
+    return [titleOg(289), titleOg(11), titleOg(218), titleOg(603)];
+  }
   if (key.includes("space") || key.includes("world")) {
     return [titleOg(11), titleOg(348), titleOg(157336), titleOg(286217)];
   }

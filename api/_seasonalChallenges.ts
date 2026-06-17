@@ -128,6 +128,60 @@ const defaultEvents = [
     ],
   },
   {
+    slug: "ultimate-disney-animation-challenge",
+    seasonKey: "disney_animation",
+    name: "Ultimate Disney Animation Challenge",
+    description: "A big-screen animation challenge covering princesses, villains, sidekicks, songs, quests, and Disney classics.",
+    startDate: "2026-01-01",
+    endDate: "2035-12-31",
+    badge: "Animation Royalty",
+    banner: "disney animation",
+    challengeType: "special_event",
+    isFeatured: true,
+    questionCount: 50,
+    difficulty: "medium",
+    points: 250,
+    requirements: [
+      { type: "trivia_completed", label: "Complete the Ultimate Disney Animation Challenge", target: 50, genre: "Animation" },
+    ],
+  },
+  {
+    slug: "ultimate-simpsons-challenge",
+    seasonKey: "simpsons",
+    name: "Ultimate Simpsons Challenge",
+    description: "Springfield trivia for fans of the family, the town, the running jokes, the movie, and the classic characters.",
+    startDate: "2026-01-01",
+    endDate: "2035-12-31",
+    badge: "Springfield Legend",
+    banner: "simpsons",
+    challengeType: "special_event",
+    isFeatured: true,
+    questionCount: 50,
+    difficulty: "medium",
+    points: 250,
+    requirements: [
+      { type: "trivia_completed", label: "Complete the Ultimate Simpsons Challenge", target: 50 },
+    ],
+  },
+  {
+    slug: "movie-quote-challenge",
+    seasonKey: "movie_quotes",
+    name: "Movie Quote Challenge",
+    description: "Match the famous line to the movie in this fast, fan-friendly quote round.",
+    startDate: "2026-01-01",
+    endDate: "2035-12-31",
+    badge: "Quote Master",
+    banner: "movie quotes",
+    challengeType: "special_event",
+    isFeatured: true,
+    questionCount: 50,
+    difficulty: "easy",
+    points: 250,
+    requirements: [
+      { type: "trivia_completed", label: "Complete the Movie Quote Challenge", target: 50 },
+    ],
+  },
+  {
     slug: "oscar-challenge-2026",
     seasonKey: "oscars",
     name: "Oscar Challenge",
@@ -200,11 +254,26 @@ function q(
   wrong: string[],
   explanation = "",
 ): EvergreenQuestionSeed {
+  return qFor(slug, title, tmdbId, "movie", category, difficulty, question, answer, wrong, explanation);
+}
+
+function qFor(
+  slug: string,
+  title: string,
+  tmdbId: number,
+  mediaType: "movie" | "tv",
+  category: string,
+  difficulty: EvergreenDifficulty,
+  question: string,
+  answer: string,
+  wrong: string[],
+  explanation = "",
+): EvergreenQuestionSeed {
   return {
     slug,
     title,
     tmdbId,
-    mediaType: "movie",
+    mediaType,
     category,
     difficulty,
     question,
@@ -434,6 +503,7 @@ interface EvergreenPackSeed {
   slug: string;
   title: string;
   tmdbId: number;
+  mediaType?: "movie" | "tv";
   facts: Array<{
     category: string;
     difficulty: EvergreenDifficulty;
@@ -448,7 +518,7 @@ function addEvergreenPackQuestions(seeds: EvergreenPackSeed[]) {
   for (const seed of seeds) {
     for (const fact of seed.facts) {
       evergreenChallengeQuestions.push(
-        q(seed.slug, seed.title, seed.tmdbId, fact.category, fact.difficulty, fact.question, fact.answer, fact.wrong, fact.explanation),
+        qFor(seed.slug, seed.title, seed.tmdbId, seed.mediaType || "movie", fact.category, fact.difficulty, fact.question, fact.answer, fact.wrong, fact.explanation),
       );
     }
   }
@@ -1006,6 +1076,257 @@ addEvergreenPackQuestions([
   },
 ]);
 
+addEvergreenPackQuestions([
+  {
+    slug: "ultimate-disney-animation-challenge",
+    title: "Snow White and the Seven Dwarfs",
+    tmdbId: 408,
+    facts: [
+      { category: "characters", difficulty: "easy", question: "In Snow White and the Seven Dwarfs, what object does the Evil Queen use to disguise herself?", answer: "A magic potion", wrong: ["A glass slipper", "A spinning wheel", "A cursed mirror"], explanation: "The Queen drinks a potion to become the old peddler woman." },
+      { category: "object", difficulty: "easy", question: "In Snow White and the Seven Dwarfs, what poisoned fruit does Snow White eat?", answer: "An apple", wrong: ["A pear", "A plum", "A peach"], explanation: "The poisoned apple sends Snow White into an enchanted sleep." },
+      { category: "group", difficulty: "medium", question: "In Snow White and the Seven Dwarfs, where does Snow White find shelter?", answer: "The dwarfs' cottage", wrong: ["A royal tower", "A village inn", "A ship"], explanation: "Snow White stays in the cottage after fleeing into the forest." },
+      { category: "villain", difficulty: "medium", question: "In Snow White and the Seven Dwarfs, what does the Queen ask the mirror?", answer: "Who is the fairest of them all?", wrong: ["Where is the lost crown?", "Who stole the apple?", "When will winter end?"], explanation: "The mirror's answer fuels the Queen's jealousy." },
+      { category: "ending", difficulty: "hard", question: "In Snow White and the Seven Dwarfs, what awakens Snow White?", answer: "Love's first kiss", wrong: ["A magic lamp", "A fairy wand", "The mirror breaking"], explanation: "The prince's kiss breaks the spell." },
+    ],
+  },
+  {
+    slug: "ultimate-disney-animation-challenge",
+    title: "Cinderella",
+    tmdbId: 11224,
+    facts: [
+      { category: "object", difficulty: "easy", question: "In Cinderella, what shoe is used to identify Cinderella?", answer: "A glass slipper", wrong: ["A golden boot", "A ruby shoe", "A silver sandal"], explanation: "The glass slipper is the clue the prince uses to find her." },
+      { category: "magic", difficulty: "easy", question: "In Cinderella, who transforms Cinderella's clothes for the ball?", answer: "The Fairy Godmother", wrong: ["Lady Tremaine", "Anastasia", "Jaq"], explanation: "The Fairy Godmother gives Cinderella her gown and coach." },
+      { category: "deadline", difficulty: "medium", question: "In Cinderella, when does the magic wear off?", answer: "Midnight", wrong: ["Sunrise", "Noon", "Dawn"], explanation: "Cinderella must leave the ball before midnight." },
+      { category: "animals", difficulty: "medium", question: "In Cinderella, which mice help Cinderella?", answer: "Jaq and Gus", wrong: ["Timon and Pumbaa", "Chip and Dale", "Bernard and Bianca"], explanation: "Jaq and Gus are among Cinderella's loyal mouse friends." },
+      { category: "villain", difficulty: "hard", question: "In Cinderella, who locks Cinderella in her room before the slipper fitting?", answer: "Lady Tremaine", wrong: ["The Duke", "Lucifer", "The King"], explanation: "Lady Tremaine tries to stop Cinderella from proving her identity." },
+    ],
+  },
+  {
+    slug: "ultimate-disney-animation-challenge",
+    title: "The Little Mermaid",
+    tmdbId: 10144,
+    facts: [
+      { category: "character", difficulty: "easy", question: "In The Little Mermaid, what is Ariel fascinated by?", answer: "The human world", wrong: ["Pirate treasure only", "The underworld", "A magic carpet"], explanation: "Ariel collects human objects and dreams about life above the sea." },
+      { category: "villain", difficulty: "easy", question: "In The Little Mermaid, who gives Ariel legs in exchange for her voice?", answer: "Ursula", wrong: ["Maleficent", "Mother Gothel", "Yzma"], explanation: "Ursula makes the dangerous bargain with Ariel." },
+      { category: "object", difficulty: "medium", question: "In The Little Mermaid, what does Ariel call a fork?", answer: "A dinglehopper", wrong: ["A snarfblatt", "A thingamabob", "A whosawhatsit"], explanation: "Scuttle incorrectly identifies the fork for Ariel." },
+      { category: "relationship", difficulty: "medium", question: "In The Little Mermaid, who is Ariel's father?", answer: "King Triton", wrong: ["Prince Eric", "Sebastian", "Flounder"], explanation: "King Triton rules Atlantica and worries about Ariel." },
+      { category: "ending", difficulty: "hard", question: "In The Little Mermaid, what must Ariel receive before sunset on the third day?", answer: "True love's kiss", wrong: ["A golden trident", "A new shell", "A royal crown"], explanation: "The kiss is part of Ursula's bargain." },
+    ],
+  },
+  {
+    slug: "ultimate-disney-animation-challenge",
+    title: "Beauty and the Beast",
+    tmdbId: 10020,
+    facts: [
+      { category: "object", difficulty: "easy", question: "In Beauty and the Beast, what enchanted object marks the Beast's deadline?", answer: "A rose", wrong: ["A mirror", "A clock", "A book"], explanation: "The rose petals fall as time runs out." },
+      { category: "character", difficulty: "easy", question: "In Beauty and the Beast, what does Belle love to do?", answer: "Read books", wrong: ["Race horses", "Build ships", "Paint crowns"], explanation: "Belle is known for her love of books and imagination." },
+      { category: "villain", difficulty: "medium", question: "In Beauty and the Beast, who leads the village attack on the castle?", answer: "Gaston", wrong: ["Maurice", "Lumiere", "Cogsworth"], explanation: "Gaston turns the village against the Beast." },
+      { category: "magic", difficulty: "medium", question: "In Beauty and the Beast, what happens to the castle servants?", answer: "They become enchanted objects", wrong: ["They turn invisible", "They become dragons", "They leave the castle"], explanation: "The curse transforms them into household objects." },
+      { category: "theme", difficulty: "hard", question: "In Beauty and the Beast, what breaks the curse?", answer: "The Beast learning to love and be loved", wrong: ["Gaston winning a duel", "Belle burning the rose", "Maurice fixing a clock"], explanation: "The curse ends when love is returned before the rose dies." },
+    ],
+  },
+  {
+    slug: "ultimate-disney-animation-challenge",
+    title: "Aladdin",
+    tmdbId: 812,
+    facts: [
+      { category: "object", difficulty: "easy", question: "In Aladdin, what magical object does Aladdin find?", answer: "A lamp", wrong: ["A mirror", "A wand", "A crown"], explanation: "The lamp contains the Genie." },
+      { category: "character", difficulty: "easy", question: "In Aladdin, who lives inside the magic lamp?", answer: "The Genie", wrong: ["Jafar", "Abu", "Iago"], explanation: "The Genie grants wishes to the lamp's master." },
+      { category: "villain", difficulty: "medium", question: "In Aladdin, who wants the lamp for himself?", answer: "Jafar", wrong: ["The Sultan", "Razoul", "Cassim"], explanation: "Jafar seeks the lamp to gain power." },
+      { category: "disguise", difficulty: "medium", question: "In Aladdin, what royal identity does Aladdin pretend to have?", answer: "Prince Ali", wrong: ["King Agrabah", "Lord Jafar", "Captain Abu"], explanation: "Aladdin uses a wish to appear as Prince Ali." },
+      { category: "ending", difficulty: "hard", question: "In Aladdin, what does Aladdin use his final wish for?", answer: "Freeing the Genie", wrong: ["Becoming sultan", "A bigger palace", "Destroying Agrabah"], explanation: "Aladdin keeps his promise and frees the Genie." },
+    ],
+  },
+  {
+    slug: "ultimate-disney-animation-challenge",
+    title: "The Lion King",
+    tmdbId: 8587,
+    facts: [
+      { category: "character", difficulty: "easy", question: "In The Lion King, who is Simba's father?", answer: "Mufasa", wrong: ["Scar", "Timon", "Rafiki"], explanation: "Mufasa teaches Simba about the Pride Lands." },
+      { category: "villain", difficulty: "easy", question: "In The Lion King, who plots against Mufasa and Simba?", answer: "Scar", wrong: ["Zazu", "Pumbaa", "Nala"], explanation: "Scar wants to take the throne." },
+      { category: "phrase", difficulty: "medium", question: "In The Lion King, what phrase do Timon and Pumbaa teach Simba?", answer: "Hakuna Matata", wrong: ["Circle of Life", "Be Prepared", "Can You Feel It"], explanation: "The phrase means no worries." },
+      { category: "location", difficulty: "medium", question: "In The Lion King, where is Simba presented as a cub?", answer: "Pride Rock", wrong: ["Elephant Graveyard", "The Oasis", "Agrabah"], explanation: "Rafiki presents Simba from Pride Rock." },
+      { category: "story", difficulty: "hard", question: "In The Lion King, what convinces Simba to return home?", answer: "He accepts his responsibility as king", wrong: ["He finds a magic lamp", "He wins a race", "He becomes a pirate"], explanation: "Simba stops running from his past and returns to challenge Scar." },
+    ],
+  },
+  {
+    slug: "ultimate-disney-animation-challenge",
+    title: "Mulan",
+    tmdbId: 10674,
+    facts: [
+      { category: "story", difficulty: "easy", question: "In Mulan, why does Mulan join the army?", answer: "To protect her father", wrong: ["To find treasure", "To become emperor", "To win a singing contest"], explanation: "Mulan takes her father's place because he is injured." },
+      { category: "sidekick", difficulty: "easy", question: "In Mulan, what dragon helps Mulan?", answer: "Mushu", wrong: ["Cri-Kee", "Khan", "Shan Yu"], explanation: "Mushu becomes Mulan's comic guardian." },
+      { category: "villain", difficulty: "medium", question: "In Mulan, who leads the invading army?", answer: "Shan Yu", wrong: ["Li Shang", "Chi-Fu", "Yao"], explanation: "Shan Yu leads the Hun invasion." },
+      { category: "battle", difficulty: "medium", question: "In Mulan, how does Mulan stop the mountain attack?", answer: "She triggers an avalanche", wrong: ["She summons a dragon army", "She builds a wall", "She floods the palace"], explanation: "Mulan uses a cannon to cause the avalanche." },
+      { category: "identity", difficulty: "hard", question: "In Mulan, what name does Mulan use while disguised as a soldier?", answer: "Ping", wrong: ["Ling", "Shang", "Fa Zhou"], explanation: "Mulan serves under the name Ping." },
+    ],
+  },
+  {
+    slug: "ultimate-disney-animation-challenge",
+    title: "Lilo & Stitch",
+    tmdbId: 11544,
+    facts: [
+      { category: "character", difficulty: "easy", question: "In Lilo & Stitch, what experiment number is Stitch?", answer: "626", wrong: ["101", "404", "747"], explanation: "Stitch is Experiment 626." },
+      { category: "setting", difficulty: "easy", question: "In Lilo & Stitch, where does Lilo live?", answer: "Hawaii", wrong: ["Florida", "Paris", "Australia"], explanation: "The film is set in Hawaii." },
+      { category: "family", difficulty: "medium", question: "In Lilo & Stitch, who is Lilo's older sister and guardian?", answer: "Nani", wrong: ["Jumba", "Pleakley", "Mertle"], explanation: "Nani is trying to keep their family together." },
+      { category: "theme", difficulty: "medium", question: "In Lilo & Stitch, what does ohana mean?", answer: "Family", wrong: ["Magic", "Ocean", "Music"], explanation: "The film's central idea is that family means nobody gets left behind." },
+      { category: "alien", difficulty: "hard", question: "In Lilo & Stitch, who created Stitch?", answer: "Jumba", wrong: ["Pleakley", "Cobra Bubbles", "Gantu"], explanation: "Jumba is the scientist behind Experiment 626." },
+    ],
+  },
+  {
+    slug: "ultimate-disney-animation-challenge",
+    title: "Frozen",
+    tmdbId: 109445,
+    facts: [
+      { category: "power", difficulty: "easy", question: "In Frozen, what power does Elsa have?", answer: "Ice and snow magic", wrong: ["Fire magic", "Time travel", "Talking to animals"], explanation: "Elsa can create ice and snow." },
+      { category: "family", difficulty: "easy", question: "In Frozen, who is Elsa's sister?", answer: "Anna", wrong: ["Rapunzel", "Moana", "Belle"], explanation: "Anna spends the story trying to reconnect with Elsa." },
+      { category: "sidekick", difficulty: "medium", question: "In Frozen, what kind of creature is Olaf?", answer: "A snowman", wrong: ["A reindeer", "A troll", "A dragon"], explanation: "Olaf is a living snowman created by Elsa's magic." },
+      { category: "twist", difficulty: "medium", question: "In Frozen, who is revealed as a villain late in the story?", answer: "Hans", wrong: ["Kristoff", "Sven", "Oaken"], explanation: "Hans uses Anna's trust for power." },
+      { category: "ending", difficulty: "hard", question: "In Frozen, what act saves Anna?", answer: "An act of true love from Anna herself", wrong: ["A kiss from Hans", "A spell from Olaf", "A royal decree"], explanation: "Anna sacrifices herself for Elsa, breaking the curse." },
+    ],
+  },
+  {
+    slug: "ultimate-disney-animation-challenge",
+    title: "Moana",
+    tmdbId: 277834,
+    facts: [
+      { category: "quest", difficulty: "easy", question: "In Moana, what must Moana return?", answer: "The heart of Te Fiti", wrong: ["A glass slipper", "A magic lamp", "A golden fleece"], explanation: "Moana's voyage is centered on restoring the heart." },
+      { category: "character", difficulty: "easy", question: "In Moana, who is the demigod Moana seeks?", answer: "Maui", wrong: ["Tamatoa", "Hei Hei", "Tui"], explanation: "Moana needs Maui's help to restore the heart." },
+      { category: "animal", difficulty: "medium", question: "In Moana, what animal is Hei Hei?", answer: "A rooster", wrong: ["A pig", "A crab", "A turtle"], explanation: "Hei Hei accidentally joins Moana's voyage." },
+      { category: "villain", difficulty: "medium", question: "In Moana, what giant crab loves shiny objects?", answer: "Tamatoa", wrong: ["Te Ka", "Pua", "Chief Tui"], explanation: "Tamatoa hoards shiny treasures in Lalotai." },
+      { category: "reveal", difficulty: "hard", question: "In Moana, who is Te Ka revealed to truly be?", answer: "Te Fiti without her heart", wrong: ["Maui's sister", "A sea monster only", "A cursed island chief"], explanation: "Restoring the heart transforms Te Ka back into Te Fiti." },
+    ],
+  },
+]);
+
+addEvergreenPackQuestions([
+  {
+    slug: "ultimate-simpsons-challenge",
+    title: "The Simpsons",
+    tmdbId: 456,
+    mediaType: "tv",
+    facts: [
+      { category: "family", difficulty: "easy", question: "In The Simpsons, what is the family's last name?", answer: "Simpson", wrong: ["Flanders", "Burns", "Wiggum"], explanation: "The show follows Homer, Marge, Bart, Lisa, and Maggie Simpson." },
+      { category: "setting", difficulty: "easy", question: "In The Simpsons, what town does the family live in?", answer: "Springfield", wrong: ["Shelbyville", "Quahog", "South Park"], explanation: "Springfield is the show's central setting." },
+      { category: "job", difficulty: "medium", question: "In The Simpsons, where does Homer work?", answer: "The nuclear power plant", wrong: ["The Kwik-E-Mart", "The school", "The courthouse"], explanation: "Homer works at the Springfield Nuclear Power Plant." },
+      { category: "catchphrase", difficulty: "easy", question: "In The Simpsons, what is Homer's famous frustrated exclamation?", answer: "D'oh!", wrong: ["Ay caramba!", "Excellent", "Okily dokily"], explanation: "D'oh is Homer's signature reaction." },
+      { category: "neighbor", difficulty: "medium", question: "In The Simpsons, who is the Simpsons' very friendly neighbor?", answer: "Ned Flanders", wrong: ["Moe Szyslak", "Barney Gumble", "Chief Wiggum"], explanation: "Ned is Homer's cheerful next-door neighbor." },
+      { category: "school", difficulty: "easy", question: "In The Simpsons, who is Bart's principal?", answer: "Principal Skinner", wrong: ["Mr. Burns", "Waylon Smithers", "Kent Brockman"], explanation: "Skinner runs Springfield Elementary." },
+      { category: "teacher", difficulty: "medium", question: "In The Simpsons, who teaches Bart's class for many seasons?", answer: "Edna Krabappel", wrong: ["Agnes Skinner", "Helen Lovejoy", "Luann Van Houten"], explanation: "Mrs. Krabappel is Bart's teacher." },
+      { category: "music", difficulty: "easy", question: "In The Simpsons, what instrument does Lisa play?", answer: "Saxophone", wrong: ["Trombone", "Drums", "Violin"], explanation: "Lisa is strongly associated with her saxophone." },
+      { category: "baby", difficulty: "easy", question: "In The Simpsons, what does Maggie usually have in her mouth?", answer: "A pacifier", wrong: ["A whistle", "A lollipop", "A pencil"], explanation: "Maggie's pacifier is one of her defining traits." },
+      { category: "business", difficulty: "medium", question: "In The Simpsons, who owns the Kwik-E-Mart?", answer: "Apu Nahasapeemapetilon", wrong: ["Moe Szyslak", "Cletus Spuckler", "Krusty"], explanation: "Apu is the longtime Kwik-E-Mart clerk and owner." },
+      { category: "bar", difficulty: "easy", question: "In The Simpsons, who owns Moe's Tavern?", answer: "Moe Szyslak", wrong: ["Barney Gumble", "Lenny Leonard", "Carl Carlson"], explanation: "Moe runs the bar where Homer often drinks." },
+      { category: "boss", difficulty: "easy", question: "In The Simpsons, who is Homer's boss?", answer: "Mr. Burns", wrong: ["Smithers", "Krusty", "Mayor Quimby"], explanation: "Mr. Burns owns the nuclear plant." },
+      { category: "assistant", difficulty: "medium", question: "In The Simpsons, who is Mr. Burns' devoted assistant?", answer: "Waylon Smithers", wrong: ["Lenny", "Carl", "Gil"], explanation: "Smithers is fiercely loyal to Burns." },
+      { category: "comedy", difficulty: "medium", question: "In The Simpsons, what clown hosts a children's TV show?", answer: "Krusty the Clown", wrong: ["Sideshow Bob", "Troy McClure", "Rainier Wolfcastle"], explanation: "Krusty is Bart and Lisa's favorite TV clown." },
+      { category: "villain", difficulty: "medium", question: "In The Simpsons, who repeatedly tries to get revenge on Bart?", answer: "Sideshow Bob", wrong: ["Milhouse", "Ralph", "Nelson"], explanation: "Sideshow Bob becomes Bart's recurring enemy." },
+      { category: "friend", difficulty: "easy", question: "In The Simpsons, who is Bart's best friend?", answer: "Milhouse Van Houten", wrong: ["Nelson Muntz", "Ralph Wiggum", "Martin Prince"], explanation: "Milhouse is Bart's loyal friend." },
+      { category: "bully", difficulty: "easy", question: "In The Simpsons, who is known for saying 'Ha-ha'?", answer: "Nelson Muntz", wrong: ["Ralph Wiggum", "Martin Prince", "Todd Flanders"], explanation: "Nelson's laugh is one of his trademarks." },
+      { category: "police", difficulty: "medium", question: "In The Simpsons, who is Springfield's police chief?", answer: "Chief Wiggum", wrong: ["Eddie", "Lou", "Mayor Quimby"], explanation: "Chief Wiggum leads Springfield's police." },
+      { category: "news", difficulty: "medium", question: "In The Simpsons, who anchors Springfield's local news?", answer: "Kent Brockman", wrong: ["Troy McClure", "Lionel Hutz", "Gil Gunderson"], explanation: "Kent Brockman is the town's TV news anchor." },
+      { category: "mayor", difficulty: "medium", question: "In The Simpsons, who is Springfield's mayor?", answer: "Mayor Quimby", wrong: ["Mr. Burns", "Principal Skinner", "Reverend Lovejoy"], explanation: "Quimby is Springfield's frequently scandal-prone mayor." },
+      { category: "religion", difficulty: "medium", question: "In The Simpsons, who is Springfield's reverend?", answer: "Reverend Lovejoy", wrong: ["Ned Flanders", "Groundskeeper Willie", "Dr. Hibbert"], explanation: "Lovejoy leads the town's church." },
+      { category: "doctor", difficulty: "easy", question: "In The Simpsons, who is Springfield's family doctor?", answer: "Dr. Hibbert", wrong: ["Dr. Nick", "Professor Frink", "Dr. Marvin Monroe"], explanation: "Dr. Hibbert often treats Springfield residents." },
+      { category: "science", difficulty: "medium", question: "In The Simpsons, who is Springfield's eccentric scientist?", answer: "Professor Frink", wrong: ["Disco Stu", "Hans Moleman", "Kirk Van Houten"], explanation: "Professor Frink is known for strange inventions." },
+      { category: "groundskeeper", difficulty: "easy", question: "In The Simpsons, who is the Scottish groundskeeper at Springfield Elementary?", answer: "Groundskeeper Willie", wrong: ["Barney Gumble", "Cletus Spuckler", "Otto Mann"], explanation: "Willie works at the school and has a strong Scottish identity." },
+      { category: "driver", difficulty: "easy", question: "In The Simpsons, who drives the school bus?", answer: "Otto Mann", wrong: ["Snake", "Comic Book Guy", "Duffman"], explanation: "Otto is Springfield Elementary's bus driver." },
+      { category: "shop", difficulty: "medium", question: "In The Simpsons, who runs The Android's Dungeon comic shop?", answer: "Comic Book Guy", wrong: ["Krusty", "Apu", "Gil"], explanation: "Comic Book Guy owns the comic book store." },
+      { category: "catchphrase", difficulty: "easy", question: "In The Simpsons, which character says 'Ay caramba'?", answer: "Bart Simpson", wrong: ["Homer Simpson", "Lisa Simpson", "Maggie Simpson"], explanation: "Ay caramba is one of Bart's catchphrases." },
+      { category: "catchphrase", difficulty: "medium", question: "In The Simpsons, which character says 'Excellent' while steepling his fingers?", answer: "Mr. Burns", wrong: ["Smithers", "Sideshow Bob", "Principal Skinner"], explanation: "Burns says it when scheming or pleased." },
+      { category: "catchphrase", difficulty: "medium", question: "In The Simpsons, who says 'Okily dokily'?", answer: "Ned Flanders", wrong: ["Homer Simpson", "Moe Szyslak", "Chief Wiggum"], explanation: "Flanders' cheerful language is part of his character." },
+      { category: "food", difficulty: "easy", question: "In The Simpsons, what food is Homer especially obsessed with?", answer: "Donuts", wrong: ["Sushi", "Salad", "Tacos only"], explanation: "Donuts are a recurring Homer obsession." },
+      { category: "pet", difficulty: "easy", question: "In The Simpsons, what is the family's dog named?", answer: "Santa's Little Helper", wrong: ["Snowball II", "Laddie", "Blinky"], explanation: "Santa's Little Helper joins the family in the first full episode." },
+      { category: "pet", difficulty: "medium", question: "In The Simpsons, what is the Simpson family's cat commonly called?", answer: "Snowball II", wrong: ["Scratchy", "Jub-Jub", "Plopper"], explanation: "Snowball II is the family's familiar cat name." },
+      { category: "movie", difficulty: "easy", question: "In The Simpsons Movie, what animal does Homer adopt?", answer: "A pig", wrong: ["A goat", "A raccoon", "A horse"], explanation: "Homer adopts the pig that becomes known as Spider-Pig." },
+      { category: "movie", difficulty: "medium", question: "In The Simpsons Movie, what is placed over Springfield?", answer: "A giant dome", wrong: ["A force field from aliens", "A mountain", "A glass castle"], explanation: "The dome traps Springfield after the pollution crisis." },
+      { category: "movie", difficulty: "medium", question: "In The Simpsons Movie, what lake becomes dangerously polluted?", answer: "Lake Springfield", wrong: ["Lake Shelbyville", "Crystal Lake", "Walden Pond"], explanation: "Homer's silo of waste pushes the lake crisis over the edge." },
+      { category: "movie", difficulty: "hard", question: "In The Simpsons Movie, what agency responds to Springfield's pollution crisis?", answer: "The EPA", wrong: ["NASA", "The FBI only", "The DMV"], explanation: "The Environmental Protection Agency takes drastic action." },
+      { category: "movie", difficulty: "hard", question: "In The Simpsons Movie, what name is given to Homer's pig gag?", answer: "Spider-Pig", wrong: ["Bat-Pig", "Super-Ham", "Pork Knight"], explanation: "Spider-Pig became one of the movie's breakout jokes." },
+      { category: "family", difficulty: "medium", question: "In The Simpsons, what is Marge's distinctive hair color?", answer: "Blue", wrong: ["Green", "Red", "Purple"], explanation: "Marge's tall blue hair is instantly recognizable." },
+      { category: "family", difficulty: "hard", question: "In The Simpsons, what is Marge's maiden name?", answer: "Bouvier", wrong: ["Wiggum", "Van Houten", "Lovejoy"], explanation: "Marge is part of the Bouvier family." },
+      { category: "sisters", difficulty: "medium", question: "In The Simpsons, what are Marge's twin sisters named?", answer: "Patty and Selma", wrong: ["Sherri and Terri", "Maude and Helen", "Agnes and Edna"], explanation: "Patty and Selma often criticize Homer." },
+      { category: "sisters", difficulty: "hard", question: "In The Simpsons, where do Patty and Selma work?", answer: "The DMV", wrong: ["The Kwik-E-Mart", "Moe's Tavern", "Springfield Elementary"], explanation: "They work at the Department of Motor Vehicles." },
+      { category: "students", difficulty: "easy", question: "In The Simpsons, who is Chief Wiggum's son?", answer: "Ralph Wiggum", wrong: ["Milhouse", "Nelson", "Martin"], explanation: "Ralph is one of Springfield Elementary's most memorable students." },
+      { category: "students", difficulty: "medium", question: "In The Simpsons, who is the brainy student often compared with Bart?", answer: "Martin Prince", wrong: ["Dolph", "Kearney", "Jimbo"], explanation: "Martin is academically gifted and often teased." },
+      { category: "friends", difficulty: "medium", question: "In The Simpsons, who are Homer's close friends at the power plant?", answer: "Lenny and Carl", wrong: ["Eddie and Lou", "Patty and Selma", "Rod and Todd"], explanation: "Lenny and Carl often appear with Homer at work and Moe's." },
+      { category: "bar", difficulty: "hard", question: "In The Simpsons, who is Homer's heavy-drinking bar friend?", answer: "Barney Gumble", wrong: ["Duffman", "Snake", "Disco Stu"], explanation: "Barney is one of Moe's Tavern's regulars." },
+      { category: "criminal", difficulty: "hard", question: "In The Simpsons, what recurring criminal is often just called Snake?", answer: "Snake Jailbird", wrong: ["Fat Tony", "Louie", "Johnny Tightlips"], explanation: "Snake Jailbird is Springfield's recurring petty criminal." },
+      { category: "mob", difficulty: "hard", question: "In The Simpsons, who is Springfield's mob boss?", answer: "Fat Tony", wrong: ["Sideshow Mel", "Lionel Hutz", "Hank Scorpio"], explanation: "Fat Tony leads Springfield's organized crime jokes." },
+      { category: "work", difficulty: "hard", question: "In The Simpsons, who is Homer's safety inspector co-worker with glasses?", answer: "Carl Carlson", wrong: ["Gil Gunderson", "Kirk Van Houten", "Herman Hermann"], explanation: "Carl works at the plant and is often paired with Lenny." },
+      { category: "restaurant", difficulty: "hard", question: "In The Simpsons, what seafood restaurant is tied to Captain McCallister?", answer: "The Frying Dutchman", wrong: ["Krusty Burger", "The Gilded Truffle", "Luigi's"], explanation: "The Sea Captain runs The Frying Dutchman." },
+      { category: "show", difficulty: "medium", question: "In The Simpsons, what violent cartoon do Bart and Lisa watch?", answer: "Itchy & Scratchy", wrong: ["Worker & Parasite", "Poochie & Friends", "Krustyland"], explanation: "Itchy & Scratchy parodies slapstick cartoon violence." },
+    ],
+  },
+]);
+
+[
+  ["Here's looking at you, kid.", "Casablanca", 289, ["Gone with the Wind", "Citizen Kane", "The Maltese Falcon"]],
+  ["May the Force be with you.", "Star Wars", 11, ["Star Trek", "Dune", "The Matrix"]],
+  ["I'll be back.", "The Terminator", 218, ["Predator", "RoboCop", "Commando"]],
+  ["You're gonna need a bigger boat.", "Jaws", 578, ["The Poseidon Adventure", "Deep Blue Sea", "Twister"]],
+  ["There's no place like home.", "The Wizard of Oz", 630, ["Mary Poppins", "Cinderella", "Annie"]],
+  ["I see dead people.", "The Sixth Sense", 745, ["The Others", "Signs", "The Ring"]],
+  ["You can't handle the truth!", "A Few Good Men", 881, ["The Firm", "The Verdict", "Philadelphia"]],
+  ["Life is like a box of chocolates.", "Forrest Gump", 13, ["Big", "Cast Away", "The Green Mile"]],
+  ["Why so serious?", "The Dark Knight", 155, ["Batman Begins", "Joker", "Watchmen"]],
+  ["To infinity and beyond!", "Toy Story", 862, ["Finding Nemo", "Monsters, Inc.", "Cars"]],
+  ["Nobody puts Baby in a corner.", "Dirty Dancing", 88, ["Footloose", "Flashdance", "Grease"]],
+  ["I'm king of the world!", "Titanic", 597, ["Avatar", "Pearl Harbor", "The Abyss"]],
+  ["Say hello to my little friend!", "Scarface", 111, ["Goodfellas", "Casino", "Heat"]],
+  ["Show me the money!", "Jerry Maguire", 9390, ["Almost Famous", "Moneyball", "The Firm"]],
+  ["You had me at hello.", "Jerry Maguire", 9390, ["Pretty Woman", "Notting Hill", "Sleepless in Seattle"]],
+  ["I'm walking here!", "Midnight Cowboy", 3116, ["Taxi Driver", "The French Connection", "Serpico"]],
+  ["E.T. phone home.", "E.T. the Extra-Terrestrial", 601, ["Close Encounters", "Cocoon", "The Goonies"]],
+  ["Roads? Where we're going...", "Back to the Future", 105, ["Bill & Ted's Excellent Adventure", "The Time Machine", "Looper"]],
+  ["Hasta la vista, baby.", "Terminator 2: Judgment Day", 280, ["True Lies", "The Terminator", "Total Recall"]],
+  ["I'm the Dude.", "The Big Lebowski", 115, ["Fargo", "Office Space", "Kingpin"]],
+  ["This is Sparta!", "300", 1271, ["Gladiator", "Troy", "Immortals"]],
+  ["They may take our lives...", "Braveheart", 197, ["Gladiator", "Kingdom of Heaven", "Robin Hood"]],
+  ["As you wish.", "The Princess Bride", 2493, ["Stardust", "Willow", "Labyrinth"]],
+  ["Inconceivable!", "The Princess Bride", 2493, ["The Goonies", "Hook", "The NeverEnding Story"]],
+  ["Carpe diem.", "Dead Poets Society", 207, ["Good Will Hunting", "School Ties", "Finding Forrester"]],
+  ["Wax on, wax off.", "The Karate Kid", 1885, ["Rocky", "Bloodsport", "The Last Dragon"]],
+  ["You're killing me, Smalls.", "The Sandlot", 11528, ["The Mighty Ducks", "Rookie of the Year", "Little Big League"]],
+  ["Just keep swimming.", "Finding Nemo", 12, ["Moana", "Shark Tale", "The Little Mermaid"]],
+  ["Houston, we have a problem.", "Apollo 13", 568, ["Gravity", "Interstellar", "The Right Stuff"]],
+  ["I feel the need...", "Top Gun", 744, ["Days of Thunder", "Iron Eagle", "Pearl Harbor"]],
+  ["Greed, for lack of a better word...", "Wall Street", 10673, ["The Wolf of Wall Street", "Margin Call", "Boiler Room"]],
+  ["Keep your friends close...", "The Godfather Part II", 240, ["Scarface", "Goodfellas", "Casino"]],
+  ["I'm gonna make him an offer...", "The Godfather", 238, ["The Untouchables", "Heat", "Once Upon a Time in America"]],
+  ["Rosebud.", "Citizen Kane", 15, ["Casablanca", "Sunset Boulevard", "The Third Man"]],
+  ["We rob banks.", "Bonnie and Clyde", 475, ["The Sting", "Badlands", "Dog Day Afternoon"]],
+  ["The first rule of Fight Club...", "Fight Club", 550, ["Se7en", "American Psycho", "Memento"]],
+  ["I drink your milkshake!", "There Will Be Blood", 7345, ["No Country for Old Men", "Gangs of New York", "The Master"]],
+  ["Are you not entertained?", "Gladiator", 98, ["Troy", "300", "Braveheart"]],
+  ["I'm having an old friend for dinner.", "The Silence of the Lambs", 274, ["Hannibal", "Seven", "Red Dragon"]],
+  ["Yippee-ki-yay...", "Die Hard", 562, ["Lethal Weapon", "Speed", "Commando"]],
+  ["I am serious. And don't call me Shirley.", "Airplane!", 813, ["The Naked Gun", "Top Secret!", "Hot Shots!"]],
+  ["Bueller? Bueller?", "Ferris Bueller's Day Off", 9377, ["The Breakfast Club", "Sixteen Candles", "Weird Science"]],
+  ["It's alive!", "Frankenstein", 3035, ["Dracula", "The Wolf Man", "Bride of Frankenstein"]],
+  ["They're here.", "Poltergeist", 609, ["The Exorcist", "The Omen", "Carrie"]],
+  ["I volunteer as tribute!", "The Hunger Games", 70160, ["Divergent", "Maze Runner", "Twilight"]],
+  ["I am Groot.", "Guardians of the Galaxy", 118340, ["The Avengers", "Thor", "Avatar"]],
+  ["There is no spoon.", "The Matrix", 603, ["Inception", "Dark City", "Equilibrium"]],
+  ["Get away from her, you...", "Aliens", 679, ["Alien", "Predator", "The Thing"]],
+  ["We came, we saw...", "Ghostbusters", 620, ["Beetlejuice", "Gremlins", "Men in Black"]],
+  ["That'll do, pig.", "Babe", 9598, ["Charlotte's Web", "Chicken Run", "Free Willy"]],
+].forEach(([quote, title, tmdbId, wrong]) => {
+  evergreenChallengeQuestions.push(
+    q(
+      "movie-quote-challenge",
+      String(title),
+      Number(tmdbId),
+      "quote",
+      "easy",
+      `Which movie features the quote, "${quote}"?`,
+      String(title),
+      wrong as string[],
+      `${title} includes this memorable movie line.`,
+    ),
+  );
+});
+
 function safeJson(value: unknown) {
   return JSON.stringify(value || []);
 }
@@ -1272,6 +1593,9 @@ export async function ensureSeasonalChallengeTables(sql: any) {
         when 'out-of-this-world' then 'space_movies'
         when 'time-travel-challenge' then 'time_travel'
         when 'adventure-pack' then 'adventure'
+        when 'ultimate-disney-animation-challenge' then 'disney_animation'
+        when 'ultimate-simpsons-challenge' then 'simpsons'
+        when 'movie-quote-challenge' then 'movie_quotes'
         when 'oscar-challenge-2026' then case when season_key = 'general' then 'oscars' else season_key end
         else season_key
       end,
@@ -1280,6 +1604,9 @@ export async function ensureSeasonalChallengeTables(sql: any) {
         when 'out-of-this-world' then 'special_event'
         when 'time-travel-challenge' then 'special_event'
         when 'adventure-pack' then 'special_event'
+        when 'ultimate-disney-animation-challenge' then 'special_event'
+        when 'ultimate-simpsons-challenge' then 'special_event'
+        when 'movie-quote-challenge' then 'special_event'
         else coalesce(nullif(challenge_type, ''), 'seasonal')
       end,
       is_featured = case slug
@@ -1287,6 +1614,9 @@ export async function ensureSeasonalChallengeTables(sql: any) {
         when 'out-of-this-world' then true
         when 'time-travel-challenge' then true
         when 'adventure-pack' then true
+        when 'ultimate-disney-animation-challenge' then true
+        when 'ultimate-simpsons-challenge' then true
+        when 'movie-quote-challenge' then true
         else is_featured
       end,
       question_count = case slug
@@ -1294,6 +1624,9 @@ export async function ensureSeasonalChallengeTables(sql: any) {
         when 'out-of-this-world' then greatest(question_count, 100)
         when 'time-travel-challenge' then greatest(question_count, 100)
         when 'adventure-pack' then greatest(question_count, 100)
+        when 'ultimate-disney-animation-challenge' then greatest(question_count, 50)
+        when 'ultimate-simpsons-challenge' then greatest(question_count, 50)
+        when 'movie-quote-challenge' then greatest(question_count, 50)
         else case when question_count < 1 then 10 else question_count end
       end,
       points = case slug
@@ -1301,6 +1634,9 @@ export async function ensureSeasonalChallengeTables(sql: any) {
         when 'out-of-this-world' then greatest(points, 300)
         when 'time-travel-challenge' then greatest(points, 300)
         when 'adventure-pack' then greatest(points, 300)
+        when 'ultimate-disney-animation-challenge' then greatest(points, 250)
+        when 'ultimate-simpsons-challenge' then greatest(points, 250)
+        when 'movie-quote-challenge' then greatest(points, 250)
         else points
       end,
       start_date = case slug
@@ -1310,12 +1646,18 @@ export async function ensureSeasonalChallengeTables(sql: any) {
         when 'out-of-this-world' then date '2026-01-01'
         when 'time-travel-challenge' then date '2026-01-01'
         when 'adventure-pack' then date '2026-01-01'
+        when 'ultimate-disney-animation-challenge' then date '2026-01-01'
+        when 'ultimate-simpsons-challenge' then date '2026-01-01'
+        when 'movie-quote-challenge' then date '2026-01-01'
         else start_date
       end,
       end_date = case slug
         when 'out-of-this-world' then date '2035-12-31'
         when 'time-travel-challenge' then date '2035-12-31'
         when 'adventure-pack' then date '2035-12-31'
+        when 'ultimate-disney-animation-challenge' then date '2035-12-31'
+        when 'ultimate-simpsons-challenge' then date '2035-12-31'
+        when 'movie-quote-challenge' then date '2035-12-31'
         else end_date
       end,
       updated_at = now()
@@ -1326,6 +1668,9 @@ export async function ensureSeasonalChallengeTables(sql: any) {
       'out-of-this-world',
       'time-travel-challenge',
       'adventure-pack',
+      'ultimate-disney-animation-challenge',
+      'ultimate-simpsons-challenge',
+      'movie-quote-challenge',
       'oscar-challenge-2026'
     )
   `;
