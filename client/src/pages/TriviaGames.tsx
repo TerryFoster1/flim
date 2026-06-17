@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { ShareAssetButton } from "../components/ShareAssetButton";
 import { createFriendChallenge, getFriendChallengeHistory } from "../services/friendChallengeService";
-import { getSeasonalChallenges } from "../services/seasonalChallengeService";
+import { getSeasonalChallengeDetail, getSeasonalChallengeHistory, getSeasonalChallenges } from "../services/seasonalChallengeService";
 import { getMovieDetails, getTvDetails } from "../services/tmdbService";
 import { completeCompanionItem, getTitleTrivia, notifyTitleTriviaReady } from "../services/triviaService";
-import type { CompanionAchievement, FriendChallengeHistoryAttempt, FriendTriviaChallenge, MediaType, MovieDetails, SeasonalChallengeEvent, TicketAward, TriviaFeed, TriviaQuestion } from "../types";
+import type { CompanionAchievement, FriendChallengeHistoryAttempt, FriendTriviaChallenge, MediaType, MovieDetails, SeasonalChallengeDetail, SeasonalChallengeEvent, SeasonalChallengeHistoryItem, TicketAward, TriviaFeed, TriviaQuestion } from "../types";
 
 interface TriviaGamesProps {
   onNavigate: (path: string) => void;
@@ -312,12 +312,14 @@ function FriendChallengeHistory({ onNavigate }: { onNavigate: (path: string) => 
 }
 
 function FeaturedChallengeCard({ event, onNavigate }: { event: SeasonalChallengeEvent; onNavigate: (path: string) => void }) {
-  const status = event.dateStatus === "active"
+  const questionCount = Number(event.playableQuestionCount || event.questionCount || 0);
+  const status = event.dateStatus === "active" && questionCount >= 100 && event.daysRemaining > 30
+    ? "Weekly competition"
+    : event.dateStatus === "active"
     ? event.daysRemaining === 1 ? "1 day remaining" : `${event.daysRemaining} days remaining`
     : event.dateStatus === "upcoming"
       ? "Scheduled event"
       : "Completed event";
-  const questionCount = Number(event.playableQuestionCount || event.questionCount || 0);
   const themeKey = String(event.banner || event.seasonKey || "challenge").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "challenge";
   const artworkUrl = challengeArtworkUrl(event);
 
@@ -360,24 +362,163 @@ function challengeArtworkUrl(event: SeasonalChallengeEvent) {
   return `/api/og/seasonal-challenge/${event.slug}`;
 }
 
+function getWeekIndex(date = new Date()) {
+  const start = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+  return Math.floor((date.getTime() - start.getTime()) / (7 * 24 * 60 * 60 * 1000));
+}
+
+function weeklyFeaturedPack(events: SeasonalChallengeEvent[]) {
+  const playableEvergreen = events
+    .filter((event) => event.dateStatus === "active" && Number(event.playableQuestionCount || event.questionCount || 0) >= 100)
+    .sort((a, b) => a.slug.localeCompare(b.slug));
+  if (!playableEvergreen.length) return null;
+  return playableEvergreen[getWeekIndex() % playableEvergreen.length];
+}
+
+function ordinal(value?: number) {
+  if (!value) return "Rank pending";
+  const suffix = value % 100 >= 11 && value % 100 <= 13 ? "th" : value % 10 === 1 ? "st" : value % 10 === 2 ? "nd" : value % 10 === 3 ? "rd" : "th";
+  return `${value}${suffix} place`;
+}
+
+function formatArcadeTime(ms?: number) {
+  const totalMs = Number(ms || 0);
+  if (!totalMs) return "Time pending";
+  const totalSeconds = Math.round(totalMs / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return minutes ? `${minutes}m ${seconds.toString().padStart(2, "0")}s` : `${seconds}s`;
+}
+
+function ScoreboardSheet({
+  open,
+  onClose,
+  selectedSlug,
+  onSelect,
+}: {
+  open: boolean;
+  onClose: () => void;
+  selectedSlug: string;
+  onSelect: (slug: string) => void;
+}) {
+  const [history, setHistory] = useState<SeasonalChallengeHistoryItem[]>([]);
+  const [detail, setDetail] = useState<SeasonalChallengeDetail | null>(null);
+  const [status, setStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
+
+  useEffect(() => {
+    if (!open) return undefined;
+    let active = true;
+    setStatus("loading");
+    getSeasonalChallengeHistory()
+      .then((items) => {
+        if (!active) return;
+        setHistory(items);
+        setStatus("ready");
+        if (!selectedSlug && items[0]?.challengeSlug) onSelect(items[0].challengeSlug);
+      })
+      .catch(() => {
+        if (!active) return;
+        setHistory([]);
+        setStatus("error");
+      });
+    return () => {
+      active = false;
+    };
+  }, [open, onSelect, selectedSlug]);
+
+  useEffect(() => {
+    if (!open || !selectedSlug) {
+      setDetail(null);
+      return undefined;
+    }
+    let active = true;
+    getSeasonalChallengeDetail(selectedSlug)
+      .then((result) => {
+        if (active) setDetail(result);
+      })
+      .catch(() => {
+        if (active) setDetail(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, [open, selectedSlug]);
+
+  if (!open) return null;
+
+  return (
+    <div className="arcade-scoreboard-overlay" role="dialog" aria-modal="true" aria-label="Arcade scoreboard">
+      <button className="arcade-scoreboard-backdrop" aria-label="Close scoreboard" onClick={onClose} type="button" />
+      <section className="arcade-scoreboard-sheet">
+        <div className="arcade-scoreboard-header">
+          <div>
+            <span>Arcade standings</span>
+            <h2>Scoreboard</h2>
+          </div>
+          <button className="secondary-button compact" onClick={onClose} type="button">Close</button>
+        </div>
+
+        {status === "loading" ? <p className="empty-state">Loading your results...</p> : null}
+        {status === "error" ? <p className="empty-state">Sign in to see your challenge results.</p> : null}
+        {status === "ready" && history.length === 0 ? <p className="empty-state">No completed challenge results yet.</p> : null}
+
+        {history.length > 0 ? (
+          <div className="arcade-scoreboard-layout">
+            <div className="arcade-scoreboard-results">
+              {history.map((item) => (
+                <button
+                  className={item.challengeSlug === selectedSlug ? "is-selected" : ""}
+                  key={item.id}
+                  onClick={() => onSelect(item.challengeSlug)}
+                  type="button"
+                >
+                  <strong>{item.challengeName}</strong>
+                  <span>{item.correctCount}/{item.totalCount} - {ordinal(item.rank)}</span>
+                </button>
+              ))}
+            </div>
+
+            <div className="arcade-leaderboard-panel">
+              <div className="arcade-leaderboard-heading">
+                <span>Top 10</span>
+                <h3>{detail?.event.name || history.find((item) => item.challengeSlug === selectedSlug)?.challengeName || "Challenge"}</h3>
+              </div>
+              {detail?.standings.topScores.length ? (
+                <ol className="arcade-leaderboard-list">
+                  {detail.standings.topScores.slice(0, 10).map((score) => (
+                    <li key={score.id}>
+                      <span>#{score.rank || "-"}</span>
+                      <strong>{score.displayName || score.handle || "Flim player"}</strong>
+                      <em>{score.correctCount}/{score.totalCount}</em>
+                      <small>{formatArcadeTime(score.totalTimeMs)} - streak {score.longestCorrectStreak || 0}</small>
+                    </li>
+                  ))}
+                </ol>
+              ) : (
+                <p className="empty-state">No leaderboard scores yet.</p>
+              )}
+            </div>
+          </div>
+        ) : null}
+      </section>
+    </div>
+  );
+}
+
 function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void }) {
-  const [notifyMessage, setNotifyMessage] = useState("");
   const [featuredChallenges, setFeaturedChallenges] = useState<SeasonalChallengeEvent[]>([]);
   const [arcadeSearchQuery, setArcadeSearchQuery] = useState("");
+  const [scoreboardOpen, setScoreboardOpen] = useState(false);
+  const [selectedScoreboardSlug, setSelectedScoreboardSlug] = useState("");
 
   useEffect(() => {
     let mounted = true;
     getSeasonalChallenges()
       .then((feed) => {
         if (!mounted) return;
-        const visible = [
-          feed.sections.featured,
-          ...feed.sections.active,
-        ].filter((event): event is SeasonalChallengeEvent => {
-          return Boolean(event) && (event as SeasonalChallengeEvent).dateStatus === "active" && Number((event as SeasonalChallengeEvent).playableQuestionCount || 0) > 0;
-        });
+        const visible = feed.sections.active.filter((event) => event.dateStatus === "active" && Number(event.playableQuestionCount || 0) > 0);
         const unique = Array.from(new Map(visible.map((event) => [event.id, event])).values());
-        setFeaturedChallenges(unique.slice(0, 3));
+        setFeaturedChallenges(unique);
       })
       .catch(() => {
         if (mounted) setFeaturedChallenges([]);
@@ -387,7 +528,7 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
     };
   }, []);
 
-  const featuredTrivia = popularTriviaTitles[0];
+  const featuredWeeklyChallenge = weeklyFeaturedPack(featuredChallenges);
   const normalizedArcadeSearch = arcadeSearchQuery.trim().toLowerCase();
   const filteredTriviaTitles = normalizedArcadeSearch
     ? popularTriviaTitles.filter((title) => `${title.title} ${title.badge}`.toLowerCase().includes(normalizedArcadeSearch))
@@ -395,21 +536,12 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
   const filteredChallenges = normalizedArcadeSearch
     ? featuredChallenges.filter((event) => `${event.name} ${event.description} ${event.badge} ${event.banner || ""}`.toLowerCase().includes(normalizedArcadeSearch))
     : featuredChallenges;
+  const secondaryChallenges = featuredWeeklyChallenge
+    ? filteredChallenges.filter((event) => event.id !== featuredWeeklyChallenge.id)
+    : filteredChallenges;
   const filteredPlaylistTrivia = normalizedArcadeSearch
     ? playlistTriviaCards.filter((card) => `${card.title} ${card.meta}`.toLowerCase().includes(normalizedArcadeSearch))
     : playlistTriviaCards;
-  const spinChallenge = () => {
-    const challengeOptions = filteredChallenges.length ? filteredChallenges : featuredChallenges;
-    if (challengeOptions.length > 0) {
-      const event = challengeOptions[Math.floor(Math.random() * challengeOptions.length)];
-      onNavigate(`/challenges/${event.slug}`);
-      return;
-    }
-
-    const triviaOptions = filteredTriviaTitles.length ? filteredTriviaTitles : popularTriviaTitles;
-    const title = triviaOptions[Math.floor(Math.random() * triviaOptions.length)] || featuredTrivia;
-    onNavigate(`/games/title/${title.mediaType}/${title.tmdbId}`);
-  };
 
   return (
     <section className="route-page trivia-games-page arcade-preview-page">
@@ -434,36 +566,31 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
               </button>
             ) : null}
           </form>
-          <div className="arcade-hero-actions">
-            <button className="primary-button" onClick={() => onNavigate(`/games/title/${featuredTrivia.mediaType}/${featuredTrivia.tmdbId}`)} type="button">
-              Play Now
-            </button>
-            <button className="secondary-button" onClick={spinChallenge} type="button">
-              Spin For A Challenge
-            </button>
-          </div>
-          {notifyMessage ? <small className="arcade-notify-message">{notifyMessage}</small> : null}
+          <button className="arcade-scoreboard-tab" onClick={() => setScoreboardOpen(true)} type="button">
+            Scoreboard
+          </button>
         </div>
       </header>
 
       <div className="arcade-main-content">
-        <article className="arcade-featured-trivia-card">
-          <img alt="" src={`/api/og/title/${featuredTrivia.mediaType}/${featuredTrivia.tmdbId}?card=game`} />
-          <div>
-            <span>Featured Trivia</span>
-            <h2>{featuredTrivia.title}</h2>
-            <p>{featuredTrivia.questionCount} questions</p>
-          </div>
-        </article>
+        {featuredWeeklyChallenge ? (
+          <section className="title-games-section arcade-live-section arcade-weekly-section">
+            <div className="actor-section-heading">
+              <h2>Featured Trivia Pack</h2>
+              <span>Weekly competition</span>
+            </div>
+            <FeaturedChallengeCard event={featuredWeeklyChallenge} onNavigate={onNavigate} />
+          </section>
+        ) : null}
 
-        {filteredChallenges.length > 0 ? (
+        {secondaryChallenges.length > 0 ? (
           <section className="title-games-section arcade-live-section">
             <div className="actor-section-heading">
               <h2>Featured challenges</h2>
               <span>Challenge picks</span>
             </div>
             <div className="arcade-live-grid">
-              {filteredChallenges.map((event) => (
+              {secondaryChallenges.map((event) => (
                 <FeaturedChallengeCard event={event} key={event.id} onNavigate={onNavigate} />
               ))}
             </div>
@@ -523,6 +650,12 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
 
         <FriendChallengeHistory onNavigate={onNavigate} />
       </div>
+      <ScoreboardSheet
+        open={scoreboardOpen}
+        onClose={() => setScoreboardOpen(false)}
+        selectedSlug={selectedScoreboardSlug}
+        onSelect={setSelectedScoreboardSlug}
+      />
     </section>
   );
 }

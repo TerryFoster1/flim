@@ -44,6 +44,10 @@ export function submitSeasonalChallengeAttempt(input: {
   eventId: string;
   questionIds: string[];
   answers: Record<string, string>;
+  answerTimesMs?: Record<string, number>;
+  skippedQuestionIds?: string[];
+  totalTimeMs?: number;
+  challengeWeekId?: string;
 }) {
   return seasonalRequest<SeasonalChallengeAttemptResult>("/api/seasonal-challenges", {
     method: "POST",

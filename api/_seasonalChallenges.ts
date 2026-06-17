@@ -14,6 +14,13 @@ interface SeasonalRequirement {
   challengeId?: string;
 }
 
+function currentChallengeWeekId(date = new Date()) {
+  const weekStart = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+  const day = weekStart.getUTCDay();
+  weekStart.setUTCDate(weekStart.getUTCDate() - day);
+  return weekStart.toISOString().slice(0, 10);
+}
+
 const defaultEvents = [
   {
     slug: "halloween-horror-2026",
@@ -1533,6 +1540,16 @@ export async function ensureSeasonalChallengeTables(sql: any) {
   await safe(sql`create index if not exists seasonal_challenge_attempts_event_score_idx on seasonal_challenge_attempts (event_id, score desc, completed_at asc)`);
   await safe(sql`create index if not exists seasonal_challenge_attempts_user_event_idx on seasonal_challenge_attempts (user_id, event_id, completed_at desc)`);
   await safe(sql`create index if not exists seasonal_challenge_attempts_completed_idx on seasonal_challenge_attempts (completed_at desc)`);
+  await safe(sql`alter table seasonal_challenge_attempts add column if not exists incorrect_count integer not null default 0`);
+  await safe(sql`alter table seasonal_challenge_attempts add column if not exists skipped_count integer not null default 0`);
+  await safe(sql`alter table seasonal_challenge_attempts add column if not exists total_time_ms integer not null default 0`);
+  await safe(sql`alter table seasonal_challenge_attempts add column if not exists average_answer_time_ms integer not null default 0`);
+  await safe(sql`alter table seasonal_challenge_attempts add column if not exists longest_correct_streak integer not null default 0`);
+  await safe(sql`alter table seasonal_challenge_attempts add column if not exists challenge_week_id text not null default ''`);
+  await safe(sql`
+    create index if not exists seasonal_challenge_attempts_rank_idx
+    on seasonal_challenge_attempts (event_id, score desc, total_time_ms asc, longest_correct_streak desc, skipped_count asc, completed_at asc)
+  `);
   await safe(sql`
     create unique index if not exists notifications_seasonal_challenge_unique
     on notifications (recipient_user_id, type, entity_type, entity_id)
@@ -2159,19 +2176,33 @@ export async function challengeQuestions(sql: any, event: any) {
 async function challengeStandings(sql: any, eventId: string, userId?: string) {
   const topScores = await sql`
     select
-      sca.id,
-      sca.user_id,
-      sca.score,
-      sca.correct_count,
-      sca.total_count,
-      sca.completed_at,
+      ranked.id,
+      ranked.user_id,
+      ranked.score,
+      ranked.correct_count,
+      ranked.total_count,
+      ranked.incorrect_count,
+      ranked.skipped_count,
+      ranked.total_time_ms,
+      ranked.average_answer_time_ms,
+      ranked.longest_correct_streak,
+      ranked.challenge_week_id,
+      ranked.completed_at,
+      ranked.rank,
       coalesce(nullif(up.display_name, ''), up.handle, split_part(u.email, '@', 1), 'Flim player') as display_name,
       coalesce(up.handle, split_part(u.email, '@', 1), 'player') as handle
-    from seasonal_challenge_attempts sca
-    left join users u on u.id = sca.user_id
-    left join user_profiles up on up.user_id = sca.user_id
-    where sca.event_id = ${eventId}
-    order by sca.score desc, sca.completed_at asc
+    from (
+      select
+        sca.*,
+        row_number() over (
+          order by sca.score desc, sca.total_time_ms asc, sca.longest_correct_streak desc, sca.skipped_count asc, sca.completed_at asc
+        ) as rank
+      from seasonal_challenge_attempts sca
+      where sca.event_id = ${eventId}
+    ) ranked
+    left join users u on u.id = ranked.user_id
+    left join user_profiles up on up.user_id = ranked.user_id
+    order by ranked.rank asc
     limit 10
   `.catch(() => []);
   const recentParticipants = await sql`
@@ -2181,6 +2212,12 @@ async function challengeStandings(sql: any, eventId: string, userId?: string) {
       sca.score,
       sca.correct_count,
       sca.total_count,
+      sca.incorrect_count,
+      sca.skipped_count,
+      sca.total_time_ms,
+      sca.average_answer_time_ms,
+      sca.longest_correct_streak,
+      sca.challenge_week_id,
       sca.completed_at,
       coalesce(nullif(up.display_name, ''), up.handle, split_part(u.email, '@', 1), 'Flim player') as display_name,
       coalesce(up.handle, split_part(u.email, '@', 1), 'player') as handle
@@ -2192,19 +2229,32 @@ async function challengeStandings(sql: any, eventId: string, userId?: string) {
     limit 10
   `.catch(() => []);
   const [personalBest] = userId ? await sql`
-    select id, score, correct_count, total_count, completed_at
-    from seasonal_challenge_attempts
-    where event_id = ${eventId}
-      and user_id = ${userId}
-    order by score desc, completed_at asc
+    select *
+    from (
+      select
+        sca.*,
+        row_number() over (
+          order by sca.score desc, sca.total_time_ms asc, sca.longest_correct_streak desc, sca.skipped_count asc, sca.completed_at asc
+        ) as rank
+      from seasonal_challenge_attempts sca
+      where sca.event_id = ${eventId}
+    ) ranked
+    where ranked.user_id = ${userId}
+    order by ranked.rank asc
     limit 1
   `.catch(() => []) : [];
   const mapScore = (row: any, index?: number) => ({
     id: row.id,
-    rank: typeof index === "number" ? index + 1 : undefined,
+    rank: Number(row.rank || 0) || (typeof index === "number" ? index + 1 : undefined),
     score: Number(row.score || 0),
     correctCount: Number(row.correct_count || 0),
     totalCount: Number(row.total_count || 0),
+    incorrectCount: Number(row.incorrect_count || 0),
+    skippedCount: Number(row.skipped_count || 0),
+    totalTimeMs: Number(row.total_time_ms || 0),
+    averageAnswerTimeMs: Number(row.average_answer_time_ms || 0),
+    longestCorrectStreak: Number(row.longest_correct_streak || 0),
+    challengeWeekId: row.challenge_week_id || "",
     completedAt: row.completed_at,
     displayName: row.display_name || "Flim player",
     handle: row.handle ? String(row.handle).replace(/^@/, "") : "player",
@@ -2259,11 +2309,40 @@ export async function submitSeasonalChallengeAttempt(sql: any, userId: string, e
   if (!event) return null;
   const questions = await challengeQuestions(sql, event);
   const answers = safeObject(body.answers);
+  const answerTimesMs = safeObject(body.answerTimesMs || body.answerTimes);
+  const skippedQuestionIdSet = new Set(Array.isArray(body.skippedQuestionIds) ? body.skippedQuestionIds.map(String) : []);
   const submittedQuestionIds = Array.isArray(body.questionIds) ? body.questionIds.map(String) : questions.map((question: any) => question.id);
   const playableQuestions = questions.filter((question: any) => submittedQuestionIds.includes(question.id));
   const totalCount = playableQuestions.length;
-  const correctCount = playableQuestions.reduce((count: number, question: any) => count + (answers[question.id] === question.answer ? 1 : 0), 0);
+  let correctCount = 0;
+  let skippedCount = 0;
+  let longestCorrectStreak = 0;
+  let currentCorrectStreak = 0;
+  for (const question of playableQuestions) {
+    const selectedAnswer = typeof answers[question.id] === "string" ? answers[question.id] : "";
+    const skipped = skippedQuestionIdSet.has(question.id) || !selectedAnswer;
+    if (skipped) {
+      skippedCount += 1;
+      currentCorrectStreak = 0;
+      continue;
+    }
+    if (selectedAnswer === question.answer) {
+      correctCount += 1;
+      currentCorrectStreak += 1;
+      longestCorrectStreak = Math.max(longestCorrectStreak, currentCorrectStreak);
+    } else {
+      currentCorrectStreak = 0;
+    }
+  }
+  const incorrectCount = Math.max(0, totalCount - correctCount - skippedCount);
   const score = correctCount * 100;
+  const timedValues = playableQuestions
+    .map((question: any) => Number(answerTimesMs[question.id] || 0))
+    .filter((value: number) => Number.isFinite(value) && value > 0);
+  const totalTimeMs = Math.max(0, Math.round(Number(body.totalTimeMs || body.total_time_ms || timedValues.reduce((sum: number, value: number) => sum + value, 0)) || 0));
+  const answeredCount = Math.max(1, totalCount - skippedCount);
+  const averageAnswerTimeMs = totalTimeMs ? Math.round(totalTimeMs / answeredCount) : 0;
+  const challengeWeekId = String(body.challengeWeekId || body.challenge_week_id || currentChallengeWeekId()).slice(0, 64);
   const [attempt] = await sql`
     insert into seasonal_challenge_attempts (
       event_id,
@@ -2271,6 +2350,12 @@ export async function submitSeasonalChallengeAttempt(sql: any, userId: string, e
       score,
       correct_count,
       total_count,
+      incorrect_count,
+      skipped_count,
+      total_time_ms,
+      average_answer_time_ms,
+      longest_correct_streak,
+      challenge_week_id,
       question_ids,
       answers,
       completed_at
@@ -2281,6 +2366,12 @@ export async function submitSeasonalChallengeAttempt(sql: any, userId: string, e
       ${score},
       ${correctCount},
       ${totalCount},
+      ${incorrectCount},
+      ${skippedCount},
+      ${totalTimeMs},
+      ${averageAnswerTimeMs},
+      ${longestCorrectStreak},
+      ${challengeWeekId},
       ${JSON.stringify(playableQuestions.map((question: any) => question.id))}::jsonb,
       ${JSON.stringify(answers)}::jsonb,
       now()
@@ -2320,6 +2411,12 @@ export async function submitSeasonalChallengeAttempt(sql: any, userId: string, e
       score,
       correctCount,
       totalCount,
+      incorrectCount,
+      skippedCount,
+      totalTimeMs,
+      averageAnswerTimeMs,
+      longestCorrectStreak,
+      challengeWeekId,
       completedAt: attempt.completed_at,
       shareCardUrl: `/api/og/seasonal-challenge/${event.slug}?score=${score}`,
     },
@@ -2330,21 +2427,42 @@ export async function submitSeasonalChallengeAttempt(sql: any, userId: string, e
 export async function seasonalChallengeHistory(sql: any, userId: string) {
   await ensureSeasonalChallengeTables(sql);
   const rows = await sql`
+    with ranked as (
+      select
+        sca.*,
+        sce.slug,
+        sce.name,
+        sce.badge,
+        sce.banner,
+        sce.challenge_type,
+        row_number() over (
+          partition by sca.event_id
+          order by sca.score desc, sca.total_time_ms asc, sca.longest_correct_streak desc, sca.skipped_count asc, sca.completed_at asc
+        ) as rank
+      from seasonal_challenge_attempts sca
+      inner join seasonal_challenge_events sce on sce.id = sca.event_id
+    )
     select
-      sca.id,
-      sca.score,
-      sca.correct_count,
-      sca.total_count,
-      sca.completed_at,
-      sce.slug,
-      sce.name,
-      sce.badge,
-      sce.banner,
-      sce.challenge_type
-    from seasonal_challenge_attempts sca
-    inner join seasonal_challenge_events sce on sce.id = sca.event_id
-    where sca.user_id = ${userId}
-    order by sca.completed_at desc
+      id,
+      score,
+      correct_count,
+      total_count,
+      incorrect_count,
+      skipped_count,
+      total_time_ms,
+      average_answer_time_ms,
+      longest_correct_streak,
+      challenge_week_id,
+      completed_at,
+      slug,
+      name,
+      badge,
+      banner,
+      challenge_type,
+      rank
+    from ranked
+    where user_id = ${userId}
+    order by completed_at desc
     limit 24
   `;
   return rows.map((row: any) => ({
@@ -2357,6 +2475,13 @@ export async function seasonalChallengeHistory(sql: any, userId: string) {
     score: Number(row.score || 0),
     correctCount: Number(row.correct_count || 0),
     totalCount: Number(row.total_count || 0),
+    incorrectCount: Number(row.incorrect_count || 0),
+    skippedCount: Number(row.skipped_count || 0),
+    totalTimeMs: Number(row.total_time_ms || 0),
+    averageAnswerTimeMs: Number(row.average_answer_time_ms || 0),
+    longestCorrectStreak: Number(row.longest_correct_streak || 0),
+    challengeWeekId: row.challenge_week_id || "",
+    rank: Number(row.rank || 0) || undefined,
     completedAt: row.completed_at,
     shareUrl: `/challenges/${row.slug}`,
     shareCardUrl: `/api/og/seasonal-challenge/${row.slug}?score=${Number(row.score || 0)}`,

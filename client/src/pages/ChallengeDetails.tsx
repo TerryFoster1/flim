@@ -80,6 +80,11 @@ export function ChallengeDetails({ slug, onNavigate }: ChallengeDetailsProps) {
   const [submitting, setSubmitting] = useState(false);
   const [actionMessage, setActionMessage] = useState("");
   const [resultCardUrl, setResultCardUrl] = useState("");
+  const [answerTimesMs, setAnswerTimesMs] = useState<Record<string, number>>({});
+  const [skippedQuestionIds, setSkippedQuestionIds] = useState<Set<string>>(() => new Set());
+  const [questionStartedAt, setQuestionStartedAt] = useState(0);
+  const [roundStartedAt, setRoundStartedAt] = useState(0);
+  const [completionTimeMs, setCompletionTimeMs] = useState(0);
   const playQuestions = useMemo(() => (detail?.questions || []).slice(0, CHALLENGE_ROUND_QUESTIONS), [detail?.questions]);
   const score = useMemo(() => scoreTrivia(playQuestions, answers), [playQuestions, answers]);
   const currentQuestion = playQuestions[currentIndex];
@@ -99,6 +104,11 @@ export function ChallengeDetails({ slug, onNavigate }: ChallengeDetailsProps) {
     setCompleted(false);
     setActionMessage("");
     setResultCardUrl("");
+    setAnswerTimesMs({});
+    setSkippedQuestionIds(new Set());
+    setQuestionStartedAt(0);
+    setRoundStartedAt(0);
+    setCompletionTimeMs(0);
     getSeasonalChallengeDetail(slug)
       .then((result) => {
         if (!active) return;
@@ -120,6 +130,9 @@ export function ChallengeDetails({ slug, onNavigate }: ChallengeDetailsProps) {
       setPlayState("playing");
       setSecondsRemaining(CHALLENGE_SECONDS_PER_QUESTION);
       setStartCountdown(3);
+      const now = Date.now();
+      setRoundStartedAt(now);
+      setQuestionStartedAt(now);
       return undefined;
     }
     const timer = window.setTimeout(() => setStartCountdown((current) => current - 1), 1000);
@@ -130,13 +143,22 @@ export function ChallengeDetails({ slug, onNavigate }: ChallengeDetailsProps) {
     if (playState !== "playing" || completed) return undefined;
     const timer = window.setTimeout(() => {
       if (secondsRemaining <= 1) {
+        if (currentQuestion && !answers[currentQuestion.id]) {
+          setSkippedQuestionIds((current) => new Set(current).add(currentQuestion.id));
+        }
         moveToNextQuestion();
         return;
       }
       setSecondsRemaining((current) => Math.max(0, current - 1));
     }, 1000);
     return () => window.clearTimeout(timer);
-  }, [completed, playState, secondsRemaining, currentIndex]);
+  }, [answers, completed, currentQuestion, playState, secondsRemaining, currentIndex]);
+
+  useEffect(() => {
+    if (playState === "playing" && currentQuestion) {
+      setQuestionStartedAt(Date.now());
+    }
+  }, [currentIndex, currentQuestion, playState]);
 
   async function handleJoin() {
     if (!detail) return;
@@ -154,6 +176,11 @@ export function ChallengeDetails({ slug, onNavigate }: ChallengeDetailsProps) {
     setAnswers({});
     setCompleted(false);
     setResultCardUrl("");
+    setAnswerTimesMs({});
+    setSkippedQuestionIds(new Set());
+    setQuestionStartedAt(0);
+    setRoundStartedAt(0);
+    setCompletionTimeMs(0);
     setCurrentIndex(0);
     setSecondsRemaining(CHALLENGE_SECONDS_PER_QUESTION);
     setStartCountdown(3);
@@ -168,12 +195,21 @@ export function ChallengeDetails({ slug, onNavigate }: ChallengeDetailsProps) {
       return;
     }
     setPlayState("summary");
+    setCompletionTimeMs(roundStartedAt ? Date.now() - roundStartedAt : 0);
     setSecondsRemaining(CHALLENGE_SECONDS_PER_QUESTION);
   }
 
   function answerCurrentQuestion(option: string) {
     if (!currentQuestion || playState !== "playing" || completed) return;
+    const elapsed = questionStartedAt ? Math.min(CHALLENGE_SECONDS_PER_QUESTION * 1000, Math.max(0, Date.now() - questionStartedAt)) : 0;
     setAnswers((current) => ({ ...current, [currentQuestion.id]: option }));
+    setAnswerTimesMs((current) => ({ ...current, [currentQuestion.id]: elapsed }));
+    setSkippedQuestionIds((current) => {
+      if (!current.has(currentQuestion.id)) return current;
+      const next = new Set(current);
+      next.delete(currentQuestion.id);
+      return next;
+    });
     window.setTimeout(moveToNextQuestion, 350);
   }
 
@@ -210,6 +246,9 @@ export function ChallengeDetails({ slug, onNavigate }: ChallengeDetailsProps) {
         eventId: detail.event.id,
         questionIds: playQuestions.map((question) => question.id),
         answers,
+        answerTimesMs,
+        skippedQuestionIds: Array.from(skippedQuestionIds),
+        totalTimeMs: completionTimeMs || (roundStartedAt ? Date.now() - roundStartedAt : 0),
       });
       setCompleted(true);
       setResultCardUrl(`/api/og/seasonal-challenge/${detail.event.slug}?score=${result.attempt.score}&correct=${result.attempt.correctCount}&total=${result.attempt.totalCount}&reward=${detail.event.points}&state=${challengeResultState(result.attempt.correctCount, result.attempt.totalCount)}`);
