@@ -228,8 +228,18 @@ export function WhereToWatch({ compact = false, movie }: WhereToWatchProps) {
             </div>
           ) : null}
           <span className="provider-status">Region: {streamingRegion}</span>
-          <button className="secondary-button compact" onClick={() => setExpanded((current) => !current)} type="button">
-            {expanded ? "Hide" : "Where to Watch"}
+          <button
+            className="projector-watch-button"
+            onClick={() => setExpanded((current) => !current)}
+            type="button"
+            aria-label="Where To Watch"
+            aria-expanded={expanded}
+          >
+            <span className="projector-icon" aria-hidden="true">
+              <span />
+              <span />
+              <span />
+            </span>
           </button>
         </div>
       </div>

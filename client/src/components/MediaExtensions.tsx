@@ -149,7 +149,7 @@ export function MediaExtensions({ media }: MediaExtensionsProps) {
         </div>
       ) : null}
 
-      <div className="share-inline-row" aria-label={`Share ${media.title}`}>
+      {trailerLink ? <div className="share-inline-row contextual-share-row" aria-label={`Share ${media.title} trailer`}>
         <ShareAssetButton
           label="Share Trailer"
           title={`${media.title} trailer`}
@@ -157,16 +157,9 @@ export function MediaExtensions({ media }: MediaExtensionsProps) {
           url={`${titlePath}?share=trailer`}
           cardUrl={`/api/og/title/${mediaType}/${media.tmdbId}?card=trailer`}
           downloadName={`${titleLabel}-trailer-card.png`}
+          className="context-share-action"
         />
-        <ShareAssetButton
-          label="Share Trivia"
-          title={`${media.title} Flim Arcade`}
-          text="Share a Flim challenge card."
-          url={`/games/title/${mediaType}/${media.tmdbId}`}
-          cardUrl={`/api/og/title/${mediaType}/${media.tmdbId}?card=game`}
-          downloadName={`${titleLabel}-game-card.png`}
-        />
-      </div>
+      </div> : null}
 
       {triviaOpen ? (
         <div className="trivia-panel">

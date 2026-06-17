@@ -4,6 +4,7 @@ import { FollowTitleControl } from "../components/FollowTitleControl";
 import { OptionalSectionBoundary } from "../components/OptionalSectionBoundary";
 import { PageShell } from "../components/PageShell";
 import { RecommendationShelf } from "../components/RecommendationShelf";
+import { ShareAssetButton } from "../components/ShareAssetButton";
 import { WatchStatusBadge } from "../components/WatchStatusBadge";
 import { getSoundtrackAvailability } from "../services/mediaExtensionService";
 import { getCurrentProfile } from "../services/profileService";
@@ -202,6 +203,7 @@ function OptionalLoading({ label }: { label: string }) {
 function TitleTriviaGamesCard({ movie, onNavigate }: { movie: MovieDetails; onNavigate?: (path: string) => void }) {
   const mediaType = movie.mediaType || "movie";
   const gamePath = `/games/title/${mediaType}/${movie.tmdbId}`;
+  const titleLabel = movie.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || `${mediaType}-${movie.tmdbId}`;
 
   function openGames() {
     const returnTo = `${window.location.pathname}${window.location.search}`;
@@ -227,6 +229,17 @@ function TitleTriviaGamesCard({ movie, onNavigate }: { movie: MovieDetails; onNa
           <em>Play Now</em>
         </div>
       </button>
+      <div className="title-games-entry-footer" aria-label={`Share ${movie.title} Flim Arcade`}>
+        <ShareAssetButton
+          label="Challenge a Friend"
+          title={`${movie.title} Flim Arcade`}
+          text="Share a Flim challenge card."
+          url={gamePath}
+          cardUrl={`/api/og/title/${mediaType}/${movie.tmdbId}?card=game`}
+          downloadName={`${titleLabel}-game-card.png`}
+          className="context-share-action"
+        />
+      </div>
     </section>
   );
 }
