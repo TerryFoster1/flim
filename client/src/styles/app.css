@@ -6860,6 +6860,372 @@ textarea { min-height: 42px; resize: vertical; }
   object-fit: contain;
   filter: drop-shadow(0 12px 20px rgba(0,0,0,.28));
 }
+
+.arcade-preview-page {
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255,184,77,.08), transparent 28rem),
+    linear-gradient(180deg, #130e0c 0%, #08090d 42%, #08090d 100%);
+}
+
+.arcade-preview-hero {
+  min-height: min(790px, calc(100svh - 92px));
+  padding: clamp(36px, 6vw, 82px) clamp(20px, 7vw, 86px);
+  background: #07080b;
+  box-shadow: inset 0 -120px 130px rgba(0,0,0,.76);
+}
+
+.arcade-preview-hero::before {
+  background:
+    linear-gradient(90deg, rgba(5,6,9,.96) 0%, rgba(5,6,9,.68) 30%, rgba(5,6,9,.2) 63%, rgba(5,6,9,.82) 100%),
+    linear-gradient(0deg, rgba(5,6,9,.94) 0%, rgba(5,6,9,.22) 45%, rgba(5,6,9,.2) 100%);
+}
+
+.arcade-hero-image {
+  object-fit: contain;
+  object-position: center center;
+  opacity: .92;
+  background: #050608;
+}
+
+.arcade-hero-copy {
+  width: min(660px, 100%);
+  transform: none;
+}
+
+.arcade-hero-copy h1 {
+  margin: 0 0 14px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(3.2rem, 7.5vw, 6.8rem);
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.arcade-hero-copy p {
+  max-width: 620px;
+  color: rgba(255,255,255,.88);
+}
+
+.arcade-main-content {
+  width: min(1440px, 100%);
+  gap: clamp(18px, 2vw, 26px);
+  padding-top: clamp(18px, 2.4vw, 30px);
+}
+
+.arcade-main-content .title-games-section {
+  border-color: rgba(255,214,151,.12);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 14% 0%, rgba(255,184,77,.08), transparent 18rem),
+    rgba(255,255,255,.035);
+}
+
+.arcade-main-content .actor-section-heading h2 {
+  color: #fff8e8;
+  font-size: clamp(1.55rem, 3vw, 2.45rem);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.arcade-main-content .actor-section-heading > span,
+.arcade-featured-challenge > div:not(.arcade-challenge-artwork):not(.arcade-challenge-badge) > span,
+.arcade-trivia-card > span {
+  display: none;
+}
+
+.arcade-weekly-section > .arcade-featured-challenge {
+  min-height: 260px;
+  grid-template-columns: minmax(260px, .82fr) minmax(0, 1fr);
+  grid-template-rows: 1fr;
+}
+
+.arcade-weekly-section .arcade-challenge-artwork {
+  min-height: 260px;
+  height: 100%;
+  aspect-ratio: auto;
+  border-right: 1px solid rgba(255,255,255,.1);
+  border-bottom: 0;
+}
+
+.arcade-featured-challenge {
+  border-color: rgba(255,214,151,.18);
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 12% 0%, rgba(255,184,77,.12), transparent 14rem),
+    linear-gradient(135deg, rgba(255,255,255,.058), rgba(255,255,255,.025));
+}
+
+.arcade-featured-challenge > div:not(.arcade-challenge-artwork):not(.arcade-challenge-badge) {
+  align-content: center;
+  grid-template-rows: auto auto auto;
+  padding: clamp(18px, 2.4vw, 28px);
+}
+
+.arcade-featured-challenge h3 {
+  -webkit-line-clamp: 2;
+  font-size: clamp(2rem, 4.4vw, 3.6rem);
+  line-height: 1;
+}
+
+.arcade-featured-challenge p {
+  min-height: 0;
+  -webkit-line-clamp: 3;
+  font-size: 1rem;
+}
+
+.arcade-weekly-section .challenge-card-meta {
+  margin-top: 4px;
+}
+
+.challenge-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.arcade-featured-challenge .challenge-card-meta > * {
+  border-color: rgba(255,214,151,.18);
+  background: rgba(255,255,255,.065);
+  color: rgba(255,246,224,.88);
+}
+
+.arcade-play-something-section,
+.arcade-collections-section {
+  overflow: hidden;
+}
+
+.arcade-mode-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
+  gap: 12px;
+}
+
+.arcade-mode-tile {
+  appearance: none;
+  min-height: 160px;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 10px;
+  border: 1px solid rgba(255,214,151,.13);
+  border-radius: 18px;
+  padding: 18px 14px;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255,184,77,.11), transparent 9rem),
+    rgba(255,255,255,.04);
+  color: var(--text);
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+  transition: transform .18s ease, border-color .18s ease, background .18s ease;
+}
+
+.arcade-mode-tile:hover,
+.arcade-mode-tile:focus-visible {
+  transform: translateY(-2px);
+  border-color: rgba(255,184,77,.42);
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255,184,77,.18), transparent 9rem),
+    rgba(255,255,255,.055);
+  outline: none;
+}
+
+.arcade-mode-icon {
+  width: 48px;
+  height: 48px;
+  position: relative;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  border: 1px solid rgba(255,214,151,.24);
+  background: rgba(255,184,77,.08);
+  color: #f7d08b;
+}
+
+.arcade-mode-icon::before {
+  font-size: 1.58rem;
+  font-weight: 950;
+  line-height: 1;
+}
+
+.arcade-mode-icon.is-film::before { content: "F"; }
+.arcade-mode-icon.is-quote::before { content: "\201C"; }
+.arcade-mode-icon.is-poster::before { content: "P"; }
+.arcade-mode-icon.is-clock::before { content: "I"; }
+.arcade-mode-icon.is-group::before { content: "3"; }
+.arcade-mode-icon.is-trophy::before { content: "1"; }
+
+.arcade-mode-tile strong {
+  color: #fff8e8;
+  font-size: 1.03rem;
+  line-height: 1.12;
+}
+
+.arcade-mode-tile small {
+  color: rgba(255,255,255,.66);
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.arcade-collection-row {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(180px, 240px);
+  gap: 14px;
+  overflow-x: auto;
+  padding: 2px 2px 12px;
+  scroll-snap-type: x proximity;
+}
+
+.arcade-collection-card {
+  appearance: none;
+  position: relative;
+  min-height: 180px;
+  display: grid;
+  align-content: end;
+  overflow: hidden;
+  border: 1px solid rgba(255,214,151,.16);
+  border-radius: 18px;
+  padding: 14px;
+  background: rgba(255,255,255,.045);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  scroll-snap-align: start;
+}
+
+.arcade-collection-card img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: .82;
+  transition: transform .2s ease;
+}
+
+.arcade-collection-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(0deg, rgba(8,9,13,.94), rgba(8,9,13,.28) 68%, rgba(8,9,13,.08));
+}
+
+.arcade-collection-card span,
+.arcade-collection-card small {
+  position: relative;
+  z-index: 1;
+}
+
+.arcade-collection-card span {
+  color: #fff8e8;
+  font-size: 1.1rem;
+  font-weight: 950;
+}
+
+.arcade-collection-card small {
+  color: rgba(255,255,255,.78);
+  font-weight: 800;
+}
+
+.arcade-collection-card:hover img,
+.arcade-collection-card:focus-visible img {
+  transform: scale(1.04);
+}
+
+.arcade-dashboard-row {
+  display: grid;
+  grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr);
+  gap: 16px;
+}
+
+.arcade-community-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.arcade-community-list li {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  border-radius: 12px;
+  padding: 10px;
+  background: rgba(255,255,255,.045);
+}
+
+.arcade-community-list span {
+  color: #ffcf8a;
+  font-weight: 950;
+}
+
+.arcade-community-list strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.arcade-community-list em {
+  color: #fff8e8;
+  font-style: normal;
+  font-weight: 950;
+}
+
+.arcade-progress-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.arcade-progress-grid button {
+  appearance: none;
+  min-height: 112px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 5px;
+  border: 1px solid rgba(255,214,151,.14);
+  border-radius: 16px;
+  background: rgba(255,255,255,.045);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.arcade-progress-grid strong {
+  color: #fff8e8;
+  font-size: clamp(1.7rem, 4vw, 2.4rem);
+  line-height: 1;
+}
+
+.arcade-progress-grid span {
+  color: rgba(255,255,255,.72);
+  font-size: .86rem;
+  font-weight: 850;
+}
+
+.arcade-movie-row .arcade-trivia-card,
+.arcade-challenge-row .challenge-discovery-card {
+  min-height: 250px;
+}
+
+.arcade-trivia-card img,
+.challenge-discovery-card img {
+  object-fit: cover;
+}
+
+.arcade-trivia-card h3,
+.challenge-discovery-card h3 {
+  display: -webkit-box;
+  min-height: 2.35em;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
 .title-games-page {
   display: grid;
   gap: 18px;
@@ -10609,7 +10975,7 @@ textarea { min-height: 42px; resize: vertical; }
   filter: drop-shadow(0 12px 24px rgba(255,184,77,.34));
 }
 .bottom-arcade-icon img {
-  width: 118px;
+  width: 104px;
   height: auto;
   display: block;
   object-fit: contain;
@@ -10786,9 +11152,153 @@ textarea { min-height: 42px; resize: vertical; }
     grid-template-columns: 1fr;
   }
   .profile-games-list strong,
-  .profile-badge-list strong {
-    white-space: normal;
+.profile-badge-list strong {
+  white-space: normal;
+}
+
+/* Final Arcade landing overrides: keep the page cinematic, warm, and easy to scan. */
+.arcade-preview-page .arcade-preview-hero {
+  min-height: min(780px, calc(100svh - 92px));
+  align-items: center;
+}
+
+.arcade-preview-page .arcade-hero-image {
+  object-fit: contain;
+  object-position: center center;
+  background: #050608;
+}
+
+.arcade-preview-page .arcade-weekly-section > .arcade-featured-challenge {
+  min-height: 260px;
+  grid-template-columns: minmax(260px, .82fr) minmax(0, 1fr);
+}
+
+.arcade-preview-page .arcade-mode-grid {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+.arcade-preview-page .arcade-collection-row {
+  grid-auto-columns: minmax(188px, 246px);
+}
+
+.arcade-preview-page .arcade-collection-card,
+.arcade-preview-page .arcade-mode-tile,
+.arcade-preview-page .arcade-featured-challenge {
+  box-shadow: 0 18px 50px rgba(0,0,0,.25);
+}
+
+.bottom-arcade-button {
+  width: 112px;
+  height: 72px;
+  transform: translateY(-8px);
+}
+
+.bottom-arcade-button::before,
+.bottom-arcade-button::after {
+  content: none !important;
+}
+
+.bottom-arcade-icon {
+  width: 112px;
+  height: 72px;
+  border: 0;
+  border-radius: 0;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.bottom-arcade-icon img {
+  width: 102px !important;
+  max-width: 102px;
+  height: auto !important;
+  border: 0;
+  border-radius: 0;
+  background: transparent !important;
+  box-shadow: none !important;
+  filter: drop-shadow(0 12px 22px rgba(255,184,77,.42));
+}
+
+.bottom-arcade-button.is-active {
+  filter: drop-shadow(0 0 18px rgba(255,184,77,.44));
+}
+
+@media (max-width: 760px) {
+  .arcade-preview-page .arcade-preview-hero {
+    min-height: auto;
+    padding: 14px 14px 28px;
+    gap: 14px;
   }
+
+  .arcade-preview-page .arcade-hero-image {
+    position: relative;
+    width: 100%;
+    max-height: none;
+    aspect-ratio: 1672 / 941;
+    object-fit: contain;
+    border-radius: 18px;
+  }
+
+  .arcade-preview-page .arcade-hero-copy {
+    transform: none;
+  }
+
+  .arcade-preview-page .arcade-hero-copy h1 {
+    font-size: clamp(2.75rem, 13vw, 4.4rem);
+  }
+
+  .arcade-preview-page .arcade-weekly-section > .arcade-featured-challenge {
+    grid-template-columns: 1fr;
+    min-height: 0;
+  }
+
+  .arcade-preview-page .arcade-weekly-section .arcade-challenge-artwork {
+    min-height: 178px;
+    aspect-ratio: 16 / 9;
+    border-right: 0;
+    border-bottom: 1px solid rgba(255,255,255,.1);
+  }
+
+  .arcade-preview-page .arcade-featured-challenge h3 {
+    font-size: clamp(1.7rem, 8vw, 2.25rem);
+    -webkit-line-clamp: 3;
+  }
+
+  .arcade-preview-page .arcade-featured-challenge p {
+    -webkit-line-clamp: 3;
+  }
+
+  .arcade-preview-page .arcade-mode-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .arcade-preview-page .arcade-mode-tile {
+    min-height: 138px;
+    padding: 14px 10px;
+  }
+
+  .arcade-preview-page .arcade-collection-row {
+    grid-auto-columns: minmax(170px, 72vw);
+  }
+
+  .arcade-preview-page .arcade-dashboard-row {
+    grid-template-columns: 1fr;
+  }
+
+  .arcade-preview-page .arcade-progress-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .bottom-arcade-button {
+    width: 86px;
+    height: 62px;
+    transform: translateY(-8px);
+  }
+
+  .bottom-arcade-icon,
+  .bottom-arcade-icon img {
+    width: 82px !important;
+  }
+}
   .hall-podium {
     grid-template-columns: 1fr;
   }
@@ -11993,5 +12503,164 @@ textarea { min-height: 42px; resize: vertical; }
   .progress-challenge-card em,
   .progress-activity-item em {
     grid-column: 2;
+  }
+}
+
+/* Final Arcade landing overrides: keep Flim Arcade cinematic, warm, and easy to scan. */
+.arcade-preview-page .arcade-preview-hero {
+  min-height: min(780px, calc(100svh - 92px));
+  align-items: center;
+}
+
+.arcade-preview-page .arcade-hero-image {
+  object-fit: contain;
+  object-position: center center;
+  background: #050608;
+}
+
+.arcade-preview-page .arcade-weekly-section > .arcade-featured-challenge {
+  min-height: 260px;
+  grid-template-columns: minmax(260px, .82fr) minmax(0, 1fr);
+  grid-template-rows: 1fr;
+}
+
+.arcade-preview-page .arcade-weekly-section .arcade-challenge-artwork {
+  min-height: 260px;
+  height: 100%;
+  aspect-ratio: auto;
+  border-right: 1px solid rgba(255,255,255,.1);
+  border-bottom: 0;
+}
+
+.arcade-preview-page .arcade-mode-grid {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+.arcade-preview-page .arcade-collection-row {
+  grid-auto-columns: minmax(188px, 246px);
+}
+
+.arcade-preview-page .arcade-collection-card,
+.arcade-preview-page .arcade-mode-tile,
+.arcade-preview-page .arcade-featured-challenge {
+  box-shadow: 0 18px 50px rgba(0,0,0,.25);
+}
+
+.arcade-preview-page .arcade-main-content .actor-section-heading > span,
+.arcade-preview-page .arcade-featured-challenge > div:not(.arcade-challenge-artwork):not(.arcade-challenge-badge) > span,
+.arcade-preview-page .arcade-trivia-card > span {
+  display: none;
+}
+
+.bottom-arcade-button {
+  width: 112px;
+  height: 72px;
+  transform: translateY(-8px);
+}
+
+.bottom-arcade-button::before,
+.bottom-arcade-button::after {
+  content: none !important;
+}
+
+.bottom-arcade-icon {
+  width: 112px;
+  height: 72px;
+  border: 0;
+  border-radius: 0;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.bottom-arcade-icon img {
+  width: 102px !important;
+  max-width: 102px;
+  height: auto !important;
+  border: 0;
+  border-radius: 0;
+  background: transparent !important;
+  box-shadow: none !important;
+  filter: drop-shadow(0 12px 22px rgba(255,184,77,.42));
+}
+
+.bottom-arcade-button.is-active {
+  filter: drop-shadow(0 0 18px rgba(255,184,77,.44));
+}
+
+@media (max-width: 760px) {
+  .arcade-preview-page .arcade-preview-hero {
+    min-height: auto;
+    padding: 14px 14px 28px;
+    gap: 14px;
+  }
+
+  .arcade-preview-page .arcade-hero-image {
+    position: relative;
+    width: 100%;
+    max-height: none;
+    aspect-ratio: 1672 / 941;
+    object-fit: contain;
+    border-radius: 18px;
+  }
+
+  .arcade-preview-page .arcade-hero-copy {
+    transform: none;
+  }
+
+  .arcade-preview-page .arcade-hero-copy h1 {
+    font-size: clamp(2.75rem, 13vw, 4.4rem);
+  }
+
+  .arcade-preview-page .arcade-weekly-section > .arcade-featured-challenge {
+    grid-template-columns: 1fr;
+    min-height: 0;
+  }
+
+  .arcade-preview-page .arcade-weekly-section .arcade-challenge-artwork {
+    min-height: 178px;
+    aspect-ratio: 16 / 9;
+    border-right: 0;
+    border-bottom: 1px solid rgba(255,255,255,.1);
+  }
+
+  .arcade-preview-page .arcade-featured-challenge h3 {
+    font-size: clamp(1.7rem, 8vw, 2.25rem);
+    -webkit-line-clamp: 3;
+  }
+
+  .arcade-preview-page .arcade-featured-challenge p {
+    -webkit-line-clamp: 3;
+  }
+
+  .arcade-preview-page .arcade-mode-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .arcade-preview-page .arcade-mode-tile {
+    min-height: 138px;
+    padding: 14px 10px;
+  }
+
+  .arcade-preview-page .arcade-collection-row {
+    grid-auto-columns: minmax(170px, 72vw);
+  }
+
+  .arcade-preview-page .arcade-dashboard-row {
+    grid-template-columns: 1fr;
+  }
+
+  .arcade-preview-page .arcade-progress-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .bottom-arcade-button {
+    width: 86px;
+    height: 62px;
+    transform: translateY(-8px);
+  }
+
+  .bottom-arcade-icon,
+  .bottom-arcade-icon img {
+    width: 82px !important;
   }
 }

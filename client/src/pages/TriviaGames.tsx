@@ -3,8 +3,9 @@ import { ShareAssetButton } from "../components/ShareAssetButton";
 import { createFriendChallenge, getFriendChallengeHistory } from "../services/friendChallengeService";
 import { getSeasonalChallengeDetail, getSeasonalChallengeHistory, getSeasonalChallenges } from "../services/seasonalChallengeService";
 import { getMovieDetails, getTvDetails } from "../services/tmdbService";
+import { getTicketFeed } from "../services/ticketService";
 import { completeCompanionItem, getTitleTrivia, notifyTitleTriviaReady } from "../services/triviaService";
-import type { CompanionAchievement, FriendChallengeHistoryAttempt, FriendTriviaChallenge, MediaType, MovieDetails, SeasonalChallengeDetail, SeasonalChallengeEvent, SeasonalChallengeHistoryItem, TicketAward, TriviaFeed, TriviaQuestion } from "../types";
+import type { CompanionAchievement, FriendChallengeHistoryAttempt, FriendTriviaChallenge, MediaType, MovieDetails, SeasonalChallengeDetail, SeasonalChallengeEvent, SeasonalChallengeHistoryItem, TicketAward, TicketFeed, TriviaFeed, TriviaQuestion } from "../types";
 
 interface TriviaGamesProps {
   onNavigate: (path: string) => void;
@@ -94,6 +95,22 @@ const playlistTriviaCards = [
     path: "/playlists",
   },
 ];
+
+const arcadeCollectionFallbacks = [
+  { title: "Disney Animation", query: "disney animation", image: "/api/og/title/movie/862?card=game" },
+  { title: "The Simpsons", query: "simpson", image: "/api/og/title/tv/456?card=game" },
+  { title: "Movie Quotes", query: "quote", image: "/api/og/title/tv/2316?card=game" },
+  { title: "Time Travel", query: "time", image: "/api/og/title/movie/105?card=game" },
+  { title: "Sci-Fi", query: "space", image: "/api/og/title/movie/11?card=game" },
+  { title: "Adventure", query: "adventure", image: "/api/og/title/movie/85?card=game" },
+  { title: "Animation", query: "animation", image: "/api/og/title/movie/862?card=game" },
+  { title: "Horror", query: "horror", image: "/api/og/title/movie/348?card=game" },
+  { title: "Jurassic", query: "jurassic", image: "/api/og/title/movie/329?card=game" },
+];
+
+function challengeMatches(event: SeasonalChallengeEvent, keyword: string) {
+  return `${event.slug} ${event.name} ${event.description} ${event.badge} ${event.banner || ""} ${event.seasonKey || ""}`.toLowerCase().includes(keyword);
+}
 
 const titleGameCards: GameCardDefinition[] = [
   {
@@ -540,6 +557,8 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
   const [arcadeSearchQuery, setArcadeSearchQuery] = useState("");
   const [scoreboardOpen, setScoreboardOpen] = useState(false);
   const [selectedScoreboardSlug, setSelectedScoreboardSlug] = useState("");
+  const [weeklyDetail, setWeeklyDetail] = useState<SeasonalChallengeDetail | null>(null);
+  const [ticketFeed, setTicketFeed] = useState<TicketFeed | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -558,7 +577,39 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
     };
   }, []);
 
+  useEffect(() => {
+    let mounted = true;
+    getTicketFeed(4)
+      .then((feed) => {
+        if (mounted) setTicketFeed(feed);
+      })
+      .catch(() => {
+        if (mounted) setTicketFeed(null);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   const featuredWeeklyChallenge = weeklyFeaturedPack(featuredChallenges);
+  useEffect(() => {
+    if (!featuredWeeklyChallenge?.slug) {
+      setWeeklyDetail(null);
+      return undefined;
+    }
+    let mounted = true;
+    getSeasonalChallengeDetail(featuredWeeklyChallenge.slug)
+      .then((detail) => {
+        if (mounted) setWeeklyDetail(detail);
+      })
+      .catch(() => {
+        if (mounted) setWeeklyDetail(null);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [featuredWeeklyChallenge?.slug]);
+
   const normalizedArcadeSearch = arcadeSearchQuery.trim().toLowerCase();
   const filteredTriviaTitles = normalizedArcadeSearch
     ? popularTriviaTitles.filter((title) => `${title.title} ${title.badge}`.toLowerCase().includes(normalizedArcadeSearch))
@@ -566,12 +617,62 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
   const filteredChallenges = normalizedArcadeSearch
     ? featuredChallenges.filter((event) => `${event.name} ${event.description} ${event.badge} ${event.banner || ""}`.toLowerCase().includes(normalizedArcadeSearch))
     : featuredChallenges;
-  const secondaryChallenges = featuredWeeklyChallenge
-    ? filteredChallenges.filter((event) => event.id !== featuredWeeklyChallenge.id)
-    : filteredChallenges;
   const filteredPlaylistTrivia = normalizedArcadeSearch
     ? playlistTriviaCards.filter((card) => `${card.title} ${card.meta}`.toLowerCase().includes(normalizedArcadeSearch))
     : playlistTriviaCards;
+  const quoteChallenge = featuredChallenges.find((event) => challengeMatches(event, "quote"));
+  const posterChallenge = featuredChallenges.find((event) => challengeMatches(event, "poster"));
+  const timelineChallenge = featuredChallenges.find((event) => challengeMatches(event, "timeline"));
+  const modeTiles = [
+    {
+      title: "Movie Trivia",
+      subtitle: "Title packs and fan challenges",
+      icon: "film",
+      action: () => onNavigate("/games/title/movie/105"),
+    },
+    quoteChallenge ? {
+      title: "Quote Challenge",
+      subtitle: "Match famous lines",
+      icon: "quote",
+      action: () => onNavigate(`/challenges/${quoteChallenge.slug}`),
+    } : null,
+    posterChallenge ? {
+      title: "Poster Guess",
+      subtitle: "Recognize the artwork",
+      icon: "poster",
+      action: () => onNavigate(`/challenges/${posterChallenge.slug}`),
+    } : null,
+    timelineChallenge ? {
+      title: "Timeline Challenge",
+      subtitle: "Put movies in order",
+      icon: "clock",
+      action: () => onNavigate(`/challenges/${timelineChallenge.slug}`),
+    } : null,
+    featuredWeeklyChallenge ? {
+      title: "Group Play",
+      subtitle: "Host movie night",
+      icon: "group",
+      action: () => onNavigate(`/challenges/${featuredWeeklyChallenge.slug}`),
+    } : null,
+    {
+      title: "Leaderboards",
+      subtitle: "See this week's standings",
+      icon: "trophy",
+      action: () => setScoreboardOpen(true),
+    },
+  ].filter(Boolean) as Array<{ title: string; subtitle: string; icon: string; action: () => void }>;
+  const collectionCards = arcadeCollectionFallbacks
+    .map((collection) => {
+      const matched = featuredChallenges.find((event) => challengeMatches(event, collection.query));
+      return {
+        ...collection,
+        event: matched,
+        count: matched ? Number(matched.playableQuestionCount || matched.questionCount || 0) : 0,
+      };
+    })
+    .filter((collection) => collection.event && collection.count > 0);
+  const topScores = weeklyDetail?.standings.topScores.slice(0, 3) || [];
+  const progressBadgeCount = weeklyDetail?.standings.personalBest ? 1 : 0;
 
   return (
     <section className="route-page trivia-games-page arcade-preview-page">
@@ -579,7 +680,7 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
         <img aria-hidden="true" className="arcade-hero-image" src="/arcade/flim-arcade-hero.png" />
         <div className="arcade-hero-copy">
           <h1>Flim Arcade</h1>
-          <p>Step inside for movie trivia, group challenges, and game-night showdowns.</p>
+          <p>Movie trivia, group challenges, and game-night experiences.</p>
           <form className="arcade-search-form" onSubmit={(event) => event.preventDefault()}>
             <label className="sr-only" htmlFor="arcade-search">Search Flim Arcade</label>
             <input
@@ -605,20 +706,46 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
         {featuredWeeklyChallenge ? (
           <section className="title-games-section arcade-live-section arcade-weekly-section">
             <div className="actor-section-heading">
-              <h2>Featured Trivia Pack</h2>
+              <h2>This week&apos;s challenge</h2>
             </div>
             <FeaturedChallengeCard event={featuredWeeklyChallenge} onNavigate={onNavigate} />
           </section>
         ) : null}
 
-        {secondaryChallenges.length > 0 ? (
-          <section className="title-games-section arcade-live-section">
+        {modeTiles.length > 0 ? (
+          <section className="title-games-section arcade-play-something-section">
             <div className="actor-section-heading">
-              <h2>Browse Flim Arcade Challenges</h2>
+              <h2>Play something</h2>
             </div>
-            <div className="arcade-live-grid">
-              {secondaryChallenges.map((event) => (
-                <FeaturedChallengeCard event={event} key={event.id} onNavigate={onNavigate} />
+            <div className="arcade-mode-grid">
+              {modeTiles.map((mode) => (
+                <button className="arcade-mode-tile" key={mode.title} onClick={mode.action} type="button">
+                  <span className={`arcade-mode-icon is-${mode.icon}`} aria-hidden="true" />
+                  <strong>{mode.title}</strong>
+                  <small>{mode.subtitle}</small>
+                </button>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
+        {collectionCards.length > 0 ? (
+          <section className="title-games-section arcade-collections-section">
+            <div className="actor-section-heading">
+              <h2>Explore collections</h2>
+            </div>
+            <div className="arcade-collection-row">
+              {collectionCards.map((collection) => (
+                <button
+                  className="arcade-collection-card"
+                  key={collection.title}
+                  onClick={() => collection.event ? onNavigate(`/challenges/${collection.event.slug}`) : undefined}
+                  type="button"
+                >
+                  <img alt="" src={collection.event ? challengeArtworkUrl(collection.event) : collection.image} />
+                  <span>{collection.title}</span>
+                  <small>{collection.count} questions</small>
+                </button>
               ))}
             </div>
           </section>
@@ -646,6 +773,7 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
           </div>
         </section>
 
+        {filteredPlaylistTrivia.length > 0 ? (
         <section className="title-games-section arcade-feature-section">
           <div className="actor-section-heading">
             <h2>Playlist trivia</h2>
@@ -666,6 +794,49 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
             ))}
           </div>
         </section>
+        ) : null}
+
+        {(topScores.length > 0 || ticketFeed) ? (
+          <section className="arcade-dashboard-row" aria-label="Flim Arcade standings and progress">
+            {topScores.length > 0 ? (
+              <div className="title-games-section arcade-community-panel">
+                <div className="actor-section-heading">
+                  <h2>Community</h2>
+                </div>
+                <ol className="arcade-community-list">
+                  {topScores.map((score) => (
+                    <li key={score.id}>
+                      <span>{score.rank || "-"}</span>
+                      <strong>{score.displayName || score.handle || "Flim player"}</strong>
+                      <em>{score.score.toLocaleString()}</em>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            ) : null}
+            {ticketFeed ? (
+              <div className="title-games-section arcade-progress-panel">
+                <div className="actor-section-heading">
+                  <h2>Your progress</h2>
+                </div>
+                <div className="arcade-progress-grid">
+                  <button onClick={() => setScoreboardOpen(true)} type="button">
+                    <strong>{ticketFeed.wallet.ticketBalance.toLocaleString()}</strong>
+                    <span>Tickets</span>
+                  </button>
+                  <button onClick={() => setScoreboardOpen(true)} type="button">
+                    <strong>{progressBadgeCount}</strong>
+                    <span>Badges</span>
+                  </button>
+                  <button onClick={() => setScoreboardOpen(true)} type="button">
+                    <strong>{ticketFeed.history.length}</strong>
+                    <span>Recent rewards</span>
+                  </button>
+                </div>
+              </div>
+            ) : null}
+          </section>
+        ) : null}
 
         {normalizedArcadeSearch && !filteredChallenges.length && !filteredTriviaTitles.length && !filteredPlaylistTrivia.length ? (
           <section className="title-games-section">
