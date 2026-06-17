@@ -9501,6 +9501,56 @@ textarea { min-height: 42px; resize: vertical; }
   justify-content: center;
   margin: 6px 0 30px;
 }
+.playlist-roulette-launcher {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: clamp(14px, 3vw, 24px);
+  align-items: center;
+  border: 1px solid rgba(255,184,77,.22);
+  border-radius: 24px;
+  padding: clamp(16px, 3vw, 24px);
+  margin-bottom: 16px;
+  background:
+    radial-gradient(circle at 12% 10%, rgba(255,184,77,.22), transparent 15rem),
+    radial-gradient(circle at 100% 0%, rgba(255,79,109,.13), transparent 18rem),
+    rgba(255,255,255,.045);
+  box-shadow: 0 22px 70px rgba(0,0,0,.26);
+}
+.playlist-roulette-icon {
+  width: 96px;
+  height: 72px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255,184,77,.24);
+  border-radius: 20px;
+  background: rgba(8,9,13,.72);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.07);
+}
+.playlist-roulette-icon .now-playing-ticket-svg {
+  width: 84px;
+  height: 58px;
+  filter: drop-shadow(0 10px 22px rgba(255,184,77,.28));
+}
+.playlist-roulette-launcher span {
+  color: #ffcf8a;
+  font-size: .78rem;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+.playlist-roulette-launcher h1 {
+  margin: 4px 0 6px;
+  color: #fff8e8;
+  font-size: clamp(1.7rem, 4vw, 3rem);
+  line-height: 1;
+}
+.playlist-roulette-launcher p {
+  margin: 0;
+  color: var(--muted);
+}
+.playlist-roulette-launcher .primary-button {
+  min-width: 160px;
+}
 
 .director-cut-secondary {
   margin-top: clamp(28px, 5vw, 54px);
@@ -9665,7 +9715,8 @@ textarea { min-height: 42px; resize: vertical; }
   background: rgba(255,255,255,.1);
   outline: none;
 }
-.bottom-now-playing-button {
+.bottom-now-playing-button,
+.bottom-arcade-button {
   width: 86px;
   height: 68px;
   border: 1px solid rgba(255,184,77,.46);
@@ -9680,13 +9731,26 @@ textarea { min-height: 42px; resize: vertical; }
   transform: translateY(-12px);
   animation: reelButtonPulse 2.8s ease-in-out infinite;
 }
+.bottom-arcade-button {
+  color: #fff4d0;
+  font-size: .94rem;
+  font-weight: 1000;
+  text-transform: uppercase;
+  letter-spacing: .02em;
+}
+.bottom-arcade-button.is-active {
+  border-color: rgba(255,184,77,.7);
+  box-shadow: 0 12px 34px rgba(0,0,0,.48), 0 0 48px rgba(255,184,77,.36);
+}
 .bottom-now-playing-button .now-playing-ticket-svg {
   width: 80px;
   height: 56px;
   filter: drop-shadow(0 10px 24px rgba(255,184,77,.34));
 }
 .bottom-now-playing-button:hover,
-.bottom-now-playing-button:focus-visible {
+.bottom-now-playing-button:focus-visible,
+.bottom-arcade-button:hover,
+.bottom-arcade-button:focus-visible {
   transform: translateY(-14px) scale(1.02);
   outline: none;
 }
@@ -9908,6 +9972,17 @@ textarea { min-height: 42px; resize: vertical; }
   .arcade-reward-card img {
     width: 58px;
     height: 58px;
+  }
+  .playlist-roulette-launcher {
+    grid-template-columns: 1fr;
+    text-align: left;
+  }
+  .playlist-roulette-icon {
+    width: 86px;
+    height: 64px;
+  }
+  .playlist-roulette-launcher .primary-button {
+    width: 100%;
   }
   .topbar {
     height: 82px;

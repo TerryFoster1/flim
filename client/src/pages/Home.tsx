@@ -168,18 +168,6 @@ export function Home({ onNavigate, playlists, notice }: HomeProps) {
           </div>
         )}
       </section>
-
-      <section className="roulette-home-banner">
-        <div className="roulette-mini-wheel" aria-hidden="true">
-          <span />
-        </div>
-        <div>
-          <h2>Let movie night pick itself.</h2>
-        </div>
-        <button className="primary-button" onClick={() => window.dispatchEvent(new CustomEvent("flim:open-roulette"))} type="button">
-          Choose Tonight
-        </button>
-      </section>
     </section>
   );
 }

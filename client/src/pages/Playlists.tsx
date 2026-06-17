@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { ContinueWatchingRow } from "../components/ContinueWatchingRow";
 import { DiscoveryRecommendationShelf } from "../components/DiscoveryRecommendationShelf";
 import { PlaylistGrid } from "../components/PlaylistGrid";
+import { NowPlayingTicketIcon } from "../components/RouletteAssets";
 import { landingPosterSeeds } from "../data/landingPosterSeeds";
 import type { CurrentUser, Playlist } from "../types";
 
@@ -10,6 +11,7 @@ interface PlaylistsProps {
   playlists: Playlist[];
   rewindPlaylists: Playlist[];
   onCreatePlaylist: (input: Pick<Playlist, "name" | "description" | "visibility">) => Promise<Playlist>;
+  onOpenRoulette?: (playlists?: Playlist[]) => void;
   currentUser: CurrentUser | null;
   notice?: string;
   initialView?: PlaylistView;
@@ -199,7 +201,7 @@ function PublicDiscovery({
   );
 }
 
-export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlaylist, currentUser, notice, initialView = "my" }: PlaylistsProps) {
+export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlaylist, onOpenRoulette, currentUser, notice, initialView = "my" }: PlaylistsProps) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [visibility, setVisibility] = useState<Playlist["visibility"]>("private");
@@ -253,6 +255,8 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
           playlist.creatorDisplayName || "",
           playlist.creatorHandle || "",
           ...playlist.movies.map((movie) => movie.title),
+          ...playlist.movies.map((movie) => movie.overview || ""),
+          ...playlist.movies.flatMap((movie) => movie.genres || []),
         ].some((value) =>
           value.toLowerCase().includes(normalizedQuery),
         ),
@@ -302,13 +306,24 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
       {notice ? <p className="success-message">{notice}</p> : null}
       {error ? <p className="error-message">{error}</p> : null}
 
-      <div className="playlist-shelf-heading playlist-shelf-heading-with-search">
-        <div>
-          <h1>{view === "public" ? "Public Playlists" : "My Playlists"}</h1>
+      <section className="playlist-roulette-launcher" aria-label="What are we watching tonight">
+        <div className="playlist-roulette-icon" aria-hidden="true">
+          <NowPlayingTicketIcon />
         </div>
+        <div>
+          <span>{view === "public" ? "Playlist Discovery" : "Movie Night"}</span>
+          <h1>What Are We Watching Tonight?</h1>
+          <p>{view === "public" ? "Spin through public collections and curator picks." : "Spin through your own playlists and followed lists."}</p>
+        </div>
+        <button className="primary-button" onClick={() => onOpenRoulette?.(sourcePlaylists)} type="button">
+          Spin Tonight
+        </button>
+      </section>
+
+      <div className="playlist-shelf-heading playlist-shelf-heading-with-search">
         <label className="collection-search playlist-title-search">
-          <span>Search playlists</span>
-          <input onChange={(event) => setQuery(event.target.value)} placeholder={view === "public" ? "Search to explore public playlists..." : "Search my playlists..."} type="search" value={query} />
+          <span>{view === "public" ? "Public Playlists" : "My Playlists"}</span>
+          <input onChange={(event) => setQuery(event.target.value)} placeholder="Search playlists, titles, actors, or genres" type="search" value={query} />
         </label>
       </div>
 

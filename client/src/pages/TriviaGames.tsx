@@ -397,6 +397,18 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
   const filteredPlaylistTrivia = normalizedArcadeSearch
     ? playlistTriviaCards.filter((card) => `${card.title} ${card.meta}`.toLowerCase().includes(normalizedArcadeSearch))
     : playlistTriviaCards;
+  const spinChallenge = () => {
+    const challengeOptions = filteredChallenges.length ? filteredChallenges : featuredChallenges;
+    if (challengeOptions.length > 0) {
+      const event = challengeOptions[Math.floor(Math.random() * challengeOptions.length)];
+      onNavigate(`/challenges/${event.slug}`);
+      return;
+    }
+
+    const triviaOptions = filteredTriviaTitles.length ? filteredTriviaTitles : popularTriviaTitles;
+    const title = triviaOptions[Math.floor(Math.random() * triviaOptions.length)] || featuredTrivia;
+    onNavigate(`/games/title/${title.mediaType}/${title.tmdbId}`);
+  };
 
   return (
     <section className="route-page trivia-games-page arcade-preview-page">
@@ -425,8 +437,8 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
             <button className="primary-button" onClick={() => onNavigate(`/games/title/${featuredTrivia.mediaType}/${featuredTrivia.tmdbId}`)} type="button">
               Play Now
             </button>
-            <button className="secondary-button" onClick={() => onNavigate("/challenges")} type="button">
-              Challenges
+            <button className="secondary-button" onClick={spinChallenge} type="button">
+              Spin For A Challenge
             </button>
           </div>
           {notifyMessage ? <small className="arcade-notify-message">{notifyMessage}</small> : null}

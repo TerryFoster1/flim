@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Footer } from "./components/Footer";
 import { InstallFlimPrompt } from "./components/InstallFlimPrompt";
 import { NavigationBar } from "./components/NavigationBar";
-import { NowPlayingTicketIcon } from "./components/RouletteAssets";
 import { getSession, logout as logoutSession } from "./services/authService";
 import { enqueueTitleTrivia } from "./services/triviaService";
 import {
@@ -277,8 +276,8 @@ export default function App() {
   const isDirectorAdminRoute = activeRoute.startsWith("/director-admin");
   const isTitleDetailRoute = activeRoute === "/movies/:tmdbId" || activeRoute === "/tv/:tmdbId";
   const isTitleGameRoute = activeRoute === "/games/title/:mediaType/:tmdbId";
-  const openNowPlaying = () => {
-    setRoulettePlaylists(null);
+  const openNowPlaying = (sourcePlaylists?: Playlist[]) => {
+    setRoulettePlaylists(Array.isArray(sourcePlaylists) ? sourcePlaylists : null);
     setIsRouletteOpen(true);
   };
   const playlistsPage = (initialView: "my" | "public" = "my") => (
@@ -289,6 +288,7 @@ export default function App() {
       notice={playlistNotice}
       onCreatePlaylist={createRemotePlaylist}
       onNavigate={navigate}
+      onOpenRoulette={openNowPlaying}
       playlists={playlists}
     />
   );
@@ -401,12 +401,12 @@ export default function App() {
           My Playlists
         </button>
         <button
-          className="bottom-now-playing-button"
-          aria-label="Open Movie Roulette"
-          onClick={openNowPlaying}
+          className={`bottom-arcade-button ${activeRoute === "/games" || activeRoute === "/challenges" || activeRoute === "/hall-of-fame" ? "is-active" : ""}`}
+          aria-label="Open Arcade"
+          onClick={() => navigate("/games")}
           type="button"
         >
-          <NowPlayingTicketIcon />
+          Arcade
         </button>
         <button
           className={`bottom-control-tab ${activeRoute === "/public" ? "is-active" : ""}`}
