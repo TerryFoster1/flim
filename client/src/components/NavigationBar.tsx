@@ -227,18 +227,18 @@ export function NavigationBar({ currentUser, onNavigate, onLogout }: NavigationB
               </div>
               {currentUser ? (
                 <>
+                  <button onClick={() => navigate("/games")} type="button">Trivia & Games</button>
                   <button onClick={() => navigate("/settings")} type="button">Profile & Settings</button>
                   {currentUser.profile?.handle ? <button onClick={() => navigate(`/@${currentUser.profile?.handle}`)} type="button">View Public Profile</button> : null}
                   <button onClick={() => navigate("/followed-titles")} type="button">My Followed Titles</button>
                   <button onClick={() => navigate("/upcoming")} type="button">Upcoming Releases</button>
-                  <button onClick={() => navigate("/games")} type="button">Trivia & Games</button>
                 </>
               ) : (
                 <>
+                  <button onClick={() => navigate("/games")} type="button">Trivia & Games</button>
                   <button onClick={() => navigate("/signin")} type="button">Sign In</button>
                   <button onClick={() => navigate("/signup")} type="button">Create Account</button>
                   <button onClick={() => navigate("/upcoming")} type="button">Upcoming Releases</button>
-                  <button onClick={() => navigate("/games")} type="button">Trivia & Games</button>
                 </>
               )}
               {currentUser && !isInstalled ? <button onClick={() => navigate("/settings")} type="button">Install Flim</button> : null}
