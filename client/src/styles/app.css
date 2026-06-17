@@ -6470,6 +6470,13 @@ textarea { min-height: 42px; resize: vertical; }
   min-height: 0;
   transition: transform .18s ease, border-color .18s ease, background .18s ease, box-shadow .18s ease;
 }
+.arcade-featured-challenge.is-weekly-featured {
+  border-color: rgba(255, 202, 112, .5);
+  background:
+    radial-gradient(circle at 16% 0%, rgba(255,184,77,.2), transparent 16rem),
+    linear-gradient(135deg, rgba(255,255,255,.065), rgba(255,255,255,.025));
+  box-shadow: 0 22px 70px rgba(0,0,0,.32), inset 0 0 0 1px rgba(255,184,77,.1);
+}
 .arcade-featured-challenge:hover,
 .arcade-featured-challenge:focus-visible,
 .arcade-trivia-card:hover,
@@ -6533,6 +6540,11 @@ textarea { min-height: 42px; resize: vertical; }
   letter-spacing: .05em;
   line-height: 1;
   text-transform: uppercase;
+}
+.arcade-featured-challenge.is-weekly-featured .arcade-challenge-artwork span {
+  background: linear-gradient(135deg, rgba(255,79,109,.92), rgba(255,184,77,.9));
+  color: #18090c;
+  box-shadow: 0 12px 30px rgba(0,0,0,.26);
 }
 .arcade-featured-challenge > div:not(.arcade-challenge-artwork):not(.arcade-challenge-badge) {
   display: grid;
@@ -9587,17 +9599,52 @@ textarea { min-height: 42px; resize: vertical; }
   justify-content: flex-start;
 }
 
-.profile-badge-list article > span {
+.profile-badge-list article > span,
+.profile-badge-emblem {
   flex: 0 0 auto;
   display: grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-  background: rgba(255, 184, 58, 0.12);
-  color: #ffbf34;
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,.18);
+  background:
+    radial-gradient(circle at 35% 22%, rgba(255,255,255,.36), transparent 2.4rem),
+    linear-gradient(145deg, rgba(255,184,77,.88), rgba(255,79,109,.76));
+  color: #1a0b10;
   font-size: 0.78rem;
-  font-weight: 900;
+  font-weight: 1000;
+  box-shadow: 0 12px 28px rgba(0,0,0,.28), inset 0 -8px 18px rgba(0,0,0,.14);
+  position: relative;
+  overflow: hidden;
+}
+.profile-badge-emblem::after {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  border: 1px solid rgba(0,0,0,.18);
+  border-radius: 12px;
+  pointer-events: none;
+}
+.profile-badge-emblem.is-time {
+  background: radial-gradient(circle at 50% 48%, rgba(255,255,255,.32), transparent 2.2rem), linear-gradient(145deg, #69d2ff, #7357ff);
+  color: #07101c;
+}
+.profile-badge-emblem.is-explorer {
+  background: radial-gradient(circle at 40% 20%, rgba(255,255,255,.34), transparent 2.4rem), linear-gradient(145deg, #f7c66a, #8a5c2e);
+}
+.profile-badge-emblem.is-space {
+  background: radial-gradient(circle at 50% 32%, rgba(255,255,255,.36), transparent 2.5rem), linear-gradient(145deg, #72ffe0, #3164ff);
+}
+.profile-badge-emblem.is-raptor {
+  background: radial-gradient(circle at 38% 20%, rgba(255,255,255,.34), transparent 2.5rem), linear-gradient(145deg, #b6f24a, #168a47);
+}
+.profile-badge-emblem.is-office {
+  background: radial-gradient(circle at 45% 24%, rgba(255,255,255,.34), transparent 2.4rem), linear-gradient(145deg, #fff1bf, #d2873b);
+}
+.profile-badge-emblem.is-wizard {
+  background: radial-gradient(circle at 45% 24%, rgba(255,255,255,.36), transparent 2.4rem), linear-gradient(145deg, #c992ff, #4931ad);
+  color: #fff8e8;
 }
 .footer {
   display: flex;
@@ -9956,15 +10003,63 @@ textarea { min-height: 42px; resize: vertical; }
   animation: reelButtonPulse 2.8s ease-in-out infinite;
 }
 .bottom-arcade-button {
-  color: #fff4d0;
-  font-size: .94rem;
+  position: relative;
+  isolation: isolate;
+  gap: 2px;
+  color: #18090c;
+  font-size: .72rem;
   font-weight: 1000;
   text-transform: uppercase;
   letter-spacing: .02em;
+  border-radius: 22px;
+  border-color: rgba(255,184,77,.72);
+  background:
+    radial-gradient(circle at 50% 7px, rgba(255,255,255,.5), transparent 17px),
+    linear-gradient(135deg, #ff4f6d, #ffb84d);
+  box-shadow: 0 14px 36px rgba(0,0,0,.48), 0 0 42px rgba(255,184,77,.28);
+  overflow: hidden;
+}
+.bottom-arcade-button::before {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  border-radius: 18px;
+  border: 1px dashed rgba(24,9,12,.42);
+  pointer-events: none;
+}
+.bottom-arcade-button::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 12px 12px, rgba(255,255,255,.75) 0 2px, transparent 3px),
+    radial-gradient(circle at calc(100% - 12px) 12px, rgba(255,255,255,.75) 0 2px, transparent 3px),
+    radial-gradient(circle at 12px calc(100% - 12px), rgba(255,255,255,.6) 0 2px, transparent 3px),
+    radial-gradient(circle at calc(100% - 12px) calc(100% - 12px), rgba(255,255,255,.6) 0 2px, transparent 3px);
+  pointer-events: none;
+  opacity: .86;
+}
+.bottom-arcade-icon {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 25px;
+  border-radius: 9px;
+  background: rgba(24,9,12,.9);
+  color: #ffcf8a;
+  font-size: .86rem;
+  line-height: 1;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.12);
+}
+.bottom-arcade-label {
+  position: relative;
+  z-index: 1;
 }
 .bottom-arcade-button.is-active {
-  border-color: rgba(255,184,77,.7);
-  box-shadow: 0 12px 34px rgba(0,0,0,.48), 0 0 48px rgba(255,184,77,.36);
+  border-color: rgba(255,224,150,.88);
+  box-shadow: 0 14px 36px rgba(0,0,0,.48), 0 0 52px rgba(255,184,77,.45);
 }
 .bottom-now-playing-button .now-playing-ticket-svg {
   width: 80px;

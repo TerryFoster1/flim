@@ -39,6 +39,28 @@ function scoreLabel(item: { score?: number; correctCount?: number; totalCount?: 
   return "Completed";
 }
 
+function badgeTheme(name?: string, mark?: string) {
+  const value = `${name || ""} ${mark || ""}`.toLowerCase();
+  if (value.includes("time")) return "time";
+  if (value.includes("explorer") || value.includes("adventure")) return "explorer";
+  if (value.includes("space") || value.includes("cadet")) return "space";
+  if (value.includes("raptor") || value.includes("jurassic")) return "raptor";
+  if (value.includes("regional") || value.includes("office")) return "office";
+  if (value.includes("wizard")) return "wizard";
+  return "arcade";
+}
+
+function badgeInitials(name?: string, mark?: string) {
+  const source = String(name || mark || "Badge");
+  return source
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
+}
+
 export function PublicProfile({ handle, onNavigate }: PublicProfileProps) {
   const [profile, setProfile] = useState<PublicUserProfile | null>(null);
   const [publicPlaylists, setPublicPlaylists] = useState<Playlist[]>([]);
@@ -321,7 +343,9 @@ export function PublicProfile({ handle, onNavigate }: PublicProfileProps) {
               <div className="profile-badge-list">
                 {badgeRows.map((badge) => (
                   <article key={`${badge.id}-${badge.earnedAt || ""}`}>
-                    <span>{badge.mark}</span>
+                    <span className={`profile-badge-emblem is-${badgeTheme(badge.name, badge.mark)}`} aria-hidden="true">
+                      {badgeInitials(badge.name, badge.mark)}
+                    </span>
                     <div>
                       <strong>{badge.name}</strong>
                       {badge.detail ? <small>{badge.detail}</small> : null}

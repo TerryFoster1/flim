@@ -21,6 +21,26 @@ function currentChallengeWeekId(date = new Date()) {
   return weekStart.toISOString().slice(0, 10);
 }
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+const FEATURED_CHALLENGE_EPOCH = Date.UTC(2026, 0, 5);
+
+function challengeCadenceDays(eligiblePackCount: number) {
+  const configured = String(process.env.FLIM_ARCADE_CHALLENGE_CADENCE || "").trim().toLowerCase();
+  if (configured === "weekly") return 7;
+  if (configured === "biweekly" || configured === "bi-weekly") return 14;
+  return eligiblePackCount >= 52 ? 7 : 14;
+}
+
+function isoDate(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function scheduledWindowStatus(startAt: Date, endAt: Date, now = new Date()) {
+  if (now < startAt) return "upcoming";
+  if (now >= endAt) return "completed";
+  return "active";
+}
+
 const defaultEvents = [
   {
     slug: "halloween-horror-2026",
@@ -208,6 +228,54 @@ const defaultEvents = [
     ],
   },
 ];
+
+const challengeCatalogueBacklog = [
+  ["jurassic-ultimate-challenge", "Jurassic Ultimate Challenge", "Dinosaurs, scientists, islands, parks, rescues, and franchise survival moments.", "Raptor Trainer", "jurassic", "hard", "Jurassic"],
+  ["office-quote-challenge", "Office Quote Challenge", "A quote-first challenge for Dunder Mifflin fans and workplace comedy regulars.", "Regional Manager", "office", "medium", "Comedy"],
+  ["wizard-school-challenge", "Wizard School Challenge", "Spells, houses, magical objects, teachers, creatures, and school-year adventures.", "Wizard Graduate", "wizard school", "medium", "Fantasy"],
+  ["superhero-showdown", "Superhero Showdown", "Secret identities, origin stories, team-ups, villains, gadgets, and heroic choices.", "Cape Collector", "superhero", "medium", "Action"],
+  ["animated-classics-challenge", "Animated Classics Challenge", "Hand-drawn favorites, modern animation, sidekicks, songs, families, and villains.", "Animation Royalty", "animation", "medium", "Animation"],
+  ["eighties-movie-challenge", "80s Movie Challenge", "Teen classics, action icons, creature features, fantasy quests, and neon-era favorites.", "80s Rewinder", "80s", "medium", "Movies"],
+  ["nineties-blockbusters", "90s Blockbusters", "Disaster films, action sequels, creature hits, romances, animation, and VHS-era giants.", "90s Headliner", "90s", "medium", "Movies"],
+  ["two-thousands-comfort-movies", "2000s Comfort Movies", "Cozy rewatches, comedies, fantasy sagas, romances, and crowd-pleasing favorites.", "Comfort Rewatcher", "2000s", "easy", "Movies"],
+  ["horror-icons-challenge", "Horror Icons Challenge", "Classic monsters, modern nightmares, haunted houses, final girls, and genre legends.", "Midnight Screamer", "horror", "hard", "Horror"],
+  ["slasher-survival-challenge", "Slasher Survival Challenge", "Masks, survivors, rules, weapons, sequels, and the choices that keep characters alive.", "Final Girl", "slasher", "hard", "Horror"],
+  ["sci-fi-legends-challenge", "Sci-Fi Legends Challenge", "Robots, aliens, futures, space travel, dystopias, and landmark science fiction.", "Sci-Fi Legend", "sci-fi", "hard", "Sci-Fi"],
+  ["fantasy-quest-challenge", "Fantasy Quest Challenge", "Chosen ones, enchanted objects, kingdoms, monsters, prophecies, and epic journeys.", "Quest Keeper", "fantasy", "medium", "Fantasy"],
+  ["rom-com-challenge", "Rom-Com Challenge", "Meet-cutes, fake dating, grand gestures, best friends, breakups, and happy endings.", "Meet Cute Master", "rom-com", "easy", "Romance"],
+  ["action-heroes-challenge", "Action Heroes Challenge", "One-liners, chases, rescues, revenge missions, stunts, and impossible odds.", "Action Hero", "action", "medium", "Action"],
+  ["movie-villains-challenge", "Movie Villains Challenge", "Memorable schemes, lairs, henchmen, motives, final showdowns, and iconic bad guys.", "Villain Wrangler", "villains", "medium", "Movies"],
+  ["disney-pixar-challenge", "Disney/Pixar Challenge", "Toys, monsters, emotions, families, journeys, friendships, and animated tearjerkers.", "Story Spark", "pixar", "medium", "Animation"],
+  ["star-wars-timeline-challenge", "Star Wars Timeline Challenge", "Planets, Jedi, Sith, ships, battles, family reveals, and galaxy-spanning chronology.", "Holocron Keeper", "star wars", "hard", "Sci-Fi"],
+  ["marvel-universe-challenge", "Marvel Universe Challenge", "Heroes, stones, teams, villains, multiverse turns, and cinematic universe lore.", "True Believer", "marvel", "hard", "Superhero"],
+  ["dc-heroes-challenge", "DC Heroes Challenge", "Gotham, Metropolis, heroes, rogues, origins, teams, and comic-book movie moments.", "Justice League Recruit", "dc", "medium", "Superhero"],
+  ["lord-of-the-rings-challenge", "Lord of the Rings Challenge", "Rings, realms, fellowships, battles, creatures, prophecies, and Middle-earth lore.", "Ring Bearer", "middle earth", "hard", "Fantasy"],
+  ["harry-potter-challenge", "Harry Potter Challenge", "Hogwarts, spells, houses, horcruxes, professors, creatures, and wizarding world lore.", "Wizard Graduate", "harry potter", "hard", "Fantasy"],
+  ["mission-impossible-challenge", "Mission: Impossible Challenge", "Masks, missions, betrayals, stunts, gadgets, and Ethan Hunt's impossible choices.", "IMF Agent", "mission impossible", "medium", "Action"],
+  ["james-bond-challenge", "James Bond Challenge", "Agents, villains, gadgets, cars, missions, allies, lairs, and spy-film traditions.", "Double-O Agent", "james bond", "medium", "Action"],
+  ["tom-hanks-collection", "Tom Hanks Collection", "Beloved dramas, comedies, survival stories, animated favorites, and everyman heroes.", "America's Co-Star", "tom hanks", "medium", "Actor"],
+  ["keanu-reeves-collection", "Keanu Reeves Collection", "Chosen ones, assassins, surfers, time travelers, hackers, and kind-hearted icons.", "Whoa Master", "keanu reeves", "medium", "Actor"],
+  ["jim-carrey-collection", "Jim Carrey Collection", "Rubber-faced comedy, heartfelt turns, comic chaos, masks, detectives, and oddball heroes.", "Comedy Dynamo", "jim carrey", "easy", "Actor"],
+  ["zombie-collection", "Zombie Collection", "Outbreaks, survival crews, malls, fast zombies, slow zombies, and apocalypse rules.", "Undead Survivor", "zombie", "medium", "Horror"],
+  ["heist-crew-challenge", "Heist Crew Challenge", "Crews, cons, vaults, double-crosses, getaways, plans, and cinematic thieves.", "Mastermind", "heist", "medium", "Crime"],
+].map(([slug, name, description, badge, banner, difficulty, genre]) => ({
+  slug,
+  seasonKey: String(slug).replace(/-/g, "_"),
+  name,
+  description,
+  startDate: "2026-01-01",
+  endDate: "2035-12-31",
+  badge,
+  banner,
+  challengeType: "special_event",
+  isFeatured: false,
+  questionCount: 100,
+  difficulty,
+  points: 300,
+  requirements: [
+    { type: "trivia_completed", label: `Complete ${name}`, target: 100, genre },
+  ],
+}));
 
 const fallbackChallengeTargets: Record<string, Array<{ mediaType: "movie" | "tv"; tmdbId: number }>> = {
   summer_blockbusters: [
@@ -1551,12 +1619,29 @@ export async function ensureSeasonalChallengeTables(sql: any) {
     on seasonal_challenge_attempts (event_id, score desc, total_time_ms asc, longest_correct_streak desc, skipped_count asc, completed_at asc)
   `);
   await safe(sql`
+    create table if not exists arcade_challenge_windows (
+      id uuid primary key default gen_random_uuid(),
+      challenge_week_id text not null unique,
+      challenge_pack_id uuid not null references seasonal_challenge_events(id) on delete cascade,
+      start_at timestamptz not null,
+      end_at timestamptz not null,
+      status text not null default 'upcoming' check (status in ('upcoming', 'active', 'completed')),
+      winners_finalized boolean not null default false,
+      finalized_at timestamptz,
+      created_at timestamptz not null default now(),
+      updated_at timestamptz not null default now()
+    )
+  `);
+  await safe(sql`create index if not exists arcade_challenge_windows_dates_idx on arcade_challenge_windows (start_at, end_at, status)`);
+  await safe(sql`create index if not exists arcade_challenge_windows_pack_idx on arcade_challenge_windows (challenge_pack_id, start_at desc)`);
+  await safe(sql`drop index if exists arcade_challenge_windows_one_active_idx`);
+  await safe(sql`
     create unique index if not exists notifications_seasonal_challenge_unique
     on notifications (recipient_user_id, type, entity_type, entity_id)
     where entity_type = 'seasonal_challenge'
   `);
 
-  for (const event of defaultEvents) {
+  for (const event of [...defaultEvents, ...challengeCatalogueBacklog]) {
     await sql`
       insert into seasonal_challenge_events (
         slug,
@@ -1738,6 +1823,129 @@ export async function ensureSeasonalChallengeTables(sql: any) {
         updated_at = now()
     `;
   }
+  await syncArcadeChallengeWindows(sql);
+}
+
+async function syncArcadeChallengeWindows(sql: any) {
+  await safe(sql`
+    update arcade_challenge_windows
+    set
+      status = case
+        when now() < start_at then 'upcoming'
+        when now() >= end_at then 'completed'
+        else 'active'
+      end,
+      winners_finalized = case when now() >= end_at then true else winners_finalized end,
+      finalized_at = case when now() >= end_at and finalized_at is null then now() else finalized_at end,
+      updated_at = now()
+  `);
+
+  const eligiblePacks = await sql`
+    select
+      sce.id,
+      sce.slug,
+      sce.name,
+      sce.is_featured,
+      count(ecq.id)::int as playable_question_count
+    from seasonal_challenge_events sce
+    inner join evergreen_challenge_questions ecq on ecq.event_slug = sce.slug and ecq.status = 'ready'
+    where sce.status = 'published'
+      and sce.is_active = true
+      and sce.challenge_type in ('weekly', 'special_event', 'seasonal')
+    group by sce.id
+    having count(ecq.id) >= 100
+    order by sce.is_featured desc, sce.slug asc
+  `.catch(() => []);
+
+  if (!eligiblePacks.length) return null;
+
+  const cadenceDays = challengeCadenceDays(eligiblePacks.length);
+  const cadenceMs = cadenceDays * DAY_MS;
+  const now = new Date();
+  const currentPeriod = Math.floor((now.getTime() - FEATURED_CHALLENGE_EPOCH) / cadenceMs);
+  const prefix = cadenceDays === 7 ? "weekly" : "biweekly";
+
+  for (let offset = -2; offset <= 54; offset += 1) {
+    const period = currentPeriod + offset;
+    const startAt = new Date(FEATURED_CHALLENGE_EPOCH + period * cadenceMs);
+    const endAt = new Date(startAt.getTime() + cadenceMs);
+    const pack = eligiblePacks[((period % eligiblePacks.length) + eligiblePacks.length) % eligiblePacks.length];
+    const status = scheduledWindowStatus(startAt, endAt, now);
+    const finalized = status === "completed";
+    const challengeWeekId = `${prefix}-${isoDate(startAt)}`;
+
+    await sql`
+      insert into arcade_challenge_windows (
+        challenge_week_id,
+        challenge_pack_id,
+        start_at,
+        end_at,
+        status,
+        winners_finalized,
+        finalized_at,
+        updated_at
+      )
+      values (
+        ${challengeWeekId},
+        ${pack.id},
+        ${startAt.toISOString()},
+        ${endAt.toISOString()},
+        ${status},
+        ${finalized},
+        case when ${finalized} then now() else null end,
+        now()
+      )
+      on conflict (challenge_week_id) do update set
+        challenge_pack_id = excluded.challenge_pack_id,
+        start_at = excluded.start_at,
+        end_at = excluded.end_at,
+        status = excluded.status,
+        winners_finalized = case
+          when arcade_challenge_windows.winners_finalized then true
+          else excluded.winners_finalized
+        end,
+        finalized_at = case
+          when arcade_challenge_windows.finalized_at is not null then arcade_challenge_windows.finalized_at
+          else excluded.finalized_at
+        end,
+        updated_at = now()
+    `;
+  }
+
+  await safe(sql`
+    update arcade_challenge_windows stale
+    set
+      status = case
+        when now() < stale.start_at then 'upcoming'
+        when now() >= stale.end_at then 'completed'
+        else 'upcoming'
+      end,
+      updated_at = now()
+    where stale.status = 'active'
+      and stale.id not in (
+        select id
+        from arcade_challenge_windows
+        where now() >= start_at and now() < end_at
+        order by start_at asc
+        limit 1
+      )
+  `);
+
+  const [activeWindow] = await sql`
+    select
+      acw.*,
+      sce.slug,
+      sce.name
+    from arcade_challenge_windows acw
+    inner join seasonal_challenge_events sce on sce.id = acw.challenge_pack_id
+    where acw.status = 'active'
+      and now() >= acw.start_at
+      and now() < acw.end_at
+    order by acw.start_at asc
+    limit 1
+  `.catch(() => []);
+
+  return activeWindow || null;
 }
 
 async function progressForRequirement(sql: any, userId: string | undefined, requirement: SeasonalRequirement) {
@@ -1967,7 +2175,12 @@ async function mapEvent(sql: any, row: any, userId?: string) {
     banner: row.banner || "",
     seasonKey: row.season_key || "general",
     challengeType: normalizeChallengeType(row.challenge_type),
-    isFeatured: row.is_featured === true,
+    isFeatured: Boolean(row.active_challenge_week_id) || row.is_featured === true,
+    isWeeklyFeatured: Boolean(row.active_challenge_week_id),
+    challengeWeekId: row.active_challenge_week_id || undefined,
+    windowStartAt: row.active_window_start_at || undefined,
+    windowEndAt: row.active_window_end_at || undefined,
+    winnersFinalized: row.winners_finalized === true,
     heroImageUrl: row.hero_image_url || "",
     questionCount: Number(row.question_count || 10),
     playableQuestionCount,
@@ -1993,13 +2206,19 @@ async function mapEvent(sql: any, row: any, userId?: string) {
 
 export async function seasonalChallengeFeed(sql: any, userId?: string) {
   await ensureSeasonalChallengeTables(sql);
+  const activeWindow = await syncArcadeChallengeWindows(sql);
   const rows = await sql`
     select
       sce.*,
       usc.completed_at,
-      usc.status as user_challenge_status
+      usc.status as user_challenge_status,
+      case when acw.id is not null then acw.challenge_week_id else null end as active_challenge_week_id,
+      acw.start_at as active_window_start_at,
+      acw.end_at as active_window_end_at,
+      coalesce(acw.winners_finalized, false) as winners_finalized
     from seasonal_challenge_events sce
     left join user_seasonal_challenges usc on usc.event_id = sce.id and usc.user_id = ${userId || null}::uuid
+    left join arcade_challenge_windows acw on acw.challenge_pack_id = sce.id and acw.status = 'active'
     where sce.status = 'published'
       and sce.is_active = true
       and sce.end_date >= ((now() at time zone 'America/Toronto')::date - interval '180 days')
@@ -2026,7 +2245,7 @@ export async function seasonalChallengeFeed(sql: any, userId?: string) {
       endingSoon: active.filter((event) => event.daysRemaining <= 14),
       upcoming,
       recentlyCompleted,
-      featured: active.find((event) => event.isFeatured) || active[0] || upcoming.find((event) => event.isFeatured) || upcoming[0] || null,
+      featured: active.find((event) => event.challengeWeekId === activeWindow?.challenge_week_id) || active.find((event) => event.isWeeklyFeatured) || active.find((event) => event.isFeatured && Number(event.playableQuestionCount || 0) >= 100) || active[0] || upcoming.find((event) => event.isFeatured) || upcoming[0] || null,
     },
   };
 }
@@ -2173,7 +2392,8 @@ export async function challengeQuestions(sql: any, event: any) {
   return questions;
 }
 
-async function challengeStandings(sql: any, eventId: string, userId?: string) {
+async function challengeStandings(sql: any, eventId: string, userId?: string, challengeWeekId?: string) {
+  const weekFilter = challengeWeekId ? String(challengeWeekId).slice(0, 64) : null;
   const topScores = await sql`
     select
       ranked.id,
@@ -2199,6 +2419,7 @@ async function challengeStandings(sql: any, eventId: string, userId?: string) {
         ) as rank
       from seasonal_challenge_attempts sca
       where sca.event_id = ${eventId}
+        and (${weekFilter}::text is null or sca.challenge_week_id = ${weekFilter})
     ) ranked
     left join users u on u.id = ranked.user_id
     left join user_profiles up on up.user_id = ranked.user_id
@@ -2225,6 +2446,7 @@ async function challengeStandings(sql: any, eventId: string, userId?: string) {
     left join users u on u.id = sca.user_id
     left join user_profiles up on up.user_id = sca.user_id
     where sca.event_id = ${eventId}
+      and (${weekFilter}::text is null or sca.challenge_week_id = ${weekFilter})
     order by sca.completed_at desc
     limit 10
   `.catch(() => []);
@@ -2238,6 +2460,7 @@ async function challengeStandings(sql: any, eventId: string, userId?: string) {
         ) as rank
       from seasonal_challenge_attempts sca
       where sca.event_id = ${eventId}
+        and (${weekFilter}::text is null or sca.challenge_week_id = ${weekFilter})
     ) ranked
     where ranked.user_id = ${userId}
     order by ranked.rank asc
@@ -2272,9 +2495,14 @@ export async function seasonalChallengeDetail(sql: any, slug: string, userId?: s
     select
       sce.*,
       usc.completed_at,
-      usc.status as user_challenge_status
+      usc.status as user_challenge_status,
+      case when acw.id is not null then acw.challenge_week_id else null end as active_challenge_week_id,
+      acw.start_at as active_window_start_at,
+      acw.end_at as active_window_end_at,
+      coalesce(acw.winners_finalized, false) as winners_finalized
     from seasonal_challenge_events sce
     left join user_seasonal_challenges usc on usc.event_id = sce.id and usc.user_id = ${userId || null}::uuid
+    left join arcade_challenge_windows acw on acw.challenge_pack_id = sce.id and acw.status = 'active'
     where sce.slug = ${slug}
       and sce.status = 'published'
       and sce.is_active = true
@@ -2284,7 +2512,7 @@ export async function seasonalChallengeDetail(sql: any, slug: string, userId?: s
   const [event, questions, standings] = await Promise.all([
     mapEvent(sql, row, userId),
     challengeQuestions(sql, row),
-    challengeStandings(sql, row.id, userId),
+    challengeStandings(sql, row.id, userId, row.active_challenge_week_id || undefined),
   ]);
   return {
     event,
@@ -2342,7 +2570,17 @@ export async function submitSeasonalChallengeAttempt(sql: any, userId: string, e
   const totalTimeMs = Math.max(0, Math.round(Number(body.totalTimeMs || body.total_time_ms || timedValues.reduce((sum: number, value: number) => sum + value, 0)) || 0));
   const answeredCount = Math.max(1, totalCount - skippedCount);
   const averageAnswerTimeMs = totalTimeMs ? Math.round(totalTimeMs / answeredCount) : 0;
-  const challengeWeekId = String(body.challengeWeekId || body.challenge_week_id || currentChallengeWeekId()).slice(0, 64);
+  const [activeWindow] = await sql`
+    select challenge_week_id
+    from arcade_challenge_windows
+    where challenge_pack_id = ${eventId}
+      and status = 'active'
+      and now() >= start_at
+      and now() < end_at
+    order by start_at asc
+    limit 1
+  `.catch(() => []);
+  const challengeWeekId = String(body.challengeWeekId || body.challenge_week_id || activeWindow?.challenge_week_id || currentChallengeWeekId()).slice(0, 64);
   const [attempt] = await sql`
     insert into seasonal_challenge_attempts (
       event_id,
@@ -2420,7 +2658,7 @@ export async function submitSeasonalChallengeAttempt(sql: any, userId: string, e
       completedAt: attempt.completed_at,
       shareCardUrl: `/api/og/seasonal-challenge/${event.slug}?score=${score}`,
     },
-    standings: await challengeStandings(sql, eventId, userId),
+    standings: await challengeStandings(sql, eventId, userId, challengeWeekId),
   };
 }
 

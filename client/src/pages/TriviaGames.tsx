@@ -313,8 +313,8 @@ function FriendChallengeHistory({ onNavigate }: { onNavigate: (path: string) => 
 
 function FeaturedChallengeCard({ event, onNavigate }: { event: SeasonalChallengeEvent; onNavigate: (path: string) => void }) {
   const questionCount = Number(event.playableQuestionCount || event.questionCount || 0);
-  const status = event.dateStatus === "active" && questionCount >= 100 && event.daysRemaining > 30
-    ? "Weekly competition"
+  const status = event.windowEndAt
+    ? `Ends ${formatChallengeWindowDate(event.windowEndAt)}`
     : event.dateStatus === "active"
     ? event.daysRemaining === 1 ? "1 day remaining" : `${event.daysRemaining} days remaining`
     : event.dateStatus === "upcoming"
@@ -325,7 +325,7 @@ function FeaturedChallengeCard({ event, onNavigate }: { event: SeasonalChallenge
 
   return (
     <button
-      className={`arcade-featured-challenge is-${event.dateStatus} theme-${themeKey}`}
+      className={`arcade-featured-challenge is-${event.dateStatus} theme-${themeKey} ${event.isWeeklyFeatured ? "is-weekly-featured" : ""}`}
       onClick={() => onNavigate(`/challenges/${event.slug}`)}
       type="button"
     >
@@ -334,7 +334,7 @@ function FeaturedChallengeCard({ event, onNavigate }: { event: SeasonalChallenge
         <span>{event.banner || event.badge}</span>
       </div>
       <div>
-        <span>{event.challengeType === "weekly" ? "Weekly Challenge" : event.challengeType === "special_event" ? "Special Event" : "Featured Challenge"}</span>
+        <span>{event.isWeeklyFeatured ? "This Week's Featured Challenge" : event.challengeType === "weekly" ? "Weekly Challenge" : event.challengeType === "special_event" ? "Special Event" : "Featured Challenge"}</span>
         <h3>{event.name}</h3>
         <p>{event.description}</p>
         <div className="challenge-card-meta">
@@ -362,17 +362,20 @@ function challengeArtworkUrl(event: SeasonalChallengeEvent) {
   return `/api/og/seasonal-challenge/${event.slug}`;
 }
 
-function getWeekIndex(date = new Date()) {
-  const start = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
-  return Math.floor((date.getTime() - start.getTime()) / (7 * 24 * 60 * 60 * 1000));
+function formatChallengeWindowDate(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "soon";
+  return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
 function weeklyFeaturedPack(events: SeasonalChallengeEvent[]) {
+  const scheduled = events.find((event) => event.isWeeklyFeatured && event.dateStatus === "active" && Number(event.playableQuestionCount || event.questionCount || 0) >= 100);
+  if (scheduled) return scheduled;
   const playableEvergreen = events
     .filter((event) => event.dateStatus === "active" && Number(event.playableQuestionCount || event.questionCount || 0) >= 100)
     .sort((a, b) => a.slug.localeCompare(b.slug));
   if (!playableEvergreen.length) return null;
-  return playableEvergreen[getWeekIndex() % playableEvergreen.length];
+  return playableEvergreen[0];
 }
 
 function ordinal(value?: number) {

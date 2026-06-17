@@ -406,7 +406,8 @@ export default function App() {
           onClick={() => navigate("/games")}
           type="button"
         >
-          Arcade
+          <span className="bottom-arcade-icon" aria-hidden="true">F</span>
+          <span className="bottom-arcade-label">Arcade</span>
         </button>
         <button
           className={`bottom-control-tab ${activeRoute === "/public" ? "is-active" : ""}`}

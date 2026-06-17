@@ -235,6 +235,11 @@ export interface SeasonalChallengeEvent {
   banner?: string;
   challengeType?: "weekly" | "monthly" | "seasonal" | "special_event";
   isFeatured?: boolean;
+  isWeeklyFeatured?: boolean;
+  challengeWeekId?: string;
+  windowStartAt?: string;
+  windowEndAt?: string;
+  winnersFinalized?: boolean;
   heroImageUrl?: string;
   questionCount?: number;
   playableQuestionCount?: number;
