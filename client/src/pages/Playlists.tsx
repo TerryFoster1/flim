@@ -19,6 +19,51 @@ interface PlaylistsProps {
 
 type PlaylistView = "my" | "public";
 
+const curatedSearchSignals: Array<{ terms: string[]; titles: string[]; genres?: string[]; label: string }> = [
+  {
+    terms: ["arnold", "arnold schwarzenegger", "schwarzenegger"],
+    titles: ["terminator", "predator", "total recall", "running man", "commando", "true lies", "conan"],
+    genres: ["action", "science fiction"],
+    label: "Arnold Schwarzenegger titles",
+  },
+  {
+    terms: ["tom cruise", "cruise"],
+    titles: ["mission impossible", "top gun", "edge of tomorrow", "minority report", "jerry maguire", "collateral"],
+    genres: ["action", "thriller"],
+    label: "Tom Cruise titles",
+  },
+  {
+    terms: ["time travel", "time loop", "timeline"],
+    titles: ["back to the future", "terminator", "looper", "primer", "edge of tomorrow", "12 monkeys", "time machine"],
+    genres: ["science fiction"],
+    label: "time travel titles",
+  },
+  {
+    terms: ["zombie", "zombies", "undead"],
+    titles: ["night of the living dead", "dawn of the dead", "28 days later", "world war z", "zombieland", "train to busan"],
+    genres: ["horror"],
+    label: "zombie titles",
+  },
+  {
+    terms: ["apocalypse", "post apocalypse", "post-apocalypse", "end of the world"],
+    titles: ["mad max", "the road", "book of eli", "children of men", "day after tomorrow", "wall-e"],
+    genres: ["science fiction", "thriller"],
+    label: "apocalypse titles",
+  },
+  {
+    terms: ["alien", "aliens", "extraterrestrial"],
+    titles: ["alien", "aliens", "arrival", "the thing", "predator", "contact", "district 9", "avatar"],
+    genres: ["science fiction"],
+    label: "alien titles",
+  },
+  {
+    terms: ["anime", "animation", "animated"],
+    titles: ["spirited away", "akira", "princess mononoke", "your name", "toy story", "shrek", "wall-e"],
+    genres: ["animation", "anime"],
+    label: "animated titles",
+  },
+];
+
 function isTemporaryVerificationPlaylist(playlist: Playlist) {
   const name = playlist.name.toLowerCase();
   return (
@@ -33,8 +78,8 @@ function isDirectorPlaylist(playlist: Playlist) {
 }
 
 function rankPublicPlaylist(playlist: Playlist) {
-  if (playlist.isFollowing) return 0;
-  if (isDirectorPlaylist(playlist)) return 1;
+  if (isDirectorPlaylist(playlist)) return 0;
+  if (playlist.isFollowing) return 1;
   return 2;
 }
 
@@ -53,6 +98,71 @@ function scorePlaylistSearch(playlist: Playlist, normalizedQuery: string) {
   if (creatorDisplayName.includes(normalizedQuery) || creatorHandle.includes(normalizedQuery)) return 4;
   if (matchingTitle) return 5;
   return 6;
+}
+
+function matchingCuratedSignal(normalizedQuery: string) {
+  return curatedSearchSignals.find((signal) => signal.terms.some((term) => term.includes(normalizedQuery) || normalizedQuery.includes(term)));
+}
+
+function playlistSearchValues(playlist: Playlist) {
+  return [
+    playlist.name,
+    playlist.description,
+    playlist.visibility,
+    playlist.creatorDisplayName || "",
+    playlist.creatorHandle || "",
+    ...playlist.movies.map((movie) => movie.title),
+    ...playlist.movies.map((movie) => movie.overview || ""),
+    ...playlist.movies.flatMap((movie) => movie.genres || []),
+  ];
+}
+
+function playlistMatchesQuery(playlist: Playlist, normalizedQuery: string) {
+  if (!normalizedQuery) return true;
+  const directMatch = playlistSearchValues(playlist).some((value) => value.toLowerCase().includes(normalizedQuery));
+  if (directMatch) return true;
+  const signal = matchingCuratedSignal(normalizedQuery);
+  if (!signal) return false;
+  return playlist.movies.some((movie) => {
+    const title = movie.title.toLowerCase();
+    const genres = (movie.genres || []).map((genre) => genre.toLowerCase());
+    return signal.titles.some((candidate) => title.includes(candidate)) || Boolean(signal.genres?.some((genre) => genres.includes(genre)));
+  });
+}
+
+function playlistMatchReason(playlist: Playlist, normalizedQuery: string) {
+  if (!normalizedQuery) return playlist.recommendationReason;
+  const lowerName = playlist.name.toLowerCase();
+  const lowerDescription = playlist.description.toLowerCase();
+  if (lowerName.includes(normalizedQuery)) return "Matches playlist title";
+  if (lowerDescription.includes(normalizedQuery)) return "Matches playlist description";
+
+  const genreMatch = playlist.movies.flatMap((movie) => movie.genres || []).find((genre) => genre.toLowerCase().includes(normalizedQuery));
+  if (genreMatch) return `Matches ${genreMatch}`;
+
+  const titleMatch = playlist.movies.find((movie) => movie.title.toLowerCase().includes(normalizedQuery));
+  if (titleMatch) return `Includes ${titleMatch.title}`;
+
+  const signal = matchingCuratedSignal(normalizedQuery);
+  if (signal) {
+    const titleMatches = playlist.movies.filter((movie) => {
+      const title = movie.title.toLowerCase();
+      return signal.titles.some((candidate) => title.includes(candidate));
+    });
+    if (titleMatches.length > 1) return `Includes ${titleMatches.length} ${signal.label}`;
+    if (titleMatches[0]) return `Includes ${titleMatches[0].title}`;
+    const genre = signal.genres?.find((candidate) => playlist.movies.some((movie) => (movie.genres || []).map((item) => item.toLowerCase()).includes(candidate)));
+    if (genre) return `Matches ${genre.replace(/\b\w/g, (letter) => letter.toUpperCase())}`;
+  }
+
+  return playlist.recommendationReason;
+}
+
+function decorateSearchResults(playlists: Playlist[], normalizedQuery: string) {
+  return playlists.map((playlist) => ({
+    ...playlist,
+    recommendationReason: playlistMatchReason(playlist, normalizedQuery),
+  }));
 }
 
 function byFollowerCount(playlists: Playlist[]) {
@@ -171,7 +281,8 @@ function PublicDiscovery({
   if (normalizedQuery) {
     return (
       <div className="discovery-grid">
-        <DiscoveryShelf title="Public Playlists" playlists={visibleSearchResults} onNavigate={onNavigate} emptyMessage="No matching playlists yet." />
+        <DiscoveryShelf title="Director's Cut Results" playlists={visibleSearchResults.filter(isDirectorPlaylist)} onNavigate={onNavigate} emptyMessage="No matching curated playlists yet." />
+        <DiscoveryShelf title="Public Playlist Results" playlists={visibleSearchResults.filter((playlist) => !isDirectorPlaylist(playlist))} onNavigate={onNavigate} emptyMessage="No matching playlists yet." />
         {hasMoreSearchResults ? (
           <div className="load-more-row">
             <button className="secondary-button" onClick={onLoadMore} type="button">
@@ -215,8 +326,23 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
     () => playlists.filter(isDirectorPlaylist),
     [playlists],
   );
+  const ownedPlaylists = useMemo(
+    () => playlists.filter((playlist) => playlist.isOwner && !playlist.isSystem),
+    [playlists],
+  );
+  const followedPlaylists = useMemo(
+    () => playlists.filter((playlist) => playlist.isFollowing && !playlist.isOwner && !playlist.isSystem),
+    [playlists],
+  );
   const sourcePlaylists = useMemo(() => {
-    if (view !== "public") return playlists.filter((playlist) => playlist.isOwner);
+    if (view !== "public") {
+      return playlists
+        .filter((playlist) => (playlist.isOwner || playlist.isFollowing || playlist.saved || playlist.clonedFromId) && !playlist.isSystem)
+        .sort((a, b) => {
+          if (a.isOwner !== b.isOwner) return a.isOwner ? -1 : 1;
+          return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+        });
+    }
 
     return playlists
       .filter((playlist) => playlist.visibility === "public" && !playlist.isSystem && !isTemporaryVerificationPlaylist(playlist))
@@ -230,7 +356,8 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
   useEffect(() => {
     setView(initialView);
     setVisibleCount(7);
-    setQuery("");
+    const params = new URLSearchParams(window.location.search);
+    setQuery(initialView === "public" ? params.get("q") || "" : "");
   }, [initialView]);
 
   useEffect(() => {
@@ -246,27 +373,17 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
   const visiblePlaylists = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
     if (!normalizedQuery) return sourcePlaylists;
-    return sourcePlaylists
-      .filter((playlist) =>
-        [
-          playlist.name,
-          playlist.description,
-          playlist.visibility,
-          playlist.creatorDisplayName || "",
-          playlist.creatorHandle || "",
-          ...playlist.movies.map((movie) => movie.title),
-          ...playlist.movies.map((movie) => movie.overview || ""),
-          ...playlist.movies.flatMap((movie) => movie.genres || []),
-        ].some((value) =>
-          value.toLowerCase().includes(normalizedQuery),
-        ),
-      )
+    return decorateSearchResults(
+      sourcePlaylists.filter((playlist) => playlistMatchesQuery(playlist, normalizedQuery)),
+      normalizedQuery,
+    )
       .sort((a, b) => {
+        if (view === "public" && isDirectorPlaylist(a) !== isDirectorPlaylist(b)) return isDirectorPlaylist(a) ? -1 : 1;
         const scoreDelta = scorePlaylistSearch(a, normalizedQuery) - scorePlaylistSearch(b, normalizedQuery);
         if (scoreDelta !== 0) return scoreDelta;
         return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
       });
-  }, [query, sourcePlaylists]);
+  }, [query, sourcePlaylists, view]);
 
   const visiblePagePlaylists = visiblePlaylists.slice(0, visibleCount);
   const hasMorePlaylists = visiblePlaylists.length > visibleCount;
@@ -301,6 +418,22 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
     setShowCreate((current) => !current);
   }
 
+  function searchPublicPlaylists() {
+    const search = query.trim();
+    onNavigate(search ? `/public?q=${encodeURIComponent(search)}` : "/public");
+  }
+
+  const normalizedQuery = query.trim();
+  const ownedPreview = ownedPlaylists.slice(0, visibleCount);
+  const followedPreview = followedPlaylists.slice(0, Math.max(3, Math.min(visibleCount, 6)));
+  const searchStatusLabel = normalizedQuery
+    ? visiblePlaylists.length > 0
+      ? `${visiblePlaylists.length} ${visiblePlaylists.length === 1 ? "result" : "results"} for ${normalizedQuery}`
+      : `No matches found for ${normalizedQuery}`
+    : view === "public"
+      ? "Browse curated and community playlist discovery."
+      : "Search your saved playlist world.";
+
   return (
     <section className="route-page collections-page">
       {notice ? <p className="success-message">{notice}</p> : null}
@@ -326,6 +459,7 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
             <span>{view === "public" ? "Search Public Playlists" : "Search Playlists"}</span>
             <input onChange={(event) => setQuery(event.target.value)} placeholder="Search playlists, titles, actors, or genres" type="search" value={query} />
           </label>
+          <p className="playlist-search-state" aria-live="polite">{searchStatusLabel}</p>
         </div>
       </section>
 
@@ -337,7 +471,6 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
         </div>
       ) : null}
 
-      {view === "my" && currentUser ? <ContinueWatchingRow includeFollowedFallback onNavigate={onNavigate} /> : null}
       {showCreate ? (
         <form className="collection-create-panel" onSubmit={submit}>
           {!currentUser ? <p className="helper-text">Sign in to create playlists that belong to you.</p> : null}
@@ -387,9 +520,14 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
             </button>
           </section>
         </>
-      ) : visiblePagePlaylists.length > 0 ? (
+      ) : normalizedQuery ? (
         <>
-          <PlaylistGrid onNavigate={onNavigate} playlists={visiblePagePlaylists} />
+          <section className="discovery-section">
+            <div className="discovery-section-heading">
+              <h2>My Playlist Results</h2>
+            </div>
+            <PlaylistGrid onNavigate={onNavigate} playlists={visiblePagePlaylists} emptyMessage="No matching playlists yet." />
+          </section>
           {hasMorePlaylists ? (
             <div className="load-more-row">
               <button className="secondary-button" onClick={() => setVisibleCount((count) => count + 7)} type="button">
@@ -397,19 +535,45 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
               </button>
             </div>
           ) : null}
-          <section className="playlist-roulette-launcher playlist-roulette-compact" aria-label="Movie roulette">
-            <div className="playlist-roulette-icon" aria-hidden="true">
-              <NowPlayingTicketIcon />
+          {visiblePagePlaylists.length === 0 ? (
+            <section className="playlist-public-search-prompt" aria-label="Search Public Playlists">
+              <div>
+                <span>Not seeing what you're looking for?</span>
+                <h2>Search across Public Playlists</h2>
+                <p>Look for curated and community collections that match this search.</p>
+              </div>
+              <button className="secondary-button" onClick={searchPublicPlaylists} type="button">
+                Search Public Playlists
+              </button>
+            </section>
+          ) : null}
+        </>
+      ) : sourcePlaylists.length > 0 ? (
+        <>
+          {ownedPreview.length > 0 ? (
+            <section className="discovery-section">
+              <div className="discovery-section-heading">
+                <h2>Your Playlists</h2>
+              </div>
+              <PlaylistGrid onNavigate={onNavigate} playlists={ownedPreview} />
+            </section>
+          ) : null}
+          {followedPreview.length > 0 ? (
+            <section className="discovery-section">
+              <div className="discovery-section-heading">
+                <h2>Followed Playlists</h2>
+              </div>
+              <PlaylistGrid onNavigate={onNavigate} playlists={followedPreview} />
+            </section>
+          ) : null}
+          {currentUser ? <ContinueWatchingRow includeFollowedFallback onNavigate={onNavigate} /> : null}
+          {sourcePlaylists.length > visibleCount ? (
+            <div className="load-more-row">
+              <button className="secondary-button" onClick={() => setVisibleCount((count) => count + 7)} type="button">
+                Load More
+              </button>
             </div>
-            <div>
-              <span>Movie Roulette</span>
-              <h2>Can't decide what to watch?</h2>
-              <p>Spin across your playlists when movie night needs a nudge.</p>
-            </div>
-            <button className="secondary-button" onClick={() => onOpenRoulette?.(sourcePlaylists)} type="button">
-              Spin
-            </button>
-          </section>
+          ) : null}
         </>
       ) : (
         <div className="collection-empty-cinematic">
@@ -426,12 +590,10 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
             ))}
           </div>
           <div>
-            <h2>{query ? "Try another search." : "Create Your First Playlist"}</h2>
-            {view === "my" && !query ? (
-              <button className="primary-button" onClick={requestCreatePlaylist} type="button">
-                {currentUser ? "Create Playlist" : "Create Account"}
-              </button>
-            ) : null}
+            <h2>Create Your First Playlist</h2>
+            <button className="primary-button" onClick={requestCreatePlaylist} type="button">
+              {currentUser ? "Create Playlist" : "Create Account"}
+            </button>
           </div>
         </div>
       )}
@@ -445,6 +607,22 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
           </div>
           <button className="secondary-button" onClick={() => onNavigate("/followed-titles")} type="button">
             View Followed Titles
+          </button>
+        </section>
+      ) : null}
+
+      {view === "my" && sourcePlaylists.length > 0 ? (
+        <section className="playlist-roulette-launcher playlist-roulette-compact" aria-label="Movie roulette">
+          <div className="playlist-roulette-icon" aria-hidden="true">
+            <NowPlayingTicketIcon />
+          </div>
+          <div>
+            <span>Movie Roulette</span>
+            <h2>Can't decide what to watch?</h2>
+            <p>Spin across your playlists when movie night needs a nudge.</p>
+          </div>
+          <button className="secondary-button" onClick={() => onOpenRoulette?.(sourcePlaylists)} type="button">
+            Spin
           </button>
         </section>
       ) : null}
