@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import type { ReactNode } from "react";
-import { getSeasonalChallengeHistory, getSeasonalChallenges, joinSeasonalChallenge } from "../services/seasonalChallengeService";
+import type { KeyboardEvent, ReactNode } from "react";
+import { getSeasonalChallengeHistory, getSeasonalChallenges } from "../services/seasonalChallengeService";
 import { getTicketFeed } from "../services/ticketService";
 import type { SeasonalChallengeEvent, SeasonalChallengeFeed, SeasonalChallengeHistoryItem, TicketFeed } from "../types";
 
@@ -22,6 +22,40 @@ function challengeTypeLabel(type?: SeasonalChallengeEvent["challengeType"]) {
   return "Seasonal Challenge";
 }
 
+function titleOg(id: number) {
+  return `/api/og/title/movie/${id}?card=game`;
+}
+
+function challengeArtworkUrls(event: SeasonalChallengeEvent) {
+  if (event.heroImageUrl) return [event.heroImageUrl];
+
+  const key = `${event.slug} ${event.name} ${event.banner || ""} ${event.seasonKey || ""}`.toLowerCase();
+
+  if (key.includes("adventure")) {
+    return [titleOg(85), titleOg(22), titleOg(564), titleOg(87)];
+  }
+  if (key.includes("space") || key.includes("world")) {
+    return [titleOg(11), titleOg(348), titleOg(157336), titleOg(286217)];
+  }
+  if (key.includes("time")) {
+    return [titleOg(105), titleOg(218), titleOg(59967), titleOg(137113)];
+  }
+  if (key.includes("blockbuster") || key.includes("summer")) {
+    return [titleOg(329), titleOg(603), titleOg(575265), titleOg(85)];
+  }
+  if (key.includes("horror") || key.includes("halloween")) {
+    return [titleOg(694), titleOg(348), titleOg(1091), titleOg(138843)];
+  }
+  if (key.includes("christmas") || key.includes("holiday")) {
+    return [titleOg(771), titleOg(772), titleOg(1585), titleOg(11395)];
+  }
+  if (key.includes("oscar") || key.includes("award")) {
+    return [titleOg(13), titleOg(238), titleOg(11216), titleOg(496243)];
+  }
+
+  return ["/arcade/flim-arcade-hero.png"];
+}
+
 export function SeasonalChallengeCard({
   children,
   event,
@@ -33,11 +67,30 @@ export function SeasonalChallengeCard({
 }) {
   const questionCount = Number(event.playableQuestionCount || event.questionCount || 0);
   const themeKey = String(event.banner || event.seasonKey || "challenge").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "challenge";
+  const artworkUrls = challengeArtworkUrls(event);
+  const openChallenge = () => onNavigate?.(`/challenges/${event.slug}`);
+  const handleKeyDown = (keyEvent: KeyboardEvent<HTMLElement>) => {
+    if (!onNavigate) return;
+    if (keyEvent.key === "Enter" || keyEvent.key === " ") {
+      keyEvent.preventDefault();
+      openChallenge();
+    }
+  };
 
   return (
-    <article className={`seasonal-challenge-card is-${event.dateStatus} user-${event.userStatus} theme-${themeKey}`}>
+    <article
+      className={`seasonal-challenge-card is-${event.dateStatus} user-${event.userStatus} theme-${themeKey}`}
+      onClick={onNavigate ? openChallenge : undefined}
+      onKeyDown={onNavigate ? handleKeyDown : undefined}
+      role={onNavigate ? "button" : undefined}
+      tabIndex={onNavigate ? 0 : undefined}
+    >
       <div className="seasonal-banner-artwork">
-        <img alt="" src={`/api/og/seasonal-challenge/${event.slug}`} />
+        <div aria-hidden="true" className={`seasonal-art-collage count-${Math.min(artworkUrls.length, 4)}`}>
+          {artworkUrls.slice(0, 4).map((url, index) => (
+            <img alt="" className={`seasonal-art-tile tile-${index + 1}`} key={`${event.slug}-art-${url}`} src={url} />
+          ))}
+        </div>
         <span>{event.banner || event.badge}</span>
       </div>
       <div className="seasonal-challenge-copy">
@@ -66,11 +119,6 @@ export function SeasonalChallengeCard({
             </span>
           ))}
         </div>
-        {onNavigate ? (
-          <button className="secondary-button" onClick={() => onNavigate(`/challenges/${event.slug}`)} type="button">
-            View Challenge
-          </button>
-        ) : null}
         {children}
       </div>
     </article>
@@ -80,10 +128,8 @@ export function SeasonalChallengeCard({
 export function SeasonalChallenges({ onNavigate }: SeasonalChallengesProps) {
   const [feed, setFeed] = useState<SeasonalChallengeFeed | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
-  const [joiningId, setJoiningId] = useState<string | null>(null);
   const [history, setHistory] = useState<SeasonalChallengeHistoryItem[]>([]);
   const [tickets, setTickets] = useState<TicketFeed | null>(null);
-  const [actionError, setActionError] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -121,43 +167,14 @@ export function SeasonalChallenges({ onNavigate }: SeasonalChallengesProps) {
     return <section className="route-page seasonal-challenges-page"><p className="error-message">Seasonal challenges are unavailable right now.</p></section>;
   }
 
-  function replaceEvent(event: SeasonalChallengeEvent) {
-    if (!feed) return;
-    const replace = (events: SeasonalChallengeEvent[]) => events.map((item) => (item.id === event.id ? event : item));
-    setFeed({
-      events: replace(feed.events),
-      sections: {
-        active: replace(feed.sections.active),
-        endingSoon: replace(feed.sections.endingSoon),
-        upcoming: replace(feed.sections.upcoming),
-        recentlyCompleted: replace(feed.sections.recentlyCompleted),
-        featured: feed.sections.featured?.id === event.id ? event : feed.sections.featured,
-      },
-    });
-  }
-
-  async function handleJoin(event: SeasonalChallengeEvent) {
-    setActionError("");
-    setJoiningId(event.id);
-    try {
-      replaceEvent(await joinSeasonalChallenge(event.id));
-    } catch (error) {
-      setActionError(error instanceof Error ? error.message : "Unable to join seasonal challenge.");
-    } finally {
-      setJoiningId(null);
-    }
-  }
-
   const card = (event: SeasonalChallengeEvent) => (
     <SeasonalChallengeCard event={event} key={event.id} onNavigate={onNavigate}>
-      {event.userStatus === "not_started" && event.dateStatus === "active" ? (
-        <button className="primary-button compact" disabled={joiningId === event.id} onClick={() => handleJoin(event)} type="button">
-          {joiningId === event.id ? "Starting..." : "Start Challenge"}
-        </button>
-      ) : event.userStatus === "completed" ? (
+      {event.userStatus === "completed" ? (
         <span className="challenge-action-status">Badge unlocked</span>
+      ) : event.dateStatus === "active" ? (
+        <span className="challenge-action-status">Tap card to play</span>
       ) : (
-        <span className="challenge-action-status">Challenge started</span>
+        <span className="challenge-action-status">{statusText(event)}</span>
       )}
     </SeasonalChallengeCard>
   );
@@ -180,7 +197,6 @@ export function SeasonalChallenges({ onNavigate }: SeasonalChallengesProps) {
           </button>
         </div>
       </div>
-      {actionError ? <p className="error-message">{actionError}</p> : null}
 
       {tickets ? (
         <section className="challenge-ticket-strip">
