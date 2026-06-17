@@ -162,7 +162,17 @@ button { color: inherit; font: inherit; }
   color: var(--muted);
   line-height: 1.55;
 }
-.eyebrow { color: var(--amber); text-transform: uppercase; font-size: 0.72rem; font-weight: 850; letter-spacing: 0.08em; }
+.eyebrow,
+.arcade-hero-copy > span,
+.playlist-landing-hero-content > span,
+.challenge-landing-copy > span,
+.seasonal-banner-artwork > span,
+.arcade-challenge-artwork > span,
+.hall-kicker,
+.progress-kicker,
+.discovery-hub-kicker {
+  display: none !important;
+}
 .main-shell { min-width: 0; }
 .topbar {
   position: sticky;
