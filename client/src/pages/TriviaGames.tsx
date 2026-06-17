@@ -401,10 +401,11 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
   return (
     <section className="route-page trivia-games-page arcade-preview-page">
       <header className="arcade-preview-hero">
+        <img aria-hidden="true" className="arcade-hero-image" src="/arcade/flim-arcade-hero.png" />
         <div className="arcade-hero-copy">
           <span>Flim Arcade</span>
-          <img className="arcade-hero-image" alt="A vintage cinema arcade entrance glowing with marquee lights" src="/arcade/flim-arcade-hero.png" />
-          <h1 className="sr-only">Trivia and Games</h1>
+          <h1>Trivia and Games</h1>
+          <p>Step inside for movie trivia, group challenges, and game-night showdowns.</p>
           <form className="arcade-search-form" onSubmit={(event) => event.preventDefault()}>
             <label className="sr-only" htmlFor="arcade-search">Search Trivia and Games</label>
             <input
@@ -430,6 +431,9 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
           </div>
           {notifyMessage ? <small className="arcade-notify-message">{notifyMessage}</small> : null}
         </div>
+      </header>
+
+      <div className="arcade-main-content">
         <article className="arcade-featured-trivia-card">
           <img alt="" src={`/api/og/title/${featuredTrivia.mediaType}/${featuredTrivia.tmdbId}?card=game`} />
           <div>
@@ -438,72 +442,72 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
             <p>{featuredTrivia.questionCount} questions</p>
           </div>
         </article>
-      </header>
 
-      {filteredChallenges.length > 0 ? (
+        {filteredChallenges.length > 0 ? (
+          <section className="title-games-section arcade-live-section">
+            <div className="actor-section-heading">
+              <h2>Featured challenges</h2>
+              <span>Play now</span>
+            </div>
+            <div className="arcade-live-grid">
+              {filteredChallenges.map((event) => (
+                <FeaturedChallengeCard event={event} key={event.id} onNavigate={onNavigate} />
+              ))}
+            </div>
+          </section>
+        ) : null}
+
         <section className="title-games-section arcade-live-section">
           <div className="actor-section-heading">
-            <h2>Featured challenges</h2>
-            <span>Play now</span>
+            <h2>Trending trivia</h2>
+            <span>Movie rounds</span>
           </div>
-          <div className="arcade-live-grid">
-            {filteredChallenges.map((event) => (
-              <FeaturedChallengeCard event={event} key={event.id} onNavigate={onNavigate} />
+          <div className="arcade-movie-row">
+            {filteredTriviaTitles.map((title) => (
+              <article className="arcade-trivia-card" key={`${title.mediaType}-${title.tmdbId}`}>
+                <img alt="" src={`/api/og/title/${title.mediaType}/${title.tmdbId}?card=game`} />
+                <span>{title.badge}</span>
+                <h3>{title.title}</h3>
+                <p>{title.questionCount} questions</p>
+                <button
+                  className="primary-button compact"
+                  onClick={() => onNavigate(`/games/title/${title.mediaType}/${title.tmdbId}`)}
+                  type="button"
+                >
+                  Play Now
+                </button>
+              </article>
             ))}
           </div>
         </section>
-      ) : null}
 
-      <section className="title-games-section arcade-live-section">
-        <div className="actor-section-heading">
-          <h2>Trending trivia</h2>
-          <span>Movie rounds</span>
-        </div>
-        <div className="arcade-movie-row">
-          {filteredTriviaTitles.map((title) => (
-            <article className="arcade-trivia-card" key={`${title.mediaType}-${title.tmdbId}`}>
-              <img alt="" src={`/api/og/title/${title.mediaType}/${title.tmdbId}?card=game`} />
-              <span>{title.badge}</span>
-              <h3>{title.title}</h3>
-              <p>{title.questionCount} questions</p>
-              <button
-                className="primary-button compact"
-                onClick={() => onNavigate(`/games/title/${title.mediaType}/${title.tmdbId}`)}
-                type="button"
-              >
-                Play Now
-              </button>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="title-games-section arcade-feature-section">
-        <div className="actor-section-heading">
-          <h2>Playlist trivia</h2>
-          <span>Curated rounds</span>
-        </div>
-        <div className="arcade-challenge-row">
-          {filteredPlaylistTrivia.map((card) => (
-            <article className="challenge-discovery-card" key={card.title}>
-              <img alt="" src={card.image} />
-              <h3>{card.title}</h3>
-              <p>{card.meta}</p>
-              <button className="secondary-button compact" onClick={() => onNavigate(card.path)} type="button">
-                {card.action}
-              </button>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      {normalizedArcadeSearch && !filteredChallenges.length && !filteredTriviaTitles.length && !filteredPlaylistTrivia.length ? (
-        <section className="title-games-section">
-          <p className="empty-state">No Arcade matches yet. Try a movie title, challenge theme, or playlist idea.</p>
+        <section className="title-games-section arcade-feature-section">
+          <div className="actor-section-heading">
+            <h2>Playlist trivia</h2>
+            <span>Curated rounds</span>
+          </div>
+          <div className="arcade-challenge-row">
+            {filteredPlaylistTrivia.map((card) => (
+              <article className="challenge-discovery-card" key={card.title}>
+                <img alt="" src={card.image} />
+                <h3>{card.title}</h3>
+                <p>{card.meta}</p>
+                <button className="secondary-button compact" onClick={() => onNavigate(card.path)} type="button">
+                  {card.action}
+                </button>
+              </article>
+            ))}
+          </div>
         </section>
-      ) : null}
 
-      <FriendChallengeHistory onNavigate={onNavigate} />
+        {normalizedArcadeSearch && !filteredChallenges.length && !filteredTriviaTitles.length && !filteredPlaylistTrivia.length ? (
+          <section className="title-games-section">
+            <p className="empty-state">No Arcade matches yet. Try a movie title, challenge theme, or playlist idea.</p>
+          </section>
+        ) : null}
+
+        <FriendChallengeHistory onNavigate={onNavigate} />
+      </div>
     </section>
   );
 }
