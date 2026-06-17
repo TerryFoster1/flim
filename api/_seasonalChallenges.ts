@@ -1492,6 +1492,14 @@ async function safeCount(query: Promise<any[]>) {
   }
 }
 
+async function safe(statement: Promise<unknown>) {
+  try {
+    await statement;
+  } catch {
+    // Non-critical maintenance queries should not block the Arcade feed.
+  }
+}
+
 export async function ensureSeasonalChallengeTables(sql: any) {
   await ensureCollectionChallengeTables(sql);
   await ensureNotificationsTable(sql);
