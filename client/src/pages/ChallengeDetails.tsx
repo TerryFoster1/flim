@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import QRCode from "qrcode";
 import { ShareAssetButton } from "../components/ShareAssetButton";
 import {
   getSeasonalChallengeDetail,
@@ -11,6 +12,11 @@ interface ChallengeDetailsProps {
   slug: string;
   onNavigate: (path: string) => void;
 }
+
+type ChallengePlayState = "setup" | "countdown" | "playing" | "summary";
+
+const CHALLENGE_ROUND_QUESTIONS = 25;
+const CHALLENGE_SECONDS_PER_QUESTION = 20;
 
 function dateRange(startDate: string, endDate: string) {
   const formatter = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", year: "numeric" });
@@ -63,17 +69,32 @@ export function ChallengeDetails({ slug, onNavigate }: ChallengeDetailsProps) {
   const [detail, setDetail] = useState<SeasonalChallengeDetail | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [playState, setPlayState] = useState<ChallengePlayState>("setup");
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [startCountdown, setStartCountdown] = useState(3);
+  const [secondsRemaining, setSecondsRemaining] = useState(CHALLENGE_SECONDS_PER_QUESTION);
+  const [groupUrl, setGroupUrl] = useState("");
+  const [groupQrCode, setGroupQrCode] = useState("");
   const [completed, setCompleted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [actionMessage, setActionMessage] = useState("");
   const [resultCardUrl, setResultCardUrl] = useState("");
-  const score = useMemo(() => scoreTrivia(detail?.questions || [], answers), [detail?.questions, answers]);
-  const allAnswered = Boolean(detail?.questions.length) && detail!.questions.every((question) => answers[question.id]);
+  const playQuestions = useMemo(() => (detail?.questions || []).slice(0, CHALLENGE_ROUND_QUESTIONS), [detail?.questions]);
+  const score = useMemo(() => scoreTrivia(playQuestions, answers), [playQuestions, answers]);
+  const currentQuestion = playQuestions[currentIndex];
+  const answeredCount = playQuestions.filter((question) => answers[question.id]).length;
+  const progressPercent = playQuestions.length ? ((currentIndex + 1) / playQuestions.length) * 100 : 0;
 
   useEffect(() => {
     let active = true;
     setStatus("loading");
     setAnswers({});
+    setPlayState("setup");
+    setCurrentIndex(0);
+    setStartCountdown(3);
+    setSecondsRemaining(CHALLENGE_SECONDS_PER_QUESTION);
+    setGroupUrl("");
+    setGroupQrCode("");
     setCompleted(false);
     setActionMessage("");
     setResultCardUrl("");
@@ -92,6 +113,30 @@ export function ChallengeDetails({ slug, onNavigate }: ChallengeDetailsProps) {
     };
   }, [slug]);
 
+  useEffect(() => {
+    if (playState !== "countdown") return undefined;
+    if (startCountdown <= 0) {
+      setPlayState("playing");
+      setSecondsRemaining(CHALLENGE_SECONDS_PER_QUESTION);
+      setStartCountdown(3);
+      return undefined;
+    }
+    const timer = window.setTimeout(() => setStartCountdown((current) => current - 1), 1000);
+    return () => window.clearTimeout(timer);
+  }, [playState, startCountdown]);
+
+  useEffect(() => {
+    if (playState !== "playing" || completed) return undefined;
+    const timer = window.setTimeout(() => {
+      if (secondsRemaining <= 1) {
+        moveToNextQuestion();
+        return;
+      }
+      setSecondsRemaining((current) => Math.max(0, current - 1));
+    }, 1000);
+    return () => window.clearTimeout(timer);
+  }, [completed, playState, secondsRemaining, currentIndex]);
+
   async function handleJoin() {
     if (!detail) return;
     setActionMessage("");
@@ -104,14 +149,60 @@ export function ChallengeDetails({ slug, onNavigate }: ChallengeDetailsProps) {
     }
   }
 
+  function startChallengeRound() {
+    setAnswers({});
+    setCompleted(false);
+    setResultCardUrl("");
+    setCurrentIndex(0);
+    setSecondsRemaining(CHALLENGE_SECONDS_PER_QUESTION);
+    setStartCountdown(3);
+    setActionMessage("");
+    setPlayState("countdown");
+  }
+
+  function moveToNextQuestion() {
+    if (currentIndex < playQuestions.length - 1) {
+      setCurrentIndex((index) => index + 1);
+      setSecondsRemaining(CHALLENGE_SECONDS_PER_QUESTION);
+      return;
+    }
+    setPlayState("summary");
+    setSecondsRemaining(CHALLENGE_SECONDS_PER_QUESTION);
+  }
+
+  function answerCurrentQuestion(option: string) {
+    if (!currentQuestion || playState !== "playing" || completed) return;
+    setAnswers((current) => ({ ...current, [currentQuestion.id]: option }));
+    window.setTimeout(moveToNextQuestion, 350);
+  }
+
+  async function handleGroupPlay() {
+    if (!detail) return;
+    const token = (window.crypto?.randomUUID?.() || `${detail.event.slug}-${Date.now()}`).replace(/[^a-zA-Z0-9-]/g, "");
+    const url = `${window.location.origin}/challenges/${detail.event.slug}?group=${token}`;
+    setGroupUrl(url);
+    setActionMessage("Group link ready.");
+    try {
+      setGroupQrCode(await QRCode.toDataURL(url, { margin: 1, width: 240, color: { dark: "#101014", light: "#ffffff" } }));
+    } catch {
+      setGroupQrCode("");
+    }
+  }
+
+  async function copyGroupLink() {
+    if (!groupUrl) return;
+    await navigator.clipboard?.writeText(groupUrl).catch(() => undefined);
+    setActionMessage("Group link copied.");
+  }
+
   async function handleSubmit() {
-    if (!detail || !allAnswered) return;
+    if (!detail || !playQuestions.length) return;
     setSubmitting(true);
     setActionMessage("");
     try {
       const result = await submitSeasonalChallengeAttempt({
         eventId: detail.event.id,
-        questionIds: detail.questions.map((question) => question.id),
+        questionIds: playQuestions.map((question) => question.id),
         answers,
       });
       setCompleted(true);
@@ -139,7 +230,7 @@ export function ChallengeDetails({ slug, onNavigate }: ChallengeDetailsProps) {
   }
 
   const { event, questions, standings } = detail;
-  const canPlay = event.dateStatus === "active" && questions.length > 0;
+  const canPlay = event.dateStatus === "active" && playQuestions.length > 0;
 
   return (
     <section className="route-page challenge-detail-page">
@@ -164,6 +255,9 @@ export function ChallengeDetails({ slug, onNavigate }: ChallengeDetailsProps) {
             ) : (
               <span className="challenge-action-status">{event.dateStatus === "active" ? "Challenge joined" : event.dateStatus === "upcoming" ? "Coming soon" : "Challenge ended"}</span>
             )}
+            {event.dateStatus === "active" ? (
+              <button className="secondary-button compact" onClick={handleGroupPlay} type="button">Play as Group</button>
+            ) : null}
             <ShareAssetButton
               className="secondary-button compact"
               label="Share Challenge"
@@ -175,6 +269,16 @@ export function ChallengeDetails({ slug, onNavigate }: ChallengeDetailsProps) {
             />
           </div>
           {actionMessage ? <small>{actionMessage}</small> : null}
+          {groupUrl ? (
+            <div className="group-challenge-share">
+              <div>
+                <strong>Group challenge link</strong>
+                <p>Players can open this link or scan the QR code to join this challenge and submit to the scoreboard.</p>
+                <button className="secondary-button compact" onClick={copyGroupLink} type="button">Copy Group Link</button>
+              </div>
+              {groupQrCode ? <img alt="Group challenge QR code" src={groupQrCode} /> : null}
+            </div>
+          ) : null}
         </div>
       </header>
 
@@ -195,40 +299,61 @@ export function ChallengeDetails({ slug, onNavigate }: ChallengeDetailsProps) {
           ) : (
             <>
               <div className="trivia-score-strip">
-                <strong>{completed ? `${score.score} points` : "Challenge Pack"}</strong>
-                <span>{completed ? `${score.correctCount}/${score.totalCount} correct` : "Answer the same challenge pack as other players."}</span>
+                <strong>{completed ? `${score.score} points` : playState === "playing" ? `Question ${currentIndex + 1} of ${playQuestions.length}` : "Challenge Round"}</strong>
+                <span>{completed ? `${score.correctCount}/${score.totalCount} correct` : playState === "playing" ? `${secondsRemaining}s left` : `${answeredCount}/${playQuestions.length} answered`}</span>
               </div>
-              <div className="classic-trivia-list">
-                {questions.map((question, index) => (
-                  <article className="classic-trivia-question" key={question.id}>
-                    <span>Question {index + 1}</span>
-                    <h3>{question.question}</h3>
-                    <div className="classic-trivia-options">
-                      {question.options.map((option) => {
-                        const selected = answers[question.id] === option;
-                        const isCorrect = completed && option === question.answer;
-                        const isWrong = completed && selected && option !== question.answer;
-                        return (
-                          <button
-                            className={`${selected ? "is-selected" : ""} ${isCorrect ? "is-correct" : ""} ${isWrong ? "is-wrong" : ""}`}
-                            disabled={completed}
-                            key={option}
-                            onClick={() => setAnswers((current) => ({ ...current, [question.id]: option }))}
-                            type="button"
-                          >
-                            {option}
-                          </button>
-                        );
-                      })}
+              {!completed && playState === "setup" ? (
+                <div className="trivia-start-card">
+                  <span>{Math.min(CHALLENGE_ROUND_QUESTIONS, questions.length)} question round</span>
+                  <h3>Start Challenge</h3>
+                  <p>After the countdown, each question has 20 seconds. Miss the clock and that question scores zero.</p>
+                  <button className="primary-button" onClick={startChallengeRound} type="button">Start Challenge</button>
+                </div>
+              ) : null}
+              {!completed && playState === "countdown" ? (
+                <div className="trivia-start-card">
+                  <span>Starting in</span>
+                  <strong>{startCountdown > 0 ? startCountdown : "Go"}</strong>
+                </div>
+              ) : null}
+              {!completed && playState === "playing" && currentQuestion ? (
+                <>
+                  <div className="trivia-progress-track" aria-label={`Question ${currentIndex + 1} of ${playQuestions.length}`}>
+                    <span style={{ width: `${progressPercent}%` }} />
+                  </div>
+                  <article className="classic-trivia-question is-active" key={currentQuestion.id}>
+                    <div className="trivia-question-kicker">
+                      <span>Question {currentIndex + 1} of {playQuestions.length}</span>
+                      <small>{secondsRemaining}s</small>
                     </div>
-                    {completed ? <p>{question.explanation}</p> : null}
+                    <h3>{currentQuestion.question}</h3>
+                    <div className="classic-trivia-options">
+                      {currentQuestion.options.map((option) => (
+                        <button
+                          className={answers[currentQuestion.id] === option ? "is-selected" : ""}
+                          key={option}
+                          onClick={() => answerCurrentQuestion(option)}
+                          type="button"
+                        >
+                          {option}
+                        </button>
+                      ))}
+                    </div>
                   </article>
-                ))}
-              </div>
-              {!completed ? (
-                <button className="primary-button" disabled={!allAnswered || submitting} onClick={handleSubmit} type="button">
-                  {submitting ? "Saving Score..." : "Finish Challenge"}
-                </button>
+                </>
+              ) : null}
+              {!completed && playState === "summary" ? (
+                <div className="trivia-round-summary">
+                  <span>Round complete</span>
+                  <h2>Save your score?</h2>
+                  <p>{score.correctCount}/{score.totalCount} correct. Unanswered questions count as zero.</p>
+                  <div className="share-inline-row">
+                    <button className="secondary-button" onClick={startChallengeRound} type="button">Play Again</button>
+                    <button className="primary-button" disabled={submitting} onClick={handleSubmit} type="button">
+                      {submitting ? "Saving Score..." : "Save Score"}
+                    </button>
+                  </div>
+                </div>
               ) : resultCardUrl ? (
                 <div className={`trivia-completion-card is-${challengeResultState(score.correctCount, score.totalCount)}`}>
                   <div className="trivia-completion-burst" aria-hidden="true">

@@ -23,6 +23,7 @@ interface GameCardDefinition {
 
 type TriviaRoundMode = "casual" | "timed";
 type TriviaLoadStatus = "loading" | "building" | "ready" | "error";
+type TriviaPlayState = "setup" | "countdown" | "playing";
 
 const TRIVIA_PACK_POLL_MS = 5000;
 const TRIVIA_PACK_MAX_POLLS = 36;
@@ -346,6 +347,7 @@ function FeaturedChallengeCard({ event, onNavigate }: { event: SeasonalChallenge
 function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void }) {
   const [notifyMessage, setNotifyMessage] = useState("");
   const [featuredChallenges, setFeaturedChallenges] = useState<SeasonalChallengeEvent[]>([]);
+  const [arcadeSearchQuery, setArcadeSearchQuery] = useState("");
 
   useEffect(() => {
     let mounted = true;
@@ -370,13 +372,39 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
   }, []);
 
   const featuredTrivia = popularTriviaTitles[0];
+  const normalizedArcadeSearch = arcadeSearchQuery.trim().toLowerCase();
+  const filteredTriviaTitles = normalizedArcadeSearch
+    ? popularTriviaTitles.filter((title) => `${title.title} ${title.badge}`.toLowerCase().includes(normalizedArcadeSearch))
+    : popularTriviaTitles;
+  const filteredChallenges = normalizedArcadeSearch
+    ? featuredChallenges.filter((event) => `${event.name} ${event.description} ${event.badge} ${event.banner || ""}`.toLowerCase().includes(normalizedArcadeSearch))
+    : featuredChallenges;
+  const filteredPlaylistTrivia = normalizedArcadeSearch
+    ? playlistTriviaCards.filter((card) => `${card.title} ${card.meta}`.toLowerCase().includes(normalizedArcadeSearch))
+    : playlistTriviaCards;
 
   return (
     <section className="route-page trivia-games-page arcade-preview-page">
       <header className="arcade-preview-hero">
         <div className="arcade-hero-copy">
           <span>Flim Arcade</span>
-          <h1>Movie trivia, ready to play.</h1>
+          <img className="arcade-hero-image" alt="Flim Arcade movie trivia artwork" src="/arcade/flim-arcade-hero.svg" />
+          <h1 className="sr-only">Trivia and Games</h1>
+          <form className="arcade-search-form" onSubmit={(event) => event.preventDefault()}>
+            <label className="sr-only" htmlFor="arcade-search">Search Trivia and Games</label>
+            <input
+              id="arcade-search"
+              onChange={(event) => setArcadeSearchQuery(event.target.value)}
+              placeholder="Search Trivia and Games"
+              type="search"
+              value={arcadeSearchQuery}
+            />
+            {arcadeSearchQuery ? (
+              <button aria-label="Clear Arcade search" className="secondary-button compact" onClick={() => setArcadeSearchQuery("")} type="button">
+                Clear
+              </button>
+            ) : null}
+          </form>
           <div className="arcade-hero-actions">
             <button className="primary-button" onClick={() => onNavigate(`/games/title/${featuredTrivia.mediaType}/${featuredTrivia.tmdbId}`)} type="button">
               Play Now
@@ -397,14 +425,14 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
         </article>
       </header>
 
-      {featuredChallenges.length > 0 ? (
+      {filteredChallenges.length > 0 ? (
         <section className="title-games-section arcade-live-section">
           <div className="actor-section-heading">
             <h2>Featured challenges</h2>
             <span>Play now</span>
           </div>
           <div className="arcade-live-grid">
-            {featuredChallenges.map((event) => (
+            {filteredChallenges.map((event) => (
               <FeaturedChallengeCard event={event} key={event.id} onNavigate={onNavigate} />
             ))}
           </div>
@@ -417,7 +445,7 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
           <span>Movie rounds</span>
         </div>
         <div className="arcade-movie-row">
-          {popularTriviaTitles.map((title) => (
+          {filteredTriviaTitles.map((title) => (
             <article className="arcade-trivia-card" key={`${title.mediaType}-${title.tmdbId}`}>
               <img alt="" src={`/api/og/title/${title.mediaType}/${title.tmdbId}?card=game`} />
               <span>{title.badge}</span>
@@ -441,7 +469,7 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
           <span>Curated rounds</span>
         </div>
         <div className="arcade-challenge-row">
-          {playlistTriviaCards.map((card) => (
+          {filteredPlaylistTrivia.map((card) => (
             <article className="challenge-discovery-card" key={card.title}>
               <img alt="" src={card.image} />
               <h3>{card.title}</h3>
@@ -453,6 +481,12 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
           ))}
         </div>
       </section>
+
+      {normalizedArcadeSearch && !filteredChallenges.length && !filteredTriviaTitles.length && !filteredPlaylistTrivia.length ? (
+        <section className="title-games-section">
+          <p className="empty-state">No Arcade matches yet. Try a movie title, challenge theme, or playlist idea.</p>
+        </section>
+      ) : null}
 
       <FriendChallengeHistory onNavigate={onNavigate} />
     </section>
@@ -473,6 +507,8 @@ function ClassicTriviaPanel({ mediaType, tmdbId, title, artworkUrl, gameTitle = 
   const [reviewingSkipped, setReviewingSkipped] = useState(false);
   const [showSubmitChoice, setShowSubmitChoice] = useState(false);
   const [secondsRemaining, setSecondsRemaining] = useState<number | null>(null);
+  const [playState, setPlayState] = useState<TriviaPlayState>("setup");
+  const [startCountdown, setStartCountdown] = useState(3);
   const [challengeUrl, setChallengeUrl] = useState("");
   const [challengeToken, setChallengeToken] = useState("");
   const [challengeStatus, setChallengeStatus] = useState("");
@@ -499,6 +535,8 @@ function ClassicTriviaPanel({ mediaType, tmdbId, title, artworkUrl, gameTitle = 
     setReviewingSkipped(false);
     setShowSubmitChoice(false);
     setSecondsRemaining(null);
+    setPlayState("setup");
+    setStartCountdown(3);
     setChallengeUrl("");
     setChallengeToken("");
     setChallengeStatus("");
@@ -568,12 +606,16 @@ function ClassicTriviaPanel({ mediaType, tmdbId, title, artworkUrl, gameTitle = 
       setSecondsRemaining(null);
       return;
     }
+    if (playState !== "playing") {
+      setSecondsRemaining(null);
+      return;
+    }
     const seconds = triviaModeConfig[mode].secondsPerQuestion;
     setSecondsRemaining(seconds || null);
-  }, [completed, currentIndex, mode, reviewingSkipped, showSubmitChoice]);
+  }, [completed, currentIndex, mode, playState, reviewingSkipped, showSubmitChoice]);
 
   useEffect(() => {
-    if (!secondsRemaining || completed || showSubmitChoice || status !== "ready") return undefined;
+    if (!secondsRemaining || completed || showSubmitChoice || status !== "ready" || playState !== "playing") return undefined;
     const timer = window.setTimeout(() => {
       if (secondsRemaining <= 1) {
         skipCurrentQuestion();
@@ -582,7 +624,20 @@ function ClassicTriviaPanel({ mediaType, tmdbId, title, artworkUrl, gameTitle = 
       setSecondsRemaining((current) => (current ? current - 1 : current));
     }, 1000);
     return () => window.clearTimeout(timer);
-  }, [completed, mode, secondsRemaining, showSubmitChoice, status]);
+  }, [completed, mode, playState, secondsRemaining, showSubmitChoice, status]);
+
+  useEffect(() => {
+    if (playState !== "countdown") return undefined;
+    if (startCountdown <= 0) {
+      setPlayState("playing");
+      setStartCountdown(3);
+      return undefined;
+    }
+    const timer = window.setTimeout(() => {
+      setStartCountdown((current) => current - 1);
+    }, 1000);
+    return () => window.clearTimeout(timer);
+  }, [playState, startCountdown]);
 
   async function handleCreateChallenge() {
     if (!completed || !feed) return;
@@ -652,7 +707,7 @@ function ClassicTriviaPanel({ mediaType, tmdbId, title, artworkUrl, gameTitle = 
   }
 
   function answerCurrentQuestion(option: string) {
-    if (!currentQuestion || completed) return;
+    if (!currentQuestion || completed || playState !== "playing") return;
     setAnswers((current) => ({ ...current, [currentQuestion.id]: option }));
     setSkippedQuestionIds((current) => {
       const next = new Set(current);
@@ -662,9 +717,20 @@ function ClassicTriviaPanel({ mediaType, tmdbId, title, artworkUrl, gameTitle = 
   }
 
   function skipCurrentQuestion() {
-    if (!currentQuestion || completed) return;
+    if (!currentQuestion || completed || playState !== "playing") return;
     setSkippedQuestionIds((current) => new Set(current).add(currentQuestion.id));
     moveToNextQuestion();
+  }
+
+  function startTriviaRound() {
+    setAnswers({});
+    setCompleted(false);
+    setCurrentIndex(0);
+    setSkippedQuestionIds(new Set());
+    setReviewingSkipped(false);
+    setShowSubmitChoice(false);
+    setStartCountdown(3);
+    setPlayState("countdown");
   }
 
   function reviewSkippedQuestions() {
@@ -820,6 +886,38 @@ function ClassicTriviaPanel({ mediaType, tmdbId, title, artworkUrl, gameTitle = 
           <small>Play again or challenge friends from your result screen.</small>
         </div>
       ) : null}
+      {!completed && playState !== "playing" ? (
+        <div className="trivia-start-card">
+          {playState === "countdown" ? (
+            <>
+              <span>Starting in</span>
+              <strong>{startCountdown > 0 ? startCountdown : "Go"}</strong>
+            </>
+          ) : (
+            <>
+              <span>{questions.length} questions ready</span>
+              <h3>Start when you're ready.</h3>
+              <p>{mode === "timed" ? "The 20-second clock starts after the countdown." : "Casual mode has no timer."}</p>
+              <div className="trivia-mode-row" aria-label="Trivia mode">
+                {(Object.keys(triviaModeConfig) as TriviaRoundMode[]).map((modeKey) => (
+                  <button
+                    className={mode === modeKey ? "is-selected" : ""}
+                    key={modeKey}
+                    onClick={() => setMode(modeKey)}
+                    type="button"
+                  >
+                    <strong>{triviaModeConfig[modeKey].label}</strong>
+                    <small>{triviaModeConfig[modeKey].detail}</small>
+                  </button>
+                ))}
+              </div>
+              <button className="primary-button" onClick={startTriviaRound} type="button">
+                Start Trivia
+              </button>
+            </>
+          )}
+        </div>
+      ) : null}
       <div className="trivia-score-strip">
         <strong>{completed ? `${score.score} points` : `Question ${currentIndex + 1} of ${questions.length}`}</strong>
         <span>
@@ -830,7 +928,7 @@ function ClassicTriviaPanel({ mediaType, tmdbId, title, artworkUrl, gameTitle = 
               : `${answeredCount} answered / ${skippedRemaining.length} skipped`}
         </span>
       </div>
-      {!completed ? (
+      {!completed && playState === "playing" ? (
         <>
           <div className="trivia-mode-row" aria-label="Trivia mode">
             {(Object.keys(triviaModeConfig) as TriviaRoundMode[]).map((modeKey) => (
@@ -888,7 +986,7 @@ function ClassicTriviaPanel({ mediaType, tmdbId, title, artworkUrl, gameTitle = 
           ) : null}
         </>
       ) : null}
-      {!completed ? (
+      {!completed && playState === "playing" ? (
         <button className="primary-button" disabled={attemptedCount < questions.length} onClick={() => setShowSubmitChoice(true)} type="button">
           Finish Round
         </button>

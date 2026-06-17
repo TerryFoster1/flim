@@ -1,0 +1,74 @@
+<svg width="1200" height="620" viewBox="0 0 1200 620" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="620" rx="34" fill="#07080D"/>
+  <rect width="1200" height="620" rx="34" fill="url(#bg)"/>
+  <g opacity=".22">
+    <path d="M0 96H1200M0 192H1200M0 288H1200M0 384H1200M0 480H1200" stroke="#FFE1A4"/>
+    <path d="M100 0V620M220 0V620M340 0V620M460 0V620M580 0V620M700 0V620M820 0V620M940 0V620M1060 0V620" stroke="#FF5C7A"/>
+  </g>
+  <g filter="url(#glow)">
+    <path d="M126 503C197 423 298 379 416 369C534 359 620 292 695 220C769 148 884 105 1039 111" stroke="url(#beam)" stroke-width="22" stroke-linecap="round"/>
+  </g>
+  <g transform="translate(105 92)">
+    <rect x="0" y="0" width="230" height="344" rx="22" fill="#131722" stroke="#FFD08A" stroke-opacity=".24" stroke-width="3"/>
+    <rect x="20" y="21" width="190" height="250" rx="15" fill="url(#poster1)"/>
+    <circle cx="71" cy="95" r="38" fill="#FFE3AA" opacity=".9"/>
+    <path d="M44 204C86 152 129 146 184 197V252H44V204Z" fill="#FF4F6D" opacity=".82"/>
+    <rect x="31" y="293" width="168" height="17" rx="8.5" fill="#FFF4D4" opacity=".9"/>
+    <rect x="31" y="320" width="118" height="12" rx="6" fill="#FFB84D" opacity=".74"/>
+  </g>
+  <g transform="translate(419 57) rotate(5 130 190)">
+    <rect x="0" y="0" width="260" height="380" rx="24" fill="#141A25" stroke="#FF6D8D" stroke-opacity=".28" stroke-width="3"/>
+    <rect x="23" y="24" width="214" height="284" rx="17" fill="url(#poster2)"/>
+    <path d="M48 264C70 181 125 136 213 117V308H48V264Z" fill="#1DD4FF" opacity=".74"/>
+    <circle cx="156" cy="112" r="48" fill="#FFE58F" opacity=".92"/>
+    <path d="M69 90L97 42L121 88L172 34L196 95" stroke="#FFF3CF" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" opacity=".9"/>
+    <rect x="35" y="331" width="190" height="18" rx="9" fill="#FFF4D4" opacity=".92"/>
+    <rect x="35" y="357" width="142" height="13" rx="6.5" fill="#FF5C7A" opacity=".84"/>
+  </g>
+  <g transform="translate(759 112) rotate(-7 128 170)">
+    <rect x="0" y="0" width="250" height="360" rx="24" fill="#111722" stroke="#5CE2A8" stroke-opacity=".24" stroke-width="3"/>
+    <rect x="22" y="22" width="206" height="269" rx="17" fill="url(#poster3)"/>
+    <path d="M44 236C77 185 120 160 175 164C205 168 221 187 228 211V291H44V236Z" fill="#7D5CFF" opacity=".78"/>
+    <circle cx="104" cy="127" r="45" fill="#FFF0B3" opacity=".88"/>
+    <circle cx="166" cy="108" r="24" fill="#FFB84D" opacity=".82"/>
+    <rect x="35" y="314" width="180" height="18" rx="9" fill="#FFF4D4" opacity=".92"/>
+    <rect x="35" y="340" width="122" height="13" rx="6.5" fill="#5CE2A8" opacity=".78"/>
+  </g>
+  <g transform="translate(343 452)">
+    <rect x="0" y="0" width="514" height="66" rx="33" fill="#0B0E15" stroke="#FFD08A" stroke-opacity=".28"/>
+    <circle cx="68" cy="33" r="15" fill="#FF4F6D"/>
+    <circle cx="116" cy="33" r="15" fill="#FFB84D"/>
+    <circle cx="164" cy="33" r="15" fill="#5CE2A8"/>
+    <rect x="218" y="22" width="226" height="22" rx="11" fill="#FFF4D4" opacity=".9"/>
+  </g>
+  <defs>
+    <radialGradient id="bg" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(620 272) rotate(90) scale(455 760)">
+      <stop stop-color="#461224"/>
+      <stop offset=".36" stop-color="#211126"/>
+      <stop offset="1" stop-color="#07080D"/>
+    </radialGradient>
+    <linearGradient id="beam" x1="126" y1="503" x2="1039" y2="111" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FF4F6D"/>
+      <stop offset=".48" stop-color="#FFB84D"/>
+      <stop offset="1" stop-color="#5CE2A8"/>
+    </linearGradient>
+    <linearGradient id="poster1" x1="20" y1="21" x2="210" y2="271" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1C4467"/>
+      <stop offset=".56" stop-color="#251244"/>
+      <stop offset="1" stop-color="#090B12"/>
+    </linearGradient>
+    <linearGradient id="poster2" x1="23" y1="24" x2="237" y2="308" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#4A1430"/>
+      <stop offset=".54" stop-color="#1A2451"/>
+      <stop offset="1" stop-color="#07080D"/>
+    </linearGradient>
+    <linearGradient id="poster3" x1="22" y1="22" x2="228" y2="291" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#203E33"/>
+      <stop offset=".54" stop-color="#25204D"/>
+      <stop offset="1" stop-color="#07080D"/>
+    </linearGradient>
+    <filter id="glow" x="84" y="69" width="997" height="476" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="13"/>
+    </filter>
+  </defs>
+</svg>
