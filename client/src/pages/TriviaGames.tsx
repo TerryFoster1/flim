@@ -322,7 +322,11 @@ function FeaturedChallengeCard({ event, onNavigate }: { event: SeasonalChallenge
   const artworkUrl = challengeArtworkUrl(event);
 
   return (
-    <article className={`arcade-featured-challenge is-${event.dateStatus} theme-${themeKey}`}>
+    <button
+      className={`arcade-featured-challenge is-${event.dateStatus} theme-${themeKey}`}
+      onClick={() => onNavigate(`/challenges/${event.slug}`)}
+      type="button"
+    >
       <div className="arcade-challenge-artwork">
         <img alt="" src={artworkUrl} />
         <span>{event.banner || event.badge}</span>
@@ -338,10 +342,7 @@ function FeaturedChallengeCard({ event, onNavigate }: { event: SeasonalChallenge
           <span>{status}</span>
         </div>
       </div>
-      <button className="primary-button compact" onClick={() => onNavigate(`/challenges/${event.slug}`)} type="button">
-        {event.dateStatus === "active" ? "Play Now" : "View Challenge"}
-      </button>
-    </article>
+    </button>
   );
 }
 
@@ -459,7 +460,7 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
           <section className="title-games-section arcade-live-section">
             <div className="actor-section-heading">
               <h2>Featured challenges</h2>
-              <span>Play now</span>
+              <span>Challenge picks</span>
             </div>
             <div className="arcade-live-grid">
               {filteredChallenges.map((event) => (
@@ -476,19 +477,18 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
           </div>
           <div className="arcade-movie-row">
             {filteredTriviaTitles.map((title) => (
-              <article className="arcade-trivia-card" key={`${title.mediaType}-${title.tmdbId}`}>
+              <button
+                aria-label={`Play ${title.title} trivia`}
+                className="arcade-trivia-card"
+                key={`${title.mediaType}-${title.tmdbId}`}
+                onClick={() => onNavigate(`/games/title/${title.mediaType}/${title.tmdbId}`)}
+                type="button"
+              >
                 <img alt="" src={`/api/og/title/${title.mediaType}/${title.tmdbId}?card=game`} />
                 <span>{title.badge}</span>
                 <h3>{title.title}</h3>
                 <p>{title.questionCount} questions</p>
-                <button
-                  className="primary-button compact"
-                  onClick={() => onNavigate(`/games/title/${title.mediaType}/${title.tmdbId}`)}
-                  type="button"
-                >
-                  Play Now
-                </button>
-              </article>
+              </button>
             ))}
           </div>
         </section>
@@ -500,14 +500,17 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
           </div>
           <div className="arcade-challenge-row">
             {filteredPlaylistTrivia.map((card) => (
-              <article className="challenge-discovery-card" key={card.title}>
+              <button
+                aria-label={`${card.action}: ${card.title}`}
+                className="challenge-discovery-card"
+                key={card.title}
+                onClick={() => onNavigate(card.path)}
+                type="button"
+              >
                 <img alt="" src={card.image} />
                 <h3>{card.title}</h3>
                 <p>{card.meta}</p>
-                <button className="secondary-button compact" onClick={() => onNavigate(card.path)} type="button">
-                  {card.action}
-                </button>
-              </article>
+              </button>
             ))}
           </div>
         </section>
