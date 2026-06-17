@@ -6469,6 +6469,14 @@ textarea { min-height: 42px; resize: vertical; }
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 12px;
 }
+.arcade-live-grid {
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  align-items: stretch;
+}
+.arcade-live-grid .arcade-featured-challenge {
+  min-height: 520px;
+  height: 100%;
+}
 .ticket-summary-panel {
   display: grid;
   grid-template-columns: minmax(190px, .7fr) minmax(260px, 1.3fr);
@@ -6640,6 +6648,7 @@ textarea { min-height: 42px; resize: vertical; }
   cursor: pointer;
   display: grid;
   grid-template-columns: 1fr;
+  grid-template-rows: auto 1fr;
   align-items: stretch;
   gap: 13px;
   padding: 0;
@@ -6679,6 +6688,7 @@ textarea { min-height: 42px; resize: vertical; }
   min-width: 0;
   width: 100%;
   aspect-ratio: 16 / 9;
+  min-height: 0;
   overflow: hidden;
   border: 0;
   border-bottom: 1px solid rgba(255,255,255,.12);
@@ -6780,22 +6790,30 @@ textarea { min-height: 42px; resize: vertical; }
 }
 .arcade-featured-challenge > div:not(.arcade-challenge-artwork):not(.arcade-challenge-badge) {
   display: grid;
-  gap: 10px;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 12px;
   min-width: 0;
   padding: 0 20px 20px;
 }
 .arcade-featured-challenge h3 {
+  display: -webkit-box;
+  margin: 0;
   max-width: 100%;
+  overflow: hidden;
   overflow-wrap: anywhere;
-  font-size: clamp(1.35rem, 3vw, 1.85rem);
-  line-height: 1.06;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  color: #fff8e8;
+  font-size: clamp(1.45rem, 2.7vw, 2.2rem);
+  line-height: 1.08;
 }
 .arcade-featured-challenge p {
   display: -webkit-box;
   overflow: hidden;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 4;
   max-width: 100%;
+  min-height: calc(1.5em * 4);
 }
 .arcade-challenge-badge {
   width: 76px;
@@ -8440,6 +8458,21 @@ textarea { min-height: 42px; resize: vertical; }
   color: rgba(255,255,255,.78);
   font-size: .84rem;
   background: rgba(255,255,255,.07);
+}
+.arcade-featured-challenge .challenge-card-meta {
+  align-self: end;
+  align-items: flex-start;
+  min-height: 84px;
+  overflow: hidden;
+}
+.arcade-featured-challenge .challenge-card-meta > * {
+  max-width: 100%;
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.15;
 }
 .group-challenge-share {
   display: grid;
