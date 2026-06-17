@@ -6276,12 +6276,15 @@ textarea { min-height: 42px; resize: vertical; }
 }
 .arcade-featured-challenge {
   display: grid;
-  grid-template-columns: 112px minmax(0, 1fr);
-  align-items: center;
-  gap: 14px;
+  grid-template-columns: 1fr;
+  align-items: stretch;
+  gap: 13px;
+  padding: 0;
+  overflow: hidden;
+  min-height: 0;
 }
 .arcade-featured-challenge .primary-button {
-  grid-column: 1 / -1;
+  margin: 0 20px 20px;
 }
 .arcade-featured-challenge > div:not(.arcade-challenge-artwork):not(.arcade-challenge-badge) > span,
 .arcade-trivia-card > span {
@@ -6294,34 +6297,60 @@ textarea { min-height: 42px; resize: vertical; }
 .arcade-challenge-artwork {
   position: relative;
   min-width: 0;
-  width: 112px;
-  aspect-ratio: 1200 / 630;
+  width: 100%;
+  aspect-ratio: 16 / 9;
   overflow: hidden;
-  border: 1px solid rgba(255,255,255,.14);
-  border-radius: 14px;
+  border: 0;
+  border-bottom: 1px solid rgba(255,255,255,.12);
+  border-radius: 0;
   background: rgba(255,255,255,.06);
-  box-shadow: 0 16px 32px rgba(0,0,0,.26);
+  box-shadow: none;
 }
 .arcade-challenge-artwork img {
   width: 100%;
   height: 100%;
   display: block;
   object-fit: cover;
+  transform: scale(1.04);
+}
+.arcade-challenge-artwork::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(0deg, rgba(8,9,13,.72), rgba(8,9,13,.1) 58%, rgba(8,9,13,.08)),
+    radial-gradient(circle at 16% 12%, rgba(255,184,77,.16), transparent 11rem);
+  pointer-events: none;
 }
 .arcade-challenge-artwork span {
   position: absolute;
-  left: 8px;
-  bottom: 7px;
-  max-width: calc(100% - 16px);
+  z-index: 1;
+  left: 14px;
+  bottom: 12px;
+  max-width: calc(100% - 28px);
   border-radius: 999px;
-  padding: 4px 7px;
-  background: rgba(0,0,0,.58);
+  padding: 7px 10px;
+  background: rgba(0,0,0,.64);
   color: #fff6dc;
-  font-size: .58rem;
+  font-size: .68rem;
   font-weight: 950;
   letter-spacing: .05em;
   line-height: 1;
   text-transform: uppercase;
+}
+.arcade-featured-challenge > div:not(.arcade-challenge-artwork):not(.arcade-challenge-badge) {
+  display: grid;
+  gap: 10px;
+  padding: 0 20px;
+}
+.arcade-featured-challenge h3 {
+  font-size: clamp(1.35rem, 3vw, 1.85rem);
+}
+.arcade-featured-challenge p {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
 }
 .arcade-challenge-badge {
   width: 76px;

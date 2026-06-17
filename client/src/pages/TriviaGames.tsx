@@ -319,11 +319,12 @@ function FeaturedChallengeCard({ event, onNavigate }: { event: SeasonalChallenge
       : "Completed event";
   const questionCount = Number(event.playableQuestionCount || event.questionCount || 0);
   const themeKey = String(event.banner || event.seasonKey || "challenge").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "challenge";
+  const artworkUrl = challengeArtworkUrl(event);
 
   return (
     <article className={`arcade-featured-challenge is-${event.dateStatus} theme-${themeKey}`}>
       <div className="arcade-challenge-artwork">
-        <img alt="" src={`/api/og/seasonal-challenge/${event.slug}`} />
+        <img alt="" src={artworkUrl} />
         <span>{event.banner || event.badge}</span>
       </div>
       <div>
@@ -342,6 +343,20 @@ function FeaturedChallengeCard({ event, onNavigate }: { event: SeasonalChallenge
       </button>
     </article>
   );
+}
+
+function challengeArtworkUrl(event: SeasonalChallengeEvent) {
+  if (event.heroImageUrl) return event.heroImageUrl;
+  const slug = event.slug.toLowerCase();
+  const banner = String(event.banner || event.seasonKey || event.name).toLowerCase();
+  if (slug.includes("time") || banner.includes("time")) return "/api/og/title/movie/105?card=game";
+  if (slug.includes("adventure") || banner.includes("adventure")) return "/api/og/title/movie/85?card=game";
+  if (slug.includes("world") || banner.includes("space") || banner.includes("sci-fi")) return "/api/og/title/movie/11?card=game";
+  if (banner.includes("horror")) return "/api/og/title/movie/348?card=game";
+  if (banner.includes("holiday")) return "/api/og/title/movie/1585?card=game";
+  if (banner.includes("awards")) return "/api/og/title/movie/238?card=game";
+  if (banner.includes("blockbuster")) return "/api/og/title/movie/329?card=game";
+  return `/api/og/seasonal-challenge/${event.slug}`;
 }
 
 function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void }) {
