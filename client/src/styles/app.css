@@ -13401,7 +13401,7 @@ textarea { min-height: 42px; resize: vertical; }
 }
 
 .arcade-preview-page .challenge-card-meta > * + *::before {
-  content: "ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢";
+  content: "ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢";
   margin-right: 8px;
   color: rgba(228, 182, 111, 0.7);
 }
@@ -13678,5 +13678,124 @@ textarea { min-height: 42px; resize: vertical; }
 
   .arcade-preview-page .arcade-mode-tile {
     min-height: 156px;
+  }
+}
+/* Arcade container reset: use the viewport, then add only the intended small gutters. */
+.page-container:has(.arcade-preview-page) {
+  width: 100%;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.page-container:has(.arcade-preview-page) .arcade-preview-page {
+  width: 100%;
+  max-width: none;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.arcade-preview-page .arcade-preview-hero {
+  width: 100%;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.arcade-preview-page .arcade-main-content {
+  width: min(1280px, calc(100% - 32px));
+  max-width: none;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.arcade-preview-page .arcade-search-form {
+  width: min(560px, 100%);
+}
+
+.arcade-preview-page .title-games-section {
+  width: 100%;
+}
+
+.arcade-preview-page .arcade-mode-grid,
+.arcade-preview-page .arcade-collection-row {
+  margin-left: -2px;
+  margin-right: -2px;
+  padding-left: 2px;
+  padding-right: 2px;
+}
+
+.arcade-preview-page .arcade-mode-grid {
+  grid-auto-columns: clamp(162px, 18vw, 190px);
+}
+
+.arcade-preview-page .arcade-collection-row {
+  grid-auto-columns: clamp(190px, 22vw, 240px);
+}
+
+.arcade-preview-page .arcade-dashboard-row,
+.arcade-preview-page .arcade-progress-grid {
+  width: 100%;
+}
+
+@media (max-width: 760px) {
+  .page-container:has(.arcade-preview-page) {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .arcade-preview-page .arcade-preview-hero {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .arcade-preview-page .arcade-hero-copy {
+    width: min(100%, 360px);
+  }
+
+  .arcade-preview-page .arcade-search-form {
+    width: 100%;
+  }
+
+  .arcade-preview-page .arcade-main-content {
+    width: calc(100% - 32px);
+    margin-left: 16px;
+    margin-right: 16px;
+  }
+
+  .arcade-preview-page .title-games-section {
+    padding: 14px;
+  }
+
+  .arcade-preview-page .arcade-weekly-section {
+    padding: 0;
+  }
+
+  .arcade-preview-page .arcade-weekly-section > .arcade-featured-challenge {
+    border-radius: 22px;
+  }
+
+  .arcade-preview-page .arcade-mode-grid {
+    grid-auto-columns: minmax(158px, 46vw);
+    gap: 12px;
+  }
+
+  .arcade-preview-page .arcade-mode-tile {
+    min-height: 166px;
+  }
+
+  .arcade-preview-page .arcade-collection-row {
+    grid-auto-columns: minmax(188px, 58vw);
+    gap: 12px;
+  }
+
+  .arcade-preview-page .arcade-collection-card {
+    min-height: 190px;
+  }
+
+  .arcade-preview-page .arcade-dashboard-row {
+    grid-template-columns: 1fr;
+  }
+
+  .arcade-preview-page .arcade-progress-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
