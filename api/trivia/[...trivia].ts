@@ -502,6 +502,43 @@ function isSynopsisComprehensionQuestion(question: string) {
   return weakPatterns.some((pattern) => normalized.includes(pattern));
 }
 
+function generatedDifficultyRank(value: unknown) {
+  const difficulty = String(value || "").toLowerCase();
+  if (difficulty === "hard") return 0;
+  if (difficulty === "medium") return 1;
+  return 2;
+}
+
+function mixGeneratedTriviaQuestions(questions: OpenAITriviaQuestion[], expected: { title: string; tmdbId: number; mediaType: MediaType }, questionCount: number) {
+  const seed = `${expected.mediaType}:${expected.tmdbId}:${expected.title}`;
+  const grouped = new Map<string, OpenAITriviaQuestion[]>();
+  for (const question of questions) {
+    const key = String(question.category || question.difficulty || "story").toLowerCase();
+    grouped.set(key, [...(grouped.get(key) || []), question]);
+  }
+  const buckets = Array.from(grouped.entries())
+    .map(([category, bucket]) => ({
+      category,
+      sort: hashSource({ seed, category }),
+      bucket: [...bucket].sort((left, right) => {
+        const rankDelta = generatedDifficultyRank(left.difficulty) - generatedDifficultyRank(right.difficulty);
+        if (rankDelta !== 0) return rankDelta;
+        return hashSource({ seed, question: left.question }).localeCompare(hashSource({ seed, question: right.question }));
+      }),
+    }))
+    .sort((left, right) => left.sort.localeCompare(right.sort));
+
+  const mixed: OpenAITriviaQuestion[] = [];
+  while (mixed.length < questionCount && buckets.some((bucket) => bucket.bucket.length > 0)) {
+    for (const bucket of buckets) {
+      const next = bucket.bucket.shift();
+      if (next) mixed.push(next);
+      if (mixed.length >= questionCount) break;
+    }
+  }
+  return mixed;
+}
+
 function validateGeneratedTriviaPack(payload: any, expected: { tmdbId: number; mediaType: MediaType; title: string; spoilerMode: boolean; questionCount: number }) {
   if (!payload || typeof payload !== "object") throw new Error("Trivia generation returned an empty payload.");
   if (normalizeMediaType(payload.mediaType) !== expected.mediaType) throw new Error("Trivia generation returned the wrong media type.");
@@ -527,11 +564,13 @@ function validateGeneratedTriviaPack(payload: any, expected: { tmdbId: number; m
     });
 
   if (questions.length < TRIVIA_MIN_READY_COUNT) throw new Error(`OpenAI returned only ${questions.length} valid trivia questions.`);
-  const selected = questions.slice(0, Math.min(expected.questionCount, questions.length));
+  const selected = mixGeneratedTriviaQuestions(questions, expected, Math.min(expected.questionCount, questions.length));
   const metadataRatio = selected.filter((question) => isMetadataStyleQuestion(question.question)).length / selected.length;
   if (metadataRatio > 0.4) throw new Error("Trivia pack used too many metadata-style questions.");
   const maxCategoryCount = Math.max(0, ...Array.from(categoryCounts.values()));
   if (maxCategoryCount / selected.length > 0.65) throw new Error("Trivia pack repeated one category too often.");
+  const easyRatio = selected.filter((question) => question.difficulty === "easy").length / selected.length;
+  if (easyRatio > 0.35) throw new Error("Trivia pack used too many easy questions.");
 
   return {
     title: cleanTriviaSentence(payload.title || expected.title),

@@ -66,7 +66,8 @@ Title metadata:
 
 Generation rules:
 - Generate ${candidateCount} candidate questions so the server can keep the best ${questionCount}.
-- Use approximately 30% easy, 50% medium, and 20% hard.
+- Use approximately 10% easy, 55% medium, and 35% hard.
+- The first 10 questions must include multiple categories and should lean medium/hard so the pack feels like a real movie-fan challenge immediately.
 - Use varied categories such as story, characters, scenes, quotes, locations, production, lore, franchise, soundtrack, awards, continuity, or behind-the-scenes.
 - Every question must have exactly four choices.
 - Exactly one choice must match correctAnswer exactly.
@@ -78,10 +79,11 @@ Generation rules:
 - Avoid lazy metadata questions.
 - Avoid overusing release year, runtime, budget, director, or actor-character lookup questions.
 - Avoid synopsis-comprehension questions such as "what kind of viewing experience" or "which description best matches the premise."
+- Avoid questions that can be answered from the supplied overview alone.
+- Avoid asking five questions in a row about the same character, scene, title beat, or category.
 - Trivia must reward knowledge of the movie/show, not merely reading the overview.
 - ${spoilerMode ? "Spoilers are allowed when they make the trivia better." : "Avoid spoilers. Set spoiler to false unless a minor spoiler is unavoidable."}
 - If the title is part of a franchise, sequel series, reboot, or TV series, include the title/season context inside the question so it stands alone.
 
 Return valid JSON only.`;
 }
-
