@@ -328,6 +328,13 @@ function FriendChallengeHistory({ onNavigate }: { onNavigate: (path: string) => 
   );
 }
 
+function challengeTypeLabel(type?: string) {
+  if (type === "weekly") return "Weekly challenge";
+  if (type === "monthly") return "Monthly challenge";
+  if (type === "special_event") return "Challenge";
+  return "Seasonal challenge";
+}
+
 function FeaturedChallengeCard({ event, onNavigate }: { event: SeasonalChallengeEvent; onNavigate: (path: string) => void }) {
   const questionCount = Number(event.playableQuestionCount || event.questionCount || 0);
   const status = event.windowEndAt
@@ -338,8 +345,8 @@ function FeaturedChallengeCard({ event, onNavigate }: { event: SeasonalChallenge
       ? "Scheduled event"
       : "Completed event";
   const themeKey = String(event.banner || event.seasonKey || "challenge").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "challenge";
-  const artworkUrl = challengeArtworkUrl(event);
   const artworkTheme = challengeArtworkTheme(event);
+  const artworkUrl = challengeArtworkUrl(event);
 
   return (
     <button
@@ -357,6 +364,7 @@ function FeaturedChallengeCard({ event, onNavigate }: { event: SeasonalChallenge
         />
       </div>
       <div>
+        <span>{event.isWeeklyFeatured ? "Weekly challenge" : challengeTypeLabel(event.challengeType)}</span>
         <h3>{event.name}</h3>
         <p>{event.description}</p>
         <div className="challenge-card-meta">
@@ -641,7 +649,7 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
   const modeTiles = [
     {
       title: "Movie Trivia",
-      subtitle: "Title packs and fan challenges",
+      subtitle: "Deeper title rounds",
       icon: "film",
       action: () => onNavigate("/games/title/movie/105"),
     },
@@ -653,7 +661,7 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
     },
     {
       title: "Disney Challenge",
-      subtitle: "Animation classics",
+      subtitle: "Animation gauntlet",
       icon: "poster",
       action: () => onNavigate(`/challenges/${disneyChallenge?.slug || "ultimate-disney-animation-challenge"}`),
     },
@@ -671,7 +679,7 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
     } : null,
     groupChallenge ? {
       title: "Group Play",
-      subtitle: "Host movie night",
+      subtitle: "Host a room",
       icon: "group",
       action: () => onNavigate(`/challenges/${groupChallenge.slug}`),
     } : null,
@@ -727,7 +735,7 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
         {featuredWeeklyChallenge ? (
           <section className="title-games-section arcade-live-section arcade-weekly-section">
             <div className="actor-section-heading">
-              <h2>This week&apos;s challenge</h2>
+              <h2>Featured challenge</h2>
             </div>
             <FeaturedChallengeCard event={featuredWeeklyChallenge} onNavigate={onNavigate} />
           </section>

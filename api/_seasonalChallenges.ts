@@ -1416,6 +1416,59 @@ function dateOnly(value: unknown) {
   return Number.isFinite(date.getTime()) ? date.toISOString().slice(0, 10) : raw.slice(0, 10);
 }
 
+function challengeHash(value: string) {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+function seededSortValue(seed: string, value: string) {
+  return challengeHash(`${seed}:${value}`);
+}
+
+function challengeDifficultyRank(value: unknown) {
+  const difficulty = String(value || "").toLowerCase();
+  if (difficulty === "expert") return 0;
+  if (difficulty === "hard") return 1;
+  if (difficulty === "medium") return 2;
+  return 3;
+}
+
+function mixChallengeQuestions(questions: any[], event: any, limitCount: number) {
+  const seed = String(event.active_challenge_week_id || event.slug || event.id || "challenge");
+  const grouped = new Map<string, any[]>();
+  for (const question of questions) {
+    const key = `${question.mediaType || question.media_type || "movie"}:${question.tmdbId || question.tmdb_id || question.title || question.question}`;
+    grouped.set(key, [...(grouped.get(key) || []), question]);
+  }
+
+  const buckets = Array.from(grouped.entries())
+    .map(([key, bucket]) => ({
+      key,
+      bucket: [...bucket].sort((left, right) => {
+        const difficultyDelta = challengeDifficultyRank(left.difficulty) - challengeDifficultyRank(right.difficulty);
+        if (difficultyDelta !== 0) return difficultyDelta;
+        return seededSortValue(seed, String(left.id || left.question)) - seededSortValue(seed, String(right.id || right.question));
+      }),
+      sort: seededSortValue(seed, key),
+    }))
+    .sort((left, right) => left.sort - right.sort);
+
+  const mixed: any[] = [];
+  while (mixed.length < limitCount && buckets.some((bucket) => bucket.bucket.length > 0)) {
+    for (const bucket of buckets) {
+      const next = bucket.bucket.shift();
+      if (next) mixed.push(next);
+      if (mixed.length >= limitCount) break;
+    }
+  }
+
+  return mixed;
+}
+
 function todayStatus(startDate: unknown, endDate: unknown): SeasonalStatus {
   const now = new Date();
   const start = new Date(`${dateOnly(startDate)}T00:00:00Z`);
@@ -2369,15 +2422,15 @@ export async function challengeQuestions(sql: any, event: any) {
     if (!key || seen.has(key)) continue;
     seen.add(key);
     questions.push(mapChallengeQuestion(row));
-    if (questions.length >= limitCount) return questions;
+    if (questions.length >= limitCount) return mixChallengeQuestions(questions, event, limitCount);
   }
 
   const configuredTargets = normalizeTargetMedia(event.target_media);
   const targets = configuredTargets.length ? configuredTargets : fallbackChallengeTargets[event.season_key || "general"] || [];
-  if (targets.length === 0) return questions;
+  if (targets.length === 0) return mixChallengeQuestions(questions, event, limitCount);
   const targetRows = targets.map((target) => ({ media_type: target.mediaType, tmdb_id: target.tmdbId }));
   const remainingCount = Math.max(0, limitCount - questions.length);
-  if (remainingCount === 0) return questions;
+  if (remainingCount === 0) return mixChallengeQuestions(questions, event, limitCount);
   const rows = await sql`
     select tt.id, tt.tmdb_id, tt.media_type, tt.question, tt.answer, tt.options, tt.explanation, tt.difficulty, tt.spoiler_level, tt.confidence, tt.created_at
     from title_trivia tt
@@ -2399,7 +2452,7 @@ export async function challengeQuestions(sql: any, event: any) {
     questions.push(mapChallengeQuestion(row));
     if (questions.length >= limitCount) break;
   }
-  return questions;
+  return mixChallengeQuestions(questions, event, limitCount);
 }
 
 async function challengeStandings(sql: any, eventId: string, userId?: string, challengeWeekId?: string) {
