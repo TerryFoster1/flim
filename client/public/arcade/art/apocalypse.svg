@@ -1,0 +1,10 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" role="img" aria-label="Apocalypse Arcade artwork">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#28120b"/><stop offset="1" stop-color="#090b10"/></linearGradient>
+    <radialGradient id="glow" cx="70%" cy="20%" r="70%"><stop offset="0" stop-color="#f5c879" stop-opacity=".38"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="800" height="450" fill="url(#bg)"/>
+  <rect width="800" height="450" fill="url(#glow)"/>
+  <g opacity=".16" stroke="#f1c878" stroke-width="2"> <path d="M60 72h680M60 378h680M96 40v370M704 40v370"/> </g>
+  <g filter="drop-shadow(0 28px 30px rgba(0,0,0,.45))"><path d="M220 326h360v42H220z" fill="#342820"/><path d="M252 326V210h62v116M348 326V154h72v172M456 326V230h54v96M538 326V184h66v142" fill="#8b5d38"/><circle cx="548" cy="92" r="48" fill="#e27b45"/></g>
+</svg>

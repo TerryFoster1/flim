@@ -97,17 +97,17 @@ const playlistTriviaCards = [
 ];
 
 const arcadeCollectionFallbacks = [
-  { title: "Time Travel", query: "time", theme: "time", countLabel: "18 challenges" },
-  { title: "Sci-Fi", query: "space", theme: "space", countLabel: "24 challenges" },
-  { title: "Adventure", query: "adventure", theme: "adventure", countLabel: "22 challenges" },
-  { title: "Animation", query: "animation", theme: "animation", countLabel: "20 challenges" },
-  { title: "Horror", query: "horror", theme: "horror", countLabel: "16 challenges" },
-  { title: "Action", query: "action", theme: "hero", countLabel: "19 challenges" },
-  { title: "Zombie", query: "zombie", theme: "apocalypse", countLabel: "10 challenges" },
-  { title: "Apocalypse", query: "apocalypse", theme: "apocalypse", countLabel: "12 challenges" },
-  { title: "Alien", query: "alien", theme: "space", countLabel: "14 challenges" },
-  { title: "Tom Cruise", query: "tom cruise mission", theme: "cinema", countLabel: "15 packs" },
-  { title: "Arnold Schwarzenegger", query: "arnold terminator action", theme: "hero", countLabel: "13 packs" },
+  { title: "Time Travel", query: "time", theme: "time", countLabel: "18 challenges", image: "/arcade/art/time-travel.svg" },
+  { title: "Sci-Fi", query: "space", theme: "space", countLabel: "24 challenges", image: "/arcade/art/sci-fi.svg" },
+  { title: "Adventure", query: "adventure", theme: "adventure", countLabel: "22 challenges", image: "/arcade/art/adventure.svg" },
+  { title: "Animation", query: "animation", theme: "animation", countLabel: "20 challenges", image: "/arcade/art/animation.svg" },
+  { title: "Horror", query: "horror", theme: "horror", countLabel: "16 challenges", image: "/arcade/art/horror.svg" },
+  { title: "Action", query: "action", theme: "hero", countLabel: "19 challenges", image: "/arcade/art/action.svg" },
+  { title: "Zombie", query: "zombie", theme: "zombie", countLabel: "10 challenges", image: "/arcade/art/zombie.svg" },
+  { title: "Apocalypse", query: "apocalypse", theme: "apocalypse", countLabel: "12 challenges", image: "/arcade/art/apocalypse.svg" },
+  { title: "Alien", query: "alien", theme: "alien", countLabel: "14 challenges", image: "/arcade/art/alien.svg" },
+  { title: "Tom Cruise", query: "tom cruise mission", theme: "cinema", countLabel: "15 packs", image: "/arcade/art/tom-cruise.svg" },
+  { title: "Arnold Schwarzenegger", query: "arnold terminator action", theme: "hero", countLabel: "13 packs", image: "/arcade/art/arnold.svg" },
 ];
 
 function challengeMatches(event: SeasonalChallengeEvent, keyword: string) {
@@ -356,7 +356,7 @@ function FeaturedChallengeCard({ event, onNavigate }: { event: SeasonalChallenge
       type="button"
     >
       <div className="arcade-challenge-artwork" data-art-theme={artworkTheme}>
-        <span aria-hidden="true" />
+        <img alt="" src={challengeDisplayArtworkUrl(event)} loading="lazy" decoding="async" />
       </div>
       <div>
         <h3>{event.name}</h3>
@@ -368,7 +368,7 @@ function FeaturedChallengeCard({ event, onNavigate }: { event: SeasonalChallenge
           <span>{status}</span>
         </div>
       </div>
-      <span className="arcade-card-chevron" aria-hidden="true">›</span>
+      <span className="arcade-card-chevron" aria-hidden="true">Ã¢â‚¬Âº</span>
     </button>
   );
 }
@@ -388,6 +388,29 @@ function challengeArtworkTheme(event: SeasonalChallengeEvent) {
   return "cinema";
 }
 
+function arcadeArtUrl(theme: string) {
+  const artMap: Record<string, string> = {
+    time: "/arcade/art/time-travel.svg",
+    space: "/arcade/art/sci-fi.svg",
+    adventure: "/arcade/art/adventure.svg",
+    animation: "/arcade/art/animation.svg",
+    horror: "/arcade/art/horror.svg",
+    apocalypse: "/arcade/art/apocalypse.svg",
+    zombie: "/arcade/art/zombie.svg",
+    alien: "/arcade/art/alien.svg",
+    quote: "/arcade/art/quote.svg",
+    jurassic: "/arcade/art/adventure.svg",
+    holiday: "/arcade/art/animation.svg",
+    hero: "/arcade/art/action.svg",
+    cinema: "/arcade/art/cinema.svg",
+  };
+  return artMap[theme] || artMap.cinema;
+}
+
+function challengeDisplayArtworkUrl(event: SeasonalChallengeEvent) {
+  if (event.heroImageUrl) return event.heroImageUrl;
+  return arcadeArtUrl(challengeArtworkTheme(event));
+}
 function challengeArtworkUrl(event: SeasonalChallengeEvent) {
   if (event.heroImageUrl) return event.heroImageUrl;
   const text = `${event.slug} ${event.name} ${event.banner || ""} ${event.seasonKey || ""}`.toLowerCase();
@@ -620,8 +643,6 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
   const quoteChallenge = featuredChallenges.find((event) => challengeMatches(event, "quote"));
   const disneyChallenge = featuredChallenges.find((event) => challengeMatches(event, "disney") || challengeMatches(event, "animation"));
   const posterChallenge = featuredChallenges.find((event) => challengeMatches(event, "poster"));
-  const timelineChallenge = featuredChallenges.find((event) => challengeMatches(event, "timeline"));
-  const timeTravelChallenge = featuredChallenges.find((event) => challengeMatches(event, "time"));
   const groupChallenge = featuredWeeklyChallenge || featuredChallenges.find((event) => Number(event.playableQuestionCount || 0) >= 50) || null;
   const visibleChallengePool = filteredChallenges
     .filter((event) => Number(event.playableQuestionCount || event.questionCount || 0) >= 50)
@@ -655,12 +676,6 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
       icon: "poster",
       action: () => onNavigate(`/challenges/${posterChallenge?.slug || disneyChallenge?.slug || featuredWeeklyChallenge?.slug || "ultimate-disney-animation-challenge"}`),
     },
-    {
-      title: "Timeline Challenge",
-      subtitle: "Put stories in order",
-      icon: "clock",
-      action: () => onNavigate(`/challenges/${timelineChallenge?.slug || timeTravelChallenge?.slug || featuredWeeklyChallenge?.slug || "time-travel-challenge"}`),
-    },
     groupChallenge ? {
       title: "Group Play",
       subtitle: "Play with friends",
@@ -668,9 +683,15 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
       action: () => onNavigate(`/challenges/${groupChallenge.slug}`),
     } : null,
     {
+      title: "Leaderboards",
+      subtitle: "See who's on top",
+      icon: "trophy",
+      action: () => setScoreboardOpen(true),
+    },
+    {
       title: "Rewards",
       subtitle: "Tickets and badges",
-      icon: "trophy",
+      icon: "ticket",
       action: () => setScoreboardOpen(true),
     },
   ].filter(Boolean) as Array<{ title: string; subtitle: string; icon: string; action: () => void }>;
@@ -683,7 +704,7 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
         count: matched ? Number(matched.playableQuestionCount || matched.questionCount || 0) : 0,
       };
     })
-    .filter((collection) => collection.event && collection.count > 0)
+    .filter((collection) => !normalizedArcadeSearch || collection.title.toLowerCase().includes(normalizedArcadeSearch) || collection.query.includes(normalizedArcadeSearch) || Boolean(collection.event))
     .slice(0, 11);
   const topScores = weeklyDetail?.standings.topScores.slice(0, 3) || [];
   const progressBadgeCount = weeklyDetail?.standings.personalBest ? 1 : 0;
@@ -710,9 +731,6 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
               </button>
             ) : null}
           </form>
-          <button className="arcade-scoreboard-tab" onClick={() => setScoreboardOpen(true)} type="button">
-            Scoreboard
-          </button>
         </div>
       </header>
 
@@ -753,10 +771,10 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
                 <button
                   className={`arcade-collection-card artwork-${collection.theme}`}
                   key={collection.title}
-                  onClick={() => collection.event ? onNavigate(`/challenges/${collection.event.slug}`) : undefined}
+                  onClick={() => collection.event ? onNavigate(`/challenges/${collection.event.slug}`) : setArcadeSearchQuery(collection.query)}
                   type="button"
                 >
-                  <span aria-hidden="true" className="arcade-collection-art" data-art-theme={collection.theme} />
+                  <img alt="" src={collection.image} loading="lazy" decoding="async" />
                   <span>{collection.title}</span>
                   <small>{collection.countLabel || `${collection.count} questions`}</small>
                 </button>

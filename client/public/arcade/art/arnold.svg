@@ -1,0 +1,10 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" role="img" aria-label="Arnold Arcade artwork">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#22100b"/><stop offset="1" stop-color="#101821"/></linearGradient>
+    <radialGradient id="glow" cx="70%" cy="20%" r="70%"><stop offset="0" stop-color="#f5c879" stop-opacity=".38"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="800" height="450" fill="url(#bg)"/>
+  <rect width="800" height="450" fill="url(#glow)"/>
+  <g opacity=".16" stroke="#f1c878" stroke-width="2"> <path d="M60 72h680M60 378h680M96 40v370M704 40v370"/> </g>
+  <g filter="drop-shadow(0 28px 30px rgba(0,0,0,.45))"><path d="M400 100l142 58v102c0 95-60 160-142 190-82-30-142-95-142-190V158l142-58Z" fill="#c48b43"/><path d="M334 310h132M350 244h100" stroke="#1b1110" stroke-width="19" stroke-linecap="round"/></g>
+</svg>

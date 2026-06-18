@@ -1,0 +1,10 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" role="img" aria-label="Alien Arcade artwork">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#061a1c"/><stop offset="1" stop-color="#160b25"/></linearGradient>
+    <radialGradient id="glow" cx="70%" cy="20%" r="70%"><stop offset="0" stop-color="#f5c879" stop-opacity=".38"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="800" height="450" fill="url(#bg)"/>
+  <rect width="800" height="450" fill="url(#glow)"/>
+  <g opacity=".16" stroke="#f1c878" stroke-width="2"> <path d="M60 72h680M60 378h680M96 40v370M704 40v370"/> </g>
+  <g filter="drop-shadow(0 28px 30px rgba(0,0,0,.45))"><ellipse cx="400" cy="214" rx="180" ry="48" fill="#d2b46e"/><ellipse cx="400" cy="190" rx="82" ry="58" fill="#6fbac2"/><path d="M326 260l-70 96M474 260l70 96" stroke="#75d7d0" stroke-width="10" stroke-linecap="round"/><circle cx="330" cy="216" r="9" fill="#fff2bf"/><circle cx="400" cy="222" r="9" fill="#fff2bf"/><circle cx="470" cy="216" r="9" fill="#fff2bf"/></g>
+</svg>
