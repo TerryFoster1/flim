@@ -649,22 +649,28 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
   const modeTiles = [
     {
       title: "Movie Trivia",
-      subtitle: "Deeper title rounds",
+      subtitle: "Title-specific movie rounds",
       icon: "film",
       action: () => onNavigate("/games/title/movie/105"),
     },
     {
       title: "Quote Challenge",
-      subtitle: "Match famous lines",
+      subtitle: "Match the quote to the movie",
       icon: "quote",
       action: () => onNavigate(`/challenges/${quoteChallenge?.slug || "movie-quote-challenge"}`),
     },
     {
       title: "Disney Challenge",
-      subtitle: "Animation gauntlet",
+      subtitle: "Animated classics gauntlet",
       icon: "poster",
       action: () => onNavigate(`/challenges/${disneyChallenge?.slug || "ultimate-disney-animation-challenge"}`),
     },
+    groupChallenge ? {
+      title: "Group Play",
+      subtitle: "Host a movie-night room",
+      icon: "group",
+      action: () => onNavigate(`/challenges/${groupChallenge.slug}`),
+    } : null,
     posterChallenge ? {
       title: "Poster Guess",
       subtitle: "Recognize the artwork",
@@ -676,12 +682,6 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
       subtitle: "Put movies in order",
       icon: "clock",
       action: () => onNavigate(`/challenges/${timelineChallenge.slug}`),
-    } : null,
-    groupChallenge ? {
-      title: "Group Play",
-      subtitle: "Host a room",
-      icon: "group",
-      action: () => onNavigate(`/challenges/${groupChallenge.slug}`),
     } : null,
     {
       title: "Leaderboards",

@@ -203,7 +203,7 @@ const defaultEvents = [
     challengeType: "special_event",
     isFeatured: true,
     questionCount: 50,
-    difficulty: "easy",
+    difficulty: "medium",
     points: 250,
     requirements: [
       { type: "trivia_completed", label: "Complete the Movie Quote Challenge", target: 50 },
@@ -1388,14 +1388,14 @@ addEvergreenPackQuestions([
   ["Get away from her, you...", "Aliens", 679, ["Alien", "Predator", "The Thing"]],
   ["We came, we saw...", "Ghostbusters", 620, ["Beetlejuice", "Gremlins", "Men in Black"]],
   ["That'll do, pig.", "Babe", 9598, ["Charlotte's Web", "Chicken Run", "Free Willy"]],
-].forEach(([quote, title, tmdbId, wrong]) => {
+].forEach(([quote, title, tmdbId, wrong], index) => {
   evergreenChallengeQuestions.push(
     q(
       "movie-quote-challenge",
       String(title),
       Number(tmdbId),
       "quote",
-      "easy",
+      index % 3 === 0 ? "hard" : "medium",
       `Which movie features the quote, "${quote}"?`,
       String(title),
       wrong as string[],

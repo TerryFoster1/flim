@@ -6933,17 +6933,23 @@ textarea { min-height: 42px; resize: vertical; }
 }
 
 .arcade-weekly-section > .arcade-featured-challenge {
-  min-height: 300px;
+  min-height: 320px;
   grid-template-columns: minmax(260px, .82fr) minmax(0, 1fr);
   grid-template-rows: 1fr;
 }
 
 .arcade-weekly-section .arcade-challenge-artwork {
-  min-height: 300px;
+  min-height: 320px;
   height: 100%;
   aspect-ratio: auto;
   border-right: 1px solid rgba(255,255,255,.1);
   border-bottom: 0;
+}
+
+.arcade-weekly-section .arcade-challenge-artwork img,
+.arcade-featured-challenge .arcade-challenge-artwork img {
+  object-fit: contain;
+  object-position: center center;
 }
 
 .arcade-featured-challenge {
@@ -6998,55 +7004,60 @@ textarea { min-height: 42px; resize: vertical; }
 
 .arcade-big-challenge-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+  gap: 18px;
   align-items: stretch;
 }
 
 .arcade-big-challenge-grid .arcade-featured-challenge {
   min-height: 100%;
   grid-template-columns: 1fr;
-  grid-template-rows: 190px minmax(300px, auto);
+  grid-template-rows: 178px minmax(340px, auto);
 }
 
 .arcade-big-challenge-grid .arcade-challenge-artwork {
-  min-height: 190px;
-  height: 190px;
+  min-height: 178px;
+  height: 178px;
   border-right: 0;
   border-bottom: 1px solid rgba(255,255,255,.1);
+  background:
+    radial-gradient(circle at 50% 45%, rgba(255,214,151,.13), transparent 12rem),
+    #0a0a0e;
 }
 
 .arcade-big-challenge-grid .arcade-challenge-artwork img {
-  object-fit: cover;
+  object-fit: contain;
   object-position: center center;
+  padding: 8px;
 }
 
 .arcade-big-challenge-grid .arcade-featured-challenge > div:not(.arcade-challenge-artwork):not(.arcade-challenge-badge) {
   align-content: start;
-  min-height: 300px;
+  min-height: 340px;
   gap: 12px;
 }
 
 .arcade-big-challenge-grid .arcade-featured-challenge h3 {
   min-height: 0;
-  font-size: clamp(1.65rem, 2.8vw, 2.35rem);
+  font-size: clamp(1.45rem, 2.5vw, 2.05rem);
   line-height: 1.06;
-  overflow-wrap: anywhere;
+  overflow-wrap: normal;
+  word-break: normal;
 }
 
 .arcade-big-challenge-grid .arcade-featured-challenge p {
-  -webkit-line-clamp: 4;
+  -webkit-line-clamp: 5;
 }
 
 .arcade-mode-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 14px;
 }
 
 .arcade-mode-tile {
   appearance: none;
-  min-height: 160px;
+  min-height: 174px;
   display: grid;
   align-content: center;
   justify-items: center;
@@ -7075,15 +7086,18 @@ textarea { min-height: 42px; resize: vertical; }
 }
 
 .arcade-mode-icon {
-  width: 48px;
-  height: 48px;
+  width: 58px;
+  height: 58px;
   position: relative;
   display: grid;
   place-items: center;
-  border-radius: 16px;
+  border-radius: 18px;
   border: 1px solid rgba(255,214,151,.24);
-  background: rgba(255,184,77,.08);
+  background:
+    radial-gradient(circle at 50% 24%, rgba(255,230,173,.22), transparent 62%),
+    rgba(255,184,77,.08);
   color: #f7d08b;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.04), 0 12px 24px rgba(0,0,0,.18);
 }
 
 .arcade-mode-icon::before {
@@ -11427,6 +11441,25 @@ textarea { min-height: 42px; resize: vertical; }
   }
   .arcade-weekly-section > .arcade-featured-challenge {
     min-height: 0;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto;
+  }
+  .arcade-weekly-section .arcade-challenge-artwork,
+  .arcade-big-challenge-grid .arcade-challenge-artwork {
+    height: auto;
+    min-height: 0;
+    aspect-ratio: 16 / 9;
+    border-right: 0;
+    border-bottom: 1px solid rgba(255,255,255,.1);
+  }
+  .arcade-big-challenge-grid {
+    grid-template-columns: 1fr;
+  }
+  .arcade-big-challenge-grid .arcade-featured-challenge {
+    grid-template-rows: auto auto;
+  }
+  .arcade-big-challenge-grid .arcade-featured-challenge > div:not(.arcade-challenge-artwork):not(.arcade-challenge-badge) {
+    min-height: 0;
   }
   .arcade-featured-challenge > div:not(.arcade-challenge-artwork):not(.arcade-challenge-badge) {
     padding: 0 14px 16px;
@@ -11444,6 +11477,17 @@ textarea { min-height: 42px; resize: vertical; }
     max-width: 100%;
     white-space: normal;
     overflow-wrap: anywhere;
+  }
+  .arcade-mode-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .arcade-mode-tile {
+    min-height: 154px;
+    padding: 14px 10px;
+  }
+  .arcade-mode-icon {
+    width: 50px;
+    height: 50px;
   }
   .arcade-scoreboard-sheet {
     width: 100vw;
