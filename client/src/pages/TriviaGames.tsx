@@ -625,6 +625,19 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
   const posterChallenge = featuredChallenges.find((event) => challengeMatches(event, "poster"));
   const timelineChallenge = featuredChallenges.find((event) => challengeMatches(event, "timeline"));
   const groupChallenge = featuredWeeklyChallenge || featuredChallenges.find((event) => Number(event.playableQuestionCount || 0) >= 50) || null;
+  const bigChallengeCards = filteredChallenges
+    .filter((event) => Number(event.playableQuestionCount || event.questionCount || 0) >= 50)
+    .sort((left, right) => {
+      const priority = ["disney", "simpson", "quote", "time", "adventure", "world", "space"];
+      const leftText = `${left.slug} ${left.name} ${left.banner || ""} ${left.seasonKey || ""}`.toLowerCase();
+      const rightText = `${right.slug} ${right.name} ${right.banner || ""} ${right.seasonKey || ""}`.toLowerCase();
+      const leftPriority = priority.findIndex((keyword) => leftText.includes(keyword));
+      const rightPriority = priority.findIndex((keyword) => rightText.includes(keyword));
+      const normalizedLeft = leftPriority < 0 ? 999 : leftPriority;
+      const normalizedRight = rightPriority < 0 ? 999 : rightPriority;
+      if (normalizedLeft !== normalizedRight) return normalizedLeft - normalizedRight;
+      return left.name.localeCompare(right.name);
+    });
   const modeTiles = [
     {
       title: "Movie Trivia",
@@ -732,6 +745,19 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
                   <strong>{mode.title}</strong>
                   <small>{mode.subtitle}</small>
                 </button>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
+        {bigChallengeCards.length > 0 ? (
+          <section className="title-games-section arcade-big-challenges-section">
+            <div className="actor-section-heading">
+              <h2>Big challenges</h2>
+            </div>
+            <div className="arcade-big-challenge-grid">
+              {bigChallengeCards.map((event) => (
+                <FeaturedChallengeCard event={event} key={event.id} onNavigate={onNavigate} />
               ))}
             </div>
           </section>

@@ -6989,8 +6989,49 @@ textarea { min-height: 42px; resize: vertical; }
 }
 
 .arcade-play-something-section,
+.arcade-big-challenges-section,
 .arcade-collections-section {
   overflow: hidden;
+}
+
+.arcade-big-challenge-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  align-items: stretch;
+}
+
+.arcade-big-challenge-grid .arcade-featured-challenge {
+  min-height: 100%;
+  grid-template-columns: 1fr;
+  grid-template-rows: 180px minmax(260px, auto);
+}
+
+.arcade-big-challenge-grid .arcade-challenge-artwork {
+  min-height: 180px;
+  height: 180px;
+  border-right: 0;
+  border-bottom: 1px solid rgba(255,255,255,.1);
+}
+
+.arcade-big-challenge-grid .arcade-challenge-artwork img {
+  object-fit: cover;
+  object-position: center center;
+}
+
+.arcade-big-challenge-grid .arcade-featured-challenge > div:not(.arcade-challenge-artwork):not(.arcade-challenge-badge) {
+  align-content: start;
+  min-height: 260px;
+}
+
+.arcade-big-challenge-grid .arcade-featured-challenge h3 {
+  min-height: 0;
+  font-size: clamp(1.65rem, 2.8vw, 2.35rem);
+  line-height: 1.06;
+}
+
+.arcade-big-challenge-grid .arcade-featured-challenge p {
+  -webkit-line-clamp: 3;
 }
 
 .arcade-mode-grid {

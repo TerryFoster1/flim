@@ -7,7 +7,6 @@ export type GroupRoomStatus = "lobby" | "countdown" | "active" | "completed" | "
 export type GroupRoomMode = "local" | "online";
 type GroupRoomPhase = "lobby" | "countdown" | "question" | "reveal" | "leaderboard" | "completed";
 
-const roundQuestionCount = 25;
 const defaultTimerSeconds = 20;
 const defaultCountdownSeconds = 3;
 const defaultRevealSeconds = 4;
@@ -203,7 +202,7 @@ async function questionsForRoom(sql: any, room: any, event: any) {
     : typeof room.question_ids === "string"
       ? JSON.parse(room.question_ids || "[]").map(String)
       : [];
-  const selected = ids.length ? allQuestions.filter((question: any) => ids.includes(String(question.id))) : allQuestions.slice(0, roundQuestionCount);
+  const selected = ids.length ? allQuestions.filter((question: any) => ids.includes(String(question.id))) : allQuestions;
   const byId = new Map(selected.map((question: any) => [String(question.id), question]));
   return ids.length ? ids.map((id: string) => byId.get(id)).filter(Boolean) : selected;
 }
@@ -455,7 +454,7 @@ export async function createGroupRoom(sql: any, userId: string | undefined, even
   await ensureGroupRoomTables(sql);
   const event = await activeEventById(sql, eventId);
   if (!event) return null;
-  const questions = (await challengeQuestions(sql, event)).slice(0, roundQuestionCount);
+  const questions = await challengeQuestions(sql, event);
   if (questions.length === 0) throw new Error("This challenge is not ready for group play yet.");
 
   for (let attempt = 0; attempt < 5; attempt += 1) {

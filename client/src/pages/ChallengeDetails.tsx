@@ -16,7 +16,6 @@ interface ChallengeDetailsProps {
 
 type ChallengePlayState = "setup" | "countdown" | "playing" | "summary";
 
-const CHALLENGE_ROUND_QUESTIONS = 25;
 const CHALLENGE_SECONDS_PER_QUESTION = 20;
 
 function dateRange(startDate: string, endDate: string) {
@@ -85,7 +84,7 @@ export function ChallengeDetails({ slug, onNavigate }: ChallengeDetailsProps) {
   const [questionStartedAt, setQuestionStartedAt] = useState(0);
   const [roundStartedAt, setRoundStartedAt] = useState(0);
   const [completionTimeMs, setCompletionTimeMs] = useState(0);
-  const playQuestions = useMemo(() => (detail?.questions || []).slice(0, CHALLENGE_ROUND_QUESTIONS), [detail?.questions]);
+  const playQuestions = useMemo(() => detail?.questions || [], [detail?.questions]);
   const score = useMemo(() => scoreTrivia(playQuestions, answers), [playQuestions, answers]);
   const currentQuestion = playQuestions[currentIndex];
   const answeredCount = playQuestions.filter((question) => answers[question.id]).length;
@@ -348,7 +347,7 @@ export function ChallengeDetails({ slug, onNavigate }: ChallengeDetailsProps) {
               </div>
               {!completed && playState === "setup" ? (
                 <div className="trivia-start-card">
-                  <span>{Math.min(CHALLENGE_ROUND_QUESTIONS, questions.length)} question round</span>
+                  <span>{playQuestions.length} question round</span>
                   <h3>Start Challenge</h3>
                   <p>After the countdown, each question has 20 seconds. Miss the clock and that question scores zero.</p>
                   <button className="primary-button" onClick={startChallengeRound} type="button">Start Challenge</button>

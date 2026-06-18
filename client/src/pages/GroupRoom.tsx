@@ -25,11 +25,12 @@ function hostStorageKey(roomCode: string) {
   return `flim-group-host-${roomCode}`;
 }
 
-function phaseSecondsRemaining(roomState: GroupRoomState | null) {
+function phaseSecondsRemaining(roomState: GroupRoomState | null, syncedAt = Date.now()) {
   if (!roomState?.room.phaseStartedAt) return 0;
   const started = new Date(roomState.room.phaseStartedAt).getTime();
-  const localNow = Date.now();
-  const elapsed = Number.isFinite(started) ? Math.max(0, (localNow - started) / 1000) : 0;
+  const serverNow = new Date(roomState.room.serverNow).getTime();
+  const syncedServerNow = Number.isFinite(serverNow) ? serverNow + Math.max(0, Date.now() - syncedAt) : Date.now();
+  const elapsed = Number.isFinite(started) ? Math.max(0, (syncedServerNow - started) / 1000) : 0;
   const duration = roomState.room.phase === "countdown"
     ? roomState.room.countdownSeconds
     : roomState.room.phase === "question"
@@ -81,6 +82,7 @@ export function GroupRoom({ roomCode, onNavigate }: GroupRoomProps) {
   const [qrCode, setQrCode] = useState("");
   const [secondsRemaining, setSecondsRemaining] = useState(0);
   const [answering, setAnswering] = useState(false);
+  const [roomSyncedAt, setRoomSyncedAt] = useState(Date.now());
 
   const shareUrl = `${window.location.origin}/group/${normalizedCode}`;
   const isHost = Boolean(hostToken);
@@ -99,7 +101,9 @@ export function GroupRoom({ roomCode, onNavigate }: GroupRoomProps) {
       const result = await getGroupRoom(normalizedCode, participantId);
       setRoomState(result);
       setStatus("ready");
-      setSecondsRemaining(phaseSecondsRemaining(result));
+      const syncedAt = Date.now();
+      setRoomSyncedAt(syncedAt);
+      setSecondsRemaining(phaseSecondsRemaining(result, syncedAt));
       if (!options.quiet) setMessage("");
     } catch {
       setStatus("error");
@@ -116,14 +120,15 @@ export function GroupRoom({ roomCode, onNavigate }: GroupRoomProps) {
 
   useEffect(() => {
     if (status !== "ready") return undefined;
-    const timer = window.setInterval(() => refreshRoom({ quiet: true }), roomState?.room.phase === "question" ? 850 : 1200);
+    const isOpenRoom = roomState?.room.status === "lobby" || roomState?.room.status === "countdown" || roomState?.room.status === "active";
+    const timer = window.setInterval(() => refreshRoom({ quiet: true }), isOpenRoom ? 350 : 1200);
     return () => window.clearInterval(timer);
   }, [status, normalizedCode, participantId, roomState?.room.phase]);
 
   useEffect(() => {
-    const timer = window.setInterval(() => setSecondsRemaining(phaseSecondsRemaining(roomState)), 250);
+    const timer = window.setInterval(() => setSecondsRemaining(phaseSecondsRemaining(roomState, roomSyncedAt)), 250);
     return () => window.clearInterval(timer);
-  }, [roomState?.room.phaseStartedAt, roomState?.room.phase, roomState?.room.currentQuestionIndex]);
+  }, [roomState?.room.phaseStartedAt, roomState?.room.phase, roomState?.room.currentQuestionIndex, roomSyncedAt]);
 
   async function handleJoin() {
     setMessage("");
