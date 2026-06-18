@@ -13401,7 +13401,7 @@ textarea { min-height: 42px; resize: vertical; }
 }
 
 .arcade-preview-page .challenge-card-meta > * + *::before {
-  content: "Ã¢â‚¬Â¢";
+  content: "ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢";
   margin-right: 8px;
   color: rgba(228, 182, 111, 0.7);
 }
@@ -13625,4 +13625,58 @@ textarea { min-height: 42px; resize: vertical; }
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+/* Arcade supplied icon assets: use Terry's PNGs for the six game mode tiles. */
+.arcade-preview-page .arcade-mode-icon::before {
+  content: none !important;
+}
 
+.arcade-preview-page .arcade-mode-icon {
+  width: 66px;
+  height: 66px;
+  margin-inline: auto;
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: radial-gradient(circle at 50% 45%, rgba(255, 205, 126, 0.14), transparent 72%);
+  box-shadow: none;
+}
+
+.arcade-preview-page .arcade-mode-icon img {
+  width: 64px;
+  height: 64px;
+  display: block;
+  object-fit: contain;
+  filter: drop-shadow(0 12px 20px rgba(0, 0, 0, 0.45));
+}
+
+.arcade-preview-page .arcade-mode-tile {
+  min-height: 172px;
+  gap: 11px;
+  padding: 20px 14px 18px;
+}
+
+.arcade-preview-page .arcade-mode-tile strong {
+  font-size: 1.02rem;
+  line-height: 1.12;
+}
+
+.arcade-preview-page .arcade-mode-tile small {
+  max-width: 11ch;
+  margin-inline: auto;
+}
+
+@media (max-width: 760px) {
+  .arcade-preview-page .arcade-mode-icon {
+    width: 62px;
+    height: 62px;
+  }
+
+  .arcade-preview-page .arcade-mode-icon img {
+    width: 60px;
+    height: 60px;
+  }
+
+  .arcade-preview-page .arcade-mode-tile {
+    min-height: 156px;
+  }
+}

@@ -368,7 +368,7 @@ function FeaturedChallengeCard({ event, onNavigate }: { event: SeasonalChallenge
           <span>{status}</span>
         </div>
       </div>
-      <span className="arcade-card-chevron" aria-hidden="true">Ã¢â‚¬Âº</span>
+      <span className="arcade-card-chevron" aria-hidden="true">ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Âº</span>
     </button>
   );
 }
@@ -662,39 +662,45 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
       title: "Movie Trivia",
       subtitle: "Test your knowledge",
       icon: "film",
+      iconAsset: "/arcade/icons/movie-trivia.png",
       action: () => onNavigate("/games/title/movie/105"),
     },
     {
       title: "Quote Challenge",
       subtitle: "Famous last words",
       icon: "quote",
+      iconAsset: "/arcade/icons/quote-challenge.png",
       action: () => onNavigate(`/challenges/${quoteChallenge?.slug || "movie-quote-challenge"}`),
     },
     {
       title: "Poster Guess",
       subtitle: "Guess the movie",
       icon: "poster",
+      iconAsset: "/arcade/icons/poster-guess.png",
       action: () => onNavigate(`/challenges/${posterChallenge?.slug || disneyChallenge?.slug || featuredWeeklyChallenge?.slug || "ultimate-disney-animation-challenge"}`),
     },
     groupChallenge ? {
       title: "Group Play",
       subtitle: "Play with friends",
       icon: "group",
+      iconAsset: "/arcade/icons/group-play.png",
       action: () => onNavigate(`/challenges/${groupChallenge.slug}`),
     } : null,
     {
       title: "Leaderboards",
       subtitle: "See who's on top",
       icon: "trophy",
+      iconAsset: "/arcade/icons/leaderboards.png",
       action: () => setScoreboardOpen(true),
     },
     {
       title: "Rewards",
       subtitle: "Tickets and badges",
       icon: "ticket",
+      iconAsset: "/arcade/icons/rewards.png",
       action: () => setScoreboardOpen(true),
     },
-  ].filter(Boolean) as Array<{ title: string; subtitle: string; icon: string; action: () => void }>;
+  ].filter(Boolean) as Array<{ title: string; subtitle: string; icon: string; iconAsset: string; action: () => void }>;
   const collectionCards = arcadeCollectionFallbacks
     .map((collection) => {
       const matched = featuredChallenges.find((event) => challengeMatches(event, collection.query));
@@ -752,7 +758,9 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
             <div className="arcade-mode-grid">
               {modeTiles.map((mode) => (
                 <button className="arcade-mode-tile" key={mode.title} onClick={mode.action} type="button">
-                  <span className={`arcade-mode-icon is-${mode.icon}`} aria-hidden="true" />
+                  <span className={`arcade-mode-icon is-${mode.icon}`} aria-hidden="true">
+                    <img alt="" src={mode.iconAsset} loading="lazy" decoding="async" />
+                  </span>
                   <strong>{mode.title}</strong>
                   <small>{mode.subtitle}</small>
                 </button>
