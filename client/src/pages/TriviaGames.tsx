@@ -687,18 +687,11 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
       action: () => onNavigate(`/challenges/${groupChallenge.slug}`),
     } : null,
     {
-      title: "Leaderboards",
-      subtitle: "See who's on top",
-      icon: "trophy",
-      iconAsset: "/arcade/icons/leaderboards.png",
-      action: () => setScoreboardOpen(true),
-    },
-    {
       title: "Rewards",
       subtitle: "Tickets and badges",
       icon: "ticket",
       iconAsset: "/arcade/icons/rewards.png",
-      action: () => setScoreboardOpen(true),
+      action: () => document.getElementById("arcade-progress")?.scrollIntoView({ behavior: "smooth", block: "start" }),
     },
   ].filter(Boolean) as Array<{ title: string; subtitle: string; icon: string; iconAsset: string; action: () => void }>;
   const collectionCards = arcadeCollectionFallbacks
@@ -712,7 +705,6 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
     })
     .filter((collection) => !normalizedArcadeSearch || collection.title.toLowerCase().includes(normalizedArcadeSearch) || collection.query.includes(normalizedArcadeSearch) || Boolean(collection.event))
     .slice(0, 11);
-  const topScores = weeklyDetail?.standings.topScores.slice(0, 3) || [];
   const progressBadgeCount = weeklyDetail?.standings.personalBest ? 1 : 0;
 
   return (
@@ -791,49 +783,29 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
           </section>
         ) : null}
 
-        {(topScores.length > 0 || ticketFeed) ? (
-          <section className="arcade-dashboard-row" aria-label="Flim Arcade standings and progress">
-            {topScores.length > 0 ? (
-              <div className="title-games-section arcade-community-panel">
-                <div className="actor-section-heading">
-                  <h2>Community</h2>
-                </div>
-                <ol className="arcade-community-list">
-                  {topScores.map((score) => (
-                    <li key={score.id}>
-                      <span>{score.rank || "-"}</span>
-                      <strong>{score.displayName || score.handle || "Flim player"}</strong>
-                      <em>{score.score.toLocaleString()}</em>
-                    </li>
-                  ))}
-                </ol>
-              </div>
-            ) : null}
-            {ticketFeed ? (
-              <div className="title-games-section arcade-progress-panel">
-                <div className="actor-section-heading">
-                  <h2>Your progress</h2>
-                </div>
-                <div className="arcade-progress-grid">
-                  <button onClick={() => setScoreboardOpen(true)} type="button">
-                    <strong>{ticketFeed.wallet.ticketBalance.toLocaleString()}</strong>
-                    <span>Tickets</span>
-                  </button>
-                  <button onClick={() => setScoreboardOpen(true)} type="button">
-                    <strong>{progressBadgeCount}</strong>
-                    <span>Badges</span>
-                  </button>
-                  <button onClick={() => setScoreboardOpen(true)} type="button">
-                    <strong>Rex</strong>
-                    <span>Current Character</span>
-                  </button>
-                  <button onClick={() => setScoreboardOpen(true)} type="button">
-                    <strong>{weeklyDetail?.standings.personalBest?.rank || "-"}</strong>
-                    <span>Rank</span>
-                  </button>
-                </div>
-              </div>
-            ) : null}
+        {ticketFeed ? (
+          <section className="title-games-section arcade-progress-panel arcade-progress-only" id="arcade-progress">
+            <div className="actor-section-heading">
+              <h2>Your progress</h2>
+            </div>
+            <div className="arcade-progress-grid">
+              <button onClick={() => setScoreboardOpen(true)} type="button">
+                <strong>{ticketFeed.wallet.ticketBalance.toLocaleString()}</strong>
+                <span>Tickets</span>
+              </button>
+              <button onClick={() => setScoreboardOpen(true)} type="button">
+                <strong>{progressBadgeCount}</strong>
+                <span>Badges</span>
+              </button>
+              <button onClick={() => setScoreboardOpen(true)} type="button">
+                <strong>Rex</strong>
+                <span>Current Character</span>
+              </button>
+              <button onClick={() => setScoreboardOpen(true)} type="button">
+                <strong>{weeklyDetail?.standings.personalBest?.rank || "-"}</strong>
+                <span>Rank</span>
+              </button>
+            </div>
           </section>
         ) : null}
 
