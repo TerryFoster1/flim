@@ -27,11 +27,12 @@ export function stableShuffleOptions(options: unknown[], seed: string, answer?: 
     cleaned.push(normalizedAnswer);
   }
 
-  return cleaned
-    .map((option, index) => ({
-      option,
-      rank: hashString(`${seed}:${index}:${option.toLowerCase()}`),
-    }))
-    .sort((left, right) => left.rank - right.rank)
-    .map((entry) => entry.option);
+  let state = hashString(`${seed}:${cleaned.join("|").toLowerCase()}`) || 1;
+  const shuffled = [...cleaned];
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
+    const swapIndex = state % (index + 1);
+    [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
+  }
+  return shuffled;
 }

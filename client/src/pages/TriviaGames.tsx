@@ -621,8 +621,10 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
     ? playlistTriviaCards.filter((card) => `${card.title} ${card.meta}`.toLowerCase().includes(normalizedArcadeSearch))
     : playlistTriviaCards;
   const quoteChallenge = featuredChallenges.find((event) => challengeMatches(event, "quote"));
+  const disneyChallenge = featuredChallenges.find((event) => challengeMatches(event, "disney") || challengeMatches(event, "animation"));
   const posterChallenge = featuredChallenges.find((event) => challengeMatches(event, "poster"));
   const timelineChallenge = featuredChallenges.find((event) => challengeMatches(event, "timeline"));
+  const groupChallenge = featuredWeeklyChallenge || featuredChallenges.find((event) => Number(event.playableQuestionCount || 0) >= 50) || null;
   const modeTiles = [
     {
       title: "Movie Trivia",
@@ -630,12 +632,18 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
       icon: "film",
       action: () => onNavigate("/games/title/movie/105"),
     },
-    quoteChallenge ? {
+    {
       title: "Quote Challenge",
       subtitle: "Match famous lines",
       icon: "quote",
-      action: () => onNavigate(`/challenges/${quoteChallenge.slug}`),
-    } : null,
+      action: () => onNavigate(`/challenges/${quoteChallenge?.slug || "movie-quote-challenge"}`),
+    },
+    {
+      title: "Disney Challenge",
+      subtitle: "Animation classics",
+      icon: "poster",
+      action: () => onNavigate(`/challenges/${disneyChallenge?.slug || "ultimate-disney-animation-challenge"}`),
+    },
     posterChallenge ? {
       title: "Poster Guess",
       subtitle: "Recognize the artwork",
@@ -648,11 +656,11 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
       icon: "clock",
       action: () => onNavigate(`/challenges/${timelineChallenge.slug}`),
     } : null,
-    featuredWeeklyChallenge ? {
+    groupChallenge ? {
       title: "Group Play",
       subtitle: "Host movie night",
       icon: "group",
-      action: () => onNavigate(`/challenges/${featuredWeeklyChallenge.slug}`),
+      action: () => onNavigate(`/challenges/${groupChallenge.slug}`),
     } : null,
     {
       title: "Leaderboards",
