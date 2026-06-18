@@ -1,5 +1,6 @@
 import { ensureCollectionChallengeTables } from "./_challenges.js";
 import { awardTickets } from "./_arcadeEconomy.js";
+import { stableShuffleOptions } from "./_answerOptions.js";
 import { ensureNotificationsTable, ensureTriviaTables } from "./_db.js";
 
 type SeasonalStatus = "upcoming" | "active" | "ended";
@@ -344,6 +345,7 @@ function qFor(
   wrong: string[],
   explanation = "",
 ): EvergreenQuestionSeed {
+  const options = stableShuffleOptions([answer, ...wrong].slice(0, 4), `${slug}:${title}:${question}`, answer);
   return {
     slug,
     title,
@@ -353,7 +355,7 @@ function qFor(
     difficulty,
     question,
     answer,
-    options: [answer, ...wrong].slice(0, 4),
+    options,
     explanation: explanation || `${title} is part of this evergreen challenge pack.`,
   };
 }
@@ -2331,7 +2333,7 @@ function mapChallengeQuestion(row: any) {
     mediaType: row.media_type === "tv" ? "tv" : "movie",
     question: row.question,
     answer: row.answer,
-    options,
+    options: stableShuffleOptions(options, String(row.id || row.question || ""), row.answer),
     explanation: row.explanation || "",
     difficulty: row.difficulty || "easy",
     spoilerLevel: row.spoiler_level || "none",

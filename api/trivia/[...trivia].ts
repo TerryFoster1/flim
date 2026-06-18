@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { awardTickets } from "../_arcadeEconomy.js";
 import { evaluateAchievements, readAchievementState } from "../_achievements.js";
+import { stableShuffleOptions } from "../_answerOptions.js";
 import { checkRateLimit, db, ensureNotificationsTable, ensureTriviaTables, errorStatus, getCurrentUser, readBody, sendJson } from "../_db.js";
 import { getCatalogMediaItem, mapCatalogDetails, upsertMediaItem } from "../_mediaCatalog.js";
 import { ensureTmdbCacheTables, fetchTmdbMovieDetails } from "../_tmdb.js";
@@ -1488,7 +1489,7 @@ function mapTrivia(row: any, completedIds = new Set<string>(), details?: any) {
     mediaType: normalizeMediaType(row.media_type),
     question,
     answer: row.answer,
-    options: Array.isArray(row.options) ? row.options : [],
+    options: stableShuffleOptions(Array.isArray(row.options) ? row.options : [], String(row.id || row.question || ""), row.answer),
     explanation: row.explanation || "",
     difficulty: row.difficulty || "easy",
     spoilerLevel: row.spoiler_level || "none",
