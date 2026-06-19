@@ -653,9 +653,7 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
         ? `Searching for ${normalizedQuery}...`
         : `${universalResultCount} results for ${normalizedQuery}`
       : `No matches found for ${normalizedQuery}`
-    : view === "public"
-      ? "Browse curated and community playlist discovery."
-      : "Search Flim, then organize what you find.";
+    : "";
 
   return (
     <section className="route-page collections-page">
@@ -674,14 +672,16 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
           <h1>{view === "public" ? "Public Playlists" : "My Playlists"}</h1>
           <p>
             {view === "public"
-              ? "Discover collections created by movie fans."
+              ? "Discover curated movie and TV collections."
               : "Organize, discover, and revisit your collections."}
           </p>
-          <label className="collection-search playlist-title-search playlist-hero-search">
-            <span>{view === "public" ? "Search Public Playlists" : "Search My Playlists"}</span>
+          <label
+            aria-label={view === "public" ? "Search movies, shows, actors, genres, or public playlists" : "Search movies, shows, actors, genres, or playlists"}
+            className="collection-search playlist-title-search playlist-hero-search"
+          >
             <input onChange={(event) => setQuery(event.target.value)} placeholder={view === "public" ? "Search movies, shows, actors, genres, or public playlists" : "Search movies, shows, actors, genres, or playlists"} type="search" value={query} />
           </label>
-          <p className="playlist-search-state" aria-live="polite">{searchStatusLabel}</p>
+          {searchStatusLabel ? <p className="playlist-search-state" aria-live="polite">{searchStatusLabel}</p> : null}
         </div>
       </section>
 
