@@ -14282,20 +14282,36 @@ textarea { min-height: 42px; resize: vertical; }
 }
 
 .arcade-preview-page .arcade-mode-icon {
-  width: 82px;
-  height: 82px;
+  --arcade-mode-icon-scale: 1;
+  align-items: center;
+  background: radial-gradient(circle at 50% 45%, rgba(255, 205, 126, 0.14), transparent 72%);
+  border: 0;
+  box-shadow: none;
+  display: flex;
+  height: 72px;
+  justify-content: center;
+  margin: 0 auto 18px;
+  width: 96px;
 }
 
 .arcade-preview-page .arcade-mode-icon img {
-  width: 78px;
-  height: 78px;
+  display: block;
+  filter: drop-shadow(0 12px 20px rgba(0, 0, 0, 0.45));
+  height: auto;
+  max-height: 72px;
+  max-width: 96px;
+  object-fit: contain;
+  transform: scale(var(--arcade-mode-icon-scale));
+  transform-origin: center;
+  width: auto;
 }
 
-.arcade-preview-page .arcade-mode-icon.is-ticket,
-.arcade-preview-page .arcade-mode-icon.is-ticket img {
-  width: 108px;
-  height: 78px;
-}
+.arcade-preview-page .arcade-mode-icon.is-film { --arcade-mode-icon-scale: 1.2; }
+.arcade-preview-page .arcade-mode-icon.is-quote { --arcade-mode-icon-scale: 1.35; }
+.arcade-preview-page .arcade-mode-icon.is-poster { --arcade-mode-icon-scale: 1.16; }
+.arcade-preview-page .arcade-mode-icon.is-group { --arcade-mode-icon-scale: 0.94; }
+.arcade-preview-page .arcade-mode-icon.is-trophy { --arcade-mode-icon-scale: 1.22; }
+.arcade-preview-page .arcade-mode-icon.is-ticket { --arcade-mode-icon-scale: 1; }
 
 .arcade-preview-page .arcade-progress-grid.is-compact {
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -14330,12 +14346,14 @@ textarea { min-height: 42px; resize: vertical; }
   }
 
   .arcade-preview-page .arcade-mode-icon {
-    width: 78px;
-    height: 78px;
+    height: 72px;
+    width: 96px;
   }
 
   .arcade-preview-page .arcade-mode-icon img {
-    width: 74px;
-    height: 74px;
+    height: auto;
+    max-height: 72px;
+    max-width: 96px;
+    width: auto;
   }
 }
