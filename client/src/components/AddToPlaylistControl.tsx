@@ -8,9 +8,11 @@ interface AddToPlaylistControlProps {
   addToPlaylist: (playlistId: string, movie: MovieSearchResult | MovieDetails) => void | Promise<void>;
   currentPlaylistId?: string;
   collapsedLabel?: string;
+  openLabel?: string;
+  onCreatePlaylist?: (input: Pick<Playlist, "name" | "description" | "visibility">) => Promise<Playlist>;
 }
 
-export function AddToPlaylistControl({ movie, playlists, addToPlaylist, currentPlaylistId, collapsedLabel = "Add to other playlists" }: AddToPlaylistControlProps) {
+export function AddToPlaylistControl({ movie, playlists, addToPlaylist, currentPlaylistId, collapsedLabel = "Add to other playlists", openLabel, onCreatePlaylist }: AddToPlaylistControlProps) {
   const addTargetPlaylists = currentPlaylistId ? playlists.filter((playlist) => playlist.id !== currentPlaylistId) : playlists;
   const existingPlaylistIds = addTargetPlaylists
     .filter((playlist) => playlist.movies.some((item) => item.tmdbId === movie.tmdbId && (item.mediaType || "movie") === (movie.mediaType || "movie")))
@@ -19,6 +21,8 @@ export function AddToPlaylistControl({ movie, playlists, addToPlaylist, currentP
   const [message, setMessage] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const [newPlaylistName, setNewPlaylistName] = useState("");
+  const [isCreatingPlaylist, setIsCreatingPlaylist] = useState(false);
   const [locallyAddedIds, setLocallyAddedIds] = useState<string[]>([]);
   const alreadyAddedIds = [...new Set([...existingPlaylistIds, ...locallyAddedIds])];
   const cleanQuery = query.trim().toLowerCase();
@@ -29,8 +33,27 @@ export function AddToPlaylistControl({ movie, playlists, addToPlaylist, currentP
   const recentIds = new Set(recentPlaylists.map((playlist) => playlist.id));
   const remainingPlaylists = cleanQuery ? visiblePlaylists : visiblePlaylists.filter((playlist) => !recentIds.has(playlist.id));
 
-  if (addTargetPlaylists.length === 0) {
-    return <span className="helper-text">{currentPlaylistId ? "This title is already in the current playlist." : "Create a playlist first."}</span>;
+  async function createPlaylistAndAdd() {
+    if (!onCreatePlaylist) return;
+    const cleanName = newPlaylistName.trim();
+    if (!cleanName) {
+      setMessage("Name the playlist first.");
+      return;
+    }
+    setIsCreatingPlaylist(true);
+    setMessage("");
+    try {
+      const created = await onCreatePlaylist({ name: cleanName, description: `Saved from ${movie.title}.`, visibility: "private" });
+      await addToPlaylist(created.id, movie);
+      enqueueTitleTrivia({ mediaType: movie.mediaType || "movie", tmdbId: movie.tmdbId, source: "playlist_add" });
+      setNewPlaylistName("");
+      setLocallyAddedIds((current) => [...new Set([...current, created.id])]);
+      setMessage(`Created ${created.name} and added ${movie.title}.`);
+    } catch {
+      setMessage("Unable to create that playlist. Please try again.");
+    } finally {
+      setIsCreatingPlaylist(false);
+    }
   }
 
   async function addSinglePlaylist(playlistId: string) {
@@ -76,7 +99,7 @@ export function AddToPlaylistControl({ movie, playlists, addToPlaylist, currentP
   return (
     <div className={currentPlaylistId ? "add-playlists-panel compact-add-panel" : "add-playlists-panel"}>
       <button className="primary-button add-playlist-open" onClick={() => setIsOpen(true)} type="button">
-        {currentPlaylistId ? collapsedLabel : "Add To Playlist"}
+        {openLabel || (currentPlaylistId ? collapsedLabel : "Add To Playlist")}
       </button>
 
       {isOpen ? (
@@ -103,7 +126,24 @@ export function AddToPlaylistControl({ movie, playlists, addToPlaylist, currentP
               />
             </label>
 
-            {message ? <small className={message.startsWith("Added") ? "success-text" : "error-text"}>{message}</small> : null}
+            {message ? <small className={(message.startsWith("Added") || message.startsWith("Created")) ? "success-text" : "error-text"}>{message}</small> : null}
+
+            {onCreatePlaylist ? (
+              <section className="playlist-sheet-section playlist-sheet-create-section">
+                <h3>Create New Playlist</h3>
+                <div className="playlist-sheet-create-row">
+                  <input
+                    onChange={(event) => setNewPlaylistName(event.target.value)}
+                    placeholder="New playlist name"
+                    type="text"
+                    value={newPlaylistName}
+                  />
+                  <button className="secondary-button" disabled={isCreatingPlaylist} onClick={createPlaylistAndAdd} type="button">
+                    {isCreatingPlaylist ? "Creating..." : "Create + Add"}
+                  </button>
+                </div>
+              </section>
+            ) : null}
 
             {recentPlaylists.length > 0 ? (
               <section className="playlist-sheet-section">
@@ -119,7 +159,7 @@ export function AddToPlaylistControl({ movie, playlists, addToPlaylist, currentP
             <section className="playlist-sheet-section">
               <h3>All Playlists</h3>
               {visiblePlaylists.length === 0 ? (
-                <p className="helper-text">No playlists match that search.</p>
+                <p className="helper-text">No playlists match that search. Create a new playlist above or try another search.</p>
               ) : remainingPlaylists.length === 0 ? (
                 <p className="helper-text">Recent playlists are shown above.</p>
               ) : (
@@ -134,7 +174,7 @@ export function AddToPlaylistControl({ movie, playlists, addToPlaylist, currentP
         </div>
       ) : null}
 
-      {!isOpen && message ? <small className={message.startsWith("Added") ? "success-text" : "error-text"}>{message}</small> : null}
+      {!isOpen && message ? <small className={(message.startsWith("Added") || message.startsWith("Created")) ? "success-text" : "error-text"}>{message}</small> : null}
     </div>
   );
 }

@@ -24,6 +24,7 @@ interface MovieDetailsPageProps {
   mediaType?: MediaType;
   playlists: Playlist[];
   addToPlaylist: (playlistId: string, movie: MovieDetails) => void | Promise<void>;
+  onCreatePlaylist: (input: Pick<Playlist, "name" | "description" | "visibility">) => Promise<Playlist>;
   updateWatchStatus: (playlistId: string, tmdbId: number, watchStatus: WatchStatus, mediaType?: string) => void | Promise<void>;
   onNavigate?: (path: string) => void;
 }
@@ -312,7 +313,7 @@ function hasCoreTitleData(
   return Number.isFinite(id) && id === expectedTmdbId && type === expectedType && title.length > 0;
 }
 
-export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addToPlaylist, updateWatchStatus, onNavigate }: MovieDetailsPageProps) {
+export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addToPlaylist, onCreatePlaylist, updateWatchStatus, onNavigate }: MovieDetailsPageProps) {
   const [movie, setMovie] = useState<MovieDetails | null>(null);
   const [streamingCountry, setStreamingCountry] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "slow" | "retrying" | "error">("loading");
@@ -537,7 +538,7 @@ export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addTo
             </div>
           ) : null}
           <div className="title-primary-actions">
-            <AddToPlaylistControl addToPlaylist={(playlistId) => addToPlaylist(playlistId, normalizedMovie)} currentPlaylistId={sourcePlaylistId} movie={normalizedMovie} playlists={playlists} />
+            <AddToPlaylistControl addToPlaylist={(playlistId) => addToPlaylist(playlistId, normalizedMovie)} currentPlaylistId={sourcePlaylistId} movie={normalizedMovie} onCreatePlaylist={onCreatePlaylist} playlists={playlists} />
             <FollowTitleControl movie={normalizedMovie} />
           </div>
           {savedInstances.length > 0 ? (

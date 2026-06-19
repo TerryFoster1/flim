@@ -287,6 +287,7 @@ export default function App() {
       rewindPlaylists={rewindPlaylists}
       notice={playlistNotice}
       onCreatePlaylist={createRemotePlaylist}
+      addToPlaylist={addToPlaylist}
       onNavigate={navigate}
       onOpenRoulette={openNowPlaying}
       playlists={playlists}
@@ -309,7 +310,7 @@ export default function App() {
         relatedPlaylists={displayPlaylists}
       />
     ) : (
-      <Playlists currentUser={currentUser} rewindPlaylists={rewindPlaylists} initialView="my" notice={playlistNotice || "Playlist not found."} onCreatePlaylist={createRemotePlaylist} onNavigate={navigate} playlists={playlists} />
+      <Playlists currentUser={currentUser} rewindPlaylists={rewindPlaylists} initialView="my" notice={playlistNotice || "Playlist not found."} onCreatePlaylist={createRemotePlaylist} addToPlaylist={addToPlaylist} onNavigate={navigate} onOpenRoulette={openNowPlaying} playlists={playlists} />
     ),
     "/p/:slug": <PublicPlaylist currentUser={currentUser} onFollowChanged={refreshPlaylists} publicSlug={routeState.publicSlug || ""} onNavigate={navigate} />,
     "/s/:token": <SharedPlaylist token={routeState.sharedToken || ""} onNavigate={navigate} />,
@@ -320,6 +321,7 @@ export default function App() {
         tmdbId={Number(routeState.tmdbId)}
         playlists={ownedPlaylists}
         addToPlaylist={addToPlaylist}
+        onCreatePlaylist={createRemotePlaylist}
         updateWatchStatus={updateWatchStatus}
         onNavigate={navigate}
       />
@@ -331,6 +333,7 @@ export default function App() {
         tmdbId={Number(routeState.tmdbId)}
         playlists={ownedPlaylists}
         addToPlaylist={addToPlaylist}
+        onCreatePlaylist={createRemotePlaylist}
         updateWatchStatus={updateWatchStatus}
         onNavigate={navigate}
       />
