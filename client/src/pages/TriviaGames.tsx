@@ -98,15 +98,15 @@ const playlistTriviaCards = [
 ];
 
 const arcadeCollectionFallbacks = [
-  { title: "Time Travel", query: "time", theme: "time", countLabel: "18 challenges", image: "/api/og/title/movie/105?card=game" },
-  { title: "Sci-Fi", query: "space", theme: "space", countLabel: "24 challenges", image: "/api/og/title/movie/11?card=game" },
-  { title: "Adventure", query: "adventure", theme: "adventure", countLabel: "22 challenges", image: "/api/og/title/movie/335787?card=game" },
-  { title: "Animation", query: "animation", theme: "animation", countLabel: "20 challenges", image: "/api/og/title/movie/862?card=game" },
+  { title: "Time Travel", query: "time", theme: "time", countLabel: "18 challenges", image: "/arcade/art/time-travel.png" },
+  { title: "Sci-Fi", query: "space", theme: "space", countLabel: "24 challenges", image: "/arcade/art/sci-fi.png" },
+  { title: "Adventure", query: "adventure", theme: "adventure", countLabel: "22 challenges", image: "/arcade/art/adventure.png" },
+  { title: "Animation", query: "animation", theme: "animation", countLabel: "20 challenges", image: "/arcade/art/animation.png" },
   { title: "Horror", query: "horror", theme: "horror", countLabel: "16 challenges", image: "/api/og/title/movie/4232?card=game" },
   { title: "Action", query: "action", theme: "hero", countLabel: "19 challenges", image: "/api/og/title/movie/218?card=game" },
-  { title: "Zombie", query: "zombie", theme: "zombie", countLabel: "10 challenges", image: "/api/og/title/movie/19908?card=game" },
-  { title: "Apocalypse", query: "apocalypse", theme: "apocalypse", countLabel: "12 challenges", image: "/api/og/title/movie/180?card=game" },
-  { title: "Alien", query: "alien", theme: "alien", countLabel: "14 challenges", image: "/api/og/title/movie/348?card=game" },
+  { title: "Zombie", query: "zombie", theme: "zombie", countLabel: "10 challenges", image: "/arcade/art/zombie.png" },
+  { title: "Apocalypse", query: "apocalypse", theme: "apocalypse", countLabel: "12 challenges", image: "/arcade/art/apocalypse.png" },
+  { title: "Alien", query: "alien", theme: "alien", countLabel: "14 challenges", image: "/arcade/art/alien.png" },
   { title: "Tom Cruise", query: "tom cruise mission", theme: "cinema", countLabel: "15 packs", image: "/api/og/title/movie/744?card=game" },
   { title: "Arnold Schwarzenegger", query: "arnold terminator action", theme: "hero", countLabel: "13 packs", image: "/api/og/title/movie/218?card=game" },
 ];
@@ -412,16 +412,16 @@ function challengeArtworkTheme(event: SeasonalChallengeEvent) {
 
 function arcadeArtUrl(theme: string) {
   const artMap: Record<string, string> = {
-    time: "/arcade/art/time-travel.svg",
-    space: "/arcade/art/sci-fi.svg",
-    adventure: "/arcade/art/adventure.svg",
-    animation: "/arcade/art/animation.svg",
+    time: "/arcade/art/time-travel.png",
+    space: "/arcade/art/sci-fi.png",
+    adventure: "/arcade/art/adventure.png",
+    animation: "/arcade/art/animation.png",
     horror: "/arcade/art/horror.svg",
-    apocalypse: "/arcade/art/apocalypse.svg",
-    zombie: "/arcade/art/zombie.svg",
-    alien: "/arcade/art/alien.svg",
+    apocalypse: "/arcade/art/apocalypse.png",
+    zombie: "/arcade/art/zombie.png",
+    alien: "/arcade/art/alien.png",
     quote: "/arcade/art/quote.svg",
-    jurassic: "/arcade/art/adventure.svg",
+    jurassic: "/arcade/art/adventure.png",
     holiday: "/arcade/art/animation.svg",
     hero: "/arcade/art/action.svg",
     cinema: "/arcade/art/cinema.svg",
