@@ -13910,16 +13910,6 @@ textarea { min-height: 42px; resize: vertical; }
   background: linear-gradient(155deg, rgba(34, 32, 28, 0.92), rgba(14, 15, 18, 0.94));
 }
 
-.arcade-preview-page .arcade-mode-icon.is-ticket {
-  width: 92px;
-  height: 66px;
-}
-
-.arcade-preview-page .arcade-mode-icon.is-ticket img {
-  width: 92px;
-  height: 66px;
-}
-
 .arcade-preview-page .arcade-collection-row {
   grid-auto-columns: clamp(210px, 22vw, 260px);
   gap: 14px;
