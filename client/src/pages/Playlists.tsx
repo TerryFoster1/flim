@@ -3,7 +3,6 @@ import { ContinueWatchingRow } from "../components/ContinueWatchingRow";
 import { DiscoveryRecommendationShelf } from "../components/DiscoveryRecommendationShelf";
 import { AddToPlaylistControl } from "../components/AddToPlaylistControl";
 import { PlaylistGrid } from "../components/PlaylistGrid";
-import { NowPlayingTicketIcon } from "../components/RouletteAssets";
 import { landingPosterSeeds } from "../data/landingPosterSeeds";
 import { searchDiscovery } from "../services/discoveryService";
 import type { CurrentUser, DiscoveryCollectionResult, DiscoveryHubLink, DiscoverySearchResults, MovieSearchResult, Playlist } from "../types";
@@ -375,7 +374,6 @@ function UniversalPlaylistSearchResults({
   const personalPlaylists = playlists.filter((playlist) => (playlist.isOwner || playlist.saved || playlist.clonedFromId) && !playlist.isSystem);
   const titleRows = discoveryResults.titles.map((movie) => ({ movie, savedIn: playlistsContainingTitle(movie, personalPlaylists) }));
   const savedTitleRows = titleRows.filter((row) => row.savedIn.length > 0);
-  const unsavedTitleRows = titleRows.filter((row) => row.savedIn.length === 0);
   const mergedPlaylistMap = new Map<string, Playlist>();
   [...localPlaylistResults, ...discoveryResults.playlists].forEach((playlist) => mergedPlaylistMap.set(playlist.id, playlist));
   const playlistRows = sortedDiscoveryPlaylists(view, [...mergedPlaylistMap.values()]);
@@ -431,11 +429,6 @@ function UniversalPlaylistSearchResults({
         </div></section>
       ) : null}
       {playlistRows.length ? <DiscoveryShelf title="Playlist Matches" playlists={playlistRows} onNavigate={onNavigate} emptyMessage="No matching playlists yet." /> : null}
-      {unsavedTitleRows.length ? (
-        <section className="discovery-section"><div className="discovery-section-heading"><h2>Not Yet Saved</h2></div><div className="playlist-universal-title-list">
-          {unsavedTitleRows.slice(0, 10).map(({ movie, savedIn }) => <UniversalTitleResult key={titleResultKey(movie)} addTargets={addTargets} addToPlaylist={addToPlaylist} movie={movie} onCreatePlaylist={onCreatePlaylist} onNavigate={onNavigate} savedIn={savedIn} />)}
-        </div></section>
-      ) : null}
       {(discoveryResults.collections.length || discoveryResults.hubs.length) ? (
         <section className="discovery-section"><div className="discovery-section-heading"><h2>Collections & Themes</h2></div><div className="playlist-universal-link-grid">
           {discoveryResults.collections.map((collection) => <CompactDiscoveryLink key={collection.slug} title={collection.title} meta="Director's Cut" description={collection.overview || `${collection.titleCount} titles`} onClick={() => onNavigate(`/collection/${collection.slug}`)} />)}
@@ -690,6 +683,9 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
           <button className="primary-button" onClick={requestCreatePlaylist} type="button">
             {!currentUser ? "Create Account" : showCreate ? "Close" : "Create Playlist"}
           </button>
+          <button className="primary-button" onClick={() => onOpenRoulette?.(sourcePlaylists)} type="button">
+            Director&apos;s Choice
+          </button>
         </div>
       ) : null}
 
@@ -731,29 +727,14 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
           view={view}
         />
       ) : view === "public" ? (
-        <>
-          <PublicDiscovery
-            onNavigate={onNavigate}
-            playlists={sourcePlaylists}
-            query={query}
-            searchResults={visiblePlaylists}
-            visibleCount={visibleCount}
-            onLoadMore={() => setVisibleCount((count) => count + 7)}
-          />
-          <section className="playlist-roulette-launcher playlist-roulette-compact" aria-label="Movie roulette">
-            <div className="playlist-roulette-icon" aria-hidden="true">
-              <NowPlayingTicketIcon />
-            </div>
-            <div>
-              <span>Movie Roulette</span>
-              <h2>Can't decide what to watch?</h2>
-              <p>Spin across public playlists and curator collections.</p>
-            </div>
-            <button className="secondary-button" onClick={() => onOpenRoulette?.(sourcePlaylists)} type="button">
-              Spin
-            </button>
-          </section>
-        </>
+        <PublicDiscovery
+          onNavigate={onNavigate}
+          playlists={sourcePlaylists}
+          query={query}
+          searchResults={visiblePlaylists}
+          visibleCount={visibleCount}
+          onLoadMore={() => setVisibleCount((count) => count + 7)}
+        />
       ) : sourcePlaylists.length > 0 ? (
         <>
           {ownedPreview.length > 0 ? (
@@ -805,22 +786,6 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
           </div>
           <button className="secondary-button" onClick={() => onNavigate("/followed-titles")} type="button">
             View Followed Titles
-          </button>
-        </section>
-      ) : null}
-
-      {view === "my" && sourcePlaylists.length > 0 ? (
-        <section className="playlist-roulette-launcher playlist-roulette-compact" aria-label="Movie roulette">
-          <div className="playlist-roulette-icon" aria-hidden="true">
-            <NowPlayingTicketIcon />
-          </div>
-          <div>
-            <span>Movie Roulette</span>
-            <h2>Can't decide what to watch?</h2>
-            <p>Spin across your playlists when movie night needs a nudge.</p>
-          </div>
-          <button className="secondary-button" onClick={() => onOpenRoulette?.(sourcePlaylists)} type="button">
-            Spin
           </button>
         </section>
       ) : null}

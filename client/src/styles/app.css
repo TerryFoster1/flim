@@ -10614,6 +10614,13 @@ textarea { min-height: 42px; resize: vertical; }
   margin: -8px 0 20px;
 }
 
+.playlist-page-actions .primary-button {
+  min-height: 48px;
+  min-width: min(180px, calc(50vw - 24px));
+  justify-content: center;
+  text-align: center;
+}
+
 .load-more-row {
   justify-content: center;
   margin: 6px 0 30px;
