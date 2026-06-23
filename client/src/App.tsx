@@ -19,6 +19,7 @@ import { ActorDetailsPage } from "./pages/ActorDetails";
 import { CollectionDetailsPage } from "./pages/CollectionDetails";
 import { FriendChallenge } from "./pages/FriendChallenge";
 import { TriviaGames } from "./pages/TriviaGames";
+import MovieReveal from "./pages/MovieReveal";
 import { HallOfFame } from "./pages/HallOfFame";
 import { Progress } from "./pages/Progress";
 import { SeasonalChallenges } from "./pages/SeasonalChallenges";
@@ -82,6 +83,7 @@ function routeFromPath(path = window.location.pathname): RouteState {
   }
   if (pathname.startsWith("/challenge/")) return { route: "/challenge/:token", challengeToken: pathname.split("/")[2] };
   if (pathname === "/games" || pathname === "/trivia-games") return { route: "/games" };
+  if (pathname === "/arcade/poster-guess") return { route: "/arcade/poster-guess" };
   if (pathname === "/challenges") return { route: "/challenges" };
   if (pathname.startsWith("/challenges/")) return { route: "/challenges/:slug", seasonalChallengeSlug: pathname.split("/")[2] };
   if (pathname.startsWith("/group/")) return { route: "/group/:roomCode", groupRoomCode: pathname.split("/")[2] };
@@ -345,6 +347,7 @@ export default function App() {
     "/decade/:id": <DiscoveryHub kind="decade" hubId={routeState.discoveryId || ""} onNavigate={navigate} />,
     "/franchise/:id": <DiscoveryHub kind="franchise" hubId={routeState.discoveryId || ""} onNavigate={navigate} />,
     "/games": <TriviaGames onNavigate={navigate} />,
+    "/arcade/poster-guess": <MovieReveal onNavigate={navigate} />,
     "/games/title/:mediaType/:tmdbId": <TriviaGames mediaType={routeState.gamesMediaType || "movie"} tmdbId={Number(routeState.gamesTmdbId)} returnTo={routeState.returnTo} onNavigate={navigate} />,
     "/challenge/:token": <FriendChallenge token={routeState.challengeToken || ""} onNavigate={navigate} />,
     "/challenges": <SeasonalChallenges onNavigate={navigate} />,
@@ -404,7 +407,7 @@ export default function App() {
           My Playlists
         </button>
         <button
-          className={`bottom-arcade-button ${activeRoute === "/games" || activeRoute === "/challenges" || activeRoute === "/hall-of-fame" ? "is-active" : ""}`}
+          className={`bottom-arcade-button ${activeRoute === "/games" || activeRoute === "/arcade/poster-guess" || activeRoute === "/challenges" || activeRoute === "/hall-of-fame" ? "is-active" : ""}`}
           aria-label="Flim Arcade"
           onClick={() => navigate("/games")}
           type="button"

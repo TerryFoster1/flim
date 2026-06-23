@@ -14,6 +14,7 @@ export type AppRoute =
   | "/decade/:id"
   | "/franchise/:id"
   | "/games"
+  | "/arcade/poster-guess"
   | "/games/title/:mediaType/:tmdbId"
   | "/challenge/:token"
   | "/challenges"
