@@ -101,13 +101,17 @@ const arcadeCollectionFallbacks = [
   { title: "Time Travel", query: "time", theme: "time", countLabel: "18 challenges", image: "/arcade/art/time-travel.png" },
   { title: "Sci-Fi", query: "space", theme: "space", countLabel: "24 challenges", image: "/arcade/art/sci-fi.png" },
   { title: "Adventure", query: "adventure", theme: "adventure", countLabel: "22 challenges", image: "/arcade/art/adventure.png" },
+  { title: "Fantasy", query: "fantasy", theme: "fantasy", countLabel: "18 challenges", image: "/arcade/art/fantasy.png" },
+  { title: "Anime", query: "anime", theme: "anime", countLabel: "20 challenges", image: "/arcade/art/anime.png" },
   { title: "Animation", query: "animation", theme: "animation", countLabel: "20 challenges", image: "/arcade/art/animation.png" },
-  { title: "Horror", query: "horror", theme: "horror", countLabel: "16 challenges", image: "/api/og/title/movie/4232?card=game" },
-  { title: "Action", query: "action", theme: "hero", countLabel: "19 challenges", image: "/api/og/title/movie/218?card=game" },
+  { title: "Horror", query: "horror", theme: "horror", countLabel: "16 challenges", image: "/arcade/art/horror.png" },
+  { title: "Action", query: "action", theme: "hero", countLabel: "19 challenges", image: "/arcade/art/action.png" },
+  { title: "Comedy", query: "comedy", theme: "comedy", countLabel: "20 challenges", image: "/arcade/art/comedy.png" },
+  { title: "Natural Disaster", query: "natural disaster", theme: "natural-disaster", countLabel: "14 challenges", image: "/arcade/art/natural-disaster.png" },
   { title: "Zombie", query: "zombie", theme: "zombie", countLabel: "10 challenges", image: "/arcade/art/zombie.png" },
   { title: "Apocalypse", query: "apocalypse", theme: "apocalypse", countLabel: "12 challenges", image: "/arcade/art/apocalypse.png" },
   { title: "Alien", query: "alien", theme: "alien", countLabel: "14 challenges", image: "/arcade/art/alien.png" },
-  { title: "Tom Cruise", query: "tom cruise mission", theme: "cinema", countLabel: "15 packs", image: "/api/og/title/movie/744?card=game" },
+  { title: "Tom Cruise", query: "tom cruise mission", theme: "cinema", countLabel: "15 packs", image: "/arcade/art/tom-cruise.png" },
   { title: "Arnold Schwarzenegger", query: "arnold terminator action", theme: "hero", countLabel: "13 packs", image: "/api/og/title/movie/218?card=game" },
 ];
 
@@ -400,7 +404,8 @@ function challengeArtworkTheme(event: SeasonalChallengeEvent) {
   if (text.includes("time")) return "time";
   if (text.includes("zombie") || text.includes("apocalypse")) return "apocalypse";
   if (text.includes("alien") || text.includes("space") || text.includes("world") || text.includes("sci-fi")) return "space";
-  if (text.includes("anime") || text.includes("animation") || text.includes("animated") || text.includes("disney") || text.includes("pixar")) return "animation";
+  if (text.includes("anime")) return "anime";
+  if (text.includes("animation") || text.includes("animated") || text.includes("disney") || text.includes("pixar")) return "animation";
   if (text.includes("office") || text.includes("simpson") || text.includes("quote")) return "quote";
   if (text.includes("jurassic") || text.includes("dinosaur") || text.includes("raptor")) return "jurassic";
   if (text.includes("horror") || text.includes("slasher") || text.includes("halloween")) return "horror";
@@ -415,15 +420,19 @@ function arcadeArtUrl(theme: string) {
     time: "/arcade/art/time-travel.png",
     space: "/arcade/art/sci-fi.png",
     adventure: "/arcade/art/adventure.png",
+    fantasy: "/arcade/art/fantasy.png",
+    anime: "/arcade/art/anime.png",
     animation: "/arcade/art/animation.png",
-    horror: "/arcade/art/horror.svg",
+    horror: "/arcade/art/horror.png",
+    comedy: "/arcade/art/comedy.png",
+    "natural-disaster": "/arcade/art/natural-disaster.png",
     apocalypse: "/arcade/art/apocalypse.png",
     zombie: "/arcade/art/zombie.png",
     alien: "/arcade/art/alien.png",
     quote: "/arcade/art/quote.svg",
     jurassic: "/arcade/art/adventure.png",
     holiday: "/arcade/art/animation.svg",
-    hero: "/arcade/art/action.svg",
+    hero: "/arcade/art/action.png",
     cinema: "/arcade/art/cinema.svg",
   };
   return artMap[theme] || artMap.cinema;
