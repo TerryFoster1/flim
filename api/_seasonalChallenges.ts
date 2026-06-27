@@ -24,6 +24,10 @@ function currentChallengeWeekId(date = new Date()) {
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const FEATURED_CHALLENGE_EPOCH = Date.UTC(2026, 0, 5);
+const PUBLIC_SEASONAL_FEED_CACHE_MS = 15 * 60_000;
+let seasonalChallengeEnsurePromise: Promise<void> | null = null;
+let seasonalChallengeEnsureComplete = false;
+let publicSeasonalFeedCache: { expiresAt: number; value: any } | null = null;
 
 function challengeCadenceDays(eligiblePackCount: number) {
   const configured = String(process.env.FLIM_ARCADE_CHALLENGE_CADENCE || "").trim().toLowerCase();
@@ -3821,6 +3825,20 @@ export async function ensureSeasonalChallengeTables(sql: any) {
   await syncArcadeChallengeWindows(sql);
 }
 
+async function ensureSeasonalChallengeTablesCached(sql: any) {
+  if (seasonalChallengeEnsureComplete) return;
+  if (!seasonalChallengeEnsurePromise) {
+    seasonalChallengeEnsurePromise = ensureSeasonalChallengeTables(sql)
+      .then(() => {
+        seasonalChallengeEnsureComplete = true;
+      })
+      .finally(() => {
+        seasonalChallengeEnsurePromise = null;
+      });
+  }
+  await seasonalChallengeEnsurePromise;
+}
+
 async function syncArcadeChallengeWindows(sql: any) {
   await safe(sql`
     update arcade_challenge_windows
@@ -4037,12 +4055,23 @@ async function progressForRequirement(sql: any, userId: string | undefined, requ
   return 0;
 }
 
-async function mapEvent(sql: any, row: any, userId?: string) {
+type MapEventOptions = {
+  includeStats?: boolean;
+  includeUserProgress?: boolean;
+  persistProgress?: boolean;
+  allowQuestionFallback?: boolean;
+};
+
+async function mapEvent(sql: any, row: any, userId?: string, options: MapEventOptions = {}) {
+  const includeStats = options.includeStats !== false;
+  const includeUserProgress = options.includeUserProgress !== false;
+  const persistProgress = options.persistProgress !== false;
+  const allowQuestionFallback = options.allowQuestionFallback !== false;
   const requirements = normalizeRequirements(row.requirements);
   const targetMedia = normalizeTargetMedia(row.target_media);
   const mappedRequirements = [];
   for (const requirement of requirements) {
-    const progress = await progressForRequirement(sql, userId, requirement);
+    const progress = includeUserProgress ? await progressForRequirement(sql, userId, requirement) : 0;
     mappedRequirements.push({
       ...requirement,
       target: Number(requirement.target || 1),
@@ -4057,7 +4086,7 @@ async function mapEvent(sql: any, row: any, userId?: string) {
   const storedUserStatus = row.user_challenge_status || null;
   const userStatus = completionPercent >= 100 ? "completed" : completionPercent > 0 ? "in_progress" : storedUserStatus || "not_started";
   const remainingDays = dateStatus === "active" ? daysRemaining(row.end_date) : 0;
-  const [participation] = await sql`
+  const [participation] = includeStats ? await sql`
     select
       count(distinct coalesce(usc.user_id, sca.user_id))::int as participant_count,
       coalesce(max(sca.score), 0)::int as top_score
@@ -4065,16 +4094,19 @@ async function mapEvent(sql: any, row: any, userId?: string) {
     left join user_seasonal_challenges usc on usc.event_id = sce.id
     left join seasonal_challenge_attempts sca on sca.event_id = sce.id
     where sce.id = ${row.id}
-  `.catch(() => [{ participant_count: 0, top_score: 0 }]);
-  const [personal] = userId ? await sql`
+  `.catch(() => [{ participant_count: 0, top_score: 0 }]) : [{ participant_count: row.participant_count || 0, top_score: row.top_score || 0 }];
+  const [personal] = includeStats && userId ? await sql`
     select coalesce(max(score), 0)::int as personal_best
     from seasonal_challenge_attempts
     where event_id = ${row.id}
       and user_id = ${userId}
   `.catch(() => [{ personal_best: 0 }]) : [{ personal_best: 0 }];
-  const playableQuestionCount = (await challengeQuestions(sql, row)).length;
+  const rowQuestionCount = Number(row.playable_question_count ?? NaN);
+  const playableQuestionCount = Number.isFinite(rowQuestionCount)
+    ? rowQuestionCount
+    : allowQuestionFallback ? (await challengeQuestions(sql, row)).length : Number(row.question_count || 0);
 
-  if (userId && userStatus !== "not_started") {
+  if (persistProgress && userId && userStatus !== "not_started") {
     await sql`
       insert into user_seasonal_challenges (
         user_id,
@@ -4200,7 +4232,10 @@ async function mapEvent(sql: any, row: any, userId?: string) {
 }
 
 export async function seasonalChallengeFeed(sql: any, userId?: string) {
-  await ensureSeasonalChallengeTables(sql);
+  await ensureSeasonalChallengeTablesCached(sql);
+  if (!userId && publicSeasonalFeedCache && publicSeasonalFeedCache.expiresAt > Date.now()) {
+    return publicSeasonalFeedCache.value;
+  }
   const activeWindow = await syncArcadeChallengeWindows(sql);
   const rows = await sql`
     select
@@ -4210,10 +4245,24 @@ export async function seasonalChallengeFeed(sql: any, userId?: string) {
       case when acw.id is not null then acw.challenge_week_id else null end as active_challenge_week_id,
       acw.start_at as active_window_start_at,
       acw.end_at as active_window_end_at,
-      coalesce(acw.winners_finalized, false) as winners_finalized
+      coalesce(acw.winners_finalized, false) as winners_finalized,
+      coalesce(ecq_counts.playable_question_count, 0)::int as playable_question_count,
+      coalesce(attempt_counts.participant_count, 0)::int as participant_count,
+      coalesce(attempt_counts.top_score, 0)::int as top_score
     from seasonal_challenge_events sce
     left join user_seasonal_challenges usc on usc.event_id = sce.id and usc.user_id = ${userId || null}::uuid
     left join arcade_challenge_windows acw on acw.challenge_pack_id = sce.id and acw.status = 'active'
+    left join (
+      select event_slug, count(*)::int as playable_question_count
+      from evergreen_challenge_questions
+      where status = 'ready'
+      group by event_slug
+    ) ecq_counts on ecq_counts.event_slug = sce.slug
+    left join (
+      select event_id, count(distinct user_id)::int as participant_count, coalesce(max(score), 0)::int as top_score
+      from seasonal_challenge_attempts
+      group by event_id
+    ) attempt_counts on attempt_counts.event_id = sce.id
     where sce.status = 'published'
       and sce.is_active = true
       and sce.end_date >= ((now() at time zone 'America/Toronto')::date - interval '180 days')
@@ -4228,12 +4277,19 @@ export async function seasonalChallengeFeed(sql: any, userId?: string) {
       sce.points desc
   `;
   const events = [];
-  for (const row of rows) events.push(await mapEvent(sql, row, userId));
+  for (const row of rows) {
+    events.push(await mapEvent(sql, row, userId, {
+      includeStats: false,
+      includeUserProgress: false,
+      persistProgress: false,
+      allowQuestionFallback: false,
+    }));
+  }
   const publicPlayableEvents = events.filter((event) => Number(event.playableQuestionCount || 0) >= 50 || event.userStatus === "completed");
   const active = publicPlayableEvents.filter((event) => event.dateStatus === "active");
   const upcoming = publicPlayableEvents.filter((event) => event.dateStatus === "upcoming").slice(0, 12);
   const recentlyCompleted = publicPlayableEvents.filter((event) => event.dateStatus === "ended" || event.userStatus === "completed").slice(0, 12);
-  return {
+  const feed = {
     events: publicPlayableEvents,
     sections: {
       active,
@@ -4243,6 +4299,13 @@ export async function seasonalChallengeFeed(sql: any, userId?: string) {
       featured: active.find((event) => event.challengeWeekId === activeWindow?.challenge_week_id) || active.find((event) => event.isWeeklyFeatured) || active.find((event) => event.isFeatured && Number(event.playableQuestionCount || 0) >= 100) || active[0] || upcoming.find((event) => event.isFeatured) || upcoming[0] || null,
     },
   };
+  if (!userId) {
+    publicSeasonalFeedCache = {
+      value: feed,
+      expiresAt: Date.now() + PUBLIC_SEASONAL_FEED_CACHE_MS,
+    };
+  }
+  return feed;
 }
 
 export async function joinSeasonalChallenge(sql: any, userId: string, eventId: string) {

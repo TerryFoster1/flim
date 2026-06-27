@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { getCollection } from "../services/collectionService";
 import type { CollectionChallenge, MediaCollection, MediaCollectionItem } from "../types";
+import { arcadeCollectionArtworkForText } from "../utils/arcadeArtwork";
 
 interface CollectionDetailsProps {
   collectionId: string;
@@ -69,10 +70,11 @@ export function CollectionDetailsPage({ collectionId, onNavigate }: CollectionDe
 
   const progress = collection.progress;
   const challenges = collection.challenges || [];
+  const collectionHeroImage = arcadeCollectionArtworkForText(collection.slug, collection.title, collection.category, collection.overview) || collection.backdropUrl || collection.posterUrl || "";
 
   return (
     <section className="route-page collection-detail-page">
-      <section className="collection-detail-hero" style={{ backgroundImage: collection.backdropUrl ? `linear-gradient(90deg, rgba(5,5,8,.92), rgba(5,5,8,.54)), url(${collection.backdropUrl})` : undefined }}>
+      <section className="collection-detail-hero" style={{ backgroundImage: collectionHeroImage ? `linear-gradient(90deg, rgba(5,5,8,.92), rgba(5,5,8,.54)), url(${collectionHeroImage})` : undefined }}>
         {collection.posterUrl ? <img className="collection-detail-poster" alt={`${collection.title} poster`} src={collection.posterUrl} /> : <div className="collection-detail-poster collection-poster-placeholder" />}
         <div className="collection-detail-copy">
           <span className={`collection-status-pill is-${progress.status}`}>{statusLabel(progress.status)}</span>

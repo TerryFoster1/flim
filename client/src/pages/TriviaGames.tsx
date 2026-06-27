@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { ShareAssetButton } from "../components/ShareAssetButton";
 import { createFriendChallenge, getFriendChallengeHistory } from "../services/friendChallengeService";
 import { getSeasonalChallengeDetail, getSeasonalChallengeHistory, getSeasonalChallenges } from "../services/seasonalChallengeService";
@@ -116,6 +116,42 @@ const arcadeCollectionFallbacks = [
   { title: "Tom Cruise", query: "tom cruise mission", theme: "cinema", countLabel: "15 packs", image: "/arcade/art/tom-cruise.png" },
   { title: "Arnold Schwarzenegger", query: "arnold terminator action", theme: "hero", countLabel: "13 packs", image: "/api/og/title/movie/218?card=game" },
 ];
+
+const featuredChallengeFallback: SeasonalChallengeEvent = {
+  id: "featured-out-of-this-world-fallback",
+  slug: "out-of-this-world",
+  name: "Out of This World",
+  description: "A 100-question space movie gauntlet covering sci-fi classics, alien encounters, cosmic survival, and galaxy-sized adventures.",
+  startDate: "2026-06-28",
+  endDate: "2026-07-05",
+  badge: "Space Cadet",
+  banner: "space",
+  seasonKey: "space",
+  challengeType: "weekly",
+  isFeatured: true,
+  isWeeklyFeatured: true,
+  challengeWeekId: "featured-out-of-this-world-fallback",
+  windowStartAt: "2026-06-28T04:00:00.000Z",
+  windowEndAt: "2026-07-05T03:59:59.000Z",
+  winnersFinalized: false,
+  heroImageUrl: "/arcade/art/sci-fi.png",
+  questionCount: 100,
+  playableQuestionCount: 100,
+  isActive: true,
+  difficulty: "medium",
+  requirements: [],
+  points: 300,
+  status: "published",
+  dateStatus: "active",
+  userStatus: "not_started",
+  completedRequirements: 0,
+  totalRequirements: 0,
+  completionPercent: 0,
+  daysRemaining: 8,
+  participantCount: 0,
+  topScore: 0,
+  personalBest: 0,
+};
 
 function challengeMatches(event: SeasonalChallengeEvent, keyword: string) {
   return `${event.slug} ${event.name} ${event.description} ${event.badge} ${event.banner || ""} ${event.seasonKey || ""}`.toLowerCase().includes(keyword);
@@ -344,17 +380,41 @@ function challengeTypeLabel(type?: string) {
   return "Seasonal challenge";
 }
 
+function hasEncodingArtifact(value?: string) {
+  const normalized = String(value || "");
+  return /[\u00C2\u00C3\u00E2\uFFFD]/.test(normalized);
+}
+
+function safeArcadeMetadata(value?: string) {
+  const normalized = String(value || "").trim();
+  return normalized && !hasEncodingArtifact(normalized) ? normalized : "";
+}
+
+function ArcadeMetaItem({ label, value }: { label: string; value?: string | number }) {
+  const display = safeArcadeMetadata(String(value || ""));
+  if (!display) return null;
+  return (
+    <span className="arcade-meta-item">
+      <small>{label}</small>
+      <strong>{display}</strong>
+    </span>
+  );
+}
+
+function challengeStatusMeta(event: SeasonalChallengeEvent) {
+  if (event.windowEndAt) return { label: "Ends", value: formatChallengeWindowDate(event.windowEndAt) };
+  if (event.dateStatus === "active") {
+    return { label: "Ends", value: event.daysRemaining === 1 ? "in 1 day" : `in ${event.daysRemaining} days` };
+  }
+  if (event.dateStatus === "upcoming") return { label: "Status", value: "Scheduled" };
+  return { label: "Status", value: "Completed" };
+}
 function FeaturedChallengeCard({ event, onNavigate }: { event: SeasonalChallengeEvent; onNavigate: (path: string) => void }) {
   const questionCount = Number(event.playableQuestionCount || event.questionCount || 0);
-  const status = event.windowEndAt
-    ? `Ends ${formatChallengeWindowDate(event.windowEndAt)}`
-    : event.dateStatus === "active"
-    ? event.daysRemaining === 1 ? "Ends in 1 day" : `Ends in ${event.daysRemaining} days`
-    : event.dateStatus === "upcoming"
-      ? "Scheduled event"
-      : "Completed event";
+  const status = challengeStatusMeta(event);
   const themeKey = String(event.banner || event.seasonKey || "challenge").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "challenge";
   const artworkTheme = challengeArtworkTheme(event);
+  const badgeLabel = safeArcadeMetadata(event.badge);
 
   return (
     <button
@@ -369,10 +429,10 @@ function FeaturedChallengeCard({ event, onNavigate }: { event: SeasonalChallenge
         <h3>{event.name}</h3>
         <p>{event.description}</p>
         <div className="challenge-card-meta">
-          <strong>{questionCount} Questions</strong>
-          <span>{event.badge}</span>
-          <span>Win up to {event.points} tickets</span>
-          <span>{status}</span>
+          <ArcadeMetaItem label="Questions" value={`${questionCount} Questions`} />
+          <ArcadeMetaItem label="Badge" value={badgeLabel} />
+          <ArcadeMetaItem label="Prize" value={`Win up to ${event.points} tickets`} />
+          <ArcadeMetaItem label={status.label} value={status.value} />
         </div>
       </div>
       <span className="arcade-card-chevron" aria-hidden="true">&gt;</span>
@@ -387,6 +447,7 @@ function ArcadeChallengeListCard({ event, onNavigate, label = "Challenge" }: { e
     : event.dateStatus === "upcoming"
       ? "Opens soon"
       : "Scoreboard ready";
+  const badgeLabel = safeArcadeMetadata(event.badge);
 
   return (
     <button className="arcade-pack-card is-challenge" onClick={() => onNavigate("/challenges/" + event.slug)} type="button">
@@ -395,7 +456,7 @@ function ArcadeChallengeListCard({ event, onNavigate, label = "Challenge" }: { e
         <small>{label}</small>
         <strong>{event.name}</strong>
         <span>{questionCount} questions - {status}</span>
-        <em>{event.badge} - {event.points} tickets</em>
+        <em>{[badgeLabel, `${event.points} tickets`].filter(Boolean).join(" - ")}</em>
       </div>
     </button>
   );
@@ -404,6 +465,10 @@ function ArcadeChallengeListCard({ event, onNavigate, label = "Challenge" }: { e
 function challengeArtworkTheme(event: SeasonalChallengeEvent) {
   const text = `${event.slug} ${event.name} ${event.banner || ""} ${event.seasonKey || ""} ${event.badge || ""}`.toLowerCase();
   if (text.includes("time")) return "time";
+  if (text.includes("natural disaster") || text.includes("disaster")) return "natural-disaster";
+  if (text.includes("summer") || text.includes("blockbuster")) return "summer";
+  if (text.includes("comedy") || text.includes("comedies")) return "comedy";
+  if (text.includes("fantasy")) return "fantasy";
   if (text.includes("zombie") || text.includes("apocalypse")) return "apocalypse";
   if (text.includes("alien") || text.includes("space") || text.includes("world") || text.includes("sci-fi")) return "space";
   if (text.includes("anime")) return "anime";
@@ -412,7 +477,7 @@ function challengeArtworkTheme(event: SeasonalChallengeEvent) {
   if (text.includes("jurassic") || text.includes("dinosaur") || text.includes("raptor")) return "jurassic";
   if (text.includes("horror") || text.includes("slasher") || text.includes("halloween")) return "horror";
   if (text.includes("christmas") || text.includes("holiday")) return "holiday";
-  if (text.includes("superhero") || text.includes("marvel") || text.includes("dc")) return "hero";
+  if (text.includes("superhero") || text.includes("marvel") || text.includes("dc") || text.includes("action")) return "hero";
   if (text.includes("adventure") || text.includes("explorer") || text.includes("mission") || text.includes("bond")) return "adventure";
   return "cinema";
 }
@@ -433,7 +498,8 @@ function arcadeArtUrl(theme: string) {
     alien: "/arcade/art/alien.png",
     quote: "/arcade/art/quote.svg",
     jurassic: "/arcade/art/adventure.png",
-    holiday: "/arcade/art/animation.svg",
+    holiday: "/arcade/art/christmas.png",
+    summer: "/arcade/art/summer.png",
     hero: "/arcade/art/action.png",
     cinema: "/arcade/art/cinema.svg",
   };
@@ -446,23 +512,7 @@ function challengeDisplayArtworkUrl(event: SeasonalChallengeEvent) {
 }
 function challengeArtworkUrl(event: SeasonalChallengeEvent) {
   if (event.heroImageUrl) return event.heroImageUrl;
-  const text = `${event.slug} ${event.name} ${event.banner || ""} ${event.seasonKey || ""}`.toLowerCase();
-  if (text.includes("time")) return "/api/og/title/movie/105?card=game";
-  if (text.includes("adventure") || text.includes("mission")) return "/api/og/title/movie/85?card=game";
-  if (text.includes("world") || text.includes("space") || text.includes("sci-fi") || text.includes("alien")) return "/api/og/title/movie/11?card=game";
-  if (text.includes("jurassic") || text.includes("dinosaur")) return "/api/og/title/movie/329?card=game";
-  if (text.includes("office") || text.includes("quote")) return "/api/og/title/tv/2316?card=game";
-  if (text.includes("wizard") || text.includes("harry")) return "/api/og/title/movie/671?card=game";
-  if (text.includes("simpson")) return "/api/og/title/tv/456?card=game";
-  if (text.includes("disney") || text.includes("pixar") || text.includes("animation")) return "/api/og/title/movie/862?card=game";
-  if (text.includes("superhero") || text.includes("marvel")) return "/api/og/title/movie/299536?card=game";
-  if (text.includes("zombie") || text.includes("apocalypse")) return "/api/og/title/movie/19908?card=game";
-  const banner = String(event.banner || event.seasonKey || event.name).toLowerCase();
-  if (banner.includes("horror")) return "/api/og/title/movie/348?card=game";
-  if (banner.includes("holiday")) return "/api/og/title/movie/1585?card=game";
-  if (banner.includes("awards")) return "/api/og/title/movie/238?card=game";
-  if (banner.includes("blockbuster")) return "/api/og/title/movie/329?card=game";
-  return "/arcade/flim-arcade-hero.png";
+  return arcadeArtUrl(challengeArtworkTheme(event));
 }
 
 function formatChallengeWindowDate(value: string) {
@@ -612,12 +662,11 @@ function ScoreboardSheet({
 }
 
 function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void }) {
-  const [featuredChallenges, setFeaturedChallenges] = useState<SeasonalChallengeEvent[]>([]);
+  const [featuredChallenges, setFeaturedChallenges] = useState<SeasonalChallengeEvent[]>([featuredChallengeFallback]);
   const [arcadeSearchQuery, setArcadeSearchQuery] = useState("");
   const [arcadeBrowseMode, setArcadeBrowseMode] = useState<ArcadeBrowseMode>("landing");
   const [scoreboardOpen, setScoreboardOpen] = useState(false);
   const [selectedScoreboardSlug, setSelectedScoreboardSlug] = useState("");
-  const [weeklyDetail, setWeeklyDetail] = useState<SeasonalChallengeDetail | null>(null);
   const [ticketFeed, setTicketFeed] = useState<TicketFeed | null>(null);
 
   useEffect(() => {
@@ -625,12 +674,15 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
     getSeasonalChallenges()
       .then((feed) => {
         if (!mounted) return;
-        const visible = feed.sections.active.filter((event) => event.dateStatus === "active" && Number(event.playableQuestionCount || 0) > 0);
+        const visible = [
+          feed.sections.featured,
+          ...feed.sections.active,
+        ].filter((event): event is SeasonalChallengeEvent => Boolean(event && event.dateStatus === "active" && Number(event.playableQuestionCount || 0) > 0));
         const unique = Array.from(new Map(visible.map((event) => [event.id, event])).values());
-        setFeaturedChallenges(unique);
+        setFeaturedChallenges(unique.length ? unique : [featuredChallengeFallback]);
       })
       .catch(() => {
-        if (mounted) setFeaturedChallenges([]);
+        if (mounted) setFeaturedChallenges([featuredChallengeFallback]);
       });
     return () => {
       mounted = false;
@@ -652,23 +704,6 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
   }, []);
 
   const featuredWeeklyChallenge = weeklyFeaturedPack(featuredChallenges);
-  useEffect(() => {
-    if (!featuredWeeklyChallenge?.slug) {
-      setWeeklyDetail(null);
-      return undefined;
-    }
-    let mounted = true;
-    getSeasonalChallengeDetail(featuredWeeklyChallenge.slug)
-      .then((detail) => {
-        if (mounted) setWeeklyDetail(detail);
-      })
-      .catch(() => {
-        if (mounted) setWeeklyDetail(null);
-      });
-    return () => {
-      mounted = false;
-    };
-  }, [featuredWeeklyChallenge?.slug]);
 
   const normalizedArcadeSearch = arcadeSearchQuery.trim().toLowerCase();
   const filteredChallenges = normalizedArcadeSearch
@@ -726,7 +761,11 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
     })
     .filter((collection) => !normalizedArcadeSearch || collection.title.toLowerCase().includes(normalizedArcadeSearch) || collection.query.includes(normalizedArcadeSearch) || Boolean(collection.event))
     .slice(0, 11);
-  const progressBadgeCount = weeklyDetail?.standings.personalBest ? 1 : 0;
+  const progressBadgeCount = ticketFeed?.history.filter((item) => {
+    const metadataText = JSON.stringify(item.metadata || {}).toLowerCase();
+    const transactionText = `${item.transactionType || ""} ${item.sourceType || ""} ${metadataText}`.toLowerCase();
+    return transactionText.includes("badge") || transactionText.includes("challenge");
+  }).length || 0;
 
   return (
     <section className="route-page trivia-games-page arcade-preview-page">

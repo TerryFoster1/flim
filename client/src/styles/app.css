@@ -6210,7 +6210,6 @@ textarea { min-height: 42px; resize: vertical; }
   background: rgba(8,9,13,.72);
   box-shadow: 0 26px 80px rgba(0,0,0,.38);
 }
-
 .arcade-featured-trivia-card img {
   position: absolute;
   inset: 0;
@@ -8841,6 +8840,8 @@ textarea { min-height: 42px; resize: vertical; }
     radial-gradient(circle at 88% 12%, color-mix(in srgb, var(--seasonal-accent) 30%, transparent), transparent 18rem),
     radial-gradient(circle at 16% 18%, color-mix(in srgb, var(--seasonal-accent-2) 26%, transparent), transparent 20rem),
     rgba(255,255,255,.055);
+  background-size: cover;
+  background-position: center;
   box-shadow: 0 28px 88px rgba(0,0,0,.34);
 }
 .challenge-landing-copy {
@@ -13407,14 +13408,21 @@ textarea { min-height: 42px; resize: vertical; }
   white-space: normal;
 }
 
-.arcade-preview-page .challenge-card-meta > * + *::before {
-  content: "ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢";
-  margin-right: 8px;
-  color: rgba(228, 182, 111, 0.7);
+.arcade-preview-page .arcade-meta-item {
+  gap: 5px;
 }
 
-.arcade-preview-page .challenge-card-meta strong {
-  color: #ffe1a0;
+.arcade-preview-page .arcade-meta-item small {
+  color: #e7ba6e;
+  font-size: 0.72rem;
+  font-weight: 950;
+  line-height: 1;
+}
+
+.arcade-preview-page .arcade-meta-item strong {
+  color: #fff2cb;
+  font-size: 0.88rem;
+  line-height: 1.1;
 }
 
 .arcade-preview-page .arcade-card-chevron {
@@ -14728,3 +14736,4 @@ textarea { min-height: 42px; resize: vertical; }
     grid-template-columns: 1fr;
   }
 }
+

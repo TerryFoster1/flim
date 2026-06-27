@@ -8,6 +8,7 @@ import {
 } from "../services/seasonalChallengeService";
 import { createGroupRoom } from "../services/groupRoomService";
 import type { SeasonalChallengeDetail, SeasonalChallengeQuestion, SeasonalChallengeScore } from "../types";
+import { arcadeCollectionArtworkForText } from "../utils/arcadeArtwork";
 
 interface ChallengeDetailsProps {
   slug: string;
@@ -53,6 +54,9 @@ function challengeResultHeadline(correctCount: number, totalCount: number) {
   if (state === "strong") return "Movie Buff";
   if (state === "complete") return "Challenge Complete";
   return "Try again?";
+}
+function challengeHeroArtworkUrl(event: SeasonalChallengeDetail["event"]) {
+  return event.heroImageUrl || arcadeCollectionArtworkForText(event.slug, event.name, event.description, event.banner, event.seasonKey, event.badge) || "/arcade/flim-arcade-hero.png";
 }
 
 function StandingRow({ score }: { score: SeasonalChallengeScore }) {
@@ -275,6 +279,7 @@ export function ChallengeDetails({ slug, onNavigate }: ChallengeDetailsProps) {
 
   const { event, questions, standings } = detail;
   const canPlay = event.dateStatus === "active" && playQuestions.length > 0;
+  const heroArtworkUrl = challengeHeroArtworkUrl(event);
 
   return (
     <section className="route-page challenge-detail-page">
@@ -282,7 +287,10 @@ export function ChallengeDetails({ slug, onNavigate }: ChallengeDetailsProps) {
         Back to Challenges
       </button>
 
-      <header className={`challenge-landing-hero theme-${event.banner || event.seasonKey || "general"}`}>
+      <header
+        className={`challenge-landing-hero theme-${event.banner || event.seasonKey || "general"}`}
+        style={{ backgroundImage: `linear-gradient(90deg, rgba(5, 5, 8, .94) 0%, rgba(5, 5, 8, .78) 42%, rgba(5, 5, 8, .38) 100%), url(${heroArtworkUrl})` }}
+      >
         <div className="challenge-landing-copy">
           <h1>{event.name}</h1>
           <p>{event.description}</p>
