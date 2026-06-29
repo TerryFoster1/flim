@@ -4308,6 +4308,93 @@ export async function seasonalChallengeFeed(sql: any, userId?: string) {
   return feed;
 }
 
+export async function seasonalChallengePublicFeed(sql: any) {
+  if (publicSeasonalFeedCache && publicSeasonalFeedCache.expiresAt > Date.now()) {
+    return publicSeasonalFeedCache.value;
+  }
+
+  const [activeWindow] = await sql`
+    select challenge_week_id, challenge_pack_id
+    from arcade_challenge_windows
+    where status = 'active'
+      and now() >= start_at
+      and now() < end_at
+    order by start_at desc
+    limit 1
+  `.catch(() => [null]);
+
+  const rows = await sql`
+    select
+      sce.*,
+      null::timestamp as completed_at,
+      null::text as user_challenge_status,
+      case when ${activeWindow?.challenge_pack_id || null}::uuid = sce.id then ${activeWindow?.challenge_week_id || null} else null end as active_challenge_week_id,
+      null::timestamp as active_window_start_at,
+      null::timestamp as active_window_end_at,
+      false as winners_finalized,
+      coalesce(ecq_counts.playable_question_count, 0)::int as playable_question_count,
+      coalesce(attempt_counts.participant_count, 0)::int as participant_count,
+      coalesce(attempt_counts.top_score, 0)::int as top_score
+    from seasonal_challenge_events sce
+    left join (
+      select event_slug, count(*)::int as playable_question_count
+      from evergreen_challenge_questions
+      where status = 'ready'
+      group by event_slug
+    ) ecq_counts on ecq_counts.event_slug = sce.slug
+    left join (
+      select event_id, count(distinct user_id)::int as participant_count, coalesce(max(score), 0)::int as top_score
+      from seasonal_challenge_attempts
+      group by event_id
+    ) attempt_counts on attempt_counts.event_id = sce.id
+    where sce.status = 'published'
+      and sce.is_active = true
+      and sce.end_date >= ((now() at time zone 'America/Toronto')::date - interval '180 days')
+    order by
+      case
+        when (now() at time zone 'America/Toronto')::date between sce.start_date and sce.end_date then 0
+        when sce.start_date > (now() at time zone 'America/Toronto')::date then 1
+        else 2
+      end,
+      case when ${activeWindow?.challenge_pack_id || null}::uuid = sce.id then 0 else 1 end,
+      sce.is_featured desc,
+      sce.start_date asc,
+      sce.points desc
+  `.catch(() => []);
+
+  const events = [];
+  for (const row of rows) {
+    events.push(await mapEvent(sql, row, undefined, {
+      includeStats: false,
+      includeUserProgress: false,
+      persistProgress: false,
+      allowQuestionFallback: false,
+    }));
+  }
+
+  const publicPlayableEvents = events.filter((event) => Number(event.playableQuestionCount || 0) >= 50);
+  const active = publicPlayableEvents.filter((event) => event.dateStatus === "active");
+  const upcoming = publicPlayableEvents.filter((event) => event.dateStatus === "upcoming").slice(0, 12);
+  const recentlyCompleted = publicPlayableEvents.filter((event) => event.dateStatus === "ended").slice(0, 12);
+  const feed = {
+    events: publicPlayableEvents,
+    sections: {
+      active,
+      endingSoon: active.filter((event) => event.daysRemaining <= 14),
+      upcoming,
+      recentlyCompleted,
+      featured: active.find((event) => event.challengeWeekId === activeWindow?.challenge_week_id) || active.find((event) => event.isFeatured && Number(event.playableQuestionCount || 0) >= 100) || active[0] || upcoming.find((event) => event.isFeatured) || upcoming[0] || null,
+    },
+  };
+
+  publicSeasonalFeedCache = {
+    value: feed,
+    expiresAt: Date.now() + PUBLIC_SEASONAL_FEED_CACHE_MS,
+  };
+
+  return feed;
+}
+
 export async function joinSeasonalChallenge(sql: any, userId: string, eventId: string) {
   await ensureSeasonalChallengeTables(sql);
   const [event] = await sql`
