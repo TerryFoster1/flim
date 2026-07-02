@@ -905,11 +905,10 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
                   className={`arcade-collection-card artwork-${collection.theme}`}
                   key={collection.title}
                   onClick={() => collection.event ? onNavigate(`/challenges/${collection.event.slug}`) : setArcadeSearchQuery(collection.query)}
+                  aria-label={`${collection.title} collection`}
                   type="button"
                 >
                   <img alt="" src={collection.image} loading="lazy" decoding="async" />
-                  <span>{collection.title}</span>
-                  <small>{collection.countLabel || `${collection.count} questions`}</small>
                 </button>
               ))}
             </div>

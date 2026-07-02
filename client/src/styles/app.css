@@ -13933,6 +13933,16 @@ textarea { min-height: 42px; resize: vertical; }
 .arcade-preview-page .arcade-collection-card {
   min-height: 212px;
   border-color: rgba(239, 191, 116, 0.22);
+  padding: 0;
+  align-content: stretch;
+}
+
+.arcade-preview-page .arcade-collection-card::after {
+  content: none;
+}
+
+.arcade-preview-page .arcade-collection-card img {
+  opacity: 1;
 }
 
 .arcade-preview-page .arcade-progress-only {
