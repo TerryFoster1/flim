@@ -9,6 +9,7 @@ import {
   createSharedPlaylistLink,
   createPlaylist,
   deletePlaylist,
+  getPlaylistById,
   getPlaylists,
   removeMovieFromPlaylist,
   toggleWatchedStatus,
@@ -123,6 +124,8 @@ function isDirectorPlaylist(playlist: Playlist) {
 export default function App() {
   const [routeState, setRouteState] = useState<RouteState>(routeFromPath);
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
+  const [playlistDetail, setPlaylistDetail] = useState<Playlist | null>(null);
+  const [playlistDetailStatus, setPlaylistDetailStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [playlistNotice, setPlaylistNotice] = useState("");
   const [dataStatus, setDataStatus] = useState<"loading" | "ready" | "error">("loading");
   const [dataMessage, setDataMessage] = useState("");
@@ -208,6 +211,18 @@ export default function App() {
     }
   }
 
+  async function refreshPlaylistDetail(playlistId: string) {
+    try {
+      const fullPlaylist = await getPlaylistById(playlistId);
+      setPlaylistDetail(fullPlaylist);
+      setPlaylistDetailStatus("ready");
+      return fullPlaylist;
+    } catch {
+      setPlaylistDetailStatus("error");
+      throw new Error("Could not load playlist details.");
+    }
+  }
+
   async function createRemotePlaylist(input: Pick<Playlist, "name" | "description" | "visibility">) {
     const created = await createPlaylist(input);
     await refreshPlaylists();
@@ -218,16 +233,25 @@ export default function App() {
     await addMovieToPlaylist(playlistId, movie);
     enqueueTitleTrivia({ mediaType: movie.mediaType || "movie", tmdbId: movie.tmdbId, source: "playlist_add" });
     await refreshPlaylists({ background: true });
+    if (routeState.route === "/playlists/:id" && routeState.playlistId === playlistId) {
+      await refreshPlaylistDetail(playlistId).catch(() => undefined);
+    }
   }
 
   async function removeFromPlaylist(playlistId: string, tmdbId: number, mediaType = "movie") {
     await removeMovieFromPlaylist(playlistId, tmdbId, mediaType);
     await refreshPlaylists();
+    if (routeState.route === "/playlists/:id" && routeState.playlistId === playlistId) {
+      await refreshPlaylistDetail(playlistId).catch(() => undefined);
+    }
   }
 
   async function updateWatchStatus(playlistId: string, tmdbId: number, watchStatus: WatchStatus, mediaType = "movie") {
     await toggleWatchedStatus(playlistId, tmdbId, watchStatus, mediaType);
     await refreshPlaylists();
+    if (routeState.route === "/playlists/:id" && routeState.playlistId === playlistId) {
+      await refreshPlaylistDetail(playlistId).catch(() => undefined);
+    }
   }
 
   async function deleteRemotePlaylist(playlistId: string) {
@@ -240,12 +264,18 @@ export default function App() {
   async function updateRemotePlaylist(playlistId: string, input: Pick<Playlist, "name" | "description" | "visibility">) {
     const updated = await updatePlaylist(playlistId, input);
     await refreshPlaylists();
+    if (routeState.route === "/playlists/:id" && routeState.playlistId === playlistId) {
+      await refreshPlaylistDetail(playlistId).catch(() => undefined);
+    }
     return updated;
   }
 
   async function createRemoteSharedLink(playlistId: string) {
     const result = await createSharedPlaylistLink(playlistId);
     await refreshPlaylists();
+    if (routeState.route === "/playlists/:id" && routeState.playlistId === playlistId) {
+      await refreshPlaylistDetail(playlistId).catch(() => undefined);
+    }
     return result;
   }
 
@@ -273,7 +303,40 @@ export default function App() {
     () => playlists.filter((playlist) => playlist.isOwner || playlist.isFollowing || isDirectorPlaylist(playlist)),
     [playlists],
   );
-  const detailPlaylist = useMemo(() => displayPlaylists.find((playlist) => playlist.id === routeState.playlistId), [displayPlaylists, routeState.playlistId]);
+  const detailPlaylistSummary = useMemo(() => displayPlaylists.find((playlist) => playlist.id === routeState.playlistId), [displayPlaylists, routeState.playlistId]);
+  const detailPlaylist = playlistDetail?.id === routeState.playlistId ? playlistDetail : detailPlaylistSummary?.isSystem ? detailPlaylistSummary : undefined;
+
+  useEffect(() => {
+    if (routeState.route !== "/playlists/:id" || !routeState.playlistId) {
+      setPlaylistDetail(null);
+      setPlaylistDetailStatus("idle");
+      return;
+    }
+
+    if (detailPlaylistSummary?.isSystem) {
+      setPlaylistDetail(null);
+      setPlaylistDetailStatus("ready");
+      return;
+    }
+
+    let ignore = false;
+    setPlaylistDetailStatus("loading");
+    getPlaylistById(routeState.playlistId)
+      .then((fullPlaylist) => {
+        if (ignore) return;
+        setPlaylistDetail(fullPlaylist);
+        setPlaylistDetailStatus("ready");
+      })
+      .catch(() => {
+        if (ignore) return;
+        setPlaylistDetail(null);
+        setPlaylistDetailStatus("error");
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [detailPlaylistSummary?.isSystem, routeState.playlistId, routeState.route]);
 
   const isDirectorAdminRoute = activeRoute.startsWith("/director-admin");
   const isTitleDetailRoute = activeRoute === "/movies/:tmdbId" || activeRoute === "/tv/:tmdbId";
@@ -311,6 +374,10 @@ export default function App() {
         updateWatchStatus={updateWatchStatus}
         relatedPlaylists={displayPlaylists}
       />
+    ) : playlistDetailStatus === "loading" ? (
+      <section className="route-page">
+        <p className="empty-state">Loading playlist...</p>
+      </section>
     ) : (
       <Playlists currentUser={currentUser} rewindPlaylists={rewindPlaylists} initialView="my" notice={playlistNotice || "Playlist not found."} onCreatePlaylist={createRemotePlaylist} addToPlaylist={addToPlaylist} onNavigate={navigate} onOpenRoulette={openNowPlaying} playlists={playlists} />
     ),
