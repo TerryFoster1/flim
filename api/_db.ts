@@ -38,10 +38,13 @@ export async function ensurePgCrypto(sql: any) {
   }
 }
 
-export function sendJson(response: any, status: number, body: unknown) {
+export function sendJson(response: any, status: number, body: unknown, headers: Record<string, string> = {}) {
   response.statusCode = status;
   response.setHeader("Content-Type", "application/json");
   response.setHeader("Cache-Control", "no-store");
+  for (const [key, value] of Object.entries(headers)) {
+    response.setHeader(key, value);
+  }
   response.end(JSON.stringify(body));
 }
 
@@ -110,6 +113,7 @@ export function createPublicSlug(name: string) {
 export function mapPlaylist(row: any, movies: any[] = []) {
   const followerCount = Number(row.follower_count || 0);
   const likeCount = Number(row.like_count || 0);
+  const movieCount = Number(row.movie_count ?? row.movieCount ?? movies.length);
 
   return {
     id: row.id,
@@ -131,6 +135,7 @@ export function mapPlaylist(row: any, movies: any[] = []) {
     followerCount: Number.isFinite(followerCount) ? followerCount : 0,
     isLiked: Boolean(row.is_liked),
     likeCount: Number.isFinite(likeCount) ? likeCount : 0,
+    movieCount: Number.isFinite(movieCount) ? movieCount : movies.length,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     movies: movies.map(mapPlaylistMovie),

@@ -32,7 +32,7 @@ function hasUsefulCastPayload(details: any) {
 }
 
 function hasVideoPayload(details: any) {
-  return details?.videoVersion === 1;
+  return details?.videoVersion === 2;
 }
 
 function withCatalogCast(details: any, catalogCast: any[]) {
@@ -365,3 +365,4 @@ export default async function handler(request: any, response: any) {
     return sendJson(response, 500, { error: error instanceof Error ? error.message : "Movie request failed." });
   }
 }
+

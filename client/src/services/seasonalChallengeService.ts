@@ -6,7 +6,13 @@ import type {
   SeasonalChallengeHistoryItem,
 } from "../types";
 
+const SEASONAL_FEED_CACHE_MS = 60_000;
+let seasonalFeedCache: { value: SeasonalChallengeFeed; expiresAt: number } | null = null;
+let seasonalFeedPromise: Promise<SeasonalChallengeFeed> | null = null;
+
 async function seasonalRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const startedAt = performance.now();
+  console.info("[arcade:request:start]", { path, method: options.method || "GET" });
   const response = await fetch(path, {
     credentials: "same-origin",
     headers: {
@@ -16,17 +22,47 @@ async function seasonalRequest<T>(path: string, options: RequestInit = {}): Prom
     },
     ...options,
   });
+  const payloadText = await response.text();
+  const durationMs = Math.round(performance.now() - startedAt);
+  console.info("[arcade:request:end]", {
+    path,
+    method: options.method || "GET",
+    status: response.status,
+    responseSize: payloadText.length,
+    durationMs,
+  });
 
-  if (!response.ok) {
-    const payload = await response.json().catch(() => ({}));
-    throw new Error(payload.error || "Seasonal challenge request failed.");
+  let payload: unknown = {};
+  try {
+    payload = payloadText ? JSON.parse(payloadText) : {};
+  } catch {
+    payload = {};
   }
 
-  return response.json() as Promise<T>;
+  if (!response.ok) {
+    const errorPayload = payload && typeof payload === "object" ? payload as { error?: string } : {};
+    throw new Error(errorPayload.error || "Seasonal challenge request failed.");
+  }
+
+  return payload as T;
 }
 
 export function getSeasonalChallenges() {
-  return seasonalRequest<SeasonalChallengeFeed>("/api/seasonal-challenges");
+  const now = Date.now();
+  if (seasonalFeedCache && seasonalFeedCache.expiresAt > now) {
+    console.info("[arcade:request:cache-hit]", { path: "/api/seasonal-challenges" });
+    return Promise.resolve(seasonalFeedCache.value);
+  }
+  if (seasonalFeedPromise) return seasonalFeedPromise;
+  seasonalFeedPromise = seasonalRequest<SeasonalChallengeFeed>("/api/seasonal-challenges")
+    .then((feed) => {
+      seasonalFeedCache = { value: feed, expiresAt: Date.now() + SEASONAL_FEED_CACHE_MS };
+      return feed;
+    })
+    .finally(() => {
+      seasonalFeedPromise = null;
+    });
+  return seasonalFeedPromise;
 }
 
 export function joinSeasonalChallenge(eventId: string) {

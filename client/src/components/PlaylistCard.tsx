@@ -13,7 +13,8 @@ export function PlaylistCard({ playlist, large, onNavigate, hideLikes = false }:
   const detailPath = playlist.visibility === "public" && !playlist.isOwner ? `/p/${playlist.publicSlug}` : `/playlists/${playlist.id}`;
   const followerCount = playlist.followerCount || 0;
   const likeCount = playlist.likeCount || 0;
-  const titleCountLabel = `${playlist.movies.length} ${playlist.movies.length === 1 ? "title" : "titles"}`;
+  const titleCount = playlist.movieCount ?? playlist.movies.length;
+  const titleCountLabel = `${titleCount} ${titleCount === 1 ? "title" : "titles"}`;
   const creatorLabel = isDirectorPlaylist
     ? "Curated by The Director"
     : playlist.creatorDisplayName

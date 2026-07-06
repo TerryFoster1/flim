@@ -1226,7 +1226,7 @@ export interface SoundtrackAvailability {
   notes: string;
 }
 
-export type VideoContentType = "official_trailer" | "teaser_trailer" | "behind_the_scenes" | "interview" | "featurette";
+export type VideoContentType = "official_trailer" | "teaser_trailer" | "behind_the_scenes" | "interview" | "featurette" | "recap";
 
 export interface MediaVideoLink {
   provider: "youtube";
@@ -1549,6 +1549,7 @@ export interface Playlist {
   description: string;
   visibility: "private" | "shared" | "public";
   movies: PlaylistMovie[];
+  movieCount?: number;
   creatorHandle?: string;
   creatorDisplayName?: string;
   ownerUserId?: string;
@@ -1572,3 +1573,4 @@ export interface Playlist {
   isSystem?: boolean;
   systemType?: "most_watched" | "recommended" | "plex_library";
 }
+

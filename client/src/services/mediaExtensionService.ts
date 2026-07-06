@@ -13,6 +13,13 @@ export function buildYoutubeTrailerSearchUrl(title: string, mediaType: MediaType
   return `https://www.youtube.com/results?search_query=${encodeQuery(`${title} ${suffix}`)}`;
 }
 
+export function buildYoutubeExtraSearchUrl(title: string, contentType: "recap" | "behind_the_scenes", mediaType: MediaType = "movie") {
+  const suffix = contentType === "recap"
+    ? mediaType === "tv" ? "season recap" : "movie recap before watching sequel"
+    : "behind the scenes interview director featurette";
+  return `https://www.youtube.com/results?search_query=${encodeQuery(`${title} ${suffix}`)}`;
+}
+
 export function getSoundtrackAvailability(media: { tmdbId: number; title: string; mediaType?: MediaType }): SoundtrackAvailability {
   const mediaType = media.mediaType ?? "movie";
   const query = mediaType === "tv" ? `${media.title} soundtrack theme` : `${media.title} Original Motion Picture Soundtrack`;
@@ -42,17 +49,38 @@ export function getSoundtrackAvailability(media: { tmdbId: number; title: string
 
 export function getTrailerLinks(media: { tmdbId: number; title: string; mediaType?: MediaType; videos?: MediaVideoLink[] }): MediaVideoLink[] {
   const exactVideos = Array.isArray(media.videos) ? media.videos.filter((video) => Boolean(video?.url)) : [];
-  if (exactVideos.length > 0) return exactVideos;
-
   const mediaType = media.mediaType ?? "movie";
+  const extraFallbacks: MediaVideoLink[] = [
+    {
+      provider: "youtube",
+      contentType: "recap",
+      url: buildYoutubeExtraSearchUrl(media.title, "recap", mediaType),
+      linkType: "search_fallback",
+      label: mediaType === "tv" ? "Find Season Recaps" : "Find Movie Recaps",
+    },
+    {
+      provider: "youtube",
+      contentType: "behind_the_scenes",
+      url: buildYoutubeExtraSearchUrl(media.title, "behind_the_scenes", mediaType),
+      linkType: "search_fallback",
+      label: "Find Bonus Features",
+    },
+  ];
+
+  if (exactVideos.length > 0) {
+    const hasCuratedExtra = exactVideos.some((video) => !["official_trailer", "teaser_trailer"].includes(video.contentType));
+    return hasCuratedExtra ? exactVideos : [...exactVideos, ...extraFallbacks];
+  }
+
   return [
     {
       provider: "youtube",
       contentType: "official_trailer",
       url: buildYoutubeTrailerSearchUrl(media.title, mediaType),
       linkType: "search_fallback",
-      label: "Open YouTube Search",
+      label: "Find Official Trailer",
     },
+    ...extraFallbacks,
   ];
 }
 
@@ -78,3 +106,4 @@ export function getMediaExtensions(media: { tmdbId: number; title: string; media
     notes: "Explore more ways to enjoy this title.",
   };
 }
+

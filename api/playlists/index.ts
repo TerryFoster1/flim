@@ -63,21 +63,32 @@ export default async function handler(request: any, response: any) {
               and ${user?.id || null}::uuid is not null
               and my_pl.user_id = ${user?.id || null}::uuid
           ) as is_liked,
-          coalesce(
-            json_agg(
-              to_jsonb(pm) || jsonb_build_object(
-                'genres', coalesce(mi.genres, '[]'::jsonb),
-                'genre_ids', coalesce(mi.source_payload->'genreIds', '[]'::jsonb)
-              )
-              order by coalesce(pm.sort_order, 2147483647), pm.added_at desc
-            ) filter (where pm.id is not null),
-            '[]'
-          ) as movies
+          (
+            select count(*)::int
+            from playlist_movies pm_count
+            where pm_count.playlist_id = p.id
+          ) as movie_count,
+          coalesce(movie_preview.movies, '[]'::jsonb) as movies
         from playlists p
         left join user_profiles up on up.user_id = p.owner_user_id::text
         left join users u on u.id = p.owner_user_id
-        left join playlist_movies pm on pm.playlist_id = p.id
-        left join media_items mi on mi.media_type = coalesce(pm.media_type, 'movie') and mi.tmdb_id = pm.tmdb_id
+        left join lateral (
+          select jsonb_agg(
+            to_jsonb(pm_preview) || jsonb_build_object(
+              'genres', coalesce(mi_preview.genres, '[]'::jsonb),
+              'genre_ids', coalesce(mi_preview.source_payload->'genreIds', '[]'::jsonb)
+            )
+            order by coalesce(pm_preview.sort_order, 2147483647), pm_preview.added_at desc
+          ) as movies
+          from (
+            select *
+            from playlist_movies pm
+            where pm.playlist_id = p.id
+            order by coalesce(pm.sort_order, 2147483647), pm.added_at desc
+            limit 6
+          ) pm_preview
+          left join media_items mi_preview on mi_preview.media_type = coalesce(pm_preview.media_type, 'movie') and mi_preview.tmdb_id = pm_preview.tmdb_id
+        ) movie_preview on true
         where (
           p.visibility = 'public'
           or (${user?.id || null}::uuid is not null and p.owner_user_id = ${user?.id || null}::uuid)
@@ -87,7 +98,6 @@ export default async function handler(request: any, response: any) {
             or lower(p.name) like '%temporary production verification%'
             or lower(p.name) like '%production verification playlist%'
           )
-        group by p.id, up.handle, up.display_name, u.email
         order by p.updated_at desc
       `;
 

@@ -18,8 +18,13 @@ interface MediaExtensionsProps {
 
 export function MediaExtensions({ media }: MediaExtensionsProps) {
   const extensions = getMediaExtensions(media);
-  const trailerLink = extensions.videos[0];
-  const extraVideos = extensions.videos.slice(1, 4);
+  const trailerTypes = new Set<MediaVideoLink["contentType"]>(["official_trailer", "teaser_trailer"]);
+  const trailerLink =
+    extensions.videos.find((video) => trailerTypes.has(video.contentType)) ||
+    extensions.videos[0];
+  const extraVideos = extensions.videos
+    .filter((video) => video.url !== trailerLink?.url && !trailerTypes.has(video.contentType))
+    .slice(0, 4);
   const trailerArtwork = trailerLink?.thumbnailUrl || media.backdropUrl || media.posterUrl;
   const [triviaFeed, setTriviaFeed] = useState<TriviaFeed | null>(null);
   const [triviaOpen, setTriviaOpen] = useState(false);
@@ -33,6 +38,17 @@ export function MediaExtensions({ media }: MediaExtensionsProps) {
   const mediaType = media.mediaType || "movie";
   const titlePath = `/${mediaType === "tv" ? "tv" : "movies"}/${media.tmdbId}`;
   const titleLabel = media.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || `${mediaType}-${media.tmdbId}`;
+  function videoTypeLabel(video: MediaVideoLink) {
+    const labels: Record<MediaVideoLink["contentType"], string> = {
+      official_trailer: "Official trailer",
+      teaser_trailer: "Teaser",
+      behind_the_scenes: "Behind the scenes",
+      interview: "Interview",
+      featurette: "Featurette",
+      recap: "Recap",
+    };
+    return labels[video.contentType] || "Extra";
+  }
 
   async function openTrivia() {
     setTriviaOpen((current) => !current);
@@ -130,7 +146,7 @@ export function MediaExtensions({ media }: MediaExtensionsProps) {
           </div>
           <div>
             <h3>{trailerLink?.label || "Official Trailer"}</h3>
-            <p>{trailerLink?.linkType === "exact" ? "Watch the official video on YouTube." : "Open trailer results on YouTube."}</p>
+            <p>{trailerLink?.linkType === "exact" ? "Watch the official trailer on YouTube." : "Find the official trailer on YouTube."}</p>
           </div>
         </a>
       </div>
@@ -142,7 +158,7 @@ export function MediaExtensions({ media }: MediaExtensionsProps) {
               {video.thumbnailUrl ? <img alt="" src={video.thumbnailUrl} /> : <span aria-hidden="true" />}
               <div>
                 <strong>{video.label}</strong>
-                <small>{video.contentType.replace(/_/g, " ")}</small>
+                <small>{videoTypeLabel(video)}</small>
               </div>
             </a>
           ))}
@@ -324,3 +340,4 @@ export function MediaExtensions({ media }: MediaExtensionsProps) {
     </section>
   );
 }
+
