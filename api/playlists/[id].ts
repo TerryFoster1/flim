@@ -33,6 +33,11 @@ export default async function handler(request: any, response: any) {
             from playlist_likes pl
             where pl.playlist_id = p.id
           ) as like_count,
+          (
+            select count(*)::int
+            from playlist_movies pm_count
+            where pm_count.playlist_id = p.id
+          ) as movie_count,
           exists (
             select 1
             from playlist_follows my_pf
@@ -66,6 +71,13 @@ export default async function handler(request: any, response: any) {
           and (
             p.visibility = 'public'
             or (${user?.id || null}::uuid is not null and p.owner_user_id = ${user?.id || null}::uuid)
+            or exists (
+              select 1
+              from playlist_follows detail_pf
+              where detail_pf.playlist_id = p.id
+                and ${user?.id || null}::uuid is not null
+                and detail_pf.follower_user_id = ${user?.id || null}::uuid
+            )
           )
         group by p.id, up.handle, up.display_name, u.email
       `;
