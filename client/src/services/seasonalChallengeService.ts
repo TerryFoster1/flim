@@ -6,13 +6,14 @@ import type {
   SeasonalChallengeHistoryItem,
 } from "../types";
 
-const SEASONAL_FEED_CACHE_MS = 60_000;
+const SEASONAL_FEED_CACHE_MS = 5 * 60_000;
+const ARCADE_REQUEST_LOGGING = import.meta.env.DEV;
 let seasonalFeedCache: { value: SeasonalChallengeFeed; expiresAt: number } | null = null;
 let seasonalFeedPromise: Promise<SeasonalChallengeFeed> | null = null;
 
 async function seasonalRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
   const startedAt = performance.now();
-  console.info("[arcade:request:start]", { path, method: options.method || "GET" });
+  if (ARCADE_REQUEST_LOGGING) console.info("[arcade:request:start]", { path, method: options.method || "GET" });
   const response = await fetch(path, {
     credentials: "same-origin",
     headers: {
@@ -24,13 +25,15 @@ async function seasonalRequest<T>(path: string, options: RequestInit = {}): Prom
   });
   const payloadText = await response.text();
   const durationMs = Math.round(performance.now() - startedAt);
-  console.info("[arcade:request:end]", {
-    path,
-    method: options.method || "GET",
-    status: response.status,
-    responseSize: payloadText.length,
-    durationMs,
-  });
+  if (ARCADE_REQUEST_LOGGING) {
+    console.info("[arcade:request:end]", {
+      path,
+      method: options.method || "GET",
+      status: response.status,
+      responseSize: payloadText.length,
+      durationMs,
+    });
+  }
 
   let payload: unknown = {};
   try {
@@ -50,7 +53,7 @@ async function seasonalRequest<T>(path: string, options: RequestInit = {}): Prom
 export function getSeasonalChallenges() {
   const now = Date.now();
   if (seasonalFeedCache && seasonalFeedCache.expiresAt > now) {
-    console.info("[arcade:request:cache-hit]", { path: "/api/seasonal-challenges" });
+    if (ARCADE_REQUEST_LOGGING) console.info("[arcade:request:cache-hit]", { path: "/api/seasonal-challenges" });
     return Promise.resolve(seasonalFeedCache.value);
   }
   if (seasonalFeedPromise) return seasonalFeedPromise;
