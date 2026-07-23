@@ -1,5 +1,16 @@
 import { clearSessionCookie, getSessionCookie, saveSessionCookieFromHeaders } from "./cookieStore";
-import type { ChallengePack, CurrentUser, MediaType, MovieDetails, MovieSearchResult, Playlist, TriviaFeed } from "./types";
+import type {
+  BacklotDiscoveryRequest,
+  BacklotEventRequest,
+  BacklotState,
+  ChallengePack,
+  CurrentUser,
+  MediaType,
+  MovieDetails,
+  MovieSearchResult,
+  Playlist,
+  TriviaFeed
+} from "./types";
 
 const DEFAULT_API_BASE_URL = "https://www.flim.ca";
 
@@ -146,6 +157,24 @@ export class FlimApiClient {
     });
     if (Array.isArray(payload)) return payload;
     return payload.challenges || payload.packs || [];
+  }
+
+  getBacklotState() {
+    return this.request<BacklotState>("/api/backlot");
+  }
+
+  discoverBacklotGame(discovery: BacklotDiscoveryRequest) {
+    return this.request<{ ok: boolean; created: boolean; state: BacklotState }>("/api/backlot/discover", {
+      method: "POST",
+      body: JSON.stringify(discovery)
+    });
+  }
+
+  recordBacklotEvent(event: BacklotEventRequest) {
+    return this.request<{ ok: boolean; state?: BacklotState }>("/api/backlot/events", {
+      method: "POST",
+      body: JSON.stringify(event)
+    });
   }
 }
 

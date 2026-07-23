@@ -111,6 +111,64 @@ export interface ChallengePack {
   mode?: "trivia" | "quote" | "poster_guess" | "timeline" | "group" | string;
 }
 
+export type BacklotDiscoverySourceType = "arcade_mode" | "title_trivia" | "challenge_theme" | "collection_theme";
+
+export type BacklotEventType = "launch" | "pause" | "resume" | "game_over" | "score" | "achievement";
+
+export interface BacklotGame {
+  id: string;
+  title: string;
+  description: string;
+  route: string;
+  difficulty: "easy" | "medium" | "hard" | "expert" | string;
+  estimatedPlayTimeMinutes: number;
+  genre: string;
+  rewardId?: string;
+  achievementSetId?: string;
+}
+
+export interface BacklotDiscovery {
+  id?: string;
+  gameId: string;
+  gameTitle: string;
+  sourceType: BacklotDiscoverySourceType;
+  sourceId: string;
+  sourceTitle: string;
+  discoveredAt: string;
+  unlockedAt?: string;
+  firstPlayedAt?: string | null;
+  totalPlayTimeMs?: number;
+  syncStatus?: "synced" | "pending";
+}
+
+export interface BacklotState {
+  userId?: string;
+  unlockIds: string[];
+  discoveries: BacklotDiscovery[];
+  games: BacklotGame[];
+  progress: {
+    discoveredCount: number;
+    secretsRemainingLabel: string;
+  };
+}
+
+export interface BacklotDiscoveryRequest {
+  gameId: string;
+  sourceType: BacklotDiscoverySourceType;
+  sourceId: string;
+  sourceTitle?: string;
+  clientDiscoveryId?: string;
+}
+
+export interface BacklotEventRequest {
+  gameId: string;
+  eventType: BacklotEventType;
+  score?: number;
+  playTimeMs?: number;
+  achievementEvent?: string;
+  clientEventId?: string;
+}
+
 export interface SearchResponse {
   results?: MovieSearchResult[];
   movies?: MovieSearchResult[];

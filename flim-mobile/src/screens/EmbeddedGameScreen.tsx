@@ -5,11 +5,13 @@ import WebView, { WebViewMessageEvent } from "react-native-webview";
 import { router } from "expo-router";
 import { colors, spacing } from "@/theme/theme";
 import { isEmbeddedGameMessage } from "@/games/shared/messages";
+import { recordBacklotGameEvent } from "@/games/backlot/unlocks";
 
 interface EmbeddedGameScreenProps {
   html: string;
   title: string;
   footerStats?: EmbeddedGameFooterStat[];
+  backlotGameId?: string;
 }
 
 interface EmbeddedGameFooterStat {
@@ -28,12 +30,14 @@ const defaultFooterStats: EmbeddedGameFooterStat[] = [
   { label: "Combo", valueKey: "combo", fallback: 1 }
 ];
 
-export function EmbeddedGameScreen({ html, title, footerStats = defaultFooterStats }: EmbeddedGameScreenProps) {
+export function EmbeddedGameScreen({ html, title, footerStats = defaultFooterStats, backlotGameId }: EmbeddedGameScreenProps) {
   const webViewRef = useRef<{ injectJavaScript: (script: string) => void } | null>(null);
   const insets = useSafeAreaInsets();
   const [ready, setReady] = useState(false);
   const [latestScore, setLatestScore] = useState<EmbeddedGameStats | null>(null);
   const source = useMemo(() => ({ html }), [html]);
+  const sessionStartedAt = useRef(Date.now());
+  const launchRecorded = useRef(false);
 
   useEffect(() => {
     const sendCommand = (command: "PAUSE" | "RESUME") => {
@@ -47,9 +51,16 @@ export function EmbeddedGameScreen({ html, title, footerStats = defaultFooterSta
     const subscription = AppState.addEventListener("change", handleAppStateChange);
     return () => {
       sendCommand("PAUSE");
+      if (backlotGameId) {
+        void recordBacklotGameEvent({
+          gameId: backlotGameId,
+          eventType: "pause",
+          playTimeMs: Date.now() - sessionStartedAt.current
+        });
+      }
       subscription.remove();
     };
-  }, []);
+  }, [backlotGameId]);
 
   function handleMessage(event: WebViewMessageEvent) {
     try {
@@ -60,10 +71,29 @@ export function EmbeddedGameScreen({ html, title, footerStats = defaultFooterSta
 
       if (parsed.type === "GAME_READY") {
         setReady(true);
+        if (backlotGameId && !launchRecorded.current) {
+          launchRecorded.current = true;
+          void recordBacklotGameEvent({ gameId: backlotGameId, eventType: "launch" });
+        }
       }
 
       if (parsed.type === "SCORE_UPDATED" || parsed.type === "GAME_OVER" || parsed.type === "GAME_COMPLETED") {
-        setLatestScore(parsed.payload as EmbeddedGameStats);
+        const stats = parsed.payload as EmbeddedGameStats;
+        setLatestScore(stats);
+        if (backlotGameId && (parsed.type === "GAME_OVER" || parsed.type === "GAME_COMPLETED")) {
+          const score = Number(stats.score || 0);
+          void recordBacklotGameEvent({
+            gameId: backlotGameId,
+            eventType: "game_over",
+            score: Number.isFinite(score) ? score : 0,
+            playTimeMs: Date.now() - sessionStartedAt.current
+          });
+        }
+      }
+
+      if (parsed.type === "ACHIEVEMENT_UNLOCKED" && backlotGameId) {
+        const achievementEvent = typeof parsed.payload?.achievementId === "string" ? parsed.payload.achievementId : "game-achievement";
+        void recordBacklotGameEvent({ gameId: backlotGameId, eventType: "achievement", achievementEvent });
       }
 
       if (parsed.type === "EXIT_REQUESTED" || parsed.type === "PAUSE_REQUESTED") {
