@@ -12,14 +12,30 @@ import type {
   TriviaFeed
 } from "./types";
 
-const DEFAULT_API_BASE_URL = "https://www.flim.ca";
+const PRODUCTION_API_BASE_URL = "https://www.flim.ca";
+const PRODUCTION_APP_ENV = "production";
 
 type RequestOptions = RequestInit & {
   useSession?: boolean;
 };
 
 function normalizeBaseUrl(value?: string) {
-  return (value || DEFAULT_API_BASE_URL).replace(/\/+$/, "");
+  return (value || "").replace(/\/+$/, "");
+}
+
+function resolveApiBaseUrl(value?: string) {
+  const appEnv = (process.env.EXPO_PUBLIC_FLIM_APP_ENV || "development").toLowerCase();
+  const baseUrl = normalizeBaseUrl(value);
+
+  if (!baseUrl) {
+    throw new Error("EXPO_PUBLIC_FLIM_API_BASE_URL is required for Flim mobile builds.");
+  }
+
+  if (appEnv !== PRODUCTION_APP_ENV && baseUrl === PRODUCTION_API_BASE_URL) {
+    throw new Error("Non-production Flim mobile builds must not point at the production API.");
+  }
+
+  return baseUrl;
 }
 
 function toQuery(params: Record<string, string | number | boolean | undefined | null>) {
@@ -41,7 +57,7 @@ export class FlimApiClient {
   readonly baseUrl: string;
 
   constructor(baseUrl = process.env.EXPO_PUBLIC_FLIM_API_BASE_URL) {
-    this.baseUrl = normalizeBaseUrl(baseUrl);
+    this.baseUrl = resolveApiBaseUrl(baseUrl);
   }
 
   async request<T>(path: string, options: RequestOptions = {}): Promise<T> {

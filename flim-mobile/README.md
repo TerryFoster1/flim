@@ -16,10 +16,13 @@ npm run start
 The mobile app uses the existing Flim backend.
 
 ```bash
-EXPO_PUBLIC_FLIM_API_BASE_URL=https://www.flim.ca
+EXPO_PUBLIC_FLIM_APP_ENV=development
+EXPO_PUBLIC_FLIM_API_BASE_URL=http://localhost:3000
 ```
 
 No server secrets belong in this project. Native auth stores the existing `flim_session` cookie in Expo SecureStore and sends it to the web API.
+
+Non-production builds must use a local, preview, or staging API URL. The mobile API client fails fast if a development, preview, or staging build is accidentally configured to use the production API.
 
 ## EAS
 

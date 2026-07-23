@@ -7,7 +7,8 @@
       "developmentClient": true,
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_FLIM_API_BASE_URL": "https://www.flim.ca"
+        "EXPO_PUBLIC_FLIM_APP_ENV": "development",
+        "EXPO_PUBLIC_FLIM_API_BASE_URL": "http://localhost:3000"
       }
     },
     "preview": {
@@ -16,12 +17,24 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_FLIM_API_BASE_URL": "https://www.flim.ca"
+        "EXPO_PUBLIC_FLIM_APP_ENV": "preview",
+        "EXPO_PUBLIC_FLIM_API_BASE_URL": "https://flim-kw7pbbku1-terryfoster1s-projects.vercel.app"
+      }
+    },
+    "staging": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_FLIM_APP_ENV": "staging",
+        "EXPO_PUBLIC_FLIM_API_BASE_URL": "https://flim-kw7pbbku1-terryfoster1s-projects.vercel.app"
       }
     },
     "production": {
       "autoIncrement": true,
       "env": {
+        "EXPO_PUBLIC_FLIM_APP_ENV": "production",
         "EXPO_PUBLIC_FLIM_API_BASE_URL": "https://www.flim.ca"
       }
     }
