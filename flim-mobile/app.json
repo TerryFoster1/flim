@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Flim",
-    "slug": "flim-mobile",
+    "slug": "flim",
     "scheme": "flim",
     "version": "0.1.0",
     "orientation": "portrait",
