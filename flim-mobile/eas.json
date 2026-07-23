@@ -28,7 +28,7 @@
       },
       "env": {
         "EXPO_PUBLIC_FLIM_APP_ENV": "staging",
-        "EXPO_PUBLIC_FLIM_API_BASE_URL": "https://flim-kw7pbbku1-terryfoster1s-projects.vercel.app"
+        "EXPO_PUBLIC_FLIM_API_BASE_URL": "https://staging.flim.ca"
       }
     },
     "production": {
