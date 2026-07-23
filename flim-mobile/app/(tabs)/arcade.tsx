@@ -1,4 +1,4 @@
-import { FlatList, StyleSheet, Text, View } from "react-native";
+import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
 import { flimApi } from "@/api/flimApi";
 import { ChallengeCard } from "@/components/ChallengeCard";
@@ -13,7 +13,8 @@ const modes = [
   { id: "trivia", title: "Movie Trivia", subtitle: "Browse title packs" },
   { id: "quote", title: "Quote Challenge", subtitle: "Match famous lines" },
   { id: "poster", title: "Movie Reveal", subtitle: "Guess from posters" },
-  { id: "group", title: "Group Play", subtitle: "Movie night rooms" }
+  { id: "group", title: "Group Play", subtitle: "Movie night rooms" },
+  { id: "triceratops", title: "Hidden Game Lab", subtitle: "TRICERATOPS!" }
 ];
 
 export default function ArcadeScreen() {
@@ -39,13 +40,30 @@ export default function ArcadeScreen() {
           data={modes}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.modeRow}
-          renderItem={({ item }) => (
-            <View style={styles.modeCard}>
-              <Text style={styles.modeIcon}>F</Text>
-              <Text style={styles.modeTitle}>{item.title}</Text>
-              <Text style={styles.modeSubtitle}>{item.subtitle}</Text>
-            </View>
-          )}
+          renderItem={({ item }) => {
+            const cardContent = (
+              <>
+                <Text style={styles.modeIcon}>F</Text>
+                <Text style={styles.modeTitle}>{item.title}</Text>
+                <Text style={styles.modeSubtitle}>{item.subtitle}</Text>
+              </>
+            );
+
+            if (item.id === "triceratops") {
+              return (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Open Triceratops hidden game prototype"
+                  style={({ pressed }) => [styles.modeCard, pressed && styles.pressedCard]}
+                  onPress={() => router.push("/games/triceratops")}
+                >
+                  {cardContent}
+                </Pressable>
+              );
+            }
+
+            return <View style={styles.modeCard}>{cardContent}</View>;
+          }}
         />
       </View>
       <View style={styles.section}>
@@ -90,6 +108,9 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     backgroundColor: colors.panelSoft,
     padding: spacing.md
+  },
+  pressedCard: {
+    transform: [{ scale: 0.98 }]
   },
   modeIcon: {
     width: 48,
