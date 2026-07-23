@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { AddToPlaylistControl } from "../components/AddToPlaylistControl";
 import { FollowTitleControl } from "../components/FollowTitleControl";
 import { OptionalSectionBoundary } from "../components/OptionalSectionBoundary";
@@ -515,9 +515,28 @@ export function MovieDetailsPage({ tmdbId, mediaType = "movie", playlists, addTo
 
   return (
     <section className="route-page movie-details-page">
-      <div className="movie-detail-hero" style={normalizedMovie.backdropUrl ? { "--movie-backdrop": `url("${normalizedMovie.backdropUrl}")` } as CSSProperties : undefined}>
-        {normalizedMovie.backdropUrl ? <div className="movie-detail-backdrop" aria-hidden="true" /> : null}
-        {normalizedMovie.posterUrl ? <img className="movie-detail-poster" src={normalizedMovie.posterUrl} alt={`${normalizedMovie.title} poster`} /> : <div className="poster tone-blue" />}
+      <div className="movie-detail-hero">
+        {normalizedMovie.backdropUrl ? (
+          <img
+            alt=""
+            aria-hidden="true"
+            className="movie-detail-backdrop movie-detail-backdrop-image"
+            decoding="async"
+            fetchPriority="high"
+            loading="eager"
+            src={normalizedMovie.backdropUrl}
+          />
+        ) : null}
+        {normalizedMovie.posterUrl ? (
+          <img
+            className="movie-detail-poster"
+            decoding="async"
+            fetchPriority={normalizedMovie.backdropUrl ? "auto" : "high"}
+            loading="eager"
+            src={normalizedMovie.posterUrl}
+            alt={`${normalizedMovie.title} poster`}
+          />
+        ) : <div className="poster tone-blue" />}
         <div className="movie-detail-copy">
           <h1>{normalizedMovie.title}</h1>
           <TitleStatusBanner movie={normalizedMovie} region={streamingCountry} />

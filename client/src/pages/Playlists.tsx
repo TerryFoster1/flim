@@ -658,10 +658,34 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
       {error ? <p className="error-message">{error}</p> : null}
 
       <section className={`playlist-landing-hero playlist-landing-hero-${view}`} aria-label={view === "public" ? "Public Playlists" : "My Playlists"}>
+        <link
+          rel="preload"
+          as="image"
+          href={view === "public" ? "/playlist-heroes/public-playlists-hero-mobile.webp" : "/playlist-heroes/my-playlists-hero-mobile.webp"}
+          media="(max-width: 767px)"
+        />
+        <link
+          rel="preload"
+          as="image"
+          href={view === "public" ? "/playlist-heroes/public-playlists-hero.webp" : "/playlist-heroes/my-playlists-hero.webp"}
+          media="(min-width: 768px)"
+        />
         <picture className="playlist-landing-hero-picture" aria-hidden="true">
+          <source
+            media="(max-width: 767px)"
+            srcSet={view === "public" ? "/playlist-heroes/public-playlists-hero-mobile.webp" : "/playlist-heroes/my-playlists-hero-mobile.webp"}
+            type="image/webp"
+          />
+          <source
+            media="(min-width: 768px)"
+            srcSet={view === "public" ? "/playlist-heroes/public-playlists-hero.webp" : "/playlist-heroes/my-playlists-hero.webp"}
+            type="image/webp"
+          />
           <img
             alt=""
             decoding="async"
+            fetchPriority="high"
+            loading="eager"
             src={view === "public" ? "/playlist-heroes/public-playlists-hero.png" : "/playlist-heroes/my-playlists-hero.png"}
           />
         </picture>

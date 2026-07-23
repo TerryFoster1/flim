@@ -74,8 +74,19 @@ export function CollectionDetailsPage({ collectionId, onNavigate }: CollectionDe
 
   return (
     <section className="route-page collection-detail-page">
-      <section className="collection-detail-hero" style={{ backgroundImage: collectionHeroImage ? `linear-gradient(90deg, rgba(5,5,8,.92), rgba(5,5,8,.54)), url(${collectionHeroImage})` : undefined }}>
-        {collection.posterUrl ? <img className="collection-detail-poster" alt={`${collection.title} poster`} src={collection.posterUrl} /> : <div className="collection-detail-poster collection-poster-placeholder" />}
+      <section className="collection-detail-hero">
+        {collectionHeroImage ? (
+          <img
+            alt=""
+            aria-hidden="true"
+            className="collection-detail-hero-image"
+            decoding="async"
+            fetchPriority="high"
+            loading="eager"
+            src={collectionHeroImage}
+          />
+        ) : null}
+        {collection.posterUrl ? <img className="collection-detail-poster" alt={`${collection.title} poster`} decoding="async" loading="eager" src={collection.posterUrl} /> : <div className="collection-detail-poster collection-poster-placeholder" />}
         <div className="collection-detail-copy">
           <span className={`collection-status-pill is-${progress.status}`}>{statusLabel(progress.status)}</span>
           <h1>{collection.title}</h1>

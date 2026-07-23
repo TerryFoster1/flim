@@ -29,7 +29,7 @@ function titleOg(id: number) {
 
 function challengeArtworkUrls(event: SeasonalChallengeEvent) {
   if (event.heroImageUrl) return [event.heroImageUrl];
-  return [arcadeCollectionArtworkForText(event.slug, event.name, event.description, event.banner, event.seasonKey, event.badge) || "/arcade/flim-arcade-hero.png"];
+  return [arcadeCollectionArtworkForText(event.slug, event.name, event.description, event.banner, event.seasonKey, event.badge) || "/arcade/flim-arcade-hero.webp"];
 }
 
 export function SeasonalChallengeCard({
