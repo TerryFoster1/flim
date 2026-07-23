@@ -4,20 +4,35 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import WebView, { WebViewMessageEvent } from "react-native-webview";
 import { router } from "expo-router";
 import { colors, spacing } from "@/theme/theme";
-import { isTriceratopsGameMessage, TriceratopsRunStats } from "@/games/triceratops/messages";
+import { isEmbeddedGameMessage } from "@/games/shared/messages";
 
 interface EmbeddedGameScreenProps {
   html: string;
   title: string;
+  footerStats?: EmbeddedGameFooterStat[];
 }
+
+interface EmbeddedGameFooterStat {
+  label: string;
+  valueKey: string;
+  fallback?: string | number;
+}
+
+type EmbeddedGameStats = Record<string, string | number | boolean | undefined>;
 
 const NativeWebView = WebView as unknown as ComponentType<Record<string, unknown>>;
 
-export function EmbeddedGameScreen({ html, title }: EmbeddedGameScreenProps) {
+const defaultFooterStats: EmbeddedGameFooterStat[] = [
+  { label: "Score", valueKey: "score", fallback: 0 },
+  { label: "Distance", valueKey: "distance", fallback: 0 },
+  { label: "Combo", valueKey: "combo", fallback: 1 }
+];
+
+export function EmbeddedGameScreen({ html, title, footerStats = defaultFooterStats }: EmbeddedGameScreenProps) {
   const webViewRef = useRef<{ injectJavaScript: (script: string) => void } | null>(null);
   const insets = useSafeAreaInsets();
   const [ready, setReady] = useState(false);
-  const [latestScore, setLatestScore] = useState<TriceratopsRunStats | null>(null);
+  const [latestScore, setLatestScore] = useState<EmbeddedGameStats | null>(null);
   const source = useMemo(() => ({ html }), [html]);
 
   useEffect(() => {
@@ -39,7 +54,7 @@ export function EmbeddedGameScreen({ html, title }: EmbeddedGameScreenProps) {
   function handleMessage(event: WebViewMessageEvent) {
     try {
       const parsed = JSON.parse(event.nativeEvent.data) as unknown;
-      if (!isTriceratopsGameMessage(parsed)) {
+      if (!isEmbeddedGameMessage(parsed)) {
         return;
       }
 
@@ -48,7 +63,7 @@ export function EmbeddedGameScreen({ html, title }: EmbeddedGameScreenProps) {
       }
 
       if (parsed.type === "SCORE_UPDATED" || parsed.type === "GAME_OVER" || parsed.type === "GAME_COMPLETED") {
-        setLatestScore(parsed.payload as unknown as TriceratopsRunStats);
+        setLatestScore(parsed.payload as EmbeddedGameStats);
       }
 
       if (parsed.type === "EXIT_REQUESTED" || parsed.type === "PAUSE_REQUESTED") {
@@ -93,9 +108,14 @@ export function EmbeddedGameScreen({ html, title }: EmbeddedGameScreenProps) {
         ) : null}
       </View>
       <View style={styles.footer}>
-        <Text style={styles.footerStat}>Score {latestScore?.score ?? 0}</Text>
-        <Text style={styles.footerStat}>Cars {latestScore?.vehiclesFlipped ?? 0}</Text>
-        <Text style={styles.footerStat}>Combo x{latestScore?.maxCombo ?? 1}</Text>
+        {footerStats.map((stat) => {
+          const value = latestScore?.[stat.valueKey] ?? stat.fallback ?? 0;
+          return (
+            <Text key={stat.valueKey} style={styles.footerStat}>
+              {stat.label} {value}
+            </Text>
+          );
+        })}
       </View>
     </SafeAreaView>
   );

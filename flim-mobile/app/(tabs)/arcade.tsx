@@ -14,6 +14,7 @@ const modes = [
   { id: "quote", title: "Quote Challenge", subtitle: "Match famous lines" },
   { id: "poster", title: "Movie Reveal", subtitle: "Guess from posters" },
   { id: "group", title: "Group Play", subtitle: "Movie night rooms" },
+  { id: "relic-run", title: "Hidden Game Lab", subtitle: "Relic Run" },
   { id: "triceratops", title: "Hidden Game Lab", subtitle: "TRICERATOPS!" }
 ];
 
@@ -49,13 +50,13 @@ export default function ArcadeScreen() {
               </>
             );
 
-            if (item.id === "triceratops") {
+            if (item.id === "triceratops" || item.id === "relic-run") {
               return (
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel="Open Triceratops hidden game prototype"
+                  accessibilityLabel={`Open ${item.subtitle} hidden game prototype`}
                   style={({ pressed }) => [styles.modeCard, pressed && styles.pressedCard]}
-                  onPress={() => router.push("/games/triceratops")}
+                  onPress={() => router.push(item.id === "relic-run" ? "/games/relic-run" : "/games/triceratops")}
                 >
                   {cardContent}
                 </Pressable>
