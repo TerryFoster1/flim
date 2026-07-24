@@ -14,6 +14,7 @@ import type {
 
 const PRODUCTION_API_BASE_URL = "https://www.flim.ca";
 const PRODUCTION_APP_ENV = "production";
+const VERCEL_BYPASS_HEADER = "x-vercel-protection-bypass";
 
 type RequestOptions = RequestInit & {
   useSession?: boolean;
@@ -55,15 +56,22 @@ async function parseJson<T>(response: Response): Promise<T> {
 
 export class FlimApiClient {
   readonly baseUrl: string;
+  readonly appEnv: string;
+  readonly vercelBypassSecret?: string;
 
   constructor(baseUrl = process.env.EXPO_PUBLIC_FLIM_API_BASE_URL) {
     this.baseUrl = resolveApiBaseUrl(baseUrl);
+    this.appEnv = (process.env.EXPO_PUBLIC_FLIM_APP_ENV || "development").toLowerCase();
+    this.vercelBypassSecret = process.env.EXPO_PUBLIC_VERCEL_PROTECTION_BYPASS_SECRET;
   }
 
   async request<T>(path: string, options: RequestOptions = {}): Promise<T> {
     const headers = new Headers(options.headers);
     headers.set("Accept", "application/json");
     if (options.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
+    if (this.appEnv !== PRODUCTION_APP_ENV && this.vercelBypassSecret) {
+      headers.set(VERCEL_BYPASS_HEADER, this.vercelBypassSecret);
+    }
 
     if (options.useSession !== false) {
       const cookie = await getSessionCookie();
