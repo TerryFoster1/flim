@@ -1,15 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Animated, FlatList, Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import { Animated, FlatList, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import type { BacklotDiscovery, BacklotGame, BacklotState } from "@/api/types";
+import type { BacklotDiscovery, BacklotGame, BacklotState, ChallengePack } from "@/api/types";
 import { flimApi } from "@/api/flimApi";
-import { resolveChallengeRoute, visibleArcadeModes } from "@/arcade/modeRoutes";
-import { ChallengeCard } from "@/components/ChallengeCard";
+import { arcadeModeRoutes, resolveChallengeRoute, visibleArcadeModes } from "@/arcade/modeRoutes";
+import { arcadeCollectionImages, arcadeModeIcons, flimImages } from "@/assets/flimAssets";
+import { CompactSearch } from "@/components/CompactSearch";
+import { FlimHero } from "@/components/FlimHero";
 import { Header } from "@/components/Header";
 import { ScoreCard } from "@/components/ScoreCard";
 import { Screen } from "@/components/Screen";
-import { EmptyState, ErrorState, LoadingHero } from "@/components/StateViews";
+import { SectionHeader } from "@/components/SectionHeader";
+import { ErrorState } from "@/components/StateViews";
 import {
   backlotGamesById,
   isDinosaurChallenge,
@@ -18,7 +22,30 @@ import {
 } from "@/games/backlot/registry";
 import { discoverBacklotGame, getBacklotStateCache, reconcileBacklotState } from "@/games/backlot/unlocks";
 import { useAsync } from "@/hooks/useAsync";
-import { colors, spacing } from "@/theme/theme";
+import { colors, radii, shadows, spacing, typography } from "@/theme/theme";
+
+const fallbackFeatured: ChallengePack = {
+  id: "time-travel-challenge",
+  slug: "time-travel-challenge",
+  title: "Time Travel Challenge",
+  description: "A 100-question movie challenge about paradoxes, loops, alternate timelines, and clock-bending adventures.",
+  questionCount: 100,
+  badgeReward: "Time Traveler",
+  mode: "trivia"
+};
+
+const collections = [
+  { id: "time-travel", title: "Time Travel", count: "18 challenges", route: "/arcade/challenge/time-travel-challenge" },
+  { id: "sci-fi", title: "Sci-Fi", count: "24 challenges", route: "/arcade/challenge/out-of-this-world" },
+  { id: "adventure", title: "Adventure", count: "22 challenges", route: "/arcade/challenge/adventure-pack" },
+  { id: "animation", title: "Animation", count: "20 challenges", route: "/arcade/challenge/disney-animation" },
+  { id: "horror", title: "Horror", count: "16 challenges", route: "/arcade/challenge/horror-icons" },
+  { id: "action", title: "Action", count: "19 challenges", route: "/arcade/challenge/action-heroes" },
+  { id: "zombie", title: "Zombie", count: "12 challenges", route: "/arcade/challenge/zombie-collection" },
+  { id: "apocalypse", title: "Apocalypse", count: "14 challenges", route: "/arcade/challenge/apocalypse-collection" },
+  { id: "alien", title: "Alien", count: "15 challenges", route: "/arcade/challenge/alien-collection" },
+  { id: "tom-cruise", title: "Tom Cruise", count: "15 challenges", route: "/arcade/challenge/tom-cruise-collection" }
+];
 
 function emptyBacklotState(): BacklotState {
   return {
@@ -46,9 +73,20 @@ function formatPlayTime(ms?: number) {
   return `${minutes}m ${seconds % 60}s`;
 }
 
+function featuredImageFor(challenge?: ChallengePack) {
+  const text = `${challenge?.title || challenge?.name || ""} ${challenge?.slug || ""}`.toLowerCase();
+  if (text.includes("space") || text.includes("world") || text.includes("sci")) return arcadeCollectionImages["sci-fi"];
+  if (text.includes("adventure")) return arcadeCollectionImages.adventure;
+  if (text.includes("disney") || text.includes("animation")) return arcadeCollectionImages.animation;
+  if (text.includes("horror")) return arcadeCollectionImages.horror;
+  if (text.includes("alien")) return arcadeCollectionImages.alien;
+  return arcadeCollectionImages["time-travel"];
+}
+
 export default function ArcadeScreen() {
-  const { data, loading, error, refresh } = useAsync(() => flimApi.getChallenges(), []);
-  const featured = data?.[0];
+  const { data, error, refresh } = useAsync(() => flimApi.getChallenges(), []);
+  const featured = data?.find((challenge) => (challenge.questionCount || 0) >= 75) || data?.[0] || fallbackFeatured;
+  const [query, setQuery] = useState("");
   const [backlotState, setBacklotState] = useState<BacklotState>(emptyBacklotState);
   const [discoveredGame, setDiscoveredGame] = useState<BacklotGame | null>(null);
   const [discoveryVisible, setDiscoveryVisible] = useState(false);
@@ -59,19 +97,12 @@ export default function ArcadeScreen() {
 
   useEffect(() => {
     let isMounted = true;
-
-    getBacklotStateCache()
-      .then((cachedState) => {
-        if (isMounted) setBacklotState(cachedState);
-      })
-      .catch(() => undefined);
-
-    reconcileBacklotState()
-      .then((state) => {
-        if (isMounted) setBacklotState(state);
-      })
-      .catch(() => undefined);
-
+    getBacklotStateCache().then((cachedState) => {
+      if (isMounted) setBacklotState(cachedState);
+    }).catch(() => undefined);
+    reconcileBacklotState().then((state) => {
+      if (isMounted) setBacklotState(state);
+    }).catch(() => undefined);
     return () => {
       isMounted = false;
     };
@@ -90,7 +121,6 @@ export default function ArcadeScreen() {
         Animated.timing(discoveryPulse, { toValue: 0, duration: 900, useNativeDriver: true })
       ])
     );
-
     animation.start();
     return () => animation.stop();
   }, [discoveryPulse, discoveryVisible]);
@@ -123,13 +153,8 @@ export default function ArcadeScreen() {
 
   function renderDiscoveryHotspot(onPress: () => void, label: string) {
     return (
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={label}
-        style={({ pressed }) => [styles.discoveryHotspot, pressed && styles.discoveryHotspotPressed]}
-        onPress={onPress}
-      >
-        <Ionicons name="sparkles-outline" size={18} color={colors.gold} />
+      <Pressable accessibilityRole="button" accessibilityLabel={label} style={({ pressed }) => [styles.discoveryHotspot, pressed && styles.discoveryHotspotPressed]} onPress={onPress}>
+        <Ionicons name="sparkles-outline" size={16} color={colors.gold} />
       </Pressable>
     );
   }
@@ -153,96 +178,165 @@ export default function ArcadeScreen() {
     );
   }
 
+  const featuredTitle = featured.title || featured.name || "This Week's Challenge";
+
   return (
-    <Screen>
-      <Header title="Flim Arcade" subtitle="Movie trivia, group challenges, and game-night experiences." />
-      {loading ? <LoadingHero label="Loading Flim Arcade..." /> : null}
-      {error ? <ErrorState message={error} onRetry={refresh} /> : null}
-      {featured ? (
-        <View style={styles.section}>
-          <Text style={styles.heading}>Featured Challenge</Text>
-          <ChallengeCard challenge={featured} onPress={() => router.push(resolveChallengeRoute(featured) as never)} />
+    <Screen padded={false}>
+      <Header />
+      <ScrollView contentContainerStyle={styles.page} showsVerticalScrollIndicator={false}>
+        <View style={styles.padded}>
+          <FlimHero
+            image={flimImages.arcadeHero}
+            title="Flim Arcade"
+            subtitle="Movie trivia, group challenges, and game-night experiences."
+          >
+            <CompactSearch
+              value={query}
+              onChangeText={setQuery}
+              onSubmit={() => undefined}
+              placeholder="Search Flim Arcade"
+            />
+          </FlimHero>
         </View>
-      ) : null}
-      <View style={styles.section}>
-        <Text style={styles.heading}>Play Something</Text>
-        <FlatList
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          data={visibleArcadeModes}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.modeRow}
-          renderItem={({ item }) => {
-            const card = (
+
+        {error ? <View style={styles.padded}><ErrorState message={error} onRetry={refresh} /></View> : null}
+
+        <View style={styles.band}>
+          <SectionHeader title="This Week's Challenge" actionLabel="View all" onAction={() => router.push("/arcade/leaderboards")} />
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Open ${featuredTitle}`}
+            onPress={() => router.push(resolveChallengeRoute(featured) as never)}
+            style={({ pressed }) => [styles.featuredCard, pressed && styles.pressedCard]}
+          >
+            <Image source={featuredImageFor(featured)} style={styles.featuredImage} contentFit="cover" />
+            <View style={styles.featuredCopy}>
+              <Text style={styles.featuredTitle}>{featuredTitle}</Text>
+              <View style={styles.metaLine}>
+                <Ionicons name="help-circle-outline" size={16} color={colors.gold} />
+                <Text style={styles.metaText}>{featured.questionCount || 100} Questions</Text>
+              </View>
+              <View style={styles.metaLine}>
+                <Ionicons name="time-outline" size={16} color={colors.gold} />
+                <Text style={styles.metaText}>Ends this week</Text>
+              </View>
+              <View style={styles.metaLine}>
+                <Ionicons name="ticket-outline" size={16} color={colors.gold} />
+                <Text style={styles.metaText}>Win up to 500 tickets</Text>
+              </View>
+            </View>
+            <Ionicons name="chevron-forward" size={25} color={colors.goldSoft} />
+          </Pressable>
+        </View>
+
+        <View style={styles.fullWidthSection}>
+          <SectionHeader title="Play Something" />
+          <FlatList
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            data={visibleArcadeModes}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.modeRow}
+            renderItem={({ item }) => (
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={`Open ${item.title}`}
                 style={({ pressed }) => [styles.modeCard, pressed && styles.pressedCard]}
                 onPress={() => router.push(item.route as never)}
               >
-                <Ionicons name={item.icon as keyof typeof Ionicons.glyphMap} size={38} color={colors.gold} />
+                <View style={styles.modeIconWrap}>
+                  <Image source={arcadeModeIcons[item.iconKey]} style={styles.modeIcon} contentFit="contain" />
+                </View>
                 <Text style={styles.modeTitle}>{item.title}</Text>
                 <Text style={styles.modeSubtitle}>{item.subtitle}</Text>
                 {item.id === "poster" ? renderDiscoveryHotspot(() => handleDiscovery(relicRunDiscoverySource), "Discover hidden Movie Reveal Backlot game") : null}
               </Pressable>
-            );
+            )}
+          />
+        </View>
 
-            return card;
-          }}
-        />
-      </View>
-      {unlockedBacklotGames.length ? (
-        <View style={styles.section}>
-          <View style={styles.backlotHeader}>
-            <View>
-              <Text style={styles.heading}>Backlot Arcade</Text>
-              <Text style={styles.backlotProgress}>
-                Discovered: {backlotState.progress.discoveredCount} - Secrets Remaining: {backlotState.progress.secretsRemainingLabel}
-              </Text>
-            </View>
-            <Ionicons name="film-outline" size={24} color={colors.gold} />
-          </View>
+        <View style={styles.fullWidthSection}>
+          <SectionHeader title="Explore Collections" actionLabel="View all" onAction={() => router.push(arcadeModeRoutes.trivia as never)} />
           <FlatList
             horizontal
             showsHorizontalScrollIndicator={false}
-            data={unlockedBacklotGames}
+            data={collections}
             keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.modeRow}
+            contentContainerStyle={styles.collectionRow}
             renderItem={({ item }) => (
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={`Launch ${item.title}`}
-                style={({ pressed }) => [styles.backlotCard, pressed && styles.pressedCard]}
+                accessibilityLabel={`Open ${item.title}`}
+                style={({ pressed }) => [styles.collectionCard, pressed && styles.pressedCard]}
                 onPress={() => router.push(item.route as never)}
               >
-                <Ionicons name="ticket-outline" size={34} color={colors.gold} />
-                <Text style={styles.modeTitle}>{item.title}</Text>
-                <Text style={styles.modeSubtitle}>{item.description}</Text>
+                <Image source={arcadeCollectionImages[item.id]} style={styles.collectionImage} contentFit="cover" />
+                <View style={styles.collectionScrim} />
+                <View style={styles.collectionCopy}>
+                  <Text style={styles.collectionTitle}>{item.title}</Text>
+                  <Text style={styles.collectionCount}>{item.count}</Text>
+                </View>
               </Pressable>
             )}
           />
-          <View style={styles.historyPanel}>
-            <Text style={styles.historyHeading}>Discovery History</Text>
-            {backlotState.discoveries.slice(0, 4).map(renderHistoryRow)}
+        </View>
+
+        <View style={styles.padded}>
+          <View style={styles.progressPanel}>
+            <SectionHeader title="Your Progress" />
+            <View style={styles.progressRow}>
+              <ScoreCard value="0" label="Total tickets" />
+              <ScoreCard value="0" label="Trophies & badges" />
+            </View>
           </View>
         </View>
-      ) : null}
-      <View style={styles.section}>
-        <Text style={styles.heading}>Challenges</Text>
-        {!loading && !data?.length ? <EmptyState title="No playable challenges found" body="Only complete challenge packs will appear here." /> : null}
-        <View style={styles.challengeList}>
-          {data?.slice(0, 8).map((challenge) => (
-            <View key={challenge.id || challenge.slug || challenge.title} style={styles.challengeWrap}>
-              <ChallengeCard challenge={challenge} onPress={() => router.push(resolveChallengeRoute(challenge) as never)} />
-              {isDinosaurChallenge(challenge) ? renderDiscoveryHotspot(() => handleDiscovery(triceratopsDinosaurDiscoverySource), "Discover hidden dinosaur Backlot game") : null}
+
+        {unlockedBacklotGames.length ? (
+          <View style={styles.padded}>
+            <View style={styles.backlotPanel}>
+              <View style={styles.backlotHeader}>
+                <View>
+                  <Text style={styles.backlotTitle}>Backlot Arcade</Text>
+                  <Text style={styles.backlotProgress}>
+                    Discovered: {backlotState.progress.discoveredCount} - Secrets Remaining: {backlotState.progress.secretsRemainingLabel}
+                  </Text>
+                </View>
+                <Ionicons name="film-outline" size={24} color={colors.gold} />
+              </View>
+              <FlatList
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                data={unlockedBacklotGames}
+                keyExtractor={(item) => item.id}
+                contentContainerStyle={styles.modeRow}
+                renderItem={({ item }) => (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`Launch ${item.title}`}
+                    style={({ pressed }) => [styles.backlotCard, pressed && styles.pressedCard]}
+                    onPress={() => router.push(item.route as never)}
+                  >
+                    <Ionicons name="ticket-outline" size={34} color={colors.gold} />
+                    <Text style={styles.modeTitle}>{item.title}</Text>
+                    <Text style={styles.modeSubtitle}>{item.description}</Text>
+                  </Pressable>
+                )}
+              />
+              <View style={styles.historyPanel}>
+                <Text style={styles.historyHeading}>Discovery History</Text>
+                {backlotState.discoveries.slice(0, 4).map(renderHistoryRow)}
+              </View>
             </View>
-          ))}
-        </View>
-      </View>
-      <View style={styles.progressRow}>
-        <ScoreCard value="-" label="Tickets" />
-        <ScoreCard value="-" label="Badges" />
-      </View>
+          </View>
+        ) : null}
+
+        {data?.some(isDinosaurChallenge) ? (
+          <Pressable style={styles.hiddenDino} onPress={() => handleDiscovery(triceratopsDinosaurDiscoverySource)}>
+            <Text style={styles.hiddenDinoText}>.</Text>
+          </Pressable>
+        ) : null}
+      </ScrollView>
+
       <Modal transparent visible={discoveryVisible} animationType="fade" onRequestClose={() => setDiscoveryVisible(false)}>
         <View style={styles.discoveryBackdrop}>
           <Animated.View
@@ -260,17 +354,16 @@ export default function ArcadeScreen() {
               }
             ]}
           >
-            <View style={styles.discoveryIcon}>
-              <Ionicons name="sparkles-outline" size={36} color={colors.gold} />
-            </View>
-            <Text style={styles.discoveryKicker}>You found something hidden...</Text>
-            <Text style={styles.discoveryTitle}>{discoveredGame?.title || "Backlot Arcade"}</Text>
-            <Text style={styles.discoveryBody}>{discoveredGame?.title || "This game"} has been permanently added to Backlot Arcade.</Text>
-            <Pressable accessibilityRole="button" style={styles.discoveryPrimary} onPress={launchDiscoveredGame}>
-              <Text style={styles.discoveryPrimaryText}>Launch now</Text>
+            <Ionicons name="sparkles" size={34} color={colors.gold} />
+            <Text style={styles.discoveryTitle}>You found something hidden...</Text>
+            <Text style={styles.discoveryBody}>
+              {discoveredGame?.title || "A Backlot Arcade game"} has been added to your Backlot Arcade.
+            </Text>
+            <Pressable accessibilityRole="button" style={styles.discoveryLaunch} onPress={launchDiscoveredGame}>
+              <Text style={styles.discoveryLaunchText}>Launch now</Text>
             </Pressable>
-            <Pressable accessibilityRole="button" style={styles.discoverySecondary} onPress={() => setDiscoveryVisible(false)}>
-              <Text style={styles.discoverySecondaryText}>Back to Arcade</Text>
+            <Pressable accessibilityRole="button" style={styles.discoveryDismiss} onPress={() => setDiscoveryVisible(false)}>
+              <Text style={styles.discoveryDismissText}>Keep browsing</Text>
             </Pressable>
           </Animated.View>
         </View>
@@ -280,209 +373,296 @@ export default function ArcadeScreen() {
 }
 
 const styles = StyleSheet.create({
-  section: {
-    gap: spacing.md,
-    marginTop: spacing.lg
+  page: {
+    paddingBottom: 132,
+    gap: spacing.lg
   },
-  heading: {
-    color: colors.gold,
-    fontSize: 18,
-    fontWeight: "900"
+  padded: {
+    paddingHorizontal: spacing.md
+  },
+  band: {
+    marginHorizontal: spacing.md,
+    gap: spacing.md,
+    borderRadius: radii.xl,
+    backgroundColor: "rgba(9, 13, 18, 0.92)",
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.md,
+    ...shadows.panel
+  },
+  fullWidthSection: {
+    gap: spacing.md,
+    paddingLeft: spacing.md
+  },
+  featuredCard: {
+    minHeight: 178,
+    flexDirection: "row",
+    alignItems: "stretch",
+    overflow: "hidden",
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    backgroundColor: "rgba(255,255,255,0.055)"
+  },
+  featuredImage: {
+    width: 132,
+    minHeight: 178
+  },
+  featuredCopy: {
+    flex: 1,
+    justifyContent: "center",
+    gap: spacing.sm,
+    padding: spacing.md
+  },
+  featuredTitle: {
+    color: colors.cream,
+    fontFamily: typography.serif,
+    fontSize: 27,
+    lineHeight: 31,
+    fontWeight: "700"
+  },
+  metaLine: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs
+  },
+  metaText: {
+    color: colors.mutedStrong,
+    fontWeight: "700",
+    fontSize: 13
   },
   modeRow: {
     gap: spacing.md,
     paddingRight: spacing.md
   },
   modeCard: {
-    width: 138,
-    minHeight: 154,
+    width: 148,
+    minHeight: 170,
     alignItems: "center",
     justifyContent: "center",
     gap: spacing.xs,
-    borderRadius: 18,
+    padding: spacing.md,
+    borderRadius: radii.lg,
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: colors.panelSoft,
+    backgroundColor: "rgba(255,255,255,0.06)"
+  },
+  modeIconWrap: {
+    width: 96,
+    height: 72,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: spacing.xs
+  },
+  modeIcon: {
+    width: 96,
+    height: 72
+  },
+  modeTitle: {
+    color: colors.text,
+    textAlign: "center",
+    fontSize: 16,
+    lineHeight: 20,
+    fontWeight: "900"
+  },
+  modeSubtitle: {
+    color: colors.muted,
+    textAlign: "center",
+    fontSize: 13,
+    lineHeight: 18
+  },
+  collectionRow: {
+    gap: spacing.md,
+    paddingRight: spacing.md
+  },
+  collectionCard: {
+    width: 150,
+    height: 174,
+    overflow: "hidden",
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    borderColor: colors.border
+  },
+  collectionImage: {
+    width: "100%",
+    height: "100%"
+  },
+  collectionScrim: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.24)"
+  },
+  collectionCopy: {
+    position: "absolute",
+    left: spacing.md,
+    right: spacing.md,
+    bottom: spacing.md
+  },
+  collectionTitle: {
+    color: colors.text,
+    fontSize: 18,
+    fontWeight: "900"
+  },
+  collectionCount: {
+    color: colors.mutedStrong,
+    marginTop: 3,
+    fontWeight: "700"
+  },
+  progressPanel: {
+    gap: spacing.md,
+    borderRadius: radii.xl,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.panelDeep,
+    padding: spacing.md
+  },
+  progressRow: {
+    flexDirection: "row",
+    gap: spacing.md
+  },
+  backlotPanel: {
+    gap: spacing.md,
+    borderRadius: radii.xl,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.panelDeep,
     padding: spacing.md
   },
   backlotHeader: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    gap: spacing.md
+    justifyContent: "space-between"
+  },
+  backlotTitle: {
+    color: colors.text,
+    fontSize: 21,
+    fontWeight: "900"
   },
   backlotProgress: {
     color: colors.muted,
-    fontWeight: "700",
-    marginTop: spacing.xs
+    marginTop: 4
   },
   backlotCard: {
-    width: 188,
-    minHeight: 158,
-    alignItems: "center",
+    width: 184,
+    minHeight: 154,
     justifyContent: "center",
+    alignItems: "center",
     gap: spacing.xs,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: colors.gold,
-    backgroundColor: colors.panelSoft,
-    padding: spacing.md
-  },
-  pressedCard: {
-    transform: [{ scale: 0.98 }]
-  },
-  modeIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
-    textAlign: "center",
-    textAlignVertical: "center",
-    color: "#160b02",
-    backgroundColor: colors.gold,
-    fontWeight: "900"
-  },
-  modeTitle: {
-    color: colors.text,
-    textAlign: "center",
-    fontWeight: "900",
-    fontSize: 15
-  },
-  modeSubtitle: {
-    color: colors.muted,
-    textAlign: "center",
-    fontSize: 12
-  },
-  challengeList: {
-    gap: spacing.md
-  },
-  challengeWrap: {
-    position: "relative"
-  },
-  discoveryHotspot: {
-    position: "absolute",
-    right: spacing.sm,
-    top: spacing.sm,
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: colors.gold,
-    backgroundColor: "rgba(8,6,8,0.86)"
-  },
-  discoveryHotspotPressed: {
-    transform: [{ scale: 0.95 }]
-  },
-  historyPanel: {
-    gap: spacing.sm,
-    borderRadius: 18,
+    padding: spacing.md,
+    borderRadius: radii.lg,
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: colors.panelSoft,
-    padding: spacing.md
+    backgroundColor: colors.panelSoft
+  },
+  historyPanel: {
+    gap: spacing.sm
   },
   historyHeading: {
-    color: colors.text,
+    color: colors.gold,
     fontWeight: "900",
     fontSize: 16
   },
   historyRow: {
     flexDirection: "row",
     gap: spacing.sm,
-    alignItems: "flex-start"
+    paddingVertical: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.08)"
   },
   historyIcon: {
     width: 34,
     height: 34,
-    borderRadius: 17,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(245,190,97,0.12)"
+    borderRadius: radii.pill,
+    backgroundColor: "rgba(245,193,111,0.13)"
   },
   historyCopy: {
     flex: 1
   },
   historyTitle: {
     color: colors.text,
-    fontWeight: "900"
+    fontWeight: "800"
   },
   historyMeta: {
     color: colors.muted,
     fontSize: 12,
     lineHeight: 17
   },
-  progressRow: {
-    flexDirection: "row",
-    gap: spacing.md,
-    marginTop: spacing.lg
+  discoveryHotspot: {
+    position: "absolute",
+    top: spacing.sm,
+    right: spacing.sm,
+    width: 32,
+    height: 32,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: radii.pill,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    backgroundColor: "rgba(0,0,0,0.46)"
+  },
+  discoveryHotspotPressed: {
+    opacity: 0.75
+  },
+  hiddenDino: {
+    height: 1,
+    opacity: 0.01
+  },
+  hiddenDinoText: {
+    color: colors.background
   },
   discoveryBackdrop: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(0,0,0,0.78)",
-    padding: spacing.xl
+    padding: spacing.lg,
+    backgroundColor: "rgba(0,0,0,0.74)"
   },
   discoveryCard: {
     width: "100%",
-    maxWidth: 380,
+    maxWidth: 390,
     alignItems: "center",
-    borderRadius: 28,
+    gap: spacing.md,
+    borderRadius: radii.xl,
     borderWidth: 1,
-    borderColor: colors.gold,
-    backgroundColor: "#18100d",
+    borderColor: colors.borderStrong,
+    backgroundColor: colors.panel,
     padding: spacing.xl,
-    gap: spacing.md
-  },
-  discoveryIcon: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(245,190,97,0.14)"
-  },
-  discoveryKicker: {
-    color: colors.gold,
-    fontSize: 14,
-    fontWeight: "900",
-    textAlign: "center"
+    ...shadows.goldGlow
   },
   discoveryTitle: {
-    color: colors.text,
-    fontSize: 32,
-    fontWeight: "900",
-    textAlign: "center"
+    color: colors.cream,
+    textAlign: "center",
+    fontSize: 24,
+    lineHeight: 29,
+    fontWeight: "900"
   },
   discoveryBody: {
-    color: colors.muted,
-    fontSize: 15,
-    lineHeight: 22,
-    textAlign: "center"
+    color: colors.mutedStrong,
+    textAlign: "center",
+    lineHeight: 22
   },
-  discoveryPrimary: {
-    width: "100%",
-    minHeight: 52,
+  discoveryLaunch: {
+    minHeight: 50,
+    alignSelf: "stretch",
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 16,
-    backgroundColor: colors.gold,
-    marginTop: spacing.sm
+    borderRadius: radii.md,
+    backgroundColor: colors.gold
   },
-  discoveryPrimaryText: {
+  discoveryLaunchText: {
     color: "#160b02",
-    fontWeight: "900",
-    fontSize: 16
+    fontWeight: "900"
   },
-  discoverySecondary: {
-    minHeight: 44,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: spacing.md
+  discoveryDismiss: {
+    paddingVertical: spacing.sm
   },
-  discoverySecondaryText: {
-    color: colors.text,
+  discoveryDismissText: {
+    color: colors.mutedStrong,
     fontWeight: "800"
+  },
+  pressedCard: {
+    opacity: 0.84,
+    transform: [{ scale: 0.99 }]
   }
 });

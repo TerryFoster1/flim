@@ -2,16 +2,18 @@ export const arcadeModeRoutes = {
   trivia: "/arcade/trivia",
   quote: "/arcade/quotes",
   poster: "/arcade/poster-guess",
+  group: "/arcade/group-play",
   leaderboards: "/arcade/leaderboards",
   rewards: "/arcade/rewards"
 } as const;
 
 export const visibleArcadeModes = [
-  { id: "trivia", title: "Movie Trivia", subtitle: "Browse title packs", route: arcadeModeRoutes.trivia, icon: "film-outline" },
-  { id: "quote", title: "Quote Challenge", subtitle: "Match famous lines", route: arcadeModeRoutes.quote, icon: "chatbubble-ellipses-outline" },
-  { id: "poster", title: "Movie Reveal", subtitle: "Guess from posters", route: arcadeModeRoutes.poster, icon: "images-outline" },
-  { id: "leaderboards", title: "Leaderboards", subtitle: "See standings", route: arcadeModeRoutes.leaderboards, icon: "trophy-outline" },
-  { id: "rewards", title: "Rewards", subtitle: "Tickets and badges", route: arcadeModeRoutes.rewards, icon: "ticket-outline" }
+  { id: "trivia", iconKey: "trivia", title: "Movie Trivia", subtitle: "Browse title packs", route: arcadeModeRoutes.trivia },
+  { id: "quote", iconKey: "quote", title: "Quote Challenge", subtitle: "Browse quote packs", route: arcadeModeRoutes.quote },
+  { id: "poster", iconKey: "poster", title: "Poster Guess", subtitle: "Reveal the movie", route: arcadeModeRoutes.poster },
+  { id: "group", iconKey: "group", title: "Group Play", subtitle: "Movie night rooms", route: arcadeModeRoutes.group },
+  { id: "leaderboards", iconKey: "leaderboards", title: "Leaderboards", subtitle: "See standings", route: arcadeModeRoutes.leaderboards },
+  { id: "rewards", iconKey: "rewards", title: "Rewards", subtitle: "Tickets and badges", route: arcadeModeRoutes.rewards }
 ] as const;
 
 export function resolveChallengeRoute(challenge: { id?: string; slug?: string }) {

@@ -5,20 +5,21 @@ import { colors, spacing } from "@/theme/theme";
 
 interface ScreenProps extends PropsWithChildren {
   scroll?: boolean;
+  padded?: boolean;
 }
 
-export function Screen({ children, scroll = true }: ScreenProps) {
+export function Screen({ children, scroll = true, padded = true }: ScreenProps) {
   if (!scroll) {
     return (
       <SafeAreaView style={styles.safe}>
-        <View style={styles.content}>{children}</View>
+        <View style={[styles.content, !padded && styles.noPadding]}>{children}</View>
       </SafeAreaView>
     );
   }
 
   return (
     <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={[styles.scrollContent, !padded && styles.noPadding]} keyboardShouldPersistTaps="handled">
         {children}
       </ScrollView>
     </SafeAreaView>
@@ -37,5 +38,8 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: spacing.md,
     paddingBottom: 120
+  },
+  noPadding: {
+    paddingHorizontal: 0
   }
 });

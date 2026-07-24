@@ -2,17 +2,17 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSession } from "@/auth/SessionProvider";
+import { flimImages } from "@/assets/flimAssets";
 import { colors, spacing } from "@/theme/theme";
 
-export function Header({ title, subtitle }: { title: string; subtitle?: string }) {
+export function Header({ title, subtitle }: { title?: string; subtitle?: string }) {
   const { user } = useSession();
 
   return (
     <View style={styles.header}>
       <View style={styles.brandRow}>
         <Pressable accessibilityRole="button" accessibilityLabel="Go to My Playlists" style={styles.brandButton} onPress={() => router.push("/playlists")}>
-          <Image source={require("../../assets/icon.png")} style={styles.logo} />
-          <Text style={styles.brand}>Flim</Text>
+          <Image source={flimImages.logo} style={styles.logo} />
         </Pressable>
         {user ? (
           <Pressable accessibilityRole="button" accessibilityLabel="Open Profile" style={styles.profileButton} onPress={() => router.push("/profile")}>
@@ -24,7 +24,7 @@ export function Header({ title, subtitle }: { title: string; subtitle?: string }
           </Pressable>
         )}
       </View>
-      <Text style={styles.title}>{title}</Text>
+      {title ? <Text style={styles.title}>{title}</Text> : null}
       {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
     </View>
   );
@@ -34,7 +34,7 @@ const styles = StyleSheet.create({
   header: {
     gap: spacing.sm,
     paddingTop: spacing.md,
-    paddingBottom: spacing.lg
+    paddingBottom: spacing.md
   },
   brandRow: {
     alignItems: "center",
@@ -48,15 +48,9 @@ const styles = StyleSheet.create({
     gap: spacing.sm
   },
   logo: {
-    width: 44,
-    height: 44,
-    borderRadius: 8
-  },
-  brand: {
-    color: colors.gold,
-    fontSize: 30,
-    fontWeight: "800",
-    fontStyle: "italic"
+    width: 136,
+    height: 46,
+    resizeMode: "contain"
   },
   profileButton: {
     width: 44,

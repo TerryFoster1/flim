@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, View } from "react-native";
+import { Image } from "expo-image";
 import { router } from "expo-router";
-import { Header } from "@/components/Header";
+import { flimImages } from "@/assets/flimAssets";
+import { FlimHero } from "@/components/FlimHero";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { Screen } from "@/components/Screen";
 import { useSession } from "@/auth/SessionProvider";
-import { colors, radii, spacing } from "@/theme/theme";
+import { colors, radii, shadows, spacing } from "@/theme/theme";
 
 export default function LoginScreen() {
   const { signIn, loading, error } = useSession();
@@ -18,9 +20,16 @@ export default function LoginScreen() {
   }
 
   return (
-    <Screen>
+    <Screen padded={false}>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
-        <Header title="Welcome back" subtitle="Sign in to your Flim account." />
+        <FlimHero
+          title="Welcome back"
+          subtitle="Sign in to continue building your movie collections."
+          image={flimImages.homeHero}
+          compact
+        >
+          <Image source={flimImages.logo} style={styles.logo} contentFit="contain" />
+        </FlimHero>
         <View style={styles.form}>
           <TextInput
             value={email}
@@ -48,15 +57,27 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
+  logo: {
+    width: 112,
+    height: 48
+  },
   form: {
-    gap: spacing.md
+    gap: spacing.md,
+    margin: spacing.md,
+    marginTop: -24,
+    borderRadius: radii.xl,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.panelSoft,
+    padding: spacing.lg,
+    ...shadows.panel
   },
   input: {
     minHeight: 54,
     borderRadius: radii.md,
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: colors.panelSoft,
+    backgroundColor: colors.panelDeep,
     paddingHorizontal: spacing.md,
     color: colors.text,
     fontSize: 16
