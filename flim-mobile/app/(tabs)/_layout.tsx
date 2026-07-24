@@ -4,16 +4,12 @@ import { colors } from "@/theme/theme";
 
 function iconName(routeName: string) {
   switch (routeName) {
-    case "home":
-      return "home";
     case "playlists":
       return "albums";
     case "arcade":
       return "ticket";
     case "public":
       return "people";
-    case "profile":
-      return "person-circle";
     default:
       return "ellipse";
   }
@@ -38,11 +34,11 @@ export default function TabLayout() {
         )
       })}
     >
-      <Tabs.Screen name="home" options={{ title: "Home" }} />
       <Tabs.Screen name="playlists" options={{ title: "My Playlists" }} />
       <Tabs.Screen name="arcade" options={{ title: "Arcade" }} />
-      <Tabs.Screen name="public" options={{ title: "Public" }} />
-      <Tabs.Screen name="profile" options={{ title: "Profile" }} />
+      <Tabs.Screen name="public" options={{ title: "Public Playlists" }} />
+      <Tabs.Screen name="home" options={{ href: null }} />
+      <Tabs.Screen name="profile" options={{ href: null }} />
     </Tabs>
   );
 }

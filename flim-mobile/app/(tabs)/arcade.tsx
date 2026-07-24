@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import type { BacklotDiscovery, BacklotGame, BacklotState } from "@/api/types";
 import { flimApi } from "@/api/flimApi";
+import { resolveChallengeRoute, visibleArcadeModes } from "@/arcade/modeRoutes";
 import { ChallengeCard } from "@/components/ChallengeCard";
 import { Header } from "@/components/Header";
 import { ScoreCard } from "@/components/ScoreCard";
@@ -18,14 +19,6 @@ import {
 import { discoverBacklotGame, getBacklotStateCache, reconcileBacklotState } from "@/games/backlot/unlocks";
 import { useAsync } from "@/hooks/useAsync";
 import { colors, spacing } from "@/theme/theme";
-
-const modes = [
-  { id: "trivia", title: "Movie Trivia", subtitle: "Browse title packs", route: "/home" },
-  { id: "quote", title: "Quote Challenge", subtitle: "Match famous lines", route: "/home" },
-  { id: "poster", title: "Movie Reveal", subtitle: "Guess from posters", route: "/home" },
-  { id: "leaderboards", title: "Leaderboards", subtitle: "See standings", route: "/home" },
-  { id: "rewards", title: "Rewards", subtitle: "Tickets and badges", route: "/home" }
-];
 
 function emptyBacklotState(): BacklotState {
   return {
@@ -168,7 +161,7 @@ export default function ArcadeScreen() {
       {featured ? (
         <View style={styles.section}>
           <Text style={styles.heading}>Featured Challenge</Text>
-          <ChallengeCard challenge={featured} onPress={() => router.push("/home")} />
+          <ChallengeCard challenge={featured} onPress={() => router.push(resolveChallengeRoute(featured) as never)} />
         </View>
       ) : null}
       <View style={styles.section}>
@@ -176,7 +169,7 @@ export default function ArcadeScreen() {
         <FlatList
           horizontal
           showsHorizontalScrollIndicator={false}
-          data={modes}
+          data={visibleArcadeModes}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.modeRow}
           renderItem={({ item }) => {
@@ -187,7 +180,7 @@ export default function ArcadeScreen() {
                 style={({ pressed }) => [styles.modeCard, pressed && styles.pressedCard]}
                 onPress={() => router.push(item.route as never)}
               >
-                <Text style={styles.modeIcon}>F</Text>
+                <Ionicons name={item.icon as keyof typeof Ionicons.glyphMap} size={38} color={colors.gold} />
                 <Text style={styles.modeTitle}>{item.title}</Text>
                 <Text style={styles.modeSubtitle}>{item.subtitle}</Text>
                 {item.id === "poster" ? renderDiscoveryHotspot(() => handleDiscovery(relicRunDiscoverySource), "Discover hidden Movie Reveal Backlot game") : null}
@@ -240,7 +233,7 @@ export default function ArcadeScreen() {
         <View style={styles.challengeList}>
           {data?.slice(0, 8).map((challenge) => (
             <View key={challenge.id || challenge.slug || challenge.title} style={styles.challengeWrap}>
-              <ChallengeCard challenge={challenge} onPress={() => router.push("/home")} />
+              <ChallengeCard challenge={challenge} onPress={() => router.push(resolveChallengeRoute(challenge) as never)} />
               {isDinosaurChallenge(challenge) ? renderDiscoveryHotspot(() => handleDiscovery(triceratopsDinosaurDiscoverySource), "Discover hidden dinosaur Backlot game") : null}
             </View>
           ))}

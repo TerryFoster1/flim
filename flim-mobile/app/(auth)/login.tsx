@@ -14,7 +14,7 @@ export default function LoginScreen() {
 
   async function submit() {
     await signIn(email.trim(), password);
-    router.replace("/home");
+    router.replace("/playlists");
   }
 
   return (

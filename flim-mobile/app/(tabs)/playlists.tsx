@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
 import { flimApi } from "@/api/flimApi";
 import { useSession } from "@/auth/SessionProvider";
@@ -22,25 +22,50 @@ export default function MyPlaylistsScreen() {
       ) : null}
       {sessionLoading || loading ? <LoadingHero label="Loading your playlists..." /> : null}
       {error ? <ErrorState message={error} onRetry={refresh} /> : null}
-      {!loading && user && !data?.length ? <EmptyState title="No playlists yet" body="Create playlists on Flim web now; native creation is ready to wire into the same API." /> : null}
+      {user ? (
+        <View style={styles.actionRow}>
+          <PrimaryButton label="Create Playlist" onPress={() => router.push("/playlist/create")} style={styles.actionButton} />
+          <Pressable accessibilityRole="button" style={styles.secondaryAction} onPress={() => router.push("/arcade")}>
+            <Text style={styles.secondaryActionText}>Director's Choice</Text>
+          </Pressable>
+        </View>
+      ) : null}
+      {!loading && user && !data?.length ? <EmptyState title="No playlists yet" body="Create your first collection, then add titles from Flim." /> : null}
       <View style={styles.list}>
         {data?.map((playlist) => (
           <PlaylistCard key={playlist.id} playlist={playlist} onPress={() => router.push(`/playlist/${playlist.id}`)} />
         ))}
       </View>
-      <Text style={styles.tool}>Director's Choice will live here as a compact playlist decision tool.</Text>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
+  actionRow: {
+    flexDirection: "row",
+    gap: spacing.sm,
+    marginBottom: spacing.md
+  },
+  actionButton: {
+    flex: 1
+  },
+  secondaryAction: {
+    flex: 1,
+    minHeight: 52,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    backgroundColor: "rgba(245,193,111,0.12)"
+  },
+  secondaryActionText: {
+    color: colors.text,
+    fontSize: 16,
+    fontWeight: "800"
+  },
   list: {
     gap: spacing.md,
     marginTop: spacing.md
-  },
-  tool: {
-    color: colors.muted,
-    lineHeight: 20,
-    marginTop: spacing.lg
   }
 });
