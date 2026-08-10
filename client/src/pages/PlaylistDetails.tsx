@@ -11,11 +11,29 @@ interface PlaylistDetailsProps {
   addToPlaylist: (playlistId: string, movie: MovieSearchResult) => void | Promise<void>;
   deletePlaylist: (playlistId: string) => void | Promise<void>;
   updatePlaylist: (playlistId: string, input: Pick<Playlist, "name" | "description" | "visibility">) => Playlist | void | Promise<Playlist | void>;
-  createSharedLink?: (playlistId: string) => Promise<{ sharedSlug: string; visibility: "shared" }>;
+  createSharedLink?: (playlistId: string) => Promise<{ sharedSlug: string; visibility: "shared" | "public"; expiresAt?: string }>;
   removeMovie: (playlistId: string, tmdbId: number, mediaType?: string) => void | Promise<void>;
   updateWatchStatus: (playlistId: string, tmdbId: number, watchStatus: WatchStatus, mediaType?: string) => void | Promise<void>;
   relatedPlaylists?: Playlist[];
 }
+
+const PLAYLIST_VISIBILITY_OPTIONS: Array<{ value: Playlist["visibility"]; label: string; helper: string }> = [
+  { value: "private", label: "Private", helper: "Only you can view and edit." },
+  { value: "shared", label: "Shared", helper: "Invite collaborators to edit titles." },
+  { value: "public", label: "Public", helper: "Anyone can view. Collaborators can edit." },
+];
+
+const PLAYLIST_VISIBILITY_HELP: Record<Playlist["visibility"], string> = {
+  private: "Private playlists are only visible to you.",
+  shared: "Shared playlists stay hidden from public discovery. Invited collaborators can add, remove, and reorder titles.",
+  public: "Public playlists can be discovered by anyone. Owner and invited collaborators can edit titles.",
+};
+
+const VISIBILITY_TRANSITION_CONFIRM: Record<Playlist["visibility"], string> = {
+  private: "Changing this playlist to Private will hide it from collaborators and public viewers. Continue?",
+  shared: "Changing this playlist to Shared keeps it hidden from public discovery and allows invited collaborators to edit titles. Continue?",
+  public: "Making this playlist Public lets anyone view it. Existing collaborators can still edit titles. Continue?",
+};
 
 function playlistTitleKey(movie: { tmdbId: number; mediaType?: string }) {
   return `${movie.mediaType || "movie"}-${movie.tmdbId}`;
@@ -91,6 +109,9 @@ export function PlaylistDetails({ playlist, onNavigate, addToPlaylist, deletePla
 
   async function savePlaylist(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (playlist.visibility !== editForm.visibility && !window.confirm(VISIBILITY_TRANSITION_CONFIRM[editForm.visibility])) {
+      return;
+    }
     setIsSavingEdit(true);
     setNotice("");
     try {
@@ -180,17 +201,24 @@ export function PlaylistDetails({ playlist, onNavigate, addToPlaylist, deletePla
                 value={editForm.description}
               />
             </label>
-            <label>
-              <span>Visibility</span>
-              <select
-                onChange={(event) => setEditForm((current) => ({ ...current, visibility: event.target.value as Playlist["visibility"] }))}
-                value={editForm.visibility}
-              >
-                <option value="private">private</option>
-                <option value="shared">shared</option>
-                <option value="public">public</option>
-              </select>
-            </label>
+            <div className="visibility-picker">
+              <span className="visibility-picker-label">Visibility</span>
+              <div className="visibility-options" role="radiogroup" aria-label="Playlist visibility">
+                {PLAYLIST_VISIBILITY_OPTIONS.map((option) => (
+                  <button
+                    aria-pressed={editForm.visibility === option.value}
+                    className={`visibility-option ${editForm.visibility === option.value ? "active" : ""}`}
+                    key={option.value}
+                    onClick={() => setEditForm((current) => ({ ...current, visibility: option.value }))}
+                    type="button"
+                  >
+                    <strong>{option.label}</strong>
+                    <small>{option.helper}</small>
+                  </button>
+                ))}
+              </div>
+              <p className="helper-text">{PLAYLIST_VISIBILITY_HELP[editForm.visibility]}</p>
+            </div>
             <div className="button-row">
               <button className="primary-button" disabled={isSavingEdit} type="submit">{isSavingEdit ? "Saving..." : "Save Playlist"}</button>
               <button className="secondary-button" onClick={() => setShowEditPlaylist(false)} type="button">Cancel</button>

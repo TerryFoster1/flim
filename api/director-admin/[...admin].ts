@@ -12,6 +12,17 @@ import {
 } from "../_db.js";
 import { directorHandle, directorUserId, ensureDirectorSeed } from "../_director.js";
 import { cleanSeasonalChallengeInput, ensureSeasonalChallengeTables } from "../_seasonalChallenges.js";
+import {
+  cleanBoolean,
+  cleanEnum,
+  cleanInteger,
+  cleanText,
+  cleanUrl,
+  cleanUuidArray,
+  requireRecord,
+  requireUuid,
+  safeApiError,
+} from "../_security.js";
 
 const cookieName = "flim_director_admin";
 const sessionMaxAgeSeconds = 60 * 60 * 8;
@@ -143,9 +154,9 @@ async function handleSession(request: any, response: any) {
   }
 
   if (request.method === "POST") {
-    const body = await readBody(request);
-    const username = String(body.username || "").trim();
-    const password = String(body.password || "");
+    const body = requireRecord(await readBody(request));
+    const username = cleanText(body.username, { field: "username", max: 120, required: true });
+    const password = cleanText(body.password, { field: "password", max: 300, required: true });
 
     if (!safeEqual(username, config.username) || !safeEqual(password, config.password)) {
       clearAdminCookie(response);
@@ -178,14 +189,14 @@ async function handleProfile(request: any, response: any, sql: any) {
   }
 
   if (request.method === "PATCH") {
-    const body = await readBody(request);
+    const body = requireRecord(await readBody(request));
     const [profile] = await sql`
       update director_profile
       set
-        display_name = ${String(body.displayName || body.display_name || "The Director").trim().slice(0, 80)},
-        bio = ${String(body.bio || "").trim().slice(0, 300)},
-        tagline = ${String(body.tagline || "").trim().slice(0, 160)},
-        quote = ${String(body.quote || "").trim().slice(0, 200)},
+        display_name = ${cleanText(body.displayName || body.display_name || "The Director", { field: "displayName", max: 80 })},
+        bio = ${cleanText(body.bio || "", { field: "bio", max: 300, allowNewlines: true })},
+        tagline = ${cleanText(body.tagline || "", { field: "tagline", max: 160 })},
+        quote = ${cleanText(body.quote || "", { field: "quote", max: 200 })},
         updated_at = now()
       where id = 'the-director'
       returning *
@@ -341,12 +352,18 @@ async function handlePlaylistCollection(request: any, response: any, sql: any) {
 
   if (request.method === "POST") {
     await ensureDirectorSeed(sql);
-    const body = await readBody(request);
-    const name = String(body.name || "Director Playlist").trim().slice(0, 120);
+    const body = requireRecord(await readBody(request));
+    const name = cleanText(body.name || "Director Playlist", { field: "name", max: 120 });
     const publicSlug = await createUniquePublicSlug(sql, name);
     const [playlist] = await sql`
       insert into playlists (public_slug, name, description, visibility, owner_user_id)
-      values (${publicSlug}, ${name}, ${String(body.description || "").trim().slice(0, 600)}, ${body.visibility === "private" || body.visibility === "shared" ? body.visibility : "public"}, ${directorUserId})
+      values (
+        ${publicSlug},
+        ${name},
+        ${cleanText(body.description || "", { field: "description", max: 600, allowNewlines: true })},
+        ${cleanEnum(body.visibility, ["private", "shared", "public"], { field: "visibility", fallback: "public" })},
+        ${directorUserId}
+      )
       returning *
     `;
     return sendJson(response, 201, mapPlaylist({ ...playlist, creator_handle: directorHandle, creator_display_name: "The Director", is_owner: true }));
@@ -384,17 +401,19 @@ async function handlePlaylistDetail(request: any, response: any, sql: any, playl
   }
 
   if (request.method === "PATCH") {
-    const body = await readBody(request);
+    const body = requireRecord(await readBody(request));
     const existing = await getDirectorPlaylist(sql, playlistId);
     if (!existing) return sendJson(response, 404, { error: "Director playlist not found." });
-    const name = String(body.name || existing.name).trim().slice(0, 120);
-    const visibility = ["private", "shared", "public"].includes(body.visibility) ? body.visibility : existing.visibility;
-    const publicSlug = body.regenerateSlug ? await createUniquePublicSlug(sql, name, playlistId) : existing.publicSlug;
+    const name = cleanText(body.name || existing.name, { field: "name", max: 120 });
+    const visibility = cleanEnum(body.visibility, ["private", "shared", "public"], { field: "visibility", fallback: existing.visibility });
+    const publicSlug = cleanBoolean(body.regenerateSlug, { field: "regenerateSlug", fallback: false })
+      ? await createUniquePublicSlug(sql, name, playlistId)
+      : existing.publicSlug;
     const [playlist] = await sql`
       update playlists
       set
         name = ${name},
-        description = ${String(body.description ?? existing.description ?? "").trim().slice(0, 600)},
+        description = ${cleanText(body.description ?? existing.description ?? "", { field: "description", max: 600, allowNewlines: true })},
         visibility = ${visibility},
         public_slug = ${publicSlug},
         updated_at = now()
@@ -419,13 +438,10 @@ async function handlePlaylistMovies(request: any, response: any, sql: any, playl
   if (!playlist) return sendJson(response, 404, { error: "Director playlist not found." });
 
   if (!movieId && request.method === "POST") {
-    const body = await readBody(request);
-    const mediaType = body.mediaType === "tv" ? "tv" : "movie";
-    const tmdbId = Number(body.tmdbId);
-    const title = String(body.title || "").trim();
-    if (!Number.isFinite(tmdbId) || tmdbId <= 0 || !title) {
-      return sendJson(response, 400, { error: "Choose a valid movie or TV show." });
-    }
+    const body = requireRecord(await readBody(request));
+    const mediaType = cleanEnum(body.mediaType, ["movie", "tv"], { field: "mediaType", fallback: "movie" });
+    const tmdbId = cleanInteger(body.tmdbId, { field: "tmdbId", min: 1, max: 99999999, required: true });
+    const title = cleanText(body.title, { field: "title", max: 220, required: true });
 
     const [nextOrder] = await sql`
       select coalesce(max(sort_order), -1) + 1 as sort_order
@@ -435,7 +451,20 @@ async function handlePlaylistMovies(request: any, response: any, sql: any, playl
 
     const [movie] = await sql`
       insert into playlist_movies (playlist_id, media_type, tmdb_id, title, year, poster_url, overview, runtime_minutes, season_count, episode_count, sort_order, watched)
-      values (${playlistId}, ${mediaType}, ${tmdbId}, ${title}, ${body.releaseYear || body.firstAirYear || null}, ${body.posterUrl || null}, ${body.overview || ""}, ${body.runtimeMinutes || null}, ${body.seasonCount || null}, ${body.episodeCount || null}, ${nextOrder?.sort_order || 0}, false)
+      values (
+        ${playlistId},
+        ${mediaType},
+        ${tmdbId},
+        ${title},
+        ${cleanInteger(body.releaseYear || body.firstAirYear, { field: "releaseYear", min: 1800, max: 2200, fallback: null })},
+        ${cleanUrl(body.posterUrl, { field: "posterUrl", max: 2048 }) || null},
+        ${cleanText(body.overview || "", { field: "overview", max: 1200, allowNewlines: true })},
+        ${cleanInteger(body.runtimeMinutes, { field: "runtimeMinutes", min: 0, max: 10000, fallback: null })},
+        ${cleanInteger(body.seasonCount, { field: "seasonCount", min: 0, max: 500, fallback: null })},
+        ${cleanInteger(body.episodeCount, { field: "episodeCount", min: 0, max: 5000, fallback: null })},
+        ${nextOrder?.sort_order || 0},
+        false
+      )
       on conflict (playlist_id, media_type, tmdb_id)
       do update set
         title = excluded.title,
@@ -451,8 +480,8 @@ async function handlePlaylistMovies(request: any, response: any, sql: any, playl
   }
 
   if (movieId === "reorder" && request.method === "PATCH") {
-    const body = await readBody(request);
-    const movieIds = Array.isArray(body.movieIds) ? body.movieIds.map(String) : [];
+    const body = requireRecord(await readBody(request));
+    const movieIds = cleanUuidArray(body.movieIds, { field: "movieIds", max: 300 });
     for (const [index, id] of movieIds.entries()) {
       await sql`
         update playlist_movies
@@ -496,10 +525,12 @@ export default async function handler(request: any, response: any) {
     if (!resource || resource === "dashboard") return handleAnalytics(response, sql);
     if (resource === "profile") return handleProfile(request, response, sql);
     if (resource === "analytics") return handleAnalytics(response, sql);
-    if (resource === "seasonal-challenges") return handleSeasonalChallenges(request, response, sql, id);
+    if (resource === "seasonal-challenges") return handleSeasonalChallenges(request, response, sql, id ? requireUuid(id, "eventId") : undefined);
     if (resource === "playlists" && !id) return handlePlaylistCollection(request, response, sql);
-    if (resource === "playlists" && id && child === "movies") return handlePlaylistMovies(request, response, sql, id, childId);
-    if (resource === "playlists" && id) return handlePlaylistDetail(request, response, sql, id);
+    if (resource === "playlists" && id && child === "movies") {
+      return handlePlaylistMovies(request, response, sql, requireUuid(id, "playlistId"), childId === "reorder" ? childId : childId ? requireUuid(childId, "movieId") : undefined);
+    }
+    if (resource === "playlists" && id) return handlePlaylistDetail(request, response, sql, requireUuid(id, "playlistId"));
 
     return sendJson(response, 404, { error: "Director admin route not found." });
   } catch (error) {
@@ -507,6 +538,9 @@ export default async function handler(request: any, response: any) {
       method: request.method,
       message: error instanceof Error ? error.message : "Unknown Director admin error",
     });
-    return sendJson(response, 500, { error: "Director admin request failed." });
+    const status = error && typeof error === "object" && "statusCode" in error
+      ? Number((error as { statusCode?: unknown }).statusCode) || 500
+      : 500;
+    return sendJson(response, status, { error: safeApiError(error, "Director admin request failed.") });
   }
 }

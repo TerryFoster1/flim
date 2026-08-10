@@ -1,10 +1,11 @@
-import { db, ensureSharedPlaylistSlug, getCurrentUser, sendJson } from "../../_db.js";
+import { createPlaylistInvite, db, ensurePlaylistCollaborationTables, getCurrentUser, sendJson } from "../../_db.js";
 
 export default async function handler(request: any, response: any) {
   const playlistId = request.query.id as string;
 
   try {
     const sql = db();
+    await ensurePlaylistCollaborationTables(sql);
     const user = await getCurrentUser(sql, request);
 
     if (request.method === "POST") {
@@ -20,11 +21,22 @@ export default async function handler(request: any, response: any) {
 
       if (!playlist[0]) return sendJson(response, 403, { error: "Only the playlist owner can share this playlist." });
 
-      const sharedSlug = await ensureSharedPlaylistSlug(sql, playlistId);
+      const nextVisibility = playlist[0].visibility === "public" ? "public" : "shared";
+      if (playlist[0].visibility === "private") {
+        await sql`
+          update playlists
+          set visibility = 'shared', updated_at = now()
+          where id = ${playlistId}
+            and owner_user_id = ${user.id}
+        `;
+      }
+
+      const invite = await createPlaylistInvite(sql, playlistId, user.id, "editor");
       return sendJson(response, 200, {
         ok: true,
-        sharedSlug,
-        visibility: "shared",
+        sharedSlug: invite.token,
+        visibility: nextVisibility,
+        expiresAt: invite.expiresAt,
       });
     }
 

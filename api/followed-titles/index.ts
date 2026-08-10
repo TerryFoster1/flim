@@ -1,11 +1,12 @@
 import { db, ensureFollowTitleTables, ensureNotificationsTable, getCurrentUser, readBody, sendJson } from "../_db.js";
 import { ensureMediaCatalogTables, upsertMediaItem } from "../_mediaCatalog.js";
+import { cleanEnum, cleanInteger, cleanJsonObject, cleanText, cleanUrl, requireRecord, safeApiError } from "../_security.js";
 
 const moviePreferenceKeys = ["theaterRelease", "streamingAvailability"] as const;
 const tvPreferenceKeys = ["newSeasonAnnounced", "seasonReleaseDate", "newEpisodeAvailable", "streamingAvailability"] as const;
 
 function normalizeMediaType(value: unknown) {
-  return value === "tv" ? "tv" : "movie";
+  return cleanEnum(value, ["movie", "tv"], { field: "mediaType", fallback: "movie" }) as "movie" | "tv";
 }
 
 function defaultNotificationSettings(mediaType: "movie" | "tv") {
@@ -37,6 +38,19 @@ function normalizeNotificationSettings(mediaType: "movie" | "tv", value: unknown
 
 function releaseYearFromDate(value?: string) {
   return value ? value.slice(0, 4) : undefined;
+}
+
+function cleanStringArray(value: unknown, field: string, max = 30) {
+  if (!Array.isArray(value)) return [];
+  return value.slice(0, max).map((item) => cleanText(item, { field, max: 80 })).filter(Boolean);
+}
+
+function cleanIntegerArray(value: unknown, field: string, max = 30) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .slice(0, max)
+    .map((item) => cleanInteger(item, { field, min: 0, max: 999999, fallback: null }))
+    .filter((item): item is number => item !== null);
 }
 
 function mapFollowedTitle(row: any) {
@@ -173,14 +187,10 @@ export default async function handler(request: any, response: any) {
     }
 
     if (request.method === "POST") {
-      const body = await readBody(request);
-      const action = String(body.action || "follow");
+      const body = requireRecord(await readBody(request));
+      const action = cleanEnum(body.action, ["follow", "unfollow"], { field: "action", fallback: "follow" });
       const mediaType = normalizeMediaType(body.mediaType);
-      const tmdbId = Number(body.tmdbId);
-
-      if (!Number.isFinite(tmdbId) || tmdbId <= 0) {
-        return sendJson(response, 400, { error: "Choose a valid title to follow." });
-      }
+      const tmdbId = cleanInteger(body.tmdbId, { field: "tmdbId", min: 1, max: 99999999, required: true });
 
       if (action === "unfollow") {
         await sql`
@@ -197,22 +207,22 @@ export default async function handler(request: any, response: any) {
       const mediaItem = await upsertMediaItem(sql, {
         mediaType,
         tmdbId,
-        title: String(body.title || "").trim(),
-        overview: body.overview,
-        releaseDate: body.releaseDate,
-        releaseYear: body.releaseYear,
-        firstAirYear: body.firstAirYear,
-        posterUrl: body.posterUrl,
-        backdropUrl: body.backdropUrl,
-        runtimeMinutes: body.runtimeMinutes,
-        contentRating: body.contentRating,
-        status: body.status,
-        genres: body.genres,
-        genreIds: body.genreIds,
-        seasonCount: body.seasonCount,
-        episodeCount: body.episodeCount,
-        contentRatings: body.contentRatings,
-        contentRatingVersion: body.contentRatingVersion,
+        title: cleanText(body.title, { field: "title", max: 220, required: true }),
+        overview: cleanText(body.overview || "", { field: "overview", max: 1200, allowNewlines: true }),
+        releaseDate: cleanText(body.releaseDate || "", { field: "releaseDate", max: 20 }),
+        releaseYear: cleanInteger(body.releaseYear, { field: "releaseYear", min: 1800, max: 2200, fallback: null })?.toString(),
+        firstAirYear: cleanInteger(body.firstAirYear, { field: "firstAirYear", min: 1800, max: 2200, fallback: null })?.toString(),
+        posterUrl: cleanUrl(body.posterUrl, { field: "posterUrl", max: 2048 }) || undefined,
+        backdropUrl: cleanUrl(body.backdropUrl, { field: "backdropUrl", max: 2048 }) || undefined,
+        runtimeMinutes: cleanInteger(body.runtimeMinutes, { field: "runtimeMinutes", min: 0, max: 10000, fallback: null }) || undefined,
+        contentRating: cleanText(body.contentRating || "", { field: "contentRating", max: 40 }),
+        status: cleanText(body.status || "", { field: "status", max: 80 }),
+        genres: cleanStringArray(body.genres, "genres"),
+        genreIds: cleanIntegerArray(body.genreIds, "genreIds"),
+        seasonCount: cleanInteger(body.seasonCount, { field: "seasonCount", min: 0, max: 500, fallback: null }) || undefined,
+        episodeCount: cleanInteger(body.episodeCount, { field: "episodeCount", min: 0, max: 5000, fallback: null }) || undefined,
+        contentRatings: Array.isArray(body.contentRatings) ? body.contentRatings.slice(0, 30).map((rating) => cleanJsonObject(rating, { field: "contentRatings", maxDepth: 1, maxKeys: 4 })) as any : undefined,
+        contentRatingVersion: cleanInteger(body.contentRatingVersion, { field: "contentRatingVersion", min: 0, max: 1000, fallback: null }) || undefined,
       });
 
       if (!mediaItem) return sendJson(response, 400, { error: "Title details are required before following." });
@@ -250,6 +260,6 @@ export default async function handler(request: any, response: any) {
     return sendJson(response, 405, { error: "Method not allowed." });
   } catch (error) {
     console.error("followed_titles_request_failed", error instanceof Error ? error.message : "Followed titles request failed.");
-    return sendJson(response, 500, { error: "Unable to update followed titles. Please try again." });
+    return sendJson(response, 500, { error: safeApiError(error, "Unable to update followed titles. Please try again.") });
   }
 }

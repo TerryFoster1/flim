@@ -16,6 +16,24 @@
     <meta name="twitter:description" content="Create, share, and discover movie playlists." />
     <meta name="twitter:image" content="https://www.flim.ca/brand/flim-og-default.png" />
     <meta name="theme-color" content="#08090d" />
+    <script>
+      (function () {
+        try {
+          var key = "flim-theme-preference";
+          var preference = window.localStorage.getItem(key) || "dark";
+          if (["dark", "light", "system"].indexOf(preference) === -1) preference = "dark";
+          var prefersLight = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches;
+          var theme = preference === "system" ? (prefersLight ? "light" : "dark") : preference;
+          document.documentElement.dataset.themePreference = preference;
+          document.documentElement.dataset.theme = theme;
+          document.documentElement.style.colorScheme = theme;
+        } catch (error) {
+          document.documentElement.dataset.themePreference = "dark";
+          document.documentElement.dataset.theme = "dark";
+          document.documentElement.style.colorScheme = "dark";
+        }
+      })();
+    </script>
     <link rel="preconnect" href="https://image.tmdb.org" crossorigin />
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="icon" href="/favicon.png" type="image/png" />

@@ -6,7 +6,7 @@ import { PushNotificationSettings } from "../components/PushNotificationSettings
 import { defaultAvatarKey, flimAvatars, getFlimAvatar } from "../avatarCatalog";
 import { getCurrentProfile, saveCurrentProfile } from "../services/profileService";
 import { normalizeStreamingRegion, supportedStreamingRegions, watchProviders } from "../services/watchProviderService";
-import type { CurrentUser, Playlist, UserProfile } from "../types";
+import type { CurrentUser, Playlist, ThemePreference, UserProfile } from "../types";
 
 const emptyProfile: UserProfile = {
   displayName: "",
@@ -28,6 +28,7 @@ const emptyProfile: UserProfile = {
   streamingRegion: "",
   preferredProviders: [],
   showCountryPublicly: false,
+  themePreference: "dark",
 };
 
 const countries = [
@@ -45,10 +46,50 @@ function cleanHandle(value: string) {
 interface SettingsProps {
   currentUser: CurrentUser | null;
   onNavigate: (path: string) => void;
+  onThemePreferenceChange: (preference: ThemePreference) => void;
   playlists?: Playlist[];
+  themePreference: ThemePreference;
 }
 
-export function Settings({ currentUser, onNavigate, playlists = [] }: SettingsProps) {
+const themeOptions: Array<{ value: ThemePreference; label: string; description: string }> = [
+  { value: "dark", label: "Dark", description: "Classic Flim cinema mode." },
+  { value: "light", label: "Light", description: "Warm, bright, and still cinematic." },
+  { value: "system", label: "System", description: "Match this device automatically." },
+];
+
+function ThemePreferencePicker({
+  value,
+  onChange,
+}: {
+  value: ThemePreference;
+  onChange: (preference: ThemePreference) => void;
+}) {
+  return (
+    <section className="settings-panel appearance-panel">
+      <div className="settings-panel-heading">
+        <h2>Appearance</h2>
+        <p>Choose how Flim looks on this device.</p>
+      </div>
+      <div className="theme-option-grid" role="radiogroup" aria-label="Theme">
+        {themeOptions.map((option) => (
+          <button
+            aria-checked={value === option.value}
+            className={value === option.value ? "theme-option is-selected" : "theme-option"}
+            key={option.value}
+            onClick={() => onChange(option.value)}
+            role="radio"
+            type="button"
+          >
+            <strong>{option.label}</strong>
+            <span>{option.description}</span>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+export function Settings({ currentUser, onNavigate, onThemePreferenceChange, playlists = [], themePreference }: SettingsProps) {
   const [profile, setProfile] = useState<UserProfile>(emptyProfile);
   const [status, setStatus] = useState<"loading" | "ready" | "saving" | "saved" | "error">("loading");
   const [message, setMessage] = useState("");
@@ -80,7 +121,9 @@ export function Settings({ currentUser, onNavigate, playlists = [] }: SettingsPr
     getCurrentProfile()
       .then((result) => {
         if (!isActive) return;
-        setProfile({ ...emptyProfile, ...result, streamingRegion: normalizeStreamingRegion(result.streamingRegion || result.countryCode || "CA") });
+        const nextTheme = result.themePreference || themePreference;
+        setProfile({ ...emptyProfile, ...result, themePreference: nextTheme, streamingRegion: normalizeStreamingRegion(result.streamingRegion || result.countryCode || "CA") });
+        onThemePreferenceChange(nextTheme);
         setStatus("ready");
       })
       .catch(() => {
@@ -96,6 +139,32 @@ export function Settings({ currentUser, onNavigate, playlists = [] }: SettingsPr
 
   function updateProfile<K extends keyof UserProfile>(key: K, value: UserProfile[K]) {
     setProfile((current) => ({ ...current, [key]: value }));
+  }
+
+  async function saveThemePreference(nextProfile: UserProfile) {
+    if (!currentUser) return;
+
+    setStatus("saving");
+    setMessage("");
+
+    try {
+      const saved = await saveCurrentProfile(nextProfile);
+      setProfile({ ...emptyProfile, ...saved, streamingRegion: normalizeStreamingRegion(saved.streamingRegion || saved.countryCode || "CA") });
+      setStatus("saved");
+      setMessage("Appearance saved.");
+    } catch (error) {
+      setStatus("error");
+      setMessage(error instanceof Error ? error.message : "Could not save appearance right now.");
+    }
+  }
+
+  function updateThemePreference(nextPreference: ThemePreference) {
+    onThemePreferenceChange(nextPreference);
+    setProfile((current) => {
+      const nextProfile = { ...current, themePreference: nextPreference };
+      void saveThemePreference(nextProfile);
+      return nextProfile;
+    });
   }
 
   function toggleProvider(providerId: string) {
@@ -142,6 +211,7 @@ export function Settings({ currentUser, onNavigate, playlists = [] }: SettingsPr
           <h1>Profile and streaming region</h1>
           <p>Sign in to save your Flim URL and streaming region.</p>
         </div>
+        <ThemePreferencePicker value={themePreference} onChange={onThemePreferenceChange} />
         <section className="auth-card">
           <h2>Make your playlists yours.</h2>
           <p>Your username, region, and preferred services belong to your account.</p>
@@ -162,6 +232,8 @@ export function Settings({ currentUser, onNavigate, playlists = [] }: SettingsPr
       </div>
 
       <form className="settings-profile-form" onSubmit={saveProfile}>
+        <ThemePreferencePicker value={profile.themePreference || themePreference} onChange={updateThemePreference} />
+
         <section className="settings-panel">
           <div className="settings-panel-heading">
             <h2>Creator identity</h2>

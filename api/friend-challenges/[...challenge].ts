@@ -1,6 +1,14 @@
 import { randomBytes } from "node:crypto";
 import { awardTickets } from "../_arcadeEconomy.js";
 import { checkRateLimit, db, ensureTriviaTables, errorStatus, getCurrentUser, readBody, sendJson } from "../_db.js";
+import {
+  cleanEnum,
+  cleanInteger,
+  cleanJsonObject,
+  cleanText,
+  requireRecord,
+  safeApiError,
+} from "../_security.js";
 
 type MediaType = "movie" | "tv";
 
@@ -22,13 +30,16 @@ function challengePath(request: any) {
 }
 
 function normalizeMediaType(value: unknown): MediaType {
-  return value === "tv" ? "tv" : "movie";
+  return cleanEnum(value, ["movie", "tv"], { field: "mediaType", fallback: "movie" }) as MediaType;
 }
 
 function normalizeAnswers(value: unknown) {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  const input = cleanJsonObject(value || {}, { field: "answers", maxDepth: 1, maxKeys: 150 });
   return Object.fromEntries(
-    Object.entries(value as Record<string, unknown>).map(([key, answer]) => [String(key), String(answer || "")]),
+    Object.entries(input).map(([key, answer]) => [
+      cleanText(key, { field: "answerQuestionId", max: 120, required: true }),
+      cleanText(answer, { field: "answer", max: 240 }),
+    ]),
   );
 }
 
@@ -108,13 +119,15 @@ async function handleCreate(request: any, response: any, sql: any) {
   if (!user) return sendJson(response, 401, { error: "Sign in to create a friend challenge." });
   await checkRateLimit(sql, request, "friend-challenge:create", user.id, 40, 60 * 60);
 
-  const body = await readBody(request);
+  const body = requireRecord(await readBody(request));
   const mediaType = normalizeMediaType(body.mediaType);
-  const tmdbId = Number(body.tmdbId);
-  const title = String(body.title || "").trim();
-  const questionIds = Array.isArray(body.questionIds) ? body.questionIds.map((id: unknown) => String(id)).filter(Boolean) : [];
+  const tmdbId = cleanInteger(body.tmdbId, { field: "tmdbId", min: 1, max: 99999999, required: true });
+  const title = cleanText(body.title, { field: "title", max: 220, required: true });
+  const questionIds = Array.isArray(body.questionIds)
+    ? body.questionIds.map((id: unknown) => cleanText(id, { field: "questionId", max: 120, required: true })).slice(0, 100)
+    : [];
   const answers = normalizeAnswers(body.answers);
-  if (!Number.isFinite(tmdbId) || !title || questionIds.length === 0) {
+  if (questionIds.length === 0) {
     return sendJson(response, 400, { error: "A completed trivia pack is required to create a challenge." });
   }
 
@@ -180,6 +193,7 @@ async function handleCreate(request: any, response: any, sql: any) {
 }
 
 async function readChallenge(sql: any, token: string) {
+  const challengeToken = cleanText(token, { field: "token", max: 64, required: true });
   const rows = await sql`
     select
       ftc.*,
@@ -187,7 +201,7 @@ async function readChallenge(sql: any, token: string) {
       coalesce(max(fta.score), 0)::int as best_friend_score
     from friend_trivia_challenges ftc
     left join friend_trivia_attempts fta on fta.challenge_id = ftc.id
-    where ftc.token = ${token}
+    where ftc.token = ${challengeToken}
       and ftc.status = 'active'
     group by ftc.id
     limit 1
@@ -206,13 +220,13 @@ async function handleAttempt(request: any, response: any, sql: any, token: strin
   if (!challenge) return sendJson(response, 404, { error: "Challenge not found." });
   const user = await getCurrentUser(sql, request).catch(() => null);
   await checkRateLimit(sql, request, "friend-challenge:attempt", user?.id, user ? 80 : 25, 60 * 60);
-  const body = await readBody(request);
+  const body = requireRecord(await readBody(request));
   const answers = normalizeAnswers(body.answers);
   const pack = Array.isArray(challenge.question_pack) ? challenge.question_pack as ChallengeQuestion[] : [];
   const score = scoreAnswers(pack, answers);
   const challengeScore = Number(challenge.score || 0);
   const result = score.score > challengeScore ? "won" : score.score < challengeScore ? "lost" : "tie";
-  const playerName = String(body.playerName || publicName(user, "Friend")).trim().slice(0, 80) || "Friend";
+  const playerName = cleanText(body.playerName || publicName(user, "Friend"), { field: "playerName", max: 80 }) || "Friend";
   await sql`
     insert into friend_trivia_attempts (
       challenge_id,
@@ -320,6 +334,6 @@ export default async function handler(request: any, response: any) {
     if (request.method === "POST" && token && action === "attempt") return handleAttempt(request, response, sql, token);
     return sendJson(response, 405, { error: "Method not allowed." });
   } catch (error) {
-    return sendJson(response, errorStatus(error), { error: error instanceof Error ? error.message : "Friend challenge request failed." });
+    return sendJson(response, errorStatus(error), { error: safeApiError(error, "Friend challenge request failed.") });
   }
 }

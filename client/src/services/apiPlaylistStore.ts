@@ -38,7 +38,13 @@ export function getSharedPlaylistByToken(token: string) {
 }
 
 export function createSharedPlaylistLink(playlistId: string) {
-  return apiRequest<{ ok: boolean; sharedSlug: string; visibility: "shared" }>(`/api/playlists/${playlistId}/share`, {
+  return apiRequest<{ ok: boolean; sharedSlug: string; visibility: "shared" | "public"; expiresAt?: string }>(`/api/playlists/${playlistId}/share`, {
+    method: "POST",
+  });
+}
+
+export function acceptSharedPlaylistInvite(token: string) {
+  return apiRequest<{ ok: boolean; playlistId: string }>(`/api/shared/playlists/${token}/accept`, {
     method: "POST",
   });
 }

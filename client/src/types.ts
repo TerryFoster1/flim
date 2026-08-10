@@ -685,6 +685,7 @@ export interface UserProfile {
   favoriteDirector?: string;
   profileStatus?: string;
   featuredPlaylistIds?: string[];
+  themePreference?: ThemePreference;
   countryCode: string;
   region?: string;
   provinceState?: string;
@@ -758,6 +759,8 @@ export interface PushNotificationPreferences {
   rewardUnlocked: boolean;
   accountUpdates: boolean;
 }
+
+export type ThemePreference = "dark" | "light" | "system";
 
 export interface PushSubscriptionStatus {
   configured: boolean;
@@ -1558,7 +1561,10 @@ export interface Playlist {
   canRemoveTitles?: boolean;
   canReorderTitles?: boolean;
   canEditPlaylist?: boolean;
-  accessMode?: "owner" | "private" | "shared" | "public";
+  canManageCollaborators?: boolean;
+  collaboratorCount?: number;
+  inviteExpiresAt?: string;
+  accessMode?: "owner" | "private" | "shared" | "public" | "invite";
   isFollowing?: boolean;
   followerCount?: number;
   isLiked?: boolean;

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type KeyboardEvent, type MouseEvent } from "react";
 import { ProviderLogo } from "./ProviderLogo";
 import { getCurrentProfile } from "../services/profileService";
 import { followTitle } from "../services/followedTitleService";
@@ -58,7 +58,21 @@ export function WhereToWatch({ compact = false, movie }: WhereToWatchProps) {
       .filter((group) => group.links.length > 0);
   }, [confirmedLinks, preferredLinks]);
   const releaseState = useMemo(() => getReleaseState(movie.releaseDate, movie.mediaType || "movie"), [movie.releaseDate, movie.mediaType]);
-  const previewLinks = (preferredLinks.length ? preferredLinks : confirmedLinks).slice(0, 3);
+  const fallbackPreviewProviders = useMemo(
+    () => [
+      { id: "netflix", name: "Netflix" },
+      { id: "disney_plus", name: "Disney+" },
+      { id: "prime_video", name: "Prime Video" },
+      { id: "apple_tv_plus", name: "Apple TV+" },
+      { id: "crave", name: "Crave" },
+    ],
+    [],
+  );
+  const previewProviders = useMemo(() => {
+    const links = preferredLinks.length ? preferredLinks : confirmedLinks;
+    const providers = links.map((link) => link.provider);
+    return (providers.length ? providers : fallbackPreviewProviders).slice(0, 5);
+  }, [confirmedLinks, fallbackPreviewProviders, preferredLinks]);
 
   function formatReleaseDate(value?: string) {
     if (!value) return "";
@@ -105,8 +119,8 @@ export function WhereToWatch({ compact = false, movie }: WhereToWatchProps) {
   function statusMessage() {
     if (status === "loading") return "Checking availability...";
     if (hasConfirmedLinks && preferredLinks.length > 0) return `Available on ${preferredLinks.length === 1 ? "one of your services" : "your services"}.`;
-    if (hasConfirmedLinks && preferredProviders.size > 0) return "Not on your services. Other options are available.";
-    if (hasConfirmedLinks) return "Available on confirmed providers in your region.";
+    if (hasConfirmedLinks && preferredProviders.size > 0) return "Tap to see all streaming options.";
+    if (hasConfirmedLinks) return "Available to stream, rent or buy.";
     if (hasTicketLinks) return "Tickets are available from a confirmed ticket provider.";
     if (releaseState === "theaters") return "In theaters now. Follow this title for ticket and streaming updates.";
     if (releaseState === "upcoming") return `${(movie.mediaType || "movie") === "tv" ? "Coming to streaming" : "Coming to theaters"} - ${releaseDateLine()}.`;
@@ -118,7 +132,7 @@ export function WhereToWatch({ compact = false, movie }: WhereToWatchProps) {
     if (hasTicketLinks) return "Find tickets from confirmed ticket providers.";
     if (releaseState === "upcoming") return `${(movie.mediaType || "movie") === "tv" ? "Coming to streaming" : "Coming to theaters"} - ${releaseDateLine()}.`;
     if (releaseState === "theaters") return "In theaters now. Follow this title to get streaming availability updates.";
-    if (hasConfirmedLinks && preferredProviders.size > 0 && preferredLinks.length === 0) return "Not on your services. Other watch options are available.";
+    if (hasConfirmedLinks && preferredProviders.size > 0 && preferredLinks.length === 0) return "Available to stream, rent or buy from other services.";
     if (hasConfirmedLinks) return availability?.notes || statusMessage();
     return "Notify me when available.";
   }
@@ -182,7 +196,7 @@ export function WhereToWatch({ compact = false, movie }: WhereToWatchProps) {
 
   useEffect(() => {
     let isActive = true;
-    if (!expanded || availability) return () => {
+    if (availability) return () => {
       isActive = false;
     };
     setStatus("loading");
@@ -208,21 +222,48 @@ export function WhereToWatch({ compact = false, movie }: WhereToWatchProps) {
     return () => {
       isActive = false;
     };
-  }, [availability, expanded, movie, streamingRegion]);
+  }, [availability, movie, streamingRegion]);
+
+  function toggleExpanded() {
+    setExpanded((current) => !current);
+  }
+
+  function handleCardKeyDown(event: KeyboardEvent<HTMLElement>) {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    const target = event.target as HTMLElement | null;
+    if (target?.closest("a, button, input, select, textarea")) return;
+    event.preventDefault();
+    toggleExpanded();
+  }
+
+  function handleCardClick(event: MouseEvent<HTMLElement>) {
+    const target = event.target as HTMLElement | null;
+    if (target?.closest("a, button, input, select, textarea")) return;
+    toggleExpanded();
+  }
 
   return (
-    <section className={`${compact ? "watch-providers compact" : "watch-providers"} ${expanded ? "is-open" : "is-collapsed"}`} id={`where-to-watch-${movie.tmdbId}`} aria-label={`Where to watch ${movie.title}`}>
+    <section
+      className={`${compact ? "watch-providers compact" : "watch-providers"} ${expanded ? "is-open" : "is-collapsed"}`}
+      id={`where-to-watch-${movie.tmdbId}`}
+      aria-label={`Where to watch ${movie.title}`}
+      aria-expanded={expanded}
+      onClick={handleCardClick}
+      onKeyDown={handleCardKeyDown}
+      role="button"
+      tabIndex={0}
+    >
       <div className="watch-provider-heading">
         <div>
           {!compact ? <h2>Where To Watch</h2> : null}
-          <p>{expanded ? statusMessage() : statusMessage()}</p>
+          <p>{expanded ? statusMessage() : "Tap to see where you can watch."}</p>
         </div>
         <div className="watch-provider-summary">
-          {previewLinks.length > 0 ? (
-            <div className="provider-preview-icons" aria-label="Top watch providers">
-              {previewLinks.map((link) => (
-                <span className="provider-preview-icon" key={`${link.provider.id}-${link.accessType || "watch"}`}>
-                  <ProviderLogo provider={link.provider} />
+          {previewProviders.length > 0 ? (
+            <div className="provider-preview-icons" aria-label="Watch provider preview">
+              {previewProviders.map((provider) => (
+                <span className="provider-preview-icon" key={provider.id}>
+                  <ProviderLogo provider={provider} />
                 </span>
               ))}
             </div>
@@ -230,7 +271,7 @@ export function WhereToWatch({ compact = false, movie }: WhereToWatchProps) {
           <span className="provider-status">Region: {streamingRegion}</span>
           <button
             className="projector-watch-button"
-            onClick={() => setExpanded((current) => !current)}
+            onClick={toggleExpanded}
             type="button"
             aria-label="Where To Watch"
             aria-expanded={expanded}
@@ -244,10 +285,12 @@ export function WhereToWatch({ compact = false, movie }: WhereToWatchProps) {
         </div>
       </div>
 
+      <div className="watch-provider-details" aria-hidden={!expanded}>
       {expanded ? <p className="helper-text">{helperMessage()}</p> : null}
 
       {expanded && hasConfirmedLinks ? (
         <div className="provider-groups">
+          <h3 className="provider-action-heading">Click to Watch Now</h3>
           {groupedLinks.map((group) => (
             <div className="provider-group" key={group.accessType}>
               <h3>{group.label}</h3>
@@ -291,7 +334,7 @@ export function WhereToWatch({ compact = false, movie }: WhereToWatchProps) {
         <div className="provider-empty-action">
           <h3>
             {hasConfirmedLinks && preferredProviders.size > 0 && preferredLinks.length === 0
-              ? "Not on your services"
+              ? "Available on other services"
               : releaseState === "upcoming"
                 ? (movie.mediaType || "movie") === "tv" ? "Coming to streaming" : "Coming to theaters"
                 : releaseState === "theaters"
@@ -311,6 +354,7 @@ export function WhereToWatch({ compact = false, movie }: WhereToWatchProps) {
           {notifyStatus ? <small>{notifyStatus}</small> : null}
         </div>
       ) : null}
+      </div>
     </section>
   );
 }

@@ -5,6 +5,15 @@
   --line: rgba(255, 255, 255, 0.12);
   --text: #f7f4ee;
   --muted: #a8acb8;
+  --surface: #11131a;
+  --surface-elevated: rgba(20, 22, 30, 0.92);
+  --border: rgba(255, 255, 255, 0.12);
+  --accent: #ffb84d;
+  --accent-secondary: #ff4f6d;
+  --overlay: rgba(0, 0, 0, 0.62);
+  --nav-bg: rgba(8, 9, 13, 0.9);
+  --card-bg: rgba(255, 255, 255, 0.055);
+  --cream: #fff7df;
   --hot: #ff4f6d;
   --amber: #ffb84d;
   --mint: #3ee2a0;
@@ -42,6 +51,29 @@ button { color: inherit; font: inherit; }
   grid-template-columns: 1fr;
   position: relative;
   isolation: isolate;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f5efe3;
+  --panel: #fffaf0;
+  --line: rgba(66, 48, 28, 0.14);
+  --text: #1d1a17;
+  --muted: #6e665b;
+  --surface: #fff8ed;
+  --surface-elevated: rgba(255, 250, 240, 0.94);
+  --border: rgba(66, 48, 28, 0.14);
+  --accent: #b87322;
+  --accent-secondary: #c13f58;
+  --overlay: rgba(255, 248, 236, 0.68);
+  --nav-bg: rgba(255, 248, 236, 0.9);
+  --card-bg: rgba(255, 255, 255, 0.76);
+  --cream: #2b2117;
+  --hot: #c13f58;
+  --amber: #b87322;
+  --mint: #1b8c67;
+  --blue: #2f67ad;
+  --violet: #6d51b3;
 }
 .app-shell.is-home-route {
   height: 100svh;
@@ -1101,6 +1133,52 @@ h3 { margin-bottom: 8px; }
   background:
     radial-gradient(circle at 12% 18%, rgba(255,184,77,.12), transparent 18rem),
     rgba(255,255,255,.055);
+}
+.visibility-picker {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+.collection-create-panel .visibility-picker,
+.playlist-edit-modal .visibility-picker {
+  grid-column: 1 / -1;
+}
+.visibility-picker-label {
+  color: var(--cream);
+  font-weight: 850;
+}
+.visibility-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.visibility-option {
+  min-height: 84px;
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 14px;
+  padding: 10px;
+  background: rgba(255,255,255,.055);
+  color: var(--cream);
+  text-align: left;
+  cursor: pointer;
+}
+.visibility-option strong,
+.visibility-option small {
+  display: block;
+}
+.visibility-option strong {
+  font-size: .96rem;
+}
+.visibility-option small {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: .78rem;
+  line-height: 1.3;
+}
+.visibility-option.active {
+  border-color: rgba(255,184,77,.72);
+  background: rgba(255,184,77,.14);
+  box-shadow: 0 0 0 1px rgba(255,184,77,.18) inset, 0 14px 34px rgba(255,184,77,.08);
 }
 .collection-empty-cinematic {
   display: grid;
@@ -5373,6 +5451,23 @@ textarea { min-height: 42px; resize: vertical; }
   background:
     radial-gradient(circle at 12% 20%, rgba(255,184,77,.14), transparent 16rem),
     rgba(255,255,255,.045);
+  cursor: pointer;
+  transition: border-color .18s ease, background .18s ease, box-shadow .18s ease, transform .18s ease;
+}
+.watch-providers:hover,
+.watch-providers:focus-visible {
+  outline: none;
+  border-color: rgba(255,184,77,.34);
+  box-shadow: 0 18px 54px rgba(0,0,0,.26), inset 0 1px 0 rgba(255,255,255,.05);
+}
+.watch-providers:focus-visible {
+  box-shadow: 0 0 0 3px rgba(255,184,77,.22), 0 18px 54px rgba(0,0,0,.26);
+}
+.watch-providers.is-open {
+  border-color: rgba(255,184,77,.24);
+  background:
+    radial-gradient(circle at 12% 20%, rgba(255,184,77,.18), transparent 16rem),
+    rgba(255,255,255,.052);
 }
 .watch-providers.compact {
   gap: 10px;
@@ -5597,6 +5692,8 @@ textarea { min-height: 42px; resize: vertical; }
   color: #ffe4a3;
   cursor: pointer;
   box-shadow: inset 0 1px 0 rgba(255,255,255,.1), 0 12px 30px rgba(0,0,0,.22);
+  position: relative;
+  z-index: 2;
 }
 .projector-watch-button:hover,
 .projector-watch-button:focus-visible {
@@ -5699,6 +5796,27 @@ textarea { min-height: 42px; resize: vertical; }
   width: 100%;
   max-width: 100%;
   min-width: 0;
+}
+.watch-provider-details {
+  display: grid;
+  gap: 14px;
+  animation: watchProviderReveal .22s ease both;
+}
+.provider-action-heading {
+  margin: 0;
+  color: #ffe7b8;
+  font-size: 1rem;
+  line-height: 1.15;
+}
+@keyframes watchProviderReveal {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 .provider-group {
   display: grid;
@@ -10704,6 +10822,90 @@ textarea { min-height: 42px; resize: vertical; }
   text-align: center;
 }
 
+.roulette-action-button {
+  min-height: 64px;
+  min-width: min(310px, 100%);
+  border: 1px solid rgba(255, 184, 77, .36);
+  border-radius: 18px;
+  padding: 10px 16px 10px 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  color: #fff7e6;
+  text-align: left;
+  cursor: pointer;
+  background:
+    radial-gradient(circle at 18% 22%, rgba(255, 184, 77, .22), transparent 9rem),
+    linear-gradient(135deg, rgba(255, 79, 109, .15), rgba(255, 184, 77, .14)),
+    rgba(255, 255, 255, .055);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), 0 18px 48px rgba(0, 0, 0, .28);
+  transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+
+.roulette-action-button:hover,
+.roulette-action-button:focus-visible {
+  outline: none;
+  transform: translateY(-1px);
+  border-color: rgba(255, 184, 77, .58);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .1), 0 22px 58px rgba(0, 0, 0, .32), 0 0 0 3px rgba(255, 184, 77, .14);
+}
+
+.roulette-action-button strong,
+.roulette-action-button small {
+  display: block;
+}
+
+.roulette-action-button strong {
+  font-size: .98rem;
+  line-height: 1.08;
+}
+
+.roulette-action-button small {
+  margin-top: 4px;
+  color: #ffd891;
+  font-size: .76rem;
+  font-weight: 850;
+}
+
+.roulette-action-icon {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  position: relative;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 184, 77, .36);
+  border-radius: 50%;
+  color: #ffe4a3;
+  background:
+    radial-gradient(circle at 34% 28%, rgba(255, 255, 255, .28), transparent 1.6rem),
+    rgba(255, 184, 77, .13);
+}
+
+.roulette-action-icon::before {
+  content: "";
+  width: 22px;
+  height: 22px;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  box-shadow:
+    inset 0 0 0 5px rgba(255, 184, 77, .12),
+    0 -12px 0 -8px currentColor,
+    10px 6px 0 -8px currentColor,
+    -10px 6px 0 -8px currentColor;
+}
+
+.roulette-action-icon span {
+  position: absolute;
+  right: 8px;
+  bottom: 9px;
+  width: 10px;
+  height: 10px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(-35deg);
+}
+
 .load-more-row {
   justify-content: center;
   margin: 6px 0 30px;
@@ -12197,6 +12399,12 @@ textarea { min-height: 42px; resize: vertical; }
   .collection-create-panel {
     grid-template-columns: 1fr;
     border-radius: 20px;
+  }
+  .visibility-options {
+    grid-template-columns: 1fr;
+  }
+  .visibility-option {
+    min-height: auto;
   }
   .collection-empty-cinematic {
     grid-template-columns: 1fr;
@@ -15159,6 +15367,201 @@ span.playlist-active-chip {
 
   .movie-reveal-options {
     grid-template-columns: 1fr;
+  }
+}
+
+.theme-option-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.theme-option {
+  min-height: 92px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 14px;
+  background:
+    radial-gradient(circle at 18% 12%, rgba(255, 184, 77, .12), transparent 8rem),
+    var(--card-bg);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+  transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease, background .18s ease;
+}
+
+.theme-option strong,
+.theme-option span {
+  display: block;
+}
+
+.theme-option strong {
+  color: var(--cream);
+  font-size: 1rem;
+}
+
+.theme-option span {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: .84rem;
+  line-height: 1.35;
+}
+
+.theme-option:hover,
+.theme-option:focus-visible,
+.theme-option.is-selected {
+  outline: none;
+  border-color: rgba(255, 184, 77, .54);
+  box-shadow: 0 0 0 3px rgba(255, 184, 77, .13), inset 0 1px 0 rgba(255,255,255,.08);
+}
+
+.theme-option.is-selected {
+  background:
+    radial-gradient(circle at 18% 12%, rgba(255, 184, 77, .2), transparent 8rem),
+    rgba(255, 184, 77, .1);
+}
+
+:root[data-theme="light"] body {
+  background:
+    linear-gradient(180deg, rgba(255, 248, 236, 0.88), rgba(245, 239, 227, 0.72) 46vh),
+    radial-gradient(circle at 12% 0%, rgba(193, 63, 88, 0.12), transparent 28rem),
+    radial-gradient(circle at 80% 10%, rgba(184, 115, 34, 0.16), transparent 26rem),
+    var(--bg);
+  color: var(--text);
+}
+
+:root[data-theme="light"] .app-shell::before {
+  opacity: .34;
+}
+
+:root[data-theme="light"] .topbar,
+:root[data-theme="light"] .sidebar,
+:root[data-theme="light"] .hamburger-panel,
+:root[data-theme="light"] .playlist-bottom-control,
+:root[data-theme="light"] .roulette-modal-backdrop {
+  background: var(--nav-bg);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+:root[data-theme="light"] .hamburger-backdrop,
+:root[data-theme="light"] .modal-backdrop {
+  background: rgba(34, 24, 15, .26);
+}
+
+:root[data-theme="light"] .brand-logo,
+:root[data-theme="light"] .mobile-brand,
+:root[data-theme="light"] .top-brand,
+:root[data-theme="light"] .page-heading h1,
+:root[data-theme="light"] .settings-panel h2,
+:root[data-theme="light"] .auth-card h1,
+:root[data-theme="light"] .auth-card h2,
+:root[data-theme="light"] h1,
+:root[data-theme="light"] h2,
+:root[data-theme="light"] h3 {
+  color: var(--cream);
+}
+
+:root[data-theme="light"] .page-heading p,
+:root[data-theme="light"] .hero-copy p,
+:root[data-theme="light"] .playlist-copy p,
+:root[data-theme="light"] .playlist-card p,
+:root[data-theme="light"] .settings-panel p,
+:root[data-theme="light"] .auth-card p,
+:root[data-theme="light"] .helper-text,
+:root[data-theme="light"] .empty-state,
+:root[data-theme="light"] .footer {
+  color: var(--muted);
+}
+
+:root[data-theme="light"] .settings-panel,
+:root[data-theme="light"] .auth-card,
+:root[data-theme="light"] .playlist-card,
+:root[data-theme="light"] .search-modal,
+:root[data-theme="light"] .follow-title-modal,
+:root[data-theme="light"] .playlist-menu-panel,
+:root[data-theme="light"] .compact-playlist-menu,
+:root[data-theme="light"] .collection-create-panel,
+:root[data-theme="light"] .watch-providers,
+:root[data-theme="light"] .provider-preference,
+:root[data-theme="light"] .settings-integration-card,
+:root[data-theme="light"] .push-settings-panel,
+:root[data-theme="light"] .visibility-option,
+:root[data-theme="light"] .theme-option {
+  background:
+    radial-gradient(circle at 10% 0%, rgba(184, 115, 34, .1), transparent 14rem),
+    var(--card-bg);
+  border-color: var(--border);
+  color: var(--text);
+  box-shadow: 0 18px 50px rgba(72, 52, 30, .1), inset 0 1px 0 rgba(255,255,255,.58);
+}
+
+:root[data-theme="light"] .search-modal,
+:root[data-theme="light"] .follow-title-modal,
+:root[data-theme="light"] .playlist-menu-panel,
+:root[data-theme="light"] .compact-playlist-menu {
+  backdrop-filter: blur(18px);
+}
+
+:root[data-theme="light"] input,
+:root[data-theme="light"] select,
+:root[data-theme="light"] textarea,
+:root[data-theme="light"] .handle-input-row,
+:root[data-theme="light"] .provider-search-field input {
+  background: rgba(255, 255, 255, .86);
+  border-color: rgba(66, 48, 28, .18);
+  color: var(--text);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.8);
+}
+
+:root[data-theme="light"] input::placeholder,
+:root[data-theme="light"] textarea::placeholder {
+  color: rgba(55, 48, 42, .56);
+}
+
+:root[data-theme="light"] .primary-button,
+:root[data-theme="light"] .save-settings-button {
+  color: #17110b;
+  box-shadow: 0 16px 36px rgba(184, 115, 34, .18);
+}
+
+:root[data-theme="light"] .secondary-button,
+:root[data-theme="light"] .ghost-button,
+:root[data-theme="light"] .bottom-control-tab,
+:root[data-theme="light"] .hamburger-panel button,
+:root[data-theme="light"] .projector-watch-button,
+:root[data-theme="light"] .roulette-action-button {
+  background: rgba(255, 255, 255, .68);
+  border-color: rgba(66, 48, 28, .16);
+  color: var(--text);
+}
+
+:root[data-theme="light"] .bottom-control-tab.is-active,
+:root[data-theme="light"] .theme-option.is-selected,
+:root[data-theme="light"] .visibility-option.active,
+:root[data-theme="light"] .provider-preference.selected {
+  border-color: rgba(184, 115, 34, .46);
+  background:
+    radial-gradient(circle at 18% 12%, rgba(184, 115, 34, .16), transparent 8rem),
+    rgba(255, 246, 228, .92);
+}
+
+:root[data-theme="light"] .success-message {
+  color: #146d4f;
+}
+
+:root[data-theme="light"] .error-message {
+  color: #9e2539;
+}
+
+@media (max-width: 720px) {
+  .theme-option-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .theme-option {
+    min-height: auto;
   }
 }
 

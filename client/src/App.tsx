@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Footer } from "./components/Footer";
 import { InstallFlimPrompt } from "./components/InstallFlimPrompt";
 import { NavigationBar } from "./components/NavigationBar";
@@ -52,7 +52,13 @@ import { DiscoveryHub } from "./pages/DiscoveryHub";
 import { Curators } from "./pages/Curators";
 import { createSystemPlaylists } from "./services/systemPlaylists";
 import { getActiveSeasonalTheme } from "./seasonalThemes";
-import type { AppRoute, CurrentUser, MovieDetails, MovieSearchResult, Playlist, RouteState, WatchStatus } from "./types";
+import {
+  applyThemePreference,
+  getStoredThemePreference,
+  normalizeThemePreference,
+  storeThemePreference,
+} from "./services/themeService";
+import type { AppRoute, CurrentUser, MovieDetails, MovieSearchResult, Playlist, RouteState, ThemePreference, WatchStatus } from "./types";
 
 function routeFromPath(path = window.location.pathname): RouteState {
   const url = new URL(path, window.location.origin);
@@ -121,6 +127,22 @@ function isDirectorPlaylist(playlist: Playlist) {
   return playlist.creatorHandle === "the-director" || playlist.creatorDisplayName === "The Director";
 }
 
+type FlimHistoryState = {
+  flimPlaylistScroll?: {
+    path: string;
+    scrollY: number;
+    savedAt: number;
+  };
+};
+
+function currentPathWithSearch() {
+  return `${window.location.pathname}${window.location.search}`;
+}
+
+function isPlaylistListRoute(path = window.location.pathname) {
+  return path.startsWith("/playlists/") || path.startsWith("/p/") || path.startsWith("/s/");
+}
+
 export default function App() {
   const [routeState, setRouteState] = useState<RouteState>(routeFromPath);
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
@@ -132,23 +154,73 @@ export default function App() {
   const [isRouletteOpen, setIsRouletteOpen] = useState(() => window.location.pathname === "/roulette");
   const [roulettePlaylists, setRoulettePlaylists] = useState<Playlist[] | null>(null);
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
+  const [themePreference, setThemePreference] = useState<ThemePreference>(() => getStoredThemePreference());
   const activeSeasonalTheme = useMemo(() => getActiveSeasonalTheme(), [routeState.route]);
   const activeRoute: AppRoute = routeState.route;
   const isHomeRoute = activeRoute === "/";
+  const pendingPlaylistScrollY = useRef<number | null>(null);
 
   useEffect(() => {
     if (window.location.pathname === "/discover") {
       window.history.replaceState({}, "", "/public");
     }
-    getSession().then((result) => setCurrentUser(result.user)).catch(() => setCurrentUser(null));
+    getSession().then((result) => {
+      setCurrentUser(result.user);
+      if (result.user?.profile?.themePreference) {
+        updateThemePreference(result.user.profile.themePreference);
+      }
+    }).catch(() => setCurrentUser(null));
     refreshPlaylists();
   }, []);
 
   useEffect(() => {
-    const onPopState = () => setRouteState(routeFromPath());
+    applyThemePreference(themePreference);
+    storeThemePreference(themePreference);
+    if (themePreference !== "system" || typeof window.matchMedia !== "function") return;
+
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: light)");
+    const handleSystemThemeChange = () => applyThemePreference("system");
+    mediaQuery.addEventListener?.("change", handleSystemThemeChange);
+    return () => mediaQuery.removeEventListener?.("change", handleSystemThemeChange);
+  }, [themePreference]);
+
+  useEffect(() => {
+    if ("scrollRestoration" in window.history) {
+      window.history.scrollRestoration = "manual";
+    }
+
+    const onPopState = (event: PopStateEvent) => {
+      const state = event.state as FlimHistoryState | null;
+      const savedScroll = state?.flimPlaylistScroll;
+      pendingPlaylistScrollY.current = savedScroll?.path === currentPathWithSearch() ? savedScroll.scrollY : null;
+      setRouteState(routeFromPath());
+    };
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
   }, []);
+
+  useEffect(() => {
+    const targetY = pendingPlaylistScrollY.current;
+    if (targetY === null) return;
+
+    let frameId = 0;
+    let attempt = 0;
+    const maxAttempts = 30;
+
+    const restoreScroll = () => {
+      const pageCanReachTarget = document.documentElement.scrollHeight >= targetY + window.innerHeight;
+      if (pageCanReachTarget || attempt >= maxAttempts) {
+        window.scrollTo({ top: targetY, behavior: "auto" });
+        pendingPlaylistScrollY.current = null;
+        return;
+      }
+      attempt += 1;
+      frameId = window.requestAnimationFrame(restoreScroll);
+    };
+
+    frameId = window.requestAnimationFrame(restoreScroll);
+    return () => window.cancelAnimationFrame(frameId);
+  }, [routeState]);
 
   useEffect(() => {
     const openRoulette = (event: Event) => {
@@ -183,6 +255,23 @@ export default function App() {
     };
   }, [activeSeasonalTheme, isHomeRoute]);
 
+  function capturePlaylistScrollForHistory() {
+    if (!isPlaylistListRoute()) return;
+    const currentState = (window.history.state || {}) as FlimHistoryState;
+    window.history.replaceState(
+      {
+        ...currentState,
+        flimPlaylistScroll: {
+          path: currentPathWithSearch(),
+          scrollY: window.scrollY,
+          savedAt: Date.now(),
+        },
+      },
+      "",
+      window.location.href,
+    );
+  }
+
   function navigate(path: string) {
     const nextPath = path === "/discover" ? "/public" : path;
     setIsRouletteOpen(false);
@@ -190,6 +279,7 @@ export default function App() {
     if (nextPath !== "/playlists") {
       setPlaylistNotice("");
     }
+    capturePlaylistScrollForHistory();
     window.history.pushState({}, "", nextPath);
     setRouteState(routeFromPath(nextPath));
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -281,7 +371,17 @@ export default function App() {
 
   async function handleAuthenticated(user: CurrentUser) {
     setCurrentUser(user);
+    if (user.profile?.themePreference) {
+      updateThemePreference(user.profile.themePreference);
+    }
     await refreshPlaylists();
+  }
+
+  function updateThemePreference(nextPreference: ThemePreference) {
+    const normalizedPreference = normalizeThemePreference(nextPreference);
+    setThemePreference(normalizedPreference);
+    storeThemePreference(normalizedPreference);
+    applyThemePreference(normalizedPreference);
   }
 
   async function logout() {
@@ -433,7 +533,15 @@ export default function App() {
     "/followed-titles": <FollowedTitles onNavigate={navigate} />,
     "/upcoming": <UpcomingReleases playlists={ownedPlaylists} addToPlaylist={addToPlaylist} onNavigate={navigate} />,
     "/providers": playlistsPage("my"),
-    "/settings": <Settings currentUser={currentUser} onNavigate={navigate} playlists={ownedPlaylists} />,
+    "/settings": (
+      <Settings
+        currentUser={currentUser}
+        onNavigate={navigate}
+        onThemePreferenceChange={updateThemePreference}
+        playlists={ownedPlaylists}
+        themePreference={themePreference}
+      />
+    ),
     "/film-critter-rig": <FilmCritterRig />,
     "/signin": <AuthPage mode="signin" onAuth={handleAuthenticated} onNavigate={navigate} />,
     "/signup": <AuthPage mode="signup" onAuth={handleAuthenticated} onNavigate={navigate} />,

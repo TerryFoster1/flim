@@ -48,6 +48,18 @@ const defaultPlaylistSearchFilters: PlaylistSearchFilters = {
 const playlistSearchGenres = ["Comedy", "Drama", "Horror", "Sci-Fi", "Action", "Romance", "Animation", "Adventure", "Fantasy", "Thriller"];
 const playlistSearchMoods = ["Funny", "Dark", "Feel Good", "Scary", "Romantic", "Mind-Bending", "Family", "Adventure"];
 
+const PLAYLIST_VISIBILITY_OPTIONS: Array<{ value: Playlist["visibility"]; label: string; helper: string }> = [
+  { value: "private", label: "Private", helper: "Only you can view and edit." },
+  { value: "shared", label: "Shared", helper: "Invite collaborators to edit titles." },
+  { value: "public", label: "Public", helper: "Anyone can view. Collaborators can edit." },
+];
+
+const PLAYLIST_VISIBILITY_HELP: Record<Playlist["visibility"], string> = {
+  private: "Private playlists are only visible to you.",
+  shared: "Shared playlists stay hidden from public discovery. Invited collaborators can add, remove, and reorder titles.",
+  public: "Public playlists can be discovered by anyone. Owner and invited collaborators can edit titles.",
+};
+
 const genreIdLabels: Record<number, string> = {
   12: "Adventure",
   14: "Fantasy",
@@ -1201,8 +1213,14 @@ export function Playlists({
           <button className="primary-button" onClick={requestCreatePlaylist} type="button">
             {!currentUser ? "Create Account" : showCreate ? "Close" : "Create Playlist"}
           </button>
-          <button className="primary-button" onClick={() => onOpenRoulette?.(sourcePlaylists)} type="button">
-            Director&apos;s Choice
+          <button className="roulette-action-button" onClick={() => onOpenRoulette?.(sourcePlaylists)} type="button">
+            <span className="roulette-action-icon" aria-hidden="true">
+              <span />
+            </span>
+            <span>
+              <strong>What Are We Watching Tonight?</strong>
+              <small>Spin your saved titles</small>
+            </span>
           </button>
         </div>
       ) : null}
@@ -1218,14 +1236,24 @@ export function Playlists({
             <span>Description</span>
             <textarea onChange={(event) => setDescription(event.target.value)} placeholder="A few words for the playlist" value={description} />
           </label>
-          <label>
-            <span>Visibility</span>
-            <select onChange={(event) => setVisibility(event.target.value as Playlist["visibility"])} value={visibility}>
-              <option value="private">private</option>
-              <option value="shared">shared</option>
-              <option value="public">public</option>
-            </select>
-          </label>
+          <div className="visibility-picker">
+            <span className="visibility-picker-label">Visibility</span>
+            <div className="visibility-options" role="radiogroup" aria-label="Playlist visibility">
+              {PLAYLIST_VISIBILITY_OPTIONS.map((option) => (
+                <button
+                  aria-pressed={visibility === option.value}
+                  className={`visibility-option ${visibility === option.value ? "active" : ""}`}
+                  key={option.value}
+                  onClick={() => setVisibility(option.value)}
+                  type="button"
+                >
+                  <strong>{option.label}</strong>
+                  <small>{option.helper}</small>
+                </button>
+              ))}
+            </div>
+            <p className="helper-text">{PLAYLIST_VISIBILITY_HELP[visibility]}</p>
+          </div>
           <button className="primary-button" disabled={isSaving} type="submit">
             {isSaving ? "Creating..." : "Create Playlist"}
           </button>

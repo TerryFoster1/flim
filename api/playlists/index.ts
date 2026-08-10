@@ -1,6 +1,7 @@
-import { checkRateLimit, createPublicSlug, createPublicSlugBase, db, ensurePlaylistFollowsTable, ensurePlaylistLikesTable, ensurePlaylistSharingColumns, ensureUserProfilesTable, errorStatus, getCurrentUser, mapPlaylist, sendJson, readBody } from "../_db.js";
+import { checkRateLimit, createPublicSlug, createPublicSlugBase, db, ensurePlaylistCollaborationTables, ensurePlaylistFollowsTable, ensurePlaylistLikesTable, ensurePlaylistSharingColumns, ensureUserProfilesTable, errorStatus, getCurrentUser, mapPlaylist, sendJson, readBody } from "../_db.js";
 import { ensureDirectorSeed } from "../_director.js";
 import { evaluateAchievements } from "../_achievements.js";
+import { cleanEnum, cleanText, requireRecord, safeApiError } from "../_security.js";
 
 async function createUniquePublicSlug(sql: any, name: string) {
   const base = createPublicSlugBase(name);
@@ -21,6 +22,7 @@ export default async function handler(request: any, response: any) {
     await ensurePlaylistFollowsTable(sql);
     await ensurePlaylistLikesTable(sql);
     await ensurePlaylistSharingColumns(sql);
+    await ensurePlaylistCollaborationTables(sql);
     await sql`alter table playlists add column if not exists owner_user_id uuid references users(id) on delete set null`;
     const user = await getCurrentUser(sql, request);
 
@@ -39,6 +41,35 @@ export default async function handler(request: any, response: any) {
           ) as creator_display_name,
           case when ${user?.id || null}::uuid is not null and p.owner_user_id = ${user?.id || null}::uuid then true else false end as is_owner,
           case when ${user?.id || null}::uuid is not null and p.owner_user_id = ${user?.id || null}::uuid then true else false end as expose_shared_slug,
+          case
+            when ${user?.id || null}::uuid is not null and p.owner_user_id = ${user?.id || null}::uuid then true
+            when pc.status = 'active' and pc.role in ('editor', 'admin') and p.visibility in ('shared', 'public') then true
+            else false
+          end as can_add_titles,
+          case
+            when ${user?.id || null}::uuid is not null and p.owner_user_id = ${user?.id || null}::uuid then true
+            when pc.status = 'active' and pc.role in ('editor', 'admin') and p.visibility in ('shared', 'public') then true
+            else false
+          end as can_remove_titles,
+          case
+            when ${user?.id || null}::uuid is not null and p.owner_user_id = ${user?.id || null}::uuid then true
+            when pc.status = 'active' and pc.role in ('editor', 'admin') and p.visibility in ('shared', 'public') then true
+            else false
+          end as can_reorder_titles,
+          case when ${user?.id || null}::uuid is not null and p.owner_user_id = ${user?.id || null}::uuid then true else false end as can_edit_playlist,
+          case when ${user?.id || null}::uuid is not null and p.owner_user_id = ${user?.id || null}::uuid then true else false end as can_manage_collaborators,
+          case
+            when ${user?.id || null}::uuid is not null and p.owner_user_id = ${user?.id || null}::uuid then 'owner'
+            when pc.status = 'active' and p.visibility in ('shared', 'public') then 'shared'
+            when p.visibility = 'public' then 'public'
+            else 'private'
+          end as access_mode,
+          (
+            select count(*)::int
+            from playlist_collaborators pc_count
+            where pc_count.playlist_id = p.id
+              and pc_count.status = 'active'
+          ) as collaborator_count,
           (
             select count(*)::int
             from playlist_follows pf
@@ -72,6 +103,10 @@ export default async function handler(request: any, response: any) {
         from playlists p
         left join user_profiles up on up.user_id = p.owner_user_id::text
         left join users u on u.id = p.owner_user_id
+        left join playlist_collaborators pc
+          on pc.playlist_id = p.id
+          and ${user?.id || null}::uuid is not null
+          and pc.user_id = ${user?.id || null}::uuid
         left join lateral (
           select jsonb_agg(
             to_jsonb(pm_preview) || jsonb_build_object(
@@ -92,6 +127,7 @@ export default async function handler(request: any, response: any) {
         where (
           p.visibility = 'public'
           or (${user?.id || null}::uuid is not null and p.owner_user_id = ${user?.id || null}::uuid)
+          or (${user?.id || null}::uuid is not null and pc.status = 'active' and p.visibility in ('shared', 'public'))
         )
           and not (
             lower(p.name) like '%codex vercel curl add test%'
@@ -107,11 +143,11 @@ export default async function handler(request: any, response: any) {
     if (request.method === "POST") {
       if (!user) return sendJson(response, 401, { error: "Sign in to create playlists." });
       await checkRateLimit(sql, request, "playlist:create", user.id, 20, 60 * 60);
-      const body = await readBody(request);
-      const name = String(body.name || "Untitled playlist").trim().slice(0, 120) || "Untitled playlist";
-      const description = String(body.description || "").trim().slice(0, 600);
+      const body = requireRecord(await readBody(request));
+      const name = cleanText(body.name || "Untitled playlist", { field: "Playlist name", max: 120, required: true });
+      const description = cleanText(body.description || "", { field: "Playlist description", max: 600, allowNewlines: true });
       const publicSlug = await createUniquePublicSlug(sql, name);
-      const visibility = ["private", "shared", "public"].includes(body.visibility) ? body.visibility : "private";
+      const visibility = cleanEnum(body.visibility, ["private", "shared", "public"], { field: "Playlist visibility", fallback: "private" });
       const [created] = await sql`
         insert into playlists (public_slug, name, description, visibility, owner_user_id)
         values (${publicSlug}, ${name}, ${description}, ${visibility}, ${user.id})
@@ -124,6 +160,6 @@ export default async function handler(request: any, response: any) {
 
     return sendJson(response, 405, { error: "Method not allowed." });
   } catch (error) {
-    return sendJson(response, errorStatus(error), { error: error instanceof Error ? error.message : "Playlist request failed." });
+    return sendJson(response, errorStatus(error), { error: safeApiError(error, "Playlist request failed.") });
   }
 }

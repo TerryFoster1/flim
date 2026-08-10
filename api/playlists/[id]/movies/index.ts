@@ -1,5 +1,6 @@
-import { db, getCurrentUser, mapPlaylistMovie, readBody, sendJson } from "../../../_db.js";
+import { db, ensurePlaylistCollaborationTables, getCurrentUser, getPlaylistPermission, mapPlaylistMovie, readBody, sendJson } from "../../../_db.js";
 import { upsertMediaItem } from "../../../_mediaCatalog.js";
+import { cleanEnum, cleanInteger, cleanText, cleanUrl, requireRecord, requireUuid, safeApiError } from "../../../_security.js";
 
 async function ensurePlaylistMovieSchema(sql: any) {
   await sql`alter table playlist_movies add column if not exists media_type text not null default 'movie'`;
@@ -48,23 +49,23 @@ async function ensurePlaylistMovieSchema(sql: any) {
 }
 
 export default async function handler(request: any, response: any) {
-  const playlistId = request.query.id as string;
+  let playlistId = "";
 
   try {
+    playlistId = requireUuid(request.query.id, "playlistId");
     const sql = db();
     await ensurePlaylistMovieSchema(sql);
+    await ensurePlaylistCollaborationTables(sql);
     const user = await getCurrentUser(sql, request);
+    const permission = await getPlaylistPermission(sql, playlistId, user?.id);
 
     if (request.method === "GET") {
+      if (!permission?.canRead) return sendJson(response, 404, { error: "Playlist not found." });
       const movies = await sql`
         select pm.*
         from playlist_movies pm
         inner join playlists p on p.id = pm.playlist_id
         where pm.playlist_id = ${playlistId}
-          and (
-            p.visibility = 'public'
-            or (${user?.id || null}::uuid is not null and p.owner_user_id = ${user?.id || null}::uuid)
-          )
         order by coalesce(pm.sort_order, 2147483647), pm.added_at desc
       `;
 
@@ -73,21 +74,36 @@ export default async function handler(request: any, response: any) {
 
     if (request.method === "POST") {
       if (!user) return sendJson(response, 401, { error: "Sign in to add movies." });
-      const ownsPlaylist = await sql`select id from playlists where id = ${playlistId} and owner_user_id = ${user.id} limit 1`;
-      if (!ownsPlaylist[0]) return sendJson(response, 403, { error: "Only the playlist owner can add movies." });
-      const body = await readBody(request);
-      const mediaType = body.mediaType === "tv" ? "tv" : "movie";
-      const tmdbId = Number(body.tmdbId);
-      const title = String(body.title || "").trim();
+      if (!permission?.canEditContent) return sendJson(response, 403, { error: "You do not have permission to add titles to this playlist." });
+      const body = requireRecord(await readBody(request));
+      const mediaType = cleanEnum(body.mediaType, ["movie", "tv"], { field: "Media type", fallback: "movie" });
+      const tmdbId = cleanInteger(body.tmdbId, { field: "TMDb ID", min: 1, max: 2147483647, required: true });
+      const title = cleanText(body.title, { field: "Title", max: 240, required: true });
+      const releaseYear = cleanInteger(body.releaseYear || body.firstAirYear, { field: "Release year", min: 1870, max: 2200, fallback: null });
+      const posterUrl = cleanUrl(body.posterUrl, { field: "Poster URL", max: 2048 }) || null;
+      const backdropUrl = cleanUrl(body.backdropUrl, { field: "Backdrop URL", max: 2048 }) || null;
+      const overview = cleanText(body.overview || "", { field: "Overview", max: 1200, allowNewlines: true }) || null;
+      const runtimeMinutes = cleanInteger(body.runtimeMinutes, { field: "Runtime", min: 0, max: 10000, fallback: null });
+      const seasonCount = cleanInteger(body.seasonCount, { field: "Season count", min: 0, max: 500, fallback: null });
+      const episodeCount = cleanInteger(body.episodeCount, { field: "Episode count", min: 0, max: 5000, fallback: null });
 
-      if (!Number.isFinite(tmdbId) || tmdbId <= 0 || !title) {
-        return sendJson(response, 400, { error: "Choose a valid movie or TV show before adding it." });
-      }
-
-      const mediaItem = await upsertMediaItem(sql, { ...body, mediaType, tmdbId, title });
+      const mediaItem = await upsertMediaItem(sql, {
+        mediaType,
+        tmdbId,
+        title,
+        originalTitle: cleanText(body.originalTitle || "", { field: "Original title", max: 240 }) || undefined,
+        overview: overview || undefined,
+        releaseYear: releaseYear ? String(releaseYear) : undefined,
+        firstAirYear: releaseYear ? String(releaseYear) : undefined,
+        posterUrl: posterUrl || undefined,
+        backdropUrl: backdropUrl || undefined,
+        runtimeMinutes: runtimeMinutes || undefined,
+        seasonCount: seasonCount || undefined,
+        episodeCount: episodeCount || undefined,
+      });
       const [movie] = await sql`
         insert into playlist_movies (playlist_id, media_item_id, media_type, tmdb_id, title, year, poster_url, overview, runtime_minutes, season_count, episode_count, watched)
-        values (${playlistId}, ${mediaItem?.id || null}, ${mediaType}, ${tmdbId}, ${title}, ${body.releaseYear || body.firstAirYear || null}, ${body.posterUrl || null}, ${body.overview || null}, ${body.runtimeMinutes || null}, ${body.seasonCount || null}, ${body.episodeCount || null}, false)
+        values (${playlistId}, ${mediaItem?.id || null}, ${mediaType}, ${tmdbId}, ${title}, ${releaseYear || null}, ${posterUrl}, ${overview}, ${runtimeMinutes}, ${seasonCount}, ${episodeCount}, false)
         on conflict (playlist_id, media_type, tmdb_id)
         do update set
           media_item_id = coalesce(excluded.media_item_id, playlist_movies.media_item_id),
@@ -111,6 +127,6 @@ export default async function handler(request: any, response: any) {
       method: request.method,
       message: error instanceof Error ? error.message : "Unknown playlist movie error",
     });
-    return sendJson(response, 500, { error: "Unable to add movie. Please try again." });
+    return sendJson(response, (error as any)?.statusCode || 500, { error: safeApiError(error, "Unable to add movie. Please try again.") });
   }
 }

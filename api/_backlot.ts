@@ -1,4 +1,5 @@
 import { checkRateLimit, ensureAuthTables, ensurePgCrypto, getCurrentUser } from "./_db.js";
+import { ValidationError, cleanInteger, cleanText } from "./_security.js";
 
 export type BacklotGameId = "relic-run-lost-chapter" | "triceratops-backlot-runner";
 
@@ -388,8 +389,8 @@ export async function discoverBacklotGame(sql: any, request: any, body: any) {
       ${rule.gameId},
       ${rule.sourceType},
       ${rule.sourceId},
-      ${String(body?.sourceTitle || rule.sourceTitle).slice(0, 120)},
-      ${String(body?.clientDiscoveryId || "").slice(0, 120) || null}
+      ${cleanText(body?.sourceTitle || rule.sourceTitle, { field: "Discovery source", max: 120 })},
+      ${cleanText(body?.clientDiscoveryId || "", { field: "Client discovery ID", max: 120 }) || null}
     )
     on conflict (user_id, game_id) do update set
       discovery_source_type = user_backlot_discoveries.discovery_source_type,
@@ -425,9 +426,21 @@ export async function recordBacklotEvent(sql: any, request: any, body: any) {
     return { status: 403, body: { error: "That Backlot event could not be verified." } };
   }
 
-  const score = Number.isFinite(Number(body?.score)) ? Math.max(0, Math.round(Number(body.score))) : null;
-  const playTimeMs = Number.isFinite(Number(body?.playTimeMs)) ? Math.max(0, Math.round(Number(body.playTimeMs))) : null;
-  const achievementEvent = eventType === "achievement" ? String(body?.achievementEvent || "").slice(0, 120) : null;
+  const score =
+    body?.score === undefined || body?.score === null
+      ? null
+      : cleanInteger(body.score, { field: "Score", min: 0, max: 1000000 });
+  const playTimeMs =
+    body?.playTimeMs === undefined || body?.playTimeMs === null
+      ? null
+      : cleanInteger(body.playTimeMs, { field: "Play time", min: 0, max: 2 * 60 * 60 * 1000 });
+  const achievementEvent = eventType === "achievement"
+    ? cleanText(body?.achievementEvent || "", { field: "Achievement event", max: 120 })
+    : null;
+  if (achievementEvent && !/^[a-z0-9:_ -]{1,120}$/i.test(achievementEvent)) {
+    throw new ValidationError("Achievement event is invalid.");
+  }
+  const clientEventId = cleanText(body?.clientEventId || "", { field: "Client event ID", max: 120 }) || null;
 
   await sql`
     insert into backlot_game_events (user_id, game_id, event_type, score, play_time_ms, achievement_event, client_event_id)
@@ -438,7 +451,7 @@ export async function recordBacklotEvent(sql: any, request: any, body: any) {
       ${score},
       ${playTimeMs},
       ${achievementEvent},
-      ${String(body?.clientEventId || "").slice(0, 120) || null}
+      ${clientEventId}
     )
   `;
 

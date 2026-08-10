@@ -1,4 +1,4 @@
-import { db, ensurePlaylistSharingColumns, ensureUserProfilesTable, mapPlaylist, sendJson } from "../../_db.js";
+import { db, ensurePlaylistCollaborationTables, ensureUserProfilesTable, findPlaylistInvite, getCurrentUser, getPlaylistPermission, mapPlaylist, sendJson } from "../../_db.js";
 
 export default async function handler(request: any, response: any) {
   const token = String(Array.isArray(request.query.token) ? request.query.token[0] : request.query.token || "");
@@ -6,9 +6,15 @@ export default async function handler(request: any, response: any) {
   try {
     const sql = db();
     await ensureUserProfilesTable(sql);
-    await ensurePlaylistSharingColumns(sql);
+    await ensurePlaylistCollaborationTables(sql);
 
     if (request.method === "GET") {
+      const invite = await findPlaylistInvite(sql, token);
+      if (!invite) return sendJson(response, 404, { error: "Shared playlist not found." });
+
+      const user = await getCurrentUser(sql, request);
+      const permission = await getPlaylistPermission(sql, invite.playlist_id, user?.id);
+      const canReadPlaylist = Boolean(permission?.canRead);
       const rows = await sql`
         select
           p.*,
@@ -17,13 +23,16 @@ export default async function handler(request: any, response: any) {
             nullif(up.display_name, ''),
             nullif(initcap(trim(regexp_replace(split_part(u.email, '@', 1), '[^a-zA-Z0-9]+', ' ', 'g'))), '')
           ) as creator_display_name,
-          false as is_owner,
-          true as can_add_titles,
-          true as can_remove_titles,
-          false as can_reorder_titles,
-          false as can_edit_playlist,
-          true as expose_shared_slug,
-          'shared' as access_mode,
+          ${permission?.isOwner || false} as is_owner,
+          ${permission?.canEditContent || false} as can_add_titles,
+          ${permission?.canEditContent || false} as can_remove_titles,
+          ${permission?.canEditContent || false} as can_reorder_titles,
+          ${permission?.canManage || false} as can_edit_playlist,
+          ${permission?.canManage || false} as can_manage_collaborators,
+          false as expose_shared_slug,
+          ${canReadPlaylist ? permission?.accessMode || "shared" : "invite"} as access_mode,
+          ${permission?.collaboratorCount || 0} as collaborator_count,
+          ${invite.expires_at} as invite_expires_at,
           0 as follower_count,
           0 as like_count,
           false as is_following,
@@ -41,10 +50,10 @@ export default async function handler(request: any, response: any) {
         from playlists p
         left join user_profiles up on up.user_id = p.owner_user_id::text
         left join users u on u.id = p.owner_user_id
-        left join playlist_movies pm on pm.playlist_id = p.id
+        left join playlist_movies pm on ${canReadPlaylist} and pm.playlist_id = p.id
         left join media_items mi on mi.media_type = coalesce(pm.media_type, 'movie') and mi.tmdb_id = pm.tmdb_id
-        where p.shared_slug = ${token}
-          and p.visibility = 'shared'
+        where p.id = ${invite.playlist_id}
+          and p.visibility in ('shared', 'public')
         group by p.id, up.handle, up.display_name, u.email
       `;
 
