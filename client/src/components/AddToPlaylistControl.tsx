@@ -10,9 +10,10 @@ interface AddToPlaylistControlProps {
   collapsedLabel?: string;
   openLabel?: string;
   onCreatePlaylist?: (input: Pick<Playlist, "name" | "description" | "visibility">) => Promise<Playlist>;
+  onAdded?: (movie: MovieSearchResult | MovieDetails, playlistId: string, playlist?: Playlist) => void;
 }
 
-export function AddToPlaylistControl({ movie, playlists, addToPlaylist, currentPlaylistId, collapsedLabel = "Add to other playlists", openLabel, onCreatePlaylist }: AddToPlaylistControlProps) {
+export function AddToPlaylistControl({ movie, playlists, addToPlaylist, currentPlaylistId, collapsedLabel = "Add to other playlists", openLabel, onCreatePlaylist, onAdded }: AddToPlaylistControlProps) {
   const addTargetPlaylists = currentPlaylistId ? playlists.filter((playlist) => playlist.id !== currentPlaylistId) : playlists;
   const existingPlaylistIds = addTargetPlaylists
     .filter((playlist) => playlist.movies.some((item) => item.tmdbId === movie.tmdbId && (item.mediaType || "movie") === (movie.mediaType || "movie")))
@@ -49,6 +50,7 @@ export function AddToPlaylistControl({ movie, playlists, addToPlaylist, currentP
       setNewPlaylistName("");
       setLocallyAddedIds((current) => [...new Set([...current, created.id])]);
       setMessage(`Created ${created.name} and added ${movie.title}.`);
+      onAdded?.(movie, created.id, created);
     } catch {
       setMessage("Unable to create that playlist. Please try again.");
     } finally {
@@ -70,6 +72,7 @@ export function AddToPlaylistControl({ movie, playlists, addToPlaylist, currentP
       enqueueTitleTrivia({ mediaType: movie.mediaType || "movie", tmdbId: movie.tmdbId, source: "playlist_add" });
       setMessage(`Added to ${playlist?.name || "playlist"}.`);
       setLocallyAddedIds((current) => [...new Set([...current, playlistId])]);
+      onAdded?.(movie, playlistId, playlist);
     } catch {
       setMessage("Unable to add this title. Please try again.");
     } finally {

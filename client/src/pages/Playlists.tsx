@@ -5,7 +5,8 @@ import { AddToPlaylistControl } from "../components/AddToPlaylistControl";
 import { PlaylistGrid } from "../components/PlaylistGrid";
 import { landingPosterSeeds } from "../data/landingPosterSeeds";
 import { searchDiscovery } from "../services/discoveryService";
-import type { CurrentUser, DiscoveryCollectionResult, DiscoveryHubLink, DiscoverySearchResults, MovieSearchResult, Playlist } from "../types";
+import { getRecommendations } from "../services/recommendationService";
+import type { CurrentUser, DiscoveryCollectionResult, DiscoveryHubLink, DiscoverySearchResults, MovieSearchResult, Playlist, PlaylistMovie } from "../types";
 
 interface PlaylistsProps {
   onNavigate: (path: string) => void;
@@ -24,11 +25,18 @@ interface PlaylistsProps {
 type PlaylistView = "my" | "public";
 type SearchResultTab = "playlists" | "titles";
 type SearchContentFilter = "both" | "movie" | "tv";
+type InlineDiscoveryStatus = "loading" | "ready" | "error";
 
 interface PlaylistSearchFilters {
   content: SearchContentFilter;
   genre: string;
   mood: string;
+}
+
+interface InlineDiscoveryState {
+  status: InlineDiscoveryStatus;
+  similarTitles: MovieSearchResult[];
+  relatedPlaylists: Playlist[];
 }
 
 const defaultPlaylistSearchFilters: PlaylistSearchFilters = {
@@ -401,6 +409,10 @@ function preferredAddTargets(playlists: Playlist[]) {
   return playlists.filter((playlist) => (playlist.isOwner || playlist.saved || playlist.clonedFromId) && !playlist.isSystem);
 }
 
+function playlistPath(playlist: Playlist) {
+  return playlist.visibility === "public" && playlist.publicSlug ? `/p/${playlist.publicSlug}` : `/playlists/${playlist.id}`;
+}
+
 function sortedDiscoveryPlaylists(view: PlaylistView, playlists: Playlist[]) {
   return [...playlists].sort((a, b) => {
     if (view === "public") {
@@ -418,47 +430,219 @@ function titlePath(movie: MovieSearchResult) {
   return movie.mediaType === "tv" ? `/tv/${movie.tmdbId}` : `/movies/${movie.tmdbId}`;
 }
 
+function recommendationToSearchResult(movie: PlaylistMovie): MovieSearchResult {
+  return {
+    tmdbId: movie.tmdbId,
+    mediaType: movie.mediaType || "movie",
+    title: movie.title,
+    releaseYear: movie.releaseYear,
+    overview: movie.overview,
+    posterPath: movie.posterPath,
+    posterUrl: movie.posterUrl,
+    genreIds: [],
+  };
+}
+
+function uniqueTitleResults(movies: MovieSearchResult[]) {
+  const seen = new Set<string>();
+  return movies.filter((movie) => {
+    const key = titleResultKey(movie);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function uniquePlaylists(playlists: Playlist[]) {
+  const seen = new Set<string>();
+  return playlists.filter((playlist) => {
+    if (seen.has(playlist.id)) return false;
+    seen.add(playlist.id);
+    return true;
+  });
+}
+
+function relatedPlaylistsForTitle(movie: MovieSearchResult, candidates: Playlist[]) {
+  return candidates
+    .filter((playlist) => playlist.movies.some((item) => item.tmdbId === movie.tmdbId && (item.mediaType || "movie") === (movie.mediaType || "movie")))
+    .sort((a, b) => (b.followerCount || 0) - (a.followerCount || 0) || (b.movieCount || b.movies.length) - (a.movieCount || a.movies.length) || a.name.localeCompare(b.name))
+    .slice(0, 6);
+}
+
+function fallbackSimilarTitles(movie: MovieSearchResult, titleRows: MovieSearchResult[]) {
+  const sourceGenres = new Set(movie.genreIds || []);
+  return titleRows
+    .filter((candidate) => titleResultKey(candidate) !== titleResultKey(movie))
+    .filter((candidate) => !sourceGenres.size || (candidate.genreIds || []).some((genreId) => sourceGenres.has(genreId)))
+    .slice(0, 8);
+}
+
+function InlineDiscoveryShelf({
+  addTargets,
+  addToPlaylist,
+  discovery,
+  locallyAddedKeys,
+  onAdded,
+  onCreatePlaylist,
+  onNavigate,
+  personalPlaylists,
+  sourceTitle,
+}: {
+  addTargets: Playlist[];
+  addToPlaylist: (playlistId: string, movie: MovieSearchResult) => void | Promise<void>;
+  discovery?: InlineDiscoveryState;
+  locallyAddedKeys: Set<string>;
+  onAdded: (movie: MovieSearchResult) => void;
+  onCreatePlaylist: (input: Pick<Playlist, "name" | "description" | "visibility">) => Promise<Playlist>;
+  onNavigate: (path: string) => void;
+  personalPlaylists: Playlist[];
+  sourceTitle: MovieSearchResult;
+}) {
+  if (!discovery || discovery.status === "loading") {
+    return (
+      <div className="playlist-inline-discovery-shelf" aria-label={`More like ${sourceTitle.title}`}>
+        <div className="inline-discovery-heading">
+          <h4>More like {sourceTitle.title}</h4>
+          <span>Finding a few good next picks...</span>
+        </div>
+        <div className="inline-discovery-scroll">
+          {[0, 1, 2].map((item) => <div className="inline-discovery-card is-loading" key={item} />)}
+        </div>
+      </div>
+    );
+  }
+
+  if (discovery.status === "error" || (!discovery.similarTitles.length && !discovery.relatedPlaylists.length)) return null;
+
+  return (
+    <div className="playlist-inline-discovery-shelf" aria-label={`More like ${sourceTitle.title}`}>
+      {discovery.similarTitles.length ? (
+        <section>
+          <div className="inline-discovery-heading">
+            <h4>Similar Titles</h4>
+            <span>Add another without leaving results</span>
+          </div>
+          <div className="inline-discovery-scroll">
+            {discovery.similarTitles.map((movie) => {
+              const savedIn = playlistsContainingTitle(movie, personalPlaylists);
+              const isAdded = savedIn.length > 0 || locallyAddedKeys.has(titleResultKey(movie));
+              return (
+                <article className="inline-discovery-card" key={titleResultKey(movie)}>
+                  <button className="inline-discovery-poster reset-button" onClick={() => onNavigate(titlePath(movie))} type="button">
+                    {movie.posterUrl ? <img alt={`${movie.title} poster`} decoding="async" loading="lazy" src={movie.posterUrl} /> : <span />}
+                  </button>
+                  <div>
+                    <strong>{movie.title}</strong>
+                    <small>{movie.releaseYear || "Year TBA"} • {movie.mediaType === "tv" ? "TV Show" : "Movie"}</small>
+                  </div>
+                  {isAdded ? (
+                    <span className="inline-added-pill">Added</span>
+                  ) : (
+                    <AddToPlaylistControl
+                      addToPlaylist={addToPlaylist}
+                      movie={movie}
+                      onAdded={() => onAdded(movie)}
+                      onCreatePlaylist={onCreatePlaylist}
+                      openLabel="Add"
+                      playlists={addTargets}
+                    />
+                  )}
+                </article>
+              );
+            })}
+          </div>
+        </section>
+      ) : null}
+
+      {discovery.relatedPlaylists.length ? (
+        <section>
+          <div className="inline-discovery-heading">
+            <h4>Related Playlists</h4>
+            <span>Collections that already include this title</span>
+          </div>
+          <div className="inline-discovery-playlists">
+            {discovery.relatedPlaylists.map((playlist) => (
+              <button className="inline-discovery-playlist" key={playlist.id} onClick={() => onNavigate(playlistPath(playlist))} type="button">
+                <strong>{playlist.name}</strong>
+                <small>{playlist.movieCount || playlist.movies.length} titles</small>
+              </button>
+            ))}
+          </div>
+        </section>
+      ) : null}
+    </div>
+  );
+}
+
 function UniversalTitleResult({
   movie,
   savedIn,
   addTargets,
   addToPlaylist,
+  discovery,
+  isDiscoveryOpen,
+  locallyAddedKeys,
+  onAdded,
   onCreatePlaylist,
   onNavigate,
+  personalPlaylists,
 }: {
   movie: MovieSearchResult;
   savedIn: Playlist[];
   addTargets: Playlist[];
   addToPlaylist: (playlistId: string, movie: MovieSearchResult) => void | Promise<void>;
+  discovery?: InlineDiscoveryState;
+  isDiscoveryOpen: boolean;
+  locallyAddedKeys: Set<string>;
+  onAdded: (movie: MovieSearchResult) => void;
   onCreatePlaylist: (input: Pick<Playlist, "name" | "description" | "visibility">) => Promise<Playlist>;
   onNavigate: (path: string) => void;
+  personalPlaylists: Playlist[];
 }) {
   const savedNames = savedIn.slice(0, 3).map((playlist) => playlist.name).join(", ");
+  const localAdd = locallyAddedKeys.has(titleResultKey(movie));
+  const isAdded = savedIn.length > 0 || localAdd;
   return (
-    <article className="playlist-universal-title-card">
-      <button className="poster-card-button reset-button" onClick={() => onNavigate(titlePath(movie))} type="button">
-        {movie.posterUrl ? <img alt={`${movie.title} poster`} className="poster-image" decoding="async" loading="lazy" src={movie.posterUrl} /> : <div className="poster tone-blue" />}
-      </button>
-      <div className="playlist-universal-title-body">
-        <span className={savedIn.length ? "result-status-pill is-saved" : "result-status-pill"}>{savedIn.length ? "In Your Playlists" : "Not Yet Saved"}</span>
-        <h3>{movie.title}</h3>
-        <div className="card-meta">
-          <span>{movie.releaseYear || "Year TBA"}</span>
-          <span>{movie.mediaType === "tv" ? "TV Show" : "Movie"}</span>
+    <div className="playlist-universal-title-result">
+      <article className="playlist-universal-title-card">
+        <button className="poster-card-button reset-button" onClick={() => onNavigate(titlePath(movie))} type="button">
+          {movie.posterUrl ? <img alt={`${movie.title} poster`} className="poster-image" decoding="async" loading="lazy" src={movie.posterUrl} /> : <div className="poster tone-blue" />}
+        </button>
+        <div className="playlist-universal-title-body">
+          <span className={isAdded ? "result-status-pill is-saved" : "result-status-pill"}>{isAdded ? "Added" : "Not Yet Saved"}</span>
+          <h3>{movie.title}</h3>
+          <div className="card-meta">
+            <span>{movie.releaseYear || "Year TBA"}</span>
+            <span>{movie.mediaType === "tv" ? "TV Show" : "Movie"}</span>
+          </div>
+          {savedIn.length ? <p className="playlist-result-reason">In: {savedNames}{savedIn.length > 3 ? ` +${savedIn.length - 3} more` : ""}</p> : localAdd ? <p className="playlist-result-reason">Added. Here are a few good next picks.</p> : <p className="playlist-result-reason">Add it to a playlist when you are ready.</p>}
+          <div className="button-row">
+            <button className="secondary-button" onClick={() => onNavigate(titlePath(movie))} type="button">Details</button>
+            <AddToPlaylistControl
+              addToPlaylist={addToPlaylist}
+              movie={movie}
+              onAdded={() => onAdded(movie)}
+              onCreatePlaylist={onCreatePlaylist}
+              openLabel={isAdded ? "Add to Another Playlist" : "Add to Playlist"}
+              playlists={addTargets}
+            />
+          </div>
         </div>
-        {savedIn.length ? <p className="playlist-result-reason">In: {savedNames}{savedIn.length > 3 ? ` +${savedIn.length - 3} more` : ""}</p> : <p className="playlist-result-reason">Add it to a playlist when you are ready.</p>}
-        <div className="button-row">
-          <button className="secondary-button" onClick={() => onNavigate(titlePath(movie))} type="button">Details</button>
-          <AddToPlaylistControl
-            addToPlaylist={addToPlaylist}
-            movie={movie}
-            onCreatePlaylist={onCreatePlaylist}
-            openLabel={savedIn.length ? "Add to Another Playlist" : "Add to Playlist"}
-            playlists={addTargets}
-          />
-        </div>
-      </div>
-    </article>
+      </article>
+      {isDiscoveryOpen ? (
+        <InlineDiscoveryShelf
+          addTargets={addTargets}
+          addToPlaylist={addToPlaylist}
+          discovery={discovery}
+          locallyAddedKeys={locallyAddedKeys}
+          onAdded={onAdded}
+          onCreatePlaylist={onCreatePlaylist}
+          onNavigate={onNavigate}
+          personalPlaylists={personalPlaylists}
+          sourceTitle={movie}
+        />
+      ) : null}
+    </div>
   );
 }
 
@@ -505,11 +689,15 @@ function UniversalPlaylistSearchResults({
   status: "idle" | "loading" | "done" | "error";
   view: PlaylistView;
 }) {
+  const [expandedDiscoveryKey, setExpandedDiscoveryKey] = useState<string | null>(null);
+  const [inlineDiscoveryByTitle, setInlineDiscoveryByTitle] = useState<Record<string, InlineDiscoveryState>>({});
+  const [locallyAddedTitleKeys, setLocallyAddedTitleKeys] = useState<string[]>([]);
   const addTargets = preferredAddTargets(playlists);
   const personalPlaylists = playlists.filter((playlist) => (playlist.isOwner || playlist.saved || playlist.clonedFromId) && !playlist.isSystem);
   const titleRows = discoveryResults.titles
     .filter((movie) => movieMatchesFilters(movie, filters))
     .map((movie) => ({ movie, savedIn: playlistsContainingTitle(movie, personalPlaylists) }));
+  const locallyAddedKeys = useMemo(() => new Set(locallyAddedTitleKeys), [locallyAddedTitleKeys]);
   const savedTitleRows = titleRows.filter((row) => row.savedIn.length > 0);
   const mergedPlaylistMap = new Map<string, Playlist>();
   [...localPlaylistResults, ...discoveryResults.playlists].forEach((playlist) => mergedPlaylistMap.set(playlist.id, playlist));
@@ -524,8 +712,58 @@ function UniversalPlaylistSearchResults({
   const hasResults = hasPlaylistResults || hasTitleResults;
   const exactTitleFound = titleRows.some((row) => isExactTitleMatch(row.movie, query));
 
+  useEffect(() => {
+    setExpandedDiscoveryKey(null);
+  }, [query, activeTab, view]);
+
   const updateFilters = (nextFilters: Partial<PlaylistSearchFilters>) => onFiltersChange({ ...filters, ...nextFilters });
   const clearFilters = () => onFiltersChange(defaultPlaylistSearchFilters);
+  const handleTitleAdded = async (movie: MovieSearchResult) => {
+    const key = titleResultKey(movie);
+    setLocallyAddedTitleKeys((current) => [...new Set([...current, key])]);
+    setExpandedDiscoveryKey(key);
+
+    if (inlineDiscoveryByTitle[key]?.status === "ready") return;
+
+    setInlineDiscoveryByTitle((current) => ({ ...current, [key]: { status: "loading", similarTitles: [], relatedPlaylists: [] } }));
+
+    try {
+      const response = await getRecommendations({ mediaType: movie.mediaType || "movie", tmdbId: movie.tmdbId });
+      const fetchedTitles = uniqueTitleResults(response.recommendations.map(recommendationToSearchResult))
+        .filter((candidate) => titleResultKey(candidate) !== key)
+        .slice(0, 10);
+      const similarTitles = fetchedTitles.length ? fetchedTitles : fallbackSimilarTitles(movie, titleRows.map((row) => row.movie));
+      const relatedPlaylists = relatedPlaylistsForTitle(movie, uniquePlaylists([...(response.playlistRecommendations || []), ...localPlaylistResults, ...discoveryResults.playlists, ...playlists]));
+
+      setInlineDiscoveryByTitle((current) => ({
+        ...current,
+        [key]: {
+          status: "ready",
+          similarTitles,
+          relatedPlaylists,
+        },
+      }));
+    } catch {
+      setInlineDiscoveryByTitle((current) => ({ ...current, [key]: { status: "error", similarTitles: [], relatedPlaylists: [] } }));
+    }
+  };
+
+  const renderTitleResult = ({ movie, savedIn }: { movie: MovieSearchResult; savedIn: Playlist[] }) => (
+    <UniversalTitleResult
+      addTargets={addTargets}
+      addToPlaylist={addToPlaylist}
+      discovery={inlineDiscoveryByTitle[titleResultKey(movie)]}
+      isDiscoveryOpen={expandedDiscoveryKey === titleResultKey(movie)}
+      key={titleResultKey(movie)}
+      locallyAddedKeys={locallyAddedKeys}
+      movie={movie}
+      onAdded={handleTitleAdded}
+      onCreatePlaylist={onCreatePlaylist}
+      onNavigate={onNavigate}
+      personalPlaylists={personalPlaylists}
+      savedIn={savedIn}
+    />
+  );
 
   const renderFilterPanel = () =>
     isFilterOpen ? (
@@ -632,7 +870,7 @@ function UniversalPlaylistSearchResults({
           <section className="discovery-section">
             <div className="discovery-section-heading"><h2>In Your Playlists</h2></div>
             <div className="playlist-universal-title-list">
-              {savedTitleRows.map(({ movie, savedIn }) => <UniversalTitleResult key={titleResultKey(movie)} addTargets={addTargets} addToPlaylist={addToPlaylist} movie={movie} onCreatePlaylist={onCreatePlaylist} onNavigate={onNavigate} savedIn={savedIn} />)}
+              {savedTitleRows.map(renderTitleResult)}
             </div>
           </section>
         ) : null}
@@ -643,7 +881,7 @@ function UniversalPlaylistSearchResults({
               {titleRows
                 .filter((row) => view !== "my" || row.savedIn.length === 0)
                 .slice(0, 14)
-                .map(({ movie, savedIn }) => <UniversalTitleResult key={titleResultKey(movie)} addTargets={addTargets} addToPlaylist={addToPlaylist} movie={movie} onCreatePlaylist={onCreatePlaylist} onNavigate={onNavigate} savedIn={savedIn} />)}
+                .map(renderTitleResult)}
             </div>
           </section>
         ) : null}
