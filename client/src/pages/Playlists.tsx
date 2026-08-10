@@ -17,6 +17,8 @@ interface PlaylistsProps {
   currentUser: CurrentUser | null;
   notice?: string;
   initialView?: PlaylistView;
+  playlistLoadStatus?: "loading" | "ready" | "error";
+  playlistLoadMessage?: string;
 }
 
 type PlaylistView = "my" | "public";
@@ -505,7 +507,19 @@ function PublicDiscovery({
   );
 }
 
-export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlaylist, addToPlaylist, onOpenRoulette, currentUser, notice, initialView = "my" }: PlaylistsProps) {
+export function Playlists({
+  onNavigate,
+  playlists,
+  rewindPlaylists,
+  onCreatePlaylist,
+  addToPlaylist,
+  onOpenRoulette,
+  currentUser,
+  notice,
+  initialView = "my",
+  playlistLoadStatus = "ready",
+  playlistLoadMessage = "",
+}: PlaylistsProps) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [visibility, setVisibility] = useState<Playlist["visibility"]>("private");
@@ -611,6 +625,8 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
 
   const visiblePagePlaylists = visiblePlaylists.slice(0, visibleCount);
   const hasMorePlaylists = visiblePlaylists.length > visibleCount;
+  const isLoadingPlaylists = playlistLoadStatus === "loading";
+  const playlistLoadFailed = playlistLoadStatus === "error";
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -742,6 +758,10 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
         </form>
       ) : null}
 
+      {playlistLoadFailed && !normalizedQuery ? (
+        <p className="error-message playlist-section-message">{playlistLoadMessage || "Could not load playlists right now. Please try again shortly."}</p>
+      ) : null}
+
       {normalizedQuery ? (
         <UniversalPlaylistSearchResults
           addToPlaylist={addToPlaylist}
@@ -754,6 +774,17 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
           status={discoveryStatus}
           view={view}
         />
+      ) : isLoadingPlaylists ? (
+        <section className="discovery-section playlist-loading-section" aria-busy="true">
+          <div className="discovery-section-heading">
+            <h2>{view === "public" ? "Public Playlists" : "Your Playlists"}</h2>
+          </div>
+          <div className="playlist-loading-grid" aria-label="Loading playlist previews">
+            {Array.from({ length: 6 }).map((_, index) => (
+              <span className="playlist-loading-card" key={index} />
+            ))}
+          </div>
+        </section>
       ) : view === "public" ? (
         <PublicDiscovery
           onNavigate={onNavigate}

@@ -356,6 +356,8 @@ export default function App() {
       onNavigate={navigate}
       onOpenRoulette={openNowPlaying}
       playlists={playlists}
+      playlistLoadStatus={dataStatus}
+      playlistLoadMessage={dataMessage}
     />
   );
   const pages: Partial<Record<AppRoute, ReactNode>> = {
@@ -379,7 +381,7 @@ export default function App() {
         <p className="empty-state">Loading playlist...</p>
       </section>
     ) : (
-      <Playlists currentUser={currentUser} rewindPlaylists={rewindPlaylists} initialView="my" notice={playlistNotice || "Playlist not found."} onCreatePlaylist={createRemotePlaylist} addToPlaylist={addToPlaylist} onNavigate={navigate} onOpenRoulette={openNowPlaying} playlists={playlists} />
+      <Playlists currentUser={currentUser} rewindPlaylists={rewindPlaylists} initialView="my" notice={playlistNotice || "Playlist not found."} onCreatePlaylist={createRemotePlaylist} addToPlaylist={addToPlaylist} onNavigate={navigate} onOpenRoulette={openNowPlaying} playlists={playlists} playlistLoadStatus={dataStatus} playlistLoadMessage={dataMessage} />
     ),
     "/p/:slug": <PublicPlaylist currentUser={currentUser} onFollowChanged={refreshPlaylists} publicSlug={routeState.publicSlug || ""} onNavigate={navigate} />,
     "/s/:token": <SharedPlaylist token={routeState.sharedToken || ""} onNavigate={navigate} />,
@@ -458,9 +460,7 @@ export default function App() {
       <div className="main-shell">
         <NavigationBar activeRoute={activeRoute} currentUser={currentUser} onNavigate={navigate} onLogout={logout} />
         <main className={isHomeRoute ? "page-container home-page-container" : "page-container"}>
-          {dataStatus === "loading" && !isTitleDetailRoute && !isTitleGameRoute ? <p className="empty-state">Loading playlists...</p> : null}
-          {dataStatus === "error" ? <p className="error-message">{dataMessage}</p> : null}
-          {dataStatus !== "loading" || isTitleDetailRoute || isTitleGameRoute ? page : null}
+          {page}
         </main>
         {!isHomeRoute && !isTitleGameRoute ? <Footer /> : null}
       </div>

@@ -2960,6 +2960,32 @@ textarea { min-height: 42px; resize: vertical; }
   min-height: auto;
   padding: 8px 2px;
 }
+
+.playlist-section-message {
+  margin: 12px 0 0;
+}
+
+.playlist-loading-section {
+  margin-top: 22px;
+}
+
+.playlist-loading-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.playlist-loading-card {
+  min-height: 220px;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 22px;
+  background:
+    linear-gradient(110deg, transparent 0%, rgba(255,255,255,.08) 42%, transparent 58%),
+    radial-gradient(circle at 20% 0%, rgba(255,184,77,.12), transparent 52%),
+    rgba(255,255,255,.045);
+  background-size: 220% 100%, auto, auto;
+  animation: skeleton-shimmer 1.2s ease-in-out infinite;
+}
 .add-playlists-panel {
   width: fit-content;
   max-width: 100%;
