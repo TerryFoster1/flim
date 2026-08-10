@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode } from "react";
 import { ContinueWatchingRow } from "../components/ContinueWatchingRow";
 import { DiscoveryRecommendationShelf } from "../components/DiscoveryRecommendationShelf";
 import { AddToPlaylistControl } from "../components/AddToPlaylistControl";
@@ -1099,6 +1099,9 @@ export function Playlists({
   const [searchTab, setSearchTab] = useState<SearchResultTab>("playlists");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [searchFilters, setSearchFilters] = useState<PlaylistSearchFilters>(defaultPlaylistSearchFilters);
+  const [rouletteGate, setRouletteGate] = useState<"auth" | "empty" | null>(null);
+  const rouletteGateRef = useRef<HTMLDivElement | null>(null);
+  const heroSearchRef = useRef<HTMLInputElement | null>(null);
   const directorPlaylists = useMemo(
     () => playlists.filter(isDirectorPlaylist),
     [playlists],
@@ -1212,6 +1215,16 @@ export function Playlists({
   const hasMorePlaylists = visiblePlaylists.length > visibleCount;
   const isLoadingPlaylists = playlistLoadStatus === "loading";
   const playlistLoadFailed = playlistLoadStatus === "error";
+  const rouletteTitleCount = useMemo(
+    () => sourcePlaylists.reduce((count, playlist) => count + playlist.movies.length, 0),
+    [sourcePlaylists],
+  );
+
+  useEffect(() => {
+    if (!rouletteGate) return;
+    const firstButton = rouletteGateRef.current?.querySelector<HTMLButtonElement>("button");
+    firstButton?.focus();
+  }, [rouletteGate]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -1241,6 +1254,48 @@ export function Playlists({
       return;
     }
     setShowCreate((current) => !current);
+  }
+
+  function openRouletteFromCard() {
+    if (!currentUser) {
+      setRouletteGate("auth");
+      return;
+    }
+    if (rouletteTitleCount === 0) {
+      setRouletteGate("empty");
+      return;
+    }
+    onOpenRoulette?.(sourcePlaylists);
+  }
+
+  function handleRouletteGateKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (event.key === "Escape") {
+      setRouletteGate(null);
+      return;
+    }
+    if (event.key !== "Tab") return;
+
+    const focusable = Array.from(
+      rouletteGateRef.current?.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+      ) || [],
+    ).filter((element) => !element.hasAttribute("disabled"));
+    if (!focusable.length) return;
+
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+
+  function focusHeroSearch() {
+    setRouletteGate(null);
+    heroSearchRef.current?.focus();
   }
 
   const ownedPreview = ownedPlaylists.slice(0, visibleCount);
@@ -1301,14 +1356,17 @@ export function Playlists({
             aria-label={view === "public" ? "Search movies, shows, actors, genres, or public playlists" : "Search movies, shows, actors, genres, or playlists"}
             className="collection-search playlist-title-search playlist-hero-search"
           >
-            <input onChange={(event) => setQuery(event.target.value)} placeholder={view === "public" ? "Search movies, shows, actors, genres, or public playlists" : "Search movies, shows, actors, genres, or playlists"} type="search" value={query} />
+            <input ref={heroSearchRef} onChange={(event) => setQuery(event.target.value)} placeholder={view === "public" ? "Search movies, shows, actors, genres, or public playlists" : "Search movies, shows, actors, genres, or playlists"} type="search" value={query} />
           </label>
           {searchStatusLabel ? <p className="playlist-search-state" aria-live="polite">{searchStatusLabel}</p> : null}
         </div>
       </section>
 
-      <button className="playlist-roulette-hero-card" onClick={() => onOpenRoulette?.(sourcePlaylists)} type="button">
-        <span className="playlist-roulette-dice" aria-hidden="true">🎲</span>
+      <button className="playlist-roulette-hero-card" onClick={openRouletteFromCard} type="button" aria-label="Spin to pick what to watch tonight">
+        <span className="playlist-roulette-wheel" aria-hidden="true">
+          <span className="playlist-roulette-wheel-pointer" />
+          <span className="playlist-roulette-wheel-core" />
+        </span>
         <span className="playlist-roulette-hero-copy">
           <strong>What Are We Watching Tonight?</strong>
           <small>Can&apos;t decide?</small>
@@ -1358,6 +1416,62 @@ export function Playlists({
             {isSaving ? "Creating..." : "Create Playlist"}
           </button>
         </form>
+      ) : null}
+
+      {rouletteGate ? (
+        <div
+          className="playlist-roulette-gate-backdrop"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setRouletteGate(null);
+          }}
+          role="presentation"
+        >
+          <div
+            aria-labelledby="playlist-roulette-gate-title"
+            aria-modal="true"
+            className="playlist-roulette-gate"
+            onKeyDown={handleRouletteGateKeyDown}
+            ref={rouletteGateRef}
+            role="dialog"
+          >
+            <button className="playlist-roulette-gate-close" onClick={() => setRouletteGate(null)} type="button" aria-label="Close">
+              X
+            </button>
+            <span className="playlist-roulette-gate-wheel" aria-hidden="true">
+              <span />
+            </span>
+            {rouletteGate === "auth" ? (
+              <>
+                <h2 id="playlist-roulette-gate-title">Build your movie night first</h2>
+                <p>Add movies to your playlists, then Flim can spin from the things you actually want to watch.</p>
+                <div className="playlist-roulette-gate-actions">
+                  <button className="primary-button" onClick={() => onNavigate("/signup")} type="button">
+                    Create Free Account
+                  </button>
+                  <button className="secondary-button" onClick={() => onNavigate("/signin")} type="button">
+                    Sign In
+                  </button>
+                  <button className="text-button" onClick={() => setRouletteGate(null)} type="button">
+                    Maybe Later
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <h2 id="playlist-roulette-gate-title">Nothing to spin yet</h2>
+                <p>Add a few movies to your playlists and come back when you&apos;re ready to let Flim choose.</p>
+                <div className="playlist-roulette-gate-actions">
+                  <button className="primary-button" onClick={view === "public" ? focusHeroSearch : () => onNavigate("/public")} type="button">
+                    Add Movies
+                  </button>
+                  <button className="text-button" onClick={() => setRouletteGate(null)} type="button">
+                    Maybe Later
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
       ) : null}
 
       {playlistLoadFailed && !normalizedQuery ? (

@@ -10854,19 +10854,66 @@ textarea { min-height: 42px; resize: vertical; }
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12), 0 28px 78px rgba(0, 0, 0, .38), 0 0 0 3px rgba(255, 184, 77, .14);
 }
 
-.playlist-roulette-dice {
-  width: 66px;
-  height: 66px;
+.playlist-roulette-wheel {
+  position: relative;
+  width: 74px;
+  height: 74px;
   display: grid;
   place-items: center;
-  border-radius: 20px;
-  border: 1px solid rgba(255, 205, 114, .36);
+  flex: 0 0 auto;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 220, 150, .58);
   background:
-    radial-gradient(circle at 35% 28%, rgba(255, 255, 255, .25), transparent 2.8rem),
-    linear-gradient(145deg, rgba(255, 184, 77, .28), rgba(255, 79, 109, .18));
-  box-shadow: 0 18px 42px rgba(255, 138, 61, .14);
-  font-size: 2rem;
-  line-height: 1;
+    radial-gradient(circle at 50% 50%, rgba(13, 10, 9, .86) 0 18%, transparent 19%),
+    repeating-conic-gradient(from -18deg, rgba(255, 188, 83, .96) 0 22deg, rgba(255, 94, 112, .9) 22deg 44deg, rgba(76, 208, 185, .82) 44deg 66deg, rgba(75, 116, 255, .72) 66deg 88deg),
+    radial-gradient(circle, rgba(255, 236, 184, .18), rgba(255, 184, 77, .12));
+  box-shadow:
+    inset 0 0 0 5px rgba(20, 14, 10, .72),
+    inset 0 0 0 8px rgba(255, 236, 184, .16),
+    0 18px 42px rgba(255, 138, 61, .16);
+  transition: transform .2s ease;
+}
+
+.playlist-roulette-wheel::before {
+  content: "";
+  position: absolute;
+  inset: 9px;
+  border-radius: inherit;
+  background:
+    linear-gradient(90deg, transparent 47%, rgba(22, 15, 12, .72) 48% 52%, transparent 53%),
+    linear-gradient(0deg, transparent 47%, rgba(22, 15, 12, .72) 48% 52%, transparent 53%),
+    linear-gradient(45deg, transparent 47%, rgba(22, 15, 12, .5) 48% 52%, transparent 53%),
+    linear-gradient(-45deg, transparent 47%, rgba(22, 15, 12, .5) 48% 52%, transparent 53%);
+  opacity: .78;
+}
+
+.playlist-roulette-wheel-pointer {
+  position: absolute;
+  top: -7px;
+  left: 50%;
+  width: 0;
+  height: 0;
+  transform: translateX(-50%);
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-top: 14px solid #ffe0a2;
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, .45));
+}
+
+.playlist-roulette-wheel-core {
+  position: relative;
+  z-index: 1;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  border: 2px solid rgba(255, 241, 214, .78);
+  background: radial-gradient(circle at 38% 30%, #fff3cf, #ffb84d 45%, #8a3d16 100%);
+  box-shadow: 0 0 18px rgba(255, 184, 77, .34);
+}
+
+.playlist-roulette-hero-card:hover .playlist-roulette-wheel,
+.playlist-roulette-hero-card:focus-visible .playlist-roulette-wheel {
+  transform: rotate(10deg) scale(1.03);
 }
 
 .playlist-roulette-hero-copy {
@@ -10899,6 +10946,118 @@ textarea { min-height: 42px; resize: vertical; }
   box-shadow: 0 14px 34px rgba(255, 133, 70, .25);
   font-weight: 1000;
   letter-spacing: .05em;
+}
+
+.playlist-roulette-gate-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 75;
+  display: grid;
+  place-items: center;
+  padding: max(18px, env(safe-area-inset-top)) 18px max(18px, env(safe-area-inset-bottom));
+  background: rgba(4, 4, 7, .74);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  animation: modalFadeIn .18s ease both;
+}
+
+.playlist-roulette-gate {
+  position: relative;
+  width: min(440px, 100%);
+  border: 1px solid rgba(255, 204, 125, .34);
+  border-radius: 26px;
+  padding: 28px 24px 24px;
+  color: var(--text);
+  text-align: center;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 184, 77, .2), transparent 13rem),
+    linear-gradient(145deg, rgba(30, 23, 20, .98), rgba(9, 10, 14, .98));
+  box-shadow: 0 30px 90px rgba(0, 0, 0, .55), inset 0 1px 0 rgba(255, 255, 255, .08);
+}
+
+.playlist-roulette-gate-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, .18);
+  border-radius: 999px;
+  color: rgba(255, 247, 230, .88);
+  background: rgba(255, 255, 255, .08);
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.playlist-roulette-gate-wheel {
+  position: relative;
+  width: 86px;
+  height: 86px;
+  display: grid;
+  place-items: center;
+  margin: 0 auto 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 220, 150, .62);
+  background:
+    radial-gradient(circle at 50% 50%, rgba(13, 10, 9, .9) 0 17%, transparent 18%),
+    repeating-conic-gradient(from 10deg, rgba(255, 188, 83, .98) 0 22deg, rgba(255, 94, 112, .92) 22deg 44deg, rgba(76, 208, 185, .86) 44deg 66deg, rgba(75, 116, 255, .76) 66deg 88deg);
+  box-shadow: inset 0 0 0 7px rgba(20, 14, 10, .72), 0 18px 48px rgba(255, 138, 61, .2);
+}
+
+.playlist-roulette-gate-wheel::before {
+  content: "";
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-left: 9px solid transparent;
+  border-right: 9px solid transparent;
+  border-top: 16px solid #ffe0a2;
+}
+
+.playlist-roulette-gate-wheel span {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  border: 2px solid rgba(255, 241, 214, .78);
+  background: radial-gradient(circle at 38% 30%, #fff3cf, #ffb84d 45%, #8a3d16 100%);
+  box-shadow: 0 0 18px rgba(255, 184, 77, .34);
+}
+
+.playlist-roulette-gate h2 {
+  margin: 0 34px 10px;
+  color: #fff7e6;
+  font-size: clamp(1.55rem, 5vw, 2.05rem);
+  line-height: 1.08;
+}
+
+.playlist-roulette-gate p {
+  margin: 0;
+  color: rgba(255, 247, 230, .72);
+  font-size: .98rem;
+  line-height: 1.55;
+}
+
+.playlist-roulette-gate-actions {
+  display: grid;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.playlist-roulette-gate-actions .primary-button,
+.playlist-roulette-gate-actions .secondary-button,
+.playlist-roulette-gate-actions .text-button {
+  width: 100%;
+  min-height: 46px;
+  justify-content: center;
+}
+
+.playlist-roulette-gate-actions .text-button {
+  border: 0;
+  background: transparent;
+  color: rgba(255, 247, 230, .78);
 }
 
 .load-more-row {
@@ -14832,10 +14991,18 @@ span.playlist-active-chip {
     width: 100%;
   }
 
-  .playlist-roulette-dice {
+  .playlist-roulette-wheel {
     width: 58px;
     height: 58px;
-    border-radius: 18px;
+  }
+
+  .playlist-roulette-wheel::before {
+    inset: 8px;
+  }
+
+  .playlist-roulette-wheel-core {
+    width: 22px;
+    height: 22px;
   }
 
   .playlist-search-toolbar {
