@@ -6,7 +6,7 @@ import { PlaylistGrid } from "../components/PlaylistGrid";
 import { landingPosterSeeds } from "../data/landingPosterSeeds";
 import { searchDiscovery } from "../services/discoveryService";
 import { getRecommendations } from "../services/recommendationService";
-import type { CurrentUser, DiscoveryCollectionResult, DiscoveryHubLink, DiscoverySearchResults, MovieSearchResult, Playlist, PlaylistMovie } from "../types";
+import type { ActorSummary, CurrentUser, DiscoveryCollectionResult, DiscoveryHubLink, DiscoverySearchResults, MovieSearchResult, Playlist, PlaylistMovie } from "../types";
 
 interface PlaylistsProps {
   onNavigate: (path: string) => void;
@@ -23,7 +23,7 @@ interface PlaylistsProps {
 }
 
 type PlaylistView = "my" | "public";
-type SearchResultTab = "playlists" | "titles";
+type SearchResultTab = "playlists" | "titles" | "actors" | "genre";
 type SearchContentFilter = "both" | "movie" | "tv";
 type InlineDiscoveryStatus = "loading" | "ready" | "error";
 
@@ -59,6 +59,13 @@ const PLAYLIST_VISIBILITY_HELP: Record<Playlist["visibility"], string> = {
   shared: "Shared playlists stay hidden from public discovery. Invited collaborators can add, remove, and reorder titles.",
   public: "Public playlists can be discovered by anyone. Owner and invited collaborators can edit titles.",
 };
+
+const searchResultTabs: Array<{ id: SearchResultTab; label: string }> = [
+  { id: "playlists", label: "Playlists" },
+  { id: "titles", label: "Titles" },
+  { id: "actors", label: "Actors" },
+  { id: "genre", label: "Genre" },
+];
 
 const genreIdLabels: Record<number, string> = {
   12: "Adventure",
@@ -252,6 +259,13 @@ function discoveryLinkMatchesFilters(result: DiscoveryCollectionResult | Discove
   return terms.some((term) => haystack.includes(term));
 }
 
+function actorMatchesFilters(actor: ActorSummary, filters: PlaylistSearchFilters) {
+  const terms = filterTerms(filters);
+  if (!terms.length) return true;
+  const haystack = [actor.name, actor.knownForDepartment || "", ...(actor.knownFor || [])].map(normalizeSearchTerm).join(" ");
+  return terms.some((term) => haystack.includes(term));
+}
+
 function recognizedPersonContext(discoveryResults: DiscoverySearchResults, query: string) {
   const normalizedQuery = normalizeSearchTerm(query);
   if (!normalizedQuery || normalizedQuery.length < 3) return null;
@@ -423,6 +437,28 @@ function preferredAddTargets(playlists: Playlist[]) {
 
 function playlistPath(playlist: Playlist) {
   return playlist.visibility === "public" && playlist.publicSlug ? `/p/${playlist.publicSlug}` : `/playlists/${playlist.id}`;
+}
+
+function actorPath(actor: ActorSummary) {
+  return `/actors/${actor.tmdbId}`;
+}
+
+function playlistResultRank(playlist: Playlist) {
+  if (playlist.isOwner) return 0;
+  if (playlist.saved || playlist.clonedFromId) return 1;
+  if (playlist.isFollowing) return 2;
+  if (isDirectorPlaylist(playlist)) return 3;
+  return 4;
+}
+
+function sortedUniversalDiscoveryPlaylists(playlists: Playlist[]) {
+  return [...playlists].sort((a, b) => {
+    const rankDelta = playlistResultRank(a) - playlistResultRank(b);
+    if (rankDelta !== 0) return rankDelta;
+    const signalDelta = playlistSignalScore(b) - playlistSignalScore(a);
+    if (signalDelta !== 0) return signalDelta;
+    return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+  });
 }
 
 function sortedDiscoveryPlaylists(view: PlaylistView, playlists: Playlist[]) {
@@ -713,15 +749,22 @@ function UniversalPlaylistSearchResults({
   const savedTitleRows = titleRows.filter((row) => row.savedIn.length > 0);
   const mergedPlaylistMap = new Map<string, Playlist>();
   [...localPlaylistResults, ...discoveryResults.playlists].forEach((playlist) => mergedPlaylistMap.set(playlist.id, playlist));
-  const playlistRows = sortedDiscoveryPlaylists(view, [...mergedPlaylistMap.values()].filter((playlist) => playlistMatchesFilters(playlist, filters)));
+  const playlistRows = sortedUniversalDiscoveryPlaylists([...mergedPlaylistMap.values()].filter((playlist) => playlistMatchesFilters(playlist, filters)));
+  const yourRows = playlistRows.filter((playlist) => (playlist.isOwner || playlist.saved || playlist.clonedFromId) && !isDirectorPlaylist(playlist));
+  const followedRows = playlistRows.filter((playlist) => playlist.isFollowing && !playlist.isOwner && !isDirectorPlaylist(playlist));
   const directorRows = playlistRows.filter(isDirectorPlaylist);
-  const communityRows = playlistRows.filter((playlist) => !isDirectorPlaylist(playlist));
+  const publicRows = playlistRows.filter((playlist) => !playlist.isOwner && !playlist.saved && !playlist.clonedFromId && !playlist.isFollowing && !isDirectorPlaylist(playlist));
   const collectionRows = discoveryResults.collections.filter((collection) => discoveryLinkMatchesFilters(collection, filters));
   const hubRows = discoveryResults.hubs.filter((hub) => discoveryLinkMatchesFilters(hub, filters));
+  const actorRows = discoveryResults.actors.filter((actor) => actorMatchesFilters(actor, filters));
+  const genreRows = hubRows.filter((hub) => hub.kind === "genre");
+  const themeRows = hubRows.filter((hub) => hub.kind !== "genre");
   const recognizedPerson = recognizedPersonContext(discoveryResults, query);
   const hasPlaylistResults = playlistRows.length || collectionRows.length || hubRows.length;
   const hasTitleResults = titleRows.length;
-  const hasResults = hasPlaylistResults || hasTitleResults;
+  const hasActorResults = actorRows.length;
+  const hasGenreResults = genreRows.length || themeRows.length || collectionRows.length;
+  const hasResults = hasPlaylistResults || hasTitleResults || hasActorResults || hasGenreResults;
   const exactTitleFound = titleRows.some((row) => isExactTitleMatch(row.movie, query));
 
   useEffect(() => {
@@ -822,12 +865,18 @@ function UniversalPlaylistSearchResults({
     <div className="playlist-universal-results">
       <div className="playlist-search-toolbar">
         <div className="playlist-result-tabs" role="tablist" aria-label="Search result type">
-          <button className={`playlist-result-tab${activeTab === "playlists" ? " is-active" : ""}`} onClick={() => onActiveTabChange("playlists")} role="tab" type="button" aria-selected={activeTab === "playlists"}>
-            Playlists
-          </button>
-          <button className={`playlist-result-tab${activeTab === "titles" ? " is-active" : ""}`} onClick={() => onActiveTabChange("titles")} role="tab" type="button" aria-selected={activeTab === "titles"}>
-            Titles
-          </button>
+          {searchResultTabs.map((tab) => (
+            <button
+              aria-selected={activeTab === tab.id}
+              className={`playlist-result-tab${activeTab === tab.id ? " is-active" : ""}`}
+              key={tab.id}
+              onClick={() => onActiveTabChange(tab.id)}
+              role="tab"
+              type="button"
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
         <button className={`playlist-filter-toggle${isFilterOpen ? " is-active" : ""}`} onClick={() => onFilterOpenChange(!isFilterOpen)} type="button">
           Filter
@@ -902,16 +951,51 @@ function UniversalPlaylistSearchResults({
     );
   }
 
+  if (activeTab === "actors") {
+    return renderSearchShell(
+      <section className="discovery-section">
+        <div className="discovery-section-heading"><h2>Actors</h2></div>
+        {actorRows.length ? (
+          <div className="playlist-actor-result-grid">
+            {actorRows.slice(0, 18).map((actor) => (
+              <button className="playlist-actor-result-card" key={actor.tmdbId} onClick={() => onNavigate(actorPath(actor))} type="button">
+                {actor.profileUrl ? <img alt="" src={actor.profileUrl} loading="lazy" decoding="async" /> : <span aria-hidden="true">{actor.name.slice(0, 1)}</span>}
+                <strong>{actor.name}</strong>
+                <small>{actor.knownForDepartment || "Actor"}</small>
+                {actor.knownFor?.length ? <em>{actor.knownFor.slice(0, 3).join(", ")}</em> : null}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <p className="playlist-universal-empty">No actor matches for this search yet.</p>
+        )}
+      </section>,
+    );
+  }
+
+  if (activeTab === "genre") {
+    return renderSearchShell(
+      <section className="discovery-section">
+        <div className="discovery-section-heading"><h2>Genres & Themes</h2></div>
+        {hasGenreResults ? (
+          <div className="playlist-universal-link-grid">
+            {genreRows.map((hub: DiscoveryHubLink) => <CompactDiscoveryLink key={`${hub.kind}-${hub.key}`} title={hub.title} meta="Genre" description={hub.description} onClick={() => onNavigate(hub.path)} />)}
+            {themeRows.map((hub: DiscoveryHubLink) => <CompactDiscoveryLink key={`${hub.kind}-${hub.key}`} title={hub.title} meta={hub.kind === "decade" ? "Era" : "Theme"} description={hub.description} onClick={() => onNavigate(hub.path)} />)}
+            {collectionRows.map((collection) => <CompactDiscoveryLink key={collection.slug} title={collection.title} meta="Collection" description={collection.overview || `${collection.titleCount} titles`} onClick={() => onNavigate(`/collection/${collection.slug}`)} />)}
+          </div>
+        ) : (
+          <p className="playlist-universal-empty">No genre or theme matches for this search yet.</p>
+        )}
+      </section>,
+    );
+  }
+
   return renderSearchShell(
     <>
-      {view === "public" ? (
-        <>
-          <DiscoveryShelf title="Playlists" playlists={communityRows} onNavigate={onNavigate} emptyMessage="No public playlists matched." />
-          <DiscoveryShelf title="Director's Cut" playlists={directorRows} onNavigate={onNavigate} emptyMessage="No curated collections matched." />
-        </>
-      ) : (
-        <DiscoveryShelf title="Playlist Matches" playlists={playlistRows} onNavigate={onNavigate} emptyMessage="No matching playlists yet." />
-      )}
+      <DiscoveryShelf title="Your Playlists" playlists={yourRows} onNavigate={onNavigate} emptyMessage="No saved playlist matches yet." />
+      <DiscoveryShelf title="Followed Playlists" playlists={followedRows} onNavigate={onNavigate} emptyMessage="No followed playlist matches yet." />
+      <DiscoveryShelf title="Director's Cut" playlists={directorRows} onNavigate={onNavigate} emptyMessage="No curated collections matched." />
+      <DiscoveryShelf title="Public Playlists" playlists={publicRows} onNavigate={onNavigate} emptyMessage="No public playlists matched." />
       {(collectionRows.length || hubRows.length) ? (
         <section className="discovery-section">
           <div className="discovery-section-heading"><h2>Collections & Themes</h2></div>
@@ -1109,6 +1193,21 @@ export function Playlists({
       });
   }, [query, sourcePlaylists, view]);
 
+  const universalPlaylistResults = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+    if (!normalizedQuery) return [];
+    return decorateSearchResults(
+      playlists.filter((playlist) => !playlist.isSystem && !isTemporaryVerificationPlaylist(playlist) && playlistMatchesQuery(playlist, normalizedQuery)),
+      normalizedQuery,
+    ).sort((a, b) => {
+      const rankDelta = playlistResultRank(a) - playlistResultRank(b);
+      if (rankDelta !== 0) return rankDelta;
+      const scoreDelta = scorePlaylistSearch(a, normalizedQuery) - scorePlaylistSearch(b, normalizedQuery);
+      if (scoreDelta !== 0) return scoreDelta;
+      return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+    });
+  }, [playlists, query]);
+
   const visiblePagePlaylists = visiblePlaylists.slice(0, visibleCount);
   const hasMorePlaylists = visiblePlaylists.length > visibleCount;
   const isLoadingPlaylists = playlistLoadStatus === "loading";
@@ -1145,7 +1244,7 @@ export function Playlists({
   }
 
   const ownedPreview = ownedPlaylists.slice(0, visibleCount);
-  const universalResultCount = visiblePlaylists.length + discoveryResults.titles.length + discoveryResults.playlists.length + discoveryResults.collections.length + discoveryResults.hubs.length;
+  const universalResultCount = universalPlaylistResults.length + discoveryResults.titles.length + discoveryResults.playlists.length + discoveryResults.collections.length + discoveryResults.hubs.length + discoveryResults.actors.length;
   const searchStatusLabel = normalizedQuery
     ? universalResultCount > 0 || discoveryStatus === "loading"
       ? discoveryStatus === "loading"
@@ -1208,19 +1307,20 @@ export function Playlists({
         </div>
       </section>
 
+      <button className="playlist-roulette-hero-card" onClick={() => onOpenRoulette?.(sourcePlaylists)} type="button">
+        <span className="playlist-roulette-dice" aria-hidden="true">🎲</span>
+        <span className="playlist-roulette-hero-copy">
+          <strong>What Are We Watching Tonight?</strong>
+          <small>Can&apos;t decide?</small>
+          <small>Let Flim pick for you.</small>
+        </span>
+        <span className="playlist-roulette-spin-label">SPIN</span>
+      </button>
+
       {view === "my" ? (
         <div className="playlist-page-actions">
           <button className="primary-button" onClick={requestCreatePlaylist} type="button">
             {!currentUser ? "Create Account" : showCreate ? "Close" : "Create Playlist"}
-          </button>
-          <button className="roulette-action-button" onClick={() => onOpenRoulette?.(sourcePlaylists)} type="button">
-            <span className="roulette-action-icon" aria-hidden="true">
-              <span />
-            </span>
-            <span>
-              <strong>What Are We Watching Tonight?</strong>
-              <small>Spin your saved titles</small>
-            </span>
           </button>
         </div>
       ) : null}
@@ -1271,7 +1371,7 @@ export function Playlists({
           discoveryResults={discoveryResults}
           filters={searchFilters}
           isFilterOpen={isFilterOpen}
-          localPlaylistResults={visiblePlaylists}
+          localPlaylistResults={universalPlaylistResults}
           onActiveTabChange={setSearchTab}
           onCreatePlaylist={onCreatePlaylist}
           onFiltersChange={setSearchFilters}
