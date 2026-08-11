@@ -668,39 +668,96 @@ function ScoreboardSheet({
   );
 }
 
+type BacklotControllerInput = "up" | "down" | "left" | "right" | "b" | "a";
+
+const BACKLOT_SECRET_SEQUENCE: BacklotControllerInput[] = ["up", "up", "down", "down", "left", "right", "left", "right", "b", "a"];
+const BACKLOT_SEQUENCE_TIMEOUT_MS = 10000;
+
+function nextBacklotSequenceProgress(current: BacklotControllerInput[], input: BacklotControllerInput) {
+  const attempt = [...current, input].slice(-BACKLOT_SECRET_SEQUENCE.length);
+  for (let length = Math.min(attempt.length, BACKLOT_SECRET_SEQUENCE.length); length > 0; length -= 1) {
+    const suffix = attempt.slice(attempt.length - length);
+    const prefix = BACKLOT_SECRET_SEQUENCE.slice(0, length);
+    if (suffix.every((value, index) => value === prefix[index])) return suffix;
+  }
+  return [];
+}
+
 function BacklotArcadeSection({ onNavigate }: { onNavigate: (path: string) => void }) {
   const [boothOpen, setBoothOpen] = useState(false);
-  const [holdProgress, setHoldProgress] = useState(0);
-  const holdTimer = useRef<number | null>(null);
-  const holdStartedAt = useRef(0);
+  const [sequenceProgress, setSequenceProgress] = useState<BacklotControllerInput[]>([]);
+  const [lastPressed, setLastPressed] = useState<BacklotControllerInput | null>(null);
+  const [accessGranted, setAccessGranted] = useState(false);
+  const sequenceTimer = useRef<number | null>(null);
+  const grantedTimer = useRef<number | null>(null);
   const accessAllowed = isProjectionBoothHostAllowed();
 
-  function cancelHold() {
-    if (holdTimer.current) window.clearInterval(holdTimer.current);
-    holdTimer.current = null;
-    holdStartedAt.current = 0;
-    setHoldProgress(0);
+  function clearSequenceTimer() {
+    if (sequenceTimer.current) window.clearTimeout(sequenceTimer.current);
+    sequenceTimer.current = null;
+  }
+
+  function resetSequence() {
+    clearSequenceTimer();
+    setSequenceProgress([]);
   }
 
   function openBooth() {
-    cancelHold();
     if (!accessAllowed) return;
     window.navigator.vibrate?.(35);
+    setAccessGranted(true);
+    setSequenceProgress([]);
+    if (grantedTimer.current) window.clearTimeout(grantedTimer.current);
+    grantedTimer.current = window.setTimeout(() => setAccessGranted(false), 1200);
     setBoothOpen(true);
   }
 
-  function startHold() {
+  function pressController(input: BacklotControllerInput) {
+    setLastPressed(input);
+    window.setTimeout(() => setLastPressed((current) => (current === input ? null : current)), 180);
     if (!accessAllowed) return;
-    cancelHold();
-    holdStartedAt.current = Date.now();
-    holdTimer.current = window.setInterval(() => {
-      const progress = Math.min(1, (Date.now() - holdStartedAt.current) / 5000);
-      setHoldProgress(progress);
-      if (progress >= 1) openBooth();
-    }, 50);
+    window.navigator.vibrate?.(12);
+    setSequenceProgress((current) => {
+      const next = nextBacklotSequenceProgress(current, input);
+      clearSequenceTimer();
+      if (next.length === BACKLOT_SECRET_SEQUENCE.length) {
+        window.setTimeout(openBooth, 120);
+        return [];
+      }
+      if (next.length) {
+        sequenceTimer.current = window.setTimeout(resetSequence, BACKLOT_SEQUENCE_TIMEOUT_MS);
+      }
+      return next;
+    });
   }
 
-  useEffect(() => () => cancelHold(), []);
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      const target = event.target as HTMLElement | null;
+      if (target && ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName)) return;
+      const keyMap: Record<string, BacklotControllerInput> = {
+        ArrowUp: "up",
+        ArrowDown: "down",
+        ArrowLeft: "left",
+        ArrowRight: "right",
+        b: "b",
+        B: "b",
+        a: "a",
+        A: "a",
+      };
+      const input = keyMap[event.key];
+      if (!input) return;
+      event.preventDefault();
+      pressController(input);
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [accessAllowed]);
+
+  useEffect(() => () => {
+    clearSequenceTimer();
+    if (grantedTimer.current) window.clearTimeout(grantedTimer.current);
+  }, []);
 
   return (
     <section className="title-games-section backlot-arcade-section">
@@ -708,20 +765,28 @@ function BacklotArcadeSection({ onNavigate }: { onNavigate: (path: string) => vo
         <h2>Backlot Arcade</h2>
         <p>Hidden games. Secret discoveries. Movie magic.</p>
       </div>
-      <button
-        aria-label={accessAllowed ? "Press and hold Backlot Arcade logo for 5 seconds" : "Backlot Arcade"}
-        className="backlot-logo-button"
-        onPointerCancel={cancelHold}
-        onPointerDown={startHold}
-        onPointerLeave={cancelHold}
-        onPointerUp={cancelHold}
-        style={{ "--backlot-hold-progress": `${holdProgress * 360}deg` } as CSSProperties}
-        type="button"
-      >
-        <span className="backlot-hold-ring" aria-hidden="true" />
-        <img alt="" className="backlot-logo-mark" src="/brand/flim-icon-mark-source.png" />
-        <span>Projection Booth</span>
-      </button>
+      <div className={`backlot-controller${accessGranted ? " is-access-granted" : ""}`} aria-label="Backlot Arcade controller">
+        <div className="backlot-controller-brand">
+          <span>Backlot</span>
+          <small>{accessGranted ? "Access granted" : "Arcade"}</small>
+        </div>
+        <div className="backlot-dpad" aria-label="Backlot controller directional pad">
+          <button aria-label="Backlot controller Up" className={`backlot-pad-button is-up${lastPressed === "up" ? " is-pressed" : ""}`} onClick={() => pressController("up")} type="button" />
+          <button aria-label="Backlot controller Left" className={`backlot-pad-button is-left${lastPressed === "left" ? " is-pressed" : ""}`} onClick={() => pressController("left")} type="button" />
+          <span className="backlot-pad-center" aria-hidden="true" />
+          <button aria-label="Backlot controller Right" className={`backlot-pad-button is-right${lastPressed === "right" ? " is-pressed" : ""}`} onClick={() => pressController("right")} type="button" />
+          <button aria-label="Backlot controller Down" className={`backlot-pad-button is-down${lastPressed === "down" ? " is-pressed" : ""}`} onClick={() => pressController("down")} type="button" />
+        </div>
+        <div className="backlot-action-buttons" aria-label="Backlot controller action buttons">
+          <button aria-label="Backlot controller B" className={`backlot-action-button${lastPressed === "b" ? " is-pressed" : ""}`} onClick={() => pressController("b")} type="button">B</button>
+          <button aria-label="Backlot controller A" className={`backlot-action-button is-primary${lastPressed === "a" ? " is-pressed" : ""}`} onClick={() => pressController("a")} type="button">A</button>
+        </div>
+        <div className="backlot-sequence-lights" aria-hidden="true">
+          {BACKLOT_SECRET_SEQUENCE.map((_, index) => (
+            <span className={index < sequenceProgress.length ? "is-lit" : ""} key={index} />
+          ))}
+        </div>
+      </div>
       {boothOpen ? <ProjectionBoothModal onClose={() => setBoothOpen(false)} onNavigate={onNavigate} /> : null}
     </section>
   );

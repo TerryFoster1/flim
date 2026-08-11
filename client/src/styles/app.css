@@ -14345,7 +14345,7 @@ textarea { min-height: 42px; resize: vertical; }
 
 .backlot-arcade-section {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 420px);
   align-items: center;
   gap: 18px;
   padding: 22px;
@@ -14369,49 +14369,266 @@ textarea { min-height: 42px; resize: vertical; }
   font-weight: 700;
 }
 
-.backlot-logo-button {
-  --backlot-hold-progress: 0deg;
-  appearance: none;
+.backlot-controller {
   position: relative;
   display: grid;
-  place-items: center;
-  gap: 6px;
-  min-width: 128px;
-  min-height: 128px;
-  padding: 14px;
+  grid-template-columns: 1fr 0.9fr;
+  grid-template-areas:
+    "brand brand"
+    "dpad actions"
+    "lights lights";
+  align-items: center;
+  gap: 14px 22px;
+  min-height: 176px;
+  padding: 18px 20px 16px;
   border: 1px solid rgba(239, 191, 116, 0.34);
-  border-radius: 26px;
+  border-radius: 34px 34px 42px 42px;
   color: #ffe0a3;
   background:
-    linear-gradient(#101015, #101015) padding-box,
-    conic-gradient(from -90deg, rgba(255, 190, 70, 0.95) var(--backlot-hold-progress), rgba(239, 191, 116, 0.18) 0deg) border-box;
-  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.08);
-  cursor: pointer;
+    radial-gradient(circle at 82% 18%, rgba(255, 194, 79, 0.18), transparent 32%),
+    linear-gradient(145deg, rgba(19, 19, 23, 0.98), rgba(5, 5, 8, 0.96));
+  box-shadow:
+    0 18px 42px rgba(0, 0, 0, 0.38),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -18px 36px rgba(0, 0, 0, 0.34);
+  overflow: hidden;
+  isolation: isolate;
 }
 
-.backlot-logo-button span:last-child {
-  position: relative;
-  z-index: 1;
-  font-size: 0.76rem;
-  font-weight: 900;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.backlot-hold-ring {
+.backlot-controller::before,
+.backlot-controller::after {
+  content: "";
   position: absolute;
-  inset: -2px;
-  border-radius: 28px;
+  z-index: -1;
+  border-radius: 999px;
   pointer-events: none;
 }
 
-.backlot-logo-mark {
+.backlot-controller::before {
+  width: 120px;
+  height: 120px;
+  left: -38px;
+  bottom: -42px;
+  background: rgba(239, 191, 116, 0.08);
+}
+
+.backlot-controller::after {
+  width: 96px;
+  height: 96px;
+  right: -30px;
+  top: -30px;
+  background: rgba(255, 114, 74, 0.1);
+}
+
+.backlot-controller.is-access-granted {
+  border-color: rgba(255, 205, 103, 0.74);
+  box-shadow:
+    0 20px 58px rgba(255, 176, 58, 0.18),
+    0 18px 42px rgba(0, 0, 0, 0.38),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.backlot-controller-brand {
+  grid-area: brand;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(239, 191, 116, 0.14);
+}
+
+.backlot-controller-brand span {
+  color: #ffd27b;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.3rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-shadow: 0 0 18px rgba(255, 186, 68, 0.14);
+}
+
+.backlot-controller.is-access-granted .backlot-controller-brand span {
+  text-shadow: 0 0 24px rgba(255, 205, 103, 0.64);
+}
+
+.backlot-controller-brand small {
+  color: rgba(255, 246, 225, 0.62);
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.backlot-dpad {
+  grid-area: dpad;
+  display: grid;
+  grid-template-columns: repeat(3, 48px);
+  grid-template-rows: repeat(3, 48px);
+  justify-content: center;
+  align-content: center;
+}
+
+.backlot-pad-button,
+.backlot-action-button {
+  appearance: none;
+  border: 1px solid rgba(239, 191, 116, 0.28);
+  color: #ffdd9a;
+  background:
+    linear-gradient(145deg, rgba(43, 43, 48, 0.98), rgba(10, 10, 13, 0.98));
+  box-shadow:
+    0 10px 22px rgba(0, 0, 0, 0.42),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 140ms ease, border-color 140ms ease, box-shadow 140ms ease, background 140ms ease;
+}
+
+.backlot-pad-button:hover,
+.backlot-pad-button:focus-visible,
+.backlot-action-button:hover,
+.backlot-action-button:focus-visible {
+  border-color: rgba(255, 204, 112, 0.68);
+  box-shadow:
+    0 12px 26px rgba(0, 0, 0, 0.46),
+    0 0 0 3px rgba(255, 190, 70, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  outline: none;
+}
+
+.backlot-pad-button.is-pressed,
+.backlot-action-button.is-pressed,
+.backlot-pad-button:active,
+.backlot-action-button:active {
+  transform: translateY(2px) scale(0.97);
+  border-color: rgba(255, 211, 128, 0.9);
+  background:
+    linear-gradient(145deg, rgba(91, 64, 28, 0.98), rgba(18, 16, 14, 0.98));
+}
+
+.backlot-pad-button {
   position: relative;
-  z-index: 1;
-  width: 82px;
-  height: 82px;
-  object-fit: contain;
-  filter: drop-shadow(0 10px 20px rgba(255, 178, 48, 0.24));
+  min-width: 48px;
+  min-height: 48px;
+}
+
+.backlot-pad-button::before {
+  content: "";
+  position: absolute;
+  inset: 50% auto auto 50%;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  transform: translate(-50%, -50%);
+}
+
+.backlot-pad-button.is-up {
+  grid-column: 2;
+  grid-row: 1;
+  border-radius: 10px 10px 4px 4px;
+}
+
+.backlot-pad-button.is-up::before {
+  border-width: 0 8px 12px;
+  border-color: transparent transparent #f7ce84;
+}
+
+.backlot-pad-button.is-left {
+  grid-column: 1;
+  grid-row: 2;
+  border-radius: 10px 4px 4px 10px;
+}
+
+.backlot-pad-button.is-left::before {
+  border-width: 8px 12px 8px 0;
+  border-color: transparent #f7ce84 transparent transparent;
+}
+
+.backlot-pad-button.is-right {
+  grid-column: 3;
+  grid-row: 2;
+  border-radius: 4px 10px 10px 4px;
+}
+
+.backlot-pad-button.is-right::before {
+  border-width: 8px 0 8px 12px;
+  border-color: transparent transparent transparent #f7ce84;
+}
+
+.backlot-pad-button.is-down {
+  grid-column: 2;
+  grid-row: 3;
+  border-radius: 4px 4px 10px 10px;
+}
+
+.backlot-pad-button.is-down::before {
+  border-width: 12px 8px 0;
+  border-color: #f7ce84 transparent transparent;
+}
+
+.backlot-pad-center {
+  grid-column: 2;
+  grid-row: 2;
+  min-width: 48px;
+  min-height: 48px;
+  background:
+    radial-gradient(circle, rgba(255, 213, 129, 0.18), transparent 32%),
+    linear-gradient(145deg, rgba(33, 33, 37, 0.98), rgba(9, 9, 12, 0.98));
+  border: 1px solid rgba(239, 191, 116, 0.18);
+}
+
+.backlot-action-buttons {
+  grid-area: actions;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 14px;
+  transform: rotate(-10deg);
+}
+
+.backlot-action-button {
+  width: 58px;
+  height: 58px;
+  border-radius: 999px;
+  color: #fff0cb;
+  font-size: 1rem;
+  font-weight: 1000;
+  letter-spacing: 0.08em;
+}
+
+.backlot-action-button.is-primary {
+  transform: translateY(-8px);
+  background:
+    radial-gradient(circle at 35% 25%, rgba(255, 255, 255, 0.22), transparent 25%),
+    linear-gradient(145deg, rgba(116, 72, 28, 0.98), rgba(27, 18, 11, 0.98));
+}
+
+.backlot-action-button.is-primary.is-pressed,
+.backlot-action-button.is-primary:active {
+  transform: translateY(-6px) scale(0.97);
+}
+
+.backlot-sequence-lights {
+  grid-area: lights;
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  padding-top: 2px;
+}
+
+.backlot-sequence-lights span {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: rgba(255, 246, 225, 0.18);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.backlot-sequence-lights span.is-lit {
+  background: #ffd16f;
+  box-shadow: 0 0 14px rgba(255, 201, 101, 0.56);
 }
 
 .projection-booth-overlay,
@@ -14666,9 +14883,36 @@ textarea { min-height: 42px; resize: vertical; }
     padding: 18px;
   }
 
-  .backlot-logo-button {
+  .backlot-controller {
     width: 100%;
-    min-height: 116px;
+    min-height: 168px;
+    grid-template-columns: minmax(0, 1fr) minmax(104px, 0.82fr);
+    gap: 12px;
+    padding: 16px;
+  }
+
+  .backlot-controller-brand span {
+    font-size: 1.08rem;
+  }
+
+  .backlot-dpad {
+    grid-template-columns: repeat(3, 44px);
+    grid-template-rows: repeat(3, 44px);
+  }
+
+  .backlot-pad-button,
+  .backlot-pad-center {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .backlot-action-buttons {
+    gap: 10px;
+  }
+
+  .backlot-action-button {
+    width: 52px;
+    height: 52px;
   }
 
   .backlot-lab-grid,
