@@ -10851,6 +10851,7 @@ textarea { min-height: 42px; resize: vertical; }
   display: grid;
   place-items: center;
   flex: 0 0 auto;
+  padding: 8px;
   border-radius: 18px;
   border: 1px solid rgba(255, 220, 150, .28);
   background:
@@ -10864,9 +10865,8 @@ textarea { min-height: 42px; resize: vertical; }
 .playlist-roulette-mark img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  object-position: left center;
-  transform: scale(1.24);
+  object-fit: contain;
+  object-position: center;
   filter: saturate(1.08) contrast(1.05) drop-shadow(0 12px 20px rgba(255, 184, 77, .2));
 }
 
@@ -10957,6 +10957,7 @@ textarea { min-height: 42px; resize: vertical; }
   display: grid;
   place-items: center;
   margin: 0 auto 18px;
+  padding: 10px;
   border-radius: 20px;
   border: 1px solid rgba(255, 220, 150, .28);
   background:
@@ -10969,9 +10970,8 @@ textarea { min-height: 42px; resize: vertical; }
 .playlist-roulette-gate-mark img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  object-position: left center;
-  transform: scale(1.22);
+  object-fit: contain;
+  object-position: center;
   filter: saturate(1.08) contrast(1.05) drop-shadow(0 12px 20px rgba(255, 184, 77, .2));
 }
 

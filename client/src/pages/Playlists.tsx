@@ -1377,7 +1377,7 @@ export function Playlists({
       {view === "my" ? (
         <div className="playlist-page-actions">
           <button className="primary-button" onClick={requestCreatePlaylist} type="button">
-            {!currentUser ? "Create Account" : showCreate ? "Close" : "Create Playlist"}
+            {!currentUser ? "Create Free Account" : showCreate ? "Close" : "Create Playlist"}
           </button>
         </div>
       ) : null}
@@ -1551,7 +1551,7 @@ export function Playlists({
           <div>
             <h2>Create Your First Playlist</h2>
             <button className="primary-button" onClick={requestCreatePlaylist} type="button">
-              {currentUser ? "Create Playlist" : "Create Account"}
+              {currentUser ? "Create Playlist" : "Create Free Account"}
             </button>
           </div>
         </div>
