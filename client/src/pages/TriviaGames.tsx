@@ -798,6 +798,13 @@ function ProjectionBoothModal({ onClose, onNavigate }: { onClose: () => void; on
   const [message, setMessage] = useState("");
   const sheetRef = useRef<HTMLElement | null>(null);
 
+  function backlotActionMessage(error: Error, fallback: string) {
+    if (/sign in/i.test(error.message)) {
+      return "Requires staging sign-in for server-backed test actions. You can still launch the game route from this lab.";
+    }
+    return error.message || fallback;
+  }
+
   function refreshState() {
     setStatus("loading");
     setMessage("");
@@ -805,10 +812,11 @@ function ProjectionBoothModal({ onClose, onNavigate }: { onClose: () => void; on
       .then((state) => {
         setGames(state.games);
         setStatus("ready");
+        setMessage(state.message || "");
       })
       .catch((error: Error) => {
         setStatus("error");
-        setMessage(error.message || "Projection Booth is unavailable.");
+        setMessage(backlotActionMessage(error, "Projection Booth is unavailable."));
       });
   }
 
@@ -858,14 +866,12 @@ function ProjectionBoothModal({ onClose, onNavigate }: { onClose: () => void; on
         setStatus("ready");
         setMessage("Discovery simulated.");
       })
-      .catch((error: Error) => setMessage(error.message || "Discovery could not be simulated."));
+      .catch((error: Error) => setMessage(backlotActionMessage(error, "Discovery could not be simulated.")));
   }
 
   function launch(game: BacklotLabGame) {
     setMessage(`Opening ${game.title}...`);
-    simulateBacklotDiscovery(game.id)
-      .then(() => onNavigate(game.route))
-      .catch((error: Error) => setMessage(error.message || "Backlot game could not be launched."));
+    onNavigate(game.route);
   }
 
   function reset() {
@@ -876,7 +882,7 @@ function ProjectionBoothModal({ onClose, onNavigate }: { onClose: () => void; on
         setStatus("ready");
         setMessage("Discoveries reset for this staging account.");
       })
-      .catch((error: Error) => setMessage(error.message || "Discoveries could not be reset."));
+      .catch((error: Error) => setMessage(backlotActionMessage(error, "Discoveries could not be reset.")));
   }
 
   return (
@@ -914,6 +920,7 @@ function ProjectionBoothModal({ onClose, onNavigate }: { onClose: () => void; on
                       <div><dt>Unlocked</dt><dd>{game.unlocked ? "Yes" : "No"}</dd></div>
                       <div><dt>Last session</dt><dd>{game.lastSessionAt ? new Date(game.lastSessionAt).toLocaleDateString() : "None"}</dd></div>
                       <div><dt>Personal best</dt><dd>{game.personalBest ? game.personalBest.toLocaleString() : "None"}</dd></div>
+                      {game.actionStatus ? <div><dt>Server tools</dt><dd>{game.actionStatus}</dd></div> : null}
                     </dl>
                     <div className="backlot-lab-actions">
                       <button className="primary-button" onClick={() => launch(game)} type="button">Launch</button>

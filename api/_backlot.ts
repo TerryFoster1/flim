@@ -1,4 +1,4 @@
-import { checkRateLimit, ensureAuthTables, ensurePgCrypto, getCurrentUser } from "./_db.js";
+import { checkRateLimit, ensureAuthTables, ensurePgCrypto, getCookie, getCurrentUser } from "./_db.js";
 import { ValidationError, cleanInteger, cleanText } from "./_security.js";
 
 export type BacklotGameId = "relic-run-lost-chapter" | "triceratops-backlot-runner";
@@ -144,6 +144,27 @@ export function visibleBacklotGame(gameId: string) {
 
 function testLabUnavailable() {
   return { status: 404, body: { error: "Backlot route not found." } };
+}
+
+function mapRegisteredBacklotLabGame(game: BacklotGameRegistration) {
+  return {
+    id: game.id,
+    title: game.title,
+    description: game.description,
+    route: game.route,
+    difficulty: game.difficulty,
+    estimatedPlayTimeMinutes: game.estimatedPlayTimeMinutes,
+    genre: game.genre,
+    discovered: false,
+    unlocked: false,
+    discoveredAt: null,
+    unlockedAt: null,
+    lastSessionAt: null,
+    personalBest: 0,
+    launchCount: 0,
+    totalPlayTimeMs: 0,
+    actionStatus: "Requires staging sign-in for server-backed test actions",
+  };
 }
 
 export function validateBacklotDiscovery(body: any) {
@@ -384,10 +405,22 @@ export async function getBacklotState(sql: any, request: any) {
 
 export async function getBacklotTestLabState(sql: any, request: any) {
   if (!isBacklotTestAccessAllowed()) return testLabUnavailable();
-  await ensureBacklotTables(sql);
-  const user = await getCurrentUser(sql, request);
-  if (!user) return { status: 401, body: { error: "Sign in to open Projection Booth." } };
+  const hasSessionCookie = Boolean(getCookie(request, "flim_session"));
+  const user = hasSessionCookie ? await getCurrentUser(sql, request) : null;
+  if (!user) {
+    return {
+      status: 200,
+      body: {
+        ok: true,
+        environment: "staging",
+        serverSession: false,
+        message: "Projection Booth is open. Sign in on staging to use server-backed discovery, reset, and history actions.",
+        games: backlotGames.map(mapRegisteredBacklotLabGame),
+      },
+    };
+  }
 
+  await ensureBacklotTables(sql);
   await checkRateLimit(sql, request, "backlot:test-lab", user.id, 120, 60 * 60);
   const gameIds = backlotGames.map((game) => game.id);
   const rows = await sql`

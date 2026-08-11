@@ -14635,16 +14635,19 @@ textarea { min-height: 42px; resize: vertical; }
 .projection-booth-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 80;
 }
 
 .projection-booth-overlay {
+  z-index: 10020;
   display: grid;
   place-items: center;
   padding: 18px;
+  isolation: isolate;
+  overflow-y: auto;
 }
 
 .projection-booth-backdrop {
+  z-index: 0;
   border: 0;
   background:
     radial-gradient(circle at 50% 24%, rgba(238, 172, 73, 0.2), transparent 34%),
@@ -14654,13 +14657,14 @@ textarea { min-height: 42px; resize: vertical; }
 
 .projection-booth-sheet {
   position: relative;
-  z-index: 1;
-  width: min(940px, 100%);
-  max-height: min(86vh, 900px);
+  z-index: 2;
+  width: min(940px, calc(100vw - 28px));
+  max-height: min(calc(100dvh - 28px), 900px);
   overflow: auto;
   border: 1px solid rgba(239, 191, 116, 0.28);
   border-radius: 28px;
   padding: 22px;
+  color: #fff2d5;
   background:
     linear-gradient(135deg, rgba(12, 12, 16, 0.98), rgba(29, 21, 15, 0.96)),
     #0b0b0f;
@@ -14775,6 +14779,16 @@ textarea { min-height: 42px; resize: vertical; }
   color: #ffe3a5;
   font-weight: 900;
   text-align: right;
+}
+
+.projection-booth-sheet .empty-state,
+.projection-booth-sheet .secondary-button,
+.projection-booth-sheet .primary-button {
+  opacity: 1;
+}
+
+.projection-booth-sheet .empty-state {
+  color: rgba(255, 246, 225, 0.78);
 }
 
 .backlot-lab-actions,
@@ -14929,8 +14943,15 @@ textarea { min-height: 42px; resize: vertical; }
   }
 
   .projection-booth-sheet {
-    padding: 18px;
-    border-radius: 22px;
+    width: calc(100vw - 20px);
+    padding: 16px;
+    border-radius: 20px;
+  }
+
+  .projection-booth-header,
+  .backlot-test-lab-heading {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .backlot-game-art {
@@ -14939,6 +14960,30 @@ textarea { min-height: 42px; resize: vertical; }
 
   .backlot-game-meters {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 430px) {
+  .projection-booth-overlay {
+    padding: 10px;
+  }
+
+  .backlot-lab-card {
+    grid-template-columns: 1fr;
+  }
+
+  .backlot-lab-art {
+    min-height: 140px;
+  }
+
+  .backlot-lab-card dl div {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .backlot-lab-card dd {
+    text-align: left;
   }
 }
 

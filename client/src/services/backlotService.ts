@@ -14,11 +14,14 @@ export type BacklotLabGame = {
   personalBest: number;
   launchCount: number;
   totalPlayTimeMs: number;
+  actionStatus?: string;
 };
 
 export type BacklotLabState = {
   ok: boolean;
   environment: string;
+  serverSession?: boolean;
+  message?: string;
   games: BacklotLabGame[];
 };
 
