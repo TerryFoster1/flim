@@ -21,6 +21,7 @@ import { CollectionDetailsPage } from "./pages/CollectionDetails";
 import { FriendChallenge } from "./pages/FriendChallenge";
 import { TriviaGames } from "./pages/TriviaGames";
 import MovieReveal from "./pages/MovieReveal";
+import { BacklotGame } from "./pages/BacklotGame";
 import { HallOfFame } from "./pages/HallOfFame";
 import { Progress } from "./pages/Progress";
 import { SeasonalChallenges } from "./pages/SeasonalChallenges";
@@ -89,6 +90,8 @@ function routeFromPath(path = window.location.pathname): RouteState {
     };
   }
   if (pathname.startsWith("/challenge/")) return { route: "/challenge/:token", challengeToken: pathname.split("/")[2] };
+  if (pathname === "/games/relic-run") return { route: "/games/relic-run" };
+  if (pathname === "/games/triceratops") return { route: "/games/triceratops" };
   if (pathname === "/games" || pathname === "/trivia-games") return { route: "/games" };
   if (pathname === "/arcade/poster-guess") return { route: "/arcade/poster-guess" };
   if (pathname === "/challenges") return { route: "/challenges" };
@@ -516,6 +519,8 @@ export default function App() {
     "/decade/:id": <DiscoveryHub kind="decade" hubId={routeState.discoveryId || ""} onNavigate={navigate} />,
     "/franchise/:id": <DiscoveryHub kind="franchise" hubId={routeState.discoveryId || ""} onNavigate={navigate} />,
     "/games": <TriviaGames onNavigate={navigate} />,
+    "/games/relic-run": <BacklotGame gameId="relic-run-lost-chapter" onNavigate={navigate} />,
+    "/games/triceratops": <BacklotGame gameId="triceratops-backlot-runner" onNavigate={navigate} />,
     "/arcade/poster-guess": <MovieReveal onNavigate={navigate} />,
     "/games/title/:mediaType/:tmdbId": <TriviaGames mediaType={routeState.gamesMediaType || "movie"} tmdbId={Number(routeState.gamesTmdbId)} returnTo={routeState.returnTo} onNavigate={navigate} />,
     "/challenge/:token": <FriendChallenge token={routeState.challengeToken || ""} onNavigate={navigate} />,

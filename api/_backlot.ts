@@ -114,6 +114,18 @@ const discoveryRules: DiscoveryRule[] = [
 
 const validEventTypes = new Set<BacklotEventType>(["launch", "pause", "resume", "game_over", "score", "achievement"]);
 
+export function isBacklotTestAccessAllowed() {
+  const vercelEnv = String(process.env.VERCEL_ENV || "").toLowerCase();
+  if (vercelEnv === "production") return false;
+  if (vercelEnv === "preview") return true;
+  if (String(process.env.FLIM_ENV || "").toLowerCase() === "staging") return true;
+  return process.env.NODE_ENV !== "production";
+}
+
+export function visibleBacklotGames() {
+  return backlotGames.map((game) => visibleBacklotGame(game.id)).filter(Boolean);
+}
+
 export function visibleBacklotGame(gameId: string) {
   const game = backlotGames.find((item) => item.id === gameId);
   if (!game) return null;
@@ -128,6 +140,10 @@ export function visibleBacklotGame(gameId: string) {
     rewardId: game.rewardId,
     achievementSetId: game.achievementSetId
   };
+}
+
+function testLabUnavailable() {
+  return { status: 404, body: { error: "Backlot route not found." } };
 }
 
 export function validateBacklotDiscovery(body: any) {
@@ -364,6 +380,121 @@ export async function getBacklotState(sql: any, request: any) {
       secretsRemainingLabel: "??"
     }
   };
+}
+
+export async function getBacklotTestLabState(sql: any, request: any) {
+  if (!isBacklotTestAccessAllowed()) return testLabUnavailable();
+  await ensureBacklotTables(sql);
+  const user = await getCurrentUser(sql, request);
+  if (!user) return { status: 401, body: { error: "Sign in to open Projection Booth." } };
+
+  await checkRateLimit(sql, request, "backlot:test-lab", user.id, 120, 60 * 60);
+  const gameIds = backlotGames.map((game) => game.id);
+  const rows = await sql`
+    select
+      g.id,
+      g.title,
+      g.description,
+      g.route,
+      g.difficulty,
+      g.estimated_play_time_minutes,
+      g.genre,
+      d.discovered_at,
+      u.unlocked_at,
+      s.first_played_at,
+      s.last_played_at,
+      coalesce(s.total_play_time_ms, 0) as total_play_time_ms,
+      coalesce(s.best_score, 0) as best_score,
+      coalesce(s.launch_count, 0) as launch_count
+    from backlot_games g
+    left join user_backlot_discoveries d on d.user_id = ${user.id} and d.game_id = g.id
+    left join user_backlot_unlocks u on u.user_id = ${user.id} and u.game_id = g.id
+    left join user_backlot_game_stats s on s.user_id = ${user.id} and s.game_id = g.id
+    where g.status = 'active' and g.id = any(${gameIds})
+    order by g.title asc
+  `;
+
+  return {
+    status: 200,
+    body: {
+      ok: true,
+      environment: "staging",
+      games: rows.map((row: any) => ({
+        id: row.id,
+        title: row.title,
+        description: row.description,
+        route: row.route,
+        difficulty: row.difficulty,
+        estimatedPlayTimeMinutes: Number(row.estimated_play_time_minutes || 3),
+        genre: row.genre,
+        discovered: Boolean(row.discovered_at),
+        unlocked: Boolean(row.unlocked_at),
+        discoveredAt: row.discovered_at || null,
+        unlockedAt: row.unlocked_at || null,
+        lastSessionAt: row.last_played_at || row.first_played_at || null,
+        personalBest: Number(row.best_score || 0),
+        launchCount: Number(row.launch_count || 0),
+        totalPlayTimeMs: Number(row.total_play_time_ms || 0),
+      })),
+    },
+  };
+}
+
+export async function simulateBacklotDiscovery(sql: any, request: any, body: any) {
+  if (!isBacklotTestAccessAllowed()) return testLabUnavailable();
+  await ensureBacklotTables(sql);
+  const user = await getCurrentUser(sql, request);
+  if (!user) return { status: 401, body: { error: "Sign in to unlock Backlot games." } };
+
+  await checkRateLimit(sql, request, "backlot:test-discover", user.id, 120, 60 * 60);
+  const gameId = String(body?.gameId || "");
+  const game = visibleBacklotGame(gameId);
+  if (!game) return { status: 404, body: { error: "Backlot game not found." } };
+
+  await sql`
+    insert into user_backlot_discoveries (
+      user_id,
+      game_id,
+      discovery_source_type,
+      discovery_source_id,
+      discovery_source_title,
+      client_discovery_id
+    )
+    values (
+      ${user.id},
+      ${gameId},
+      'arcade_mode',
+      'projection-booth',
+      'Projection Booth',
+      ${cleanText(body?.clientDiscoveryId || "projection-booth", { field: "Client discovery ID", max: 120 })}
+    )
+    on conflict (user_id, game_id) do update set
+      unlocked_at = coalesce(user_backlot_discoveries.unlocked_at, now())
+  `;
+
+  await sql`
+    insert into user_backlot_unlocks (user_id, game_id)
+    values (${user.id}, ${gameId})
+    on conflict (user_id, game_id) do nothing
+  `;
+
+  return await getBacklotTestLabState(sql, request);
+}
+
+export async function resetBacklotTestLab(sql: any, request: any) {
+  if (!isBacklotTestAccessAllowed()) return testLabUnavailable();
+  await ensureBacklotTables(sql);
+  const user = await getCurrentUser(sql, request);
+  if (!user) return { status: 401, body: { error: "Sign in to reset Backlot discoveries." } };
+
+  await checkRateLimit(sql, request, "backlot:test-reset", user.id, 20, 60 * 60);
+  const gameIds = backlotGames.map((game) => game.id);
+  await sql`delete from backlot_game_events where user_id = ${user.id} and game_id = any(${gameIds})`;
+  await sql`delete from user_backlot_game_stats where user_id = ${user.id} and game_id = any(${gameIds})`;
+  await sql`delete from user_backlot_unlocks where user_id = ${user.id} and game_id = any(${gameIds})`;
+  await sql`delete from user_backlot_discoveries where user_id = ${user.id} and game_id = any(${gameIds})`;
+
+  return await getBacklotTestLabState(sql, request);
 }
 
 export async function discoverBacklotGame(sql: any, request: any, body: any) {

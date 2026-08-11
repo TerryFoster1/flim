@@ -1,5 +1,12 @@
 import { db, errorStatus, readBody, sendJson } from "../_db.js";
-import { discoverBacklotGame, getBacklotState, recordBacklotEvent } from "../_backlot.js";
+import {
+  discoverBacklotGame,
+  getBacklotState,
+  getBacklotTestLabState,
+  recordBacklotEvent,
+  resetBacklotTestLab,
+  simulateBacklotDiscovery,
+} from "../_backlot.js";
 
 function routeSegment(request: any) {
   const pathname = new URL(request.url || "", "https://www.flim.ca").pathname;
@@ -26,6 +33,21 @@ export default async function handler(request: any, response: any) {
 
     if (segment === "events" && request.method === "POST") {
       const result = await recordBacklotEvent(sql, request, await readBody(request));
+      return sendJson(response, result.status, result.body);
+    }
+
+    if (segment === "test-lab" && request.method === "GET") {
+      const result = await getBacklotTestLabState(sql, request);
+      return sendJson(response, result.status, result.body);
+    }
+
+    if (segment === "test-lab/simulate-discovery" && request.method === "POST") {
+      const result = await simulateBacklotDiscovery(sql, request, await readBody(request));
+      return sendJson(response, result.status, result.body);
+    }
+
+    if (segment === "test-lab/reset" && request.method === "POST") {
+      const result = await resetBacklotTestLab(sql, request);
       return sendJson(response, result.status, result.body);
     }
 

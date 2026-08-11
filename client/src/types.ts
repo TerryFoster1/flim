@@ -14,6 +14,8 @@ export type AppRoute =
   | "/decade/:id"
   | "/franchise/:id"
   | "/games"
+  | "/games/relic-run"
+  | "/games/triceratops"
   | "/arcade/poster-guess"
   | "/games/title/:mediaType/:tmdbId"
   | "/challenge/:token"

@@ -5,6 +5,13 @@ import { getSeasonalChallengeDetail, getSeasonalChallengeHistory, getSeasonalCha
 import { getMovieDetails, getTvDetails } from "../services/tmdbService";
 import { getTicketFeed } from "../services/ticketService";
 import { completeCompanionItem, getTitleTrivia, notifyTitleTriviaReady } from "../services/triviaService";
+import {
+  getBacklotTestLab,
+  isProjectionBoothHostAllowed,
+  resetBacklotDiscoveries,
+  simulateBacklotDiscovery,
+  type BacklotLabGame,
+} from "../services/backlotService";
 import type { CompanionAchievement, FriendChallengeHistoryAttempt, FriendTriviaChallenge, MediaType, MovieDetails, SeasonalChallengeDetail, SeasonalChallengeEvent, SeasonalChallengeHistoryItem, TicketAward, TicketFeed, TriviaFeed, TriviaQuestion } from "../types";
 
 interface TriviaGamesProps {
@@ -661,6 +668,206 @@ function ScoreboardSheet({
   );
 }
 
+function BacklotArcadeSection({ onNavigate }: { onNavigate: (path: string) => void }) {
+  const [boothOpen, setBoothOpen] = useState(false);
+  const [holdProgress, setHoldProgress] = useState(0);
+  const holdTimer = useRef<number | null>(null);
+  const holdStartedAt = useRef(0);
+  const accessAllowed = isProjectionBoothHostAllowed();
+
+  function cancelHold() {
+    if (holdTimer.current) window.clearInterval(holdTimer.current);
+    holdTimer.current = null;
+    holdStartedAt.current = 0;
+    setHoldProgress(0);
+  }
+
+  function openBooth() {
+    cancelHold();
+    if (!accessAllowed) return;
+    window.navigator.vibrate?.(35);
+    setBoothOpen(true);
+  }
+
+  function startHold() {
+    if (!accessAllowed) return;
+    cancelHold();
+    holdStartedAt.current = Date.now();
+    holdTimer.current = window.setInterval(() => {
+      const progress = Math.min(1, (Date.now() - holdStartedAt.current) / 5000);
+      setHoldProgress(progress);
+      if (progress >= 1) openBooth();
+    }, 50);
+  }
+
+  useEffect(() => () => cancelHold(), []);
+
+  return (
+    <section className="title-games-section backlot-arcade-section">
+      <div className="backlot-arcade-copy">
+        <h2>Backlot Arcade</h2>
+        <p>Hidden games. Secret discoveries. Movie magic.</p>
+      </div>
+      <button
+        aria-label={accessAllowed ? "Press and hold Backlot Arcade logo for 5 seconds" : "Backlot Arcade"}
+        className="backlot-logo-button"
+        onPointerCancel={cancelHold}
+        onPointerDown={startHold}
+        onPointerLeave={cancelHold}
+        onPointerUp={cancelHold}
+        style={{ "--backlot-hold-progress": `${holdProgress * 360}deg` } as CSSProperties}
+        type="button"
+      >
+        <span className="backlot-hold-ring" aria-hidden="true" />
+        <img alt="" className="backlot-logo-mark" src="/brand/flim-icon-mark-source.png" />
+        <span>Projection Booth</span>
+      </button>
+      {boothOpen ? <ProjectionBoothModal onClose={() => setBoothOpen(false)} onNavigate={onNavigate} /> : null}
+    </section>
+  );
+}
+
+function ProjectionBoothModal({ onClose, onNavigate }: { onClose: () => void; onNavigate: (path: string) => void }) {
+  const [games, setGames] = useState<BacklotLabGame[]>([]);
+  const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [message, setMessage] = useState("");
+  const sheetRef = useRef<HTMLElement | null>(null);
+
+  function refreshState() {
+    setStatus("loading");
+    setMessage("");
+    getBacklotTestLab()
+      .then((state) => {
+        setGames(state.games);
+        setStatus("ready");
+      })
+      .catch((error: Error) => {
+        setStatus("error");
+        setMessage(error.message || "Projection Booth is unavailable.");
+      });
+  }
+
+  useEffect(() => {
+    refreshState();
+  }, []);
+
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        onClose();
+        return;
+      }
+      if (event.key !== "Tab" || !sheetRef.current) return;
+      const focusable = Array.from(
+        sheetRef.current.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        )
+      );
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onClose]);
+
+  useEffect(() => {
+    const initialFocus = window.setTimeout(() => {
+      sheetRef.current?.querySelector<HTMLElement>("button")?.focus();
+    }, 0);
+    return () => window.clearTimeout(initialFocus);
+  }, []);
+
+  function simulate(gameId: string) {
+    setMessage("Simulating discovery...");
+    simulateBacklotDiscovery(gameId)
+      .then((state) => {
+        setGames(state.games);
+        setStatus("ready");
+        setMessage("Discovery simulated.");
+      })
+      .catch((error: Error) => setMessage(error.message || "Discovery could not be simulated."));
+  }
+
+  function launch(game: BacklotLabGame) {
+    setMessage(`Opening ${game.title}...`);
+    simulateBacklotDiscovery(game.id)
+      .then(() => onNavigate(game.route))
+      .catch((error: Error) => setMessage(error.message || "Backlot game could not be launched."));
+  }
+
+  function reset() {
+    setMessage("Resetting discoveries...");
+    resetBacklotDiscoveries()
+      .then((state) => {
+        setGames(state.games);
+        setStatus("ready");
+        setMessage("Discoveries reset for this staging account.");
+      })
+      .catch((error: Error) => setMessage(error.message || "Discoveries could not be reset."));
+  }
+
+  return (
+    <div className="projection-booth-overlay" role="dialog" aria-modal="true" aria-labelledby="projection-booth-title">
+      <button className="projection-booth-backdrop" aria-label="Close Projection Booth" onClick={onClose} type="button" />
+      <section className="projection-booth-sheet" ref={sheetRef}>
+        <div className="projection-booth-header">
+          <div>
+            <span>Authorized Personnel Only</span>
+            <h2 id="projection-booth-title">Projection Booth</h2>
+            <p>Welcome back, Director.</p>
+          </div>
+          <button className="secondary-button compact" onClick={onClose} type="button">Close</button>
+        </div>
+        <div className="backlot-test-lab-heading">
+          <h3>Backlot Test Lab</h3>
+          <button className="secondary-button compact" onClick={refreshState} type="button">Refresh Server State</button>
+        </div>
+        {status === "loading" ? <p className="empty-state">Opening the booth...</p> : null}
+        {status === "error" ? <p className="empty-state">{message}</p> : null}
+        {message && status === "ready" ? <p className="backlot-lab-message">{message}</p> : null}
+        {status === "ready" ? (
+          <>
+            <div className="backlot-lab-grid">
+              {games.map((game) => (
+                <article className="backlot-lab-card" key={game.id}>
+                  <div className="backlot-lab-art">
+                    <img alt="" src={game.id === "relic-run-lost-chapter" ? "/arcade/art/adventure.webp" : "/arcade/art/summer.webp"} />
+                  </div>
+                  <div>
+                    <h4>{game.title}</h4>
+                    <p>{game.description}</p>
+                    <dl>
+                      <div><dt>Discovered</dt><dd>{game.discovered ? "Yes" : "No"}</dd></div>
+                      <div><dt>Unlocked</dt><dd>{game.unlocked ? "Yes" : "No"}</dd></div>
+                      <div><dt>Last session</dt><dd>{game.lastSessionAt ? new Date(game.lastSessionAt).toLocaleDateString() : "None"}</dd></div>
+                      <div><dt>Personal best</dt><dd>{game.personalBest ? game.personalBest.toLocaleString() : "None"}</dd></div>
+                    </dl>
+                    <div className="backlot-lab-actions">
+                      <button className="primary-button" onClick={() => launch(game)} type="button">Launch</button>
+                      <button className="secondary-button compact" onClick={() => simulate(game.id)} type="button">Simulate Discovery</button>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+            <div className="backlot-lab-footer">
+              <button className="secondary-button" onClick={reset} type="button">Reset Discoveries</button>
+            </div>
+          </>
+        ) : null}
+      </section>
+    </div>
+  );
+}
+
 function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void }) {
   const [featuredChallenges, setFeaturedChallenges] = useState<SeasonalChallengeEvent[]>([featuredChallengeFallback]);
   const [arcadeSearchQuery, setArcadeSearchQuery] = useState("");
@@ -899,6 +1106,8 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
             </div>
           </section>
         ) : null}
+
+        {arcadeBrowseMode === "landing" ? <BacklotArcadeSection onNavigate={onNavigate} /> : null}
 
         {collectionCards.length > 0 ? (
           <section className="title-games-section arcade-collections-section">

@@ -14343,6 +14343,361 @@ textarea { min-height: 42px; resize: vertical; }
   opacity: 1;
 }
 
+.backlot-arcade-section {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 18px;
+  padding: 22px;
+  border: 1px solid rgba(239, 191, 116, 0.22);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 86% 12%, rgba(239, 191, 116, 0.14), transparent 34%),
+    linear-gradient(135deg, rgba(13, 14, 18, 0.96), rgba(33, 25, 17, 0.86));
+}
+
+.backlot-arcade-copy h2 {
+  margin: 0;
+  color: #fff2d5;
+  font-size: clamp(1.6rem, 4vw, 2.4rem);
+}
+
+.backlot-arcade-copy p {
+  margin: 6px 0 0;
+  max-width: 36rem;
+  color: rgba(255, 246, 225, 0.72);
+  font-weight: 700;
+}
+
+.backlot-logo-button {
+  --backlot-hold-progress: 0deg;
+  appearance: none;
+  position: relative;
+  display: grid;
+  place-items: center;
+  gap: 6px;
+  min-width: 128px;
+  min-height: 128px;
+  padding: 14px;
+  border: 1px solid rgba(239, 191, 116, 0.34);
+  border-radius: 26px;
+  color: #ffe0a3;
+  background:
+    linear-gradient(#101015, #101015) padding-box,
+    conic-gradient(from -90deg, rgba(255, 190, 70, 0.95) var(--backlot-hold-progress), rgba(239, 191, 116, 0.18) 0deg) border-box;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+}
+
+.backlot-logo-button span:last-child {
+  position: relative;
+  z-index: 1;
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.backlot-hold-ring {
+  position: absolute;
+  inset: -2px;
+  border-radius: 28px;
+  pointer-events: none;
+}
+
+.backlot-logo-mark {
+  position: relative;
+  z-index: 1;
+  width: 82px;
+  height: 82px;
+  object-fit: contain;
+  filter: drop-shadow(0 10px 20px rgba(255, 178, 48, 0.24));
+}
+
+.projection-booth-overlay,
+.projection-booth-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+}
+
+.projection-booth-overlay {
+  display: grid;
+  place-items: center;
+  padding: 18px;
+}
+
+.projection-booth-backdrop {
+  border: 0;
+  background:
+    radial-gradient(circle at 50% 24%, rgba(238, 172, 73, 0.2), transparent 34%),
+    rgba(0, 0, 0, 0.78);
+  cursor: pointer;
+}
+
+.projection-booth-sheet {
+  position: relative;
+  z-index: 1;
+  width: min(940px, 100%);
+  max-height: min(86vh, 900px);
+  overflow: auto;
+  border: 1px solid rgba(239, 191, 116, 0.28);
+  border-radius: 28px;
+  padding: 22px;
+  background:
+    linear-gradient(135deg, rgba(12, 12, 16, 0.98), rgba(29, 21, 15, 0.96)),
+    #0b0b0f;
+  box-shadow: 0 40px 120px rgba(0, 0, 0, 0.62);
+}
+
+.projection-booth-header,
+.backlot-test-lab-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.projection-booth-header span {
+  color: #f3c77b;
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.projection-booth-header h2 {
+  margin: 4px 0 4px;
+  color: #fff2d5;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(2rem, 8vw, 4rem);
+  line-height: 0.95;
+}
+
+.projection-booth-header p,
+.backlot-lab-message {
+  margin: 0;
+  color: rgba(255, 246, 225, 0.74);
+  font-weight: 800;
+}
+
+.backlot-test-lab-heading {
+  margin-top: 24px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(239, 191, 116, 0.16);
+}
+
+.backlot-test-lab-heading h3 {
+  margin: 0;
+  color: #f8d99d;
+  font-size: 1.2rem;
+}
+
+.backlot-lab-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.backlot-lab-card {
+  display: grid;
+  grid-template-columns: 132px minmax(0, 1fr);
+  gap: 16px;
+  padding: 14px;
+  border: 1px solid rgba(239, 191, 116, 0.2);
+  border-radius: 20px;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.065), rgba(255, 255, 255, 0.02));
+}
+
+.backlot-lab-art {
+  min-height: 132px;
+  overflow: hidden;
+  border-radius: 16px;
+  background: #07070a;
+}
+
+.backlot-lab-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.backlot-lab-card h4 {
+  margin: 0;
+  color: #fff7e6;
+  font-size: 1.18rem;
+}
+
+.backlot-lab-card p {
+  margin: 6px 0 12px;
+  color: rgba(255, 255, 255, 0.68);
+}
+
+.backlot-lab-card dl {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 12px;
+}
+
+.backlot-lab-card dl div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: rgba(255, 255, 255, 0.74);
+  font-size: 0.88rem;
+}
+
+.backlot-lab-card dt {
+  color: rgba(255, 255, 255, 0.52);
+}
+
+.backlot-lab-card dd {
+  margin: 0;
+  color: #ffe3a5;
+  font-weight: 900;
+  text-align: right;
+}
+
+.backlot-lab-actions,
+.backlot-lab-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.backlot-lab-footer {
+  margin-top: 18px;
+}
+
+.backlot-game-page {
+  padding-top: 24px;
+}
+
+.backlot-game-stage {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.9fr) minmax(0, 1.1fr);
+  gap: 22px;
+  align-items: stretch;
+  margin-top: 18px;
+}
+
+.backlot-game-art {
+  min-height: 460px;
+  overflow: hidden;
+  border: 1px solid rgba(239, 191, 116, 0.24);
+  border-radius: 28px;
+  background: #08080b;
+}
+
+.backlot-game-art img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.backlot-game-panel {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 16px;
+  padding: clamp(22px, 5vw, 46px);
+  border: 1px solid rgba(239, 191, 116, 0.22);
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at 75% 12%, rgba(239, 191, 116, 0.16), transparent 34%),
+    linear-gradient(145deg, rgba(14, 14, 18, 0.98), rgba(35, 25, 17, 0.9));
+}
+
+.backlot-game-panel > span {
+  color: #f3c77b;
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.backlot-game-panel h1 {
+  margin: 0;
+  color: #fff3dc;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(3rem, 10vw, 6rem);
+  line-height: 0.9;
+}
+
+.backlot-game-panel p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.74);
+  font-size: 1.05rem;
+}
+
+.backlot-game-meters {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.backlot-game-meters strong {
+  padding: 12px;
+  border: 1px solid rgba(239, 191, 116, 0.2);
+  border-radius: 16px;
+  color: #ffe3a5;
+  background: rgba(255, 255, 255, 0.045);
+  text-align: center;
+}
+
+.backlot-game-message,
+.backlot-sync-note {
+  color: #ffe3a5 !important;
+  font-weight: 900;
+}
+
+.backlot-game-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+@media (max-width: 760px) {
+  .backlot-arcade-section {
+    grid-template-columns: 1fr;
+    padding: 18px;
+  }
+
+  .backlot-logo-button {
+    width: 100%;
+    min-height: 116px;
+  }
+
+  .backlot-lab-grid,
+  .backlot-game-stage {
+    grid-template-columns: 1fr;
+  }
+
+  .backlot-lab-card {
+    grid-template-columns: 96px minmax(0, 1fr);
+  }
+
+  .backlot-lab-art {
+    min-height: 96px;
+  }
+
+  .projection-booth-sheet {
+    padding: 18px;
+    border-radius: 22px;
+  }
+
+  .backlot-game-art {
+    min-height: 260px;
+  }
+
+  .backlot-game-meters {
+    grid-template-columns: 1fr;
+  }
+}
+
 .arcade-preview-page .arcade-progress-only {
   padding: 22px var(--arcade-gutter) calc(34px + env(safe-area-inset-bottom));
   border-radius: 0;
