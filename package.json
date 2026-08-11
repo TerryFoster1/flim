@@ -12,6 +12,8 @@
     "dev": "npm --workspace client run dev",
     "build": "npm --workspace client run build",
     "lint": "npm --workspace client run build",
+    "test:cache-guardrails": "node scripts/cache-guardrail-tests.mjs",
+    "test:shared-cache": "node scripts/shared-cache-architecture-tests.mjs",
     "test:security": "node scripts/security-input-tests.mjs",
     "verify:details-ui": "node scripts/verify-production-ui-click-path.mjs"
   },

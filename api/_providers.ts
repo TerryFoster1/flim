@@ -1,4 +1,5 @@
 import { db } from "./_db.js";
+import { cacheDays } from "./_cachePolicy.js";
 
 export type ProviderMediaType = "movie" | "tv";
 
@@ -13,7 +14,7 @@ export interface ProviderAvailabilityLink {
   source: "watchmode" | "justwatch" | "streaming_availability" | "tmdb" | "plex" | "manual";
 }
 
-const CACHE_DAYS = 3;
+const CACHE_DAYS = cacheDays("provider_availability");
 const TMDB_API_BASE_URL = "https://api.themoviedb.org/3";
 const TMDB_IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w92";
 

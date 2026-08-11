@@ -6,6 +6,7 @@ import { checkRateLimit, db, ensureNotificationsTable, ensureTriviaTables, error
 import { getCatalogMediaItem, mapCatalogDetails, upsertMediaItem } from "../_mediaCatalog.js";
 import { ensureTmdbCacheTables, fetchTmdbMovieDetails } from "../_tmdb.js";
 import { buildTriviaPrompt } from "../../src/prompts/triviaPrompt.js";
+import { diagnosticCaller, logCacheEvent } from "../_cachePolicy.js";
 import { cleanEnum, cleanInteger, cleanText, requireRecord, requireUuid, safeApiError } from "../_security.js";
 
 type MediaType = "movie" | "tv";
@@ -2062,8 +2063,9 @@ async function notifyTriviaPackReady(sql: any, tmdbId: number, mediaType: MediaT
   `;
 }
 
-async function ensureTriviaPack(sql: any, tmdbId: number, mediaType: MediaType, input: { userId?: string; interestSource?: string; questionCount?: number; spoilerMode?: boolean; forceRefresh?: boolean } = {}) {
+async function ensureTriviaPack(sql: any, tmdbId: number, mediaType: MediaType, input: { userId?: string; interestSource?: string; questionCount?: number; spoilerMode?: boolean; forceRefresh?: boolean; caller?: string } = {}) {
   const existing = await readCachedTrivia(sql, tmdbId, mediaType, input.userId);
+  const caller = diagnosticCaller(input.caller);
   logTriviaPipeline("cache_checked", {
     tmdbId,
     mediaType,
@@ -2071,9 +2073,25 @@ async function ensureTriviaPack(sql: any, tmdbId: number, mediaType: MediaType, 
     minimum: TRIVIA_MIN_READY_COUNT,
   });
   if (!input.forceRefresh && existing.length >= TRIVIA_MIN_READY_COUNT) {
+    logCacheEvent("CACHE_HIT", {
+      namespace: "title_trivia",
+      caller,
+      tmdbId,
+      mediaType,
+      questionCount: existing.length,
+    });
     await updateTriviaJob(sql, tmdbId, mediaType, "ready", { interestSource: input.interestSource, questionCount: existing.length, error: null });
     return existing;
   }
+
+  logCacheEvent("CACHE_MISS", {
+    namespace: "title_trivia",
+    caller,
+    tmdbId,
+    mediaType,
+    questionCount: existing.length,
+    forceRefresh: Boolean(input.forceRefresh),
+  });
 
   const currentJob = await readTriviaJob(sql, tmdbId, mediaType);
   if (!input.forceRefresh && currentJob && ["generating", "ready", "insufficient_source"].includes(String(currentJob.status))) {
@@ -2110,6 +2128,13 @@ async function ensureTriviaPack(sql: any, tmdbId: number, mediaType: MediaType, 
 
   await updateTriviaJob(sql, tmdbId, mediaType, "generating", { interestSource: input.interestSource, questionCount: existing.length, error: null });
   try {
+    logCacheEvent("EXTERNAL_GENERATION", {
+      namespace: "title_trivia",
+      caller,
+      tmdbId,
+      mediaType,
+      requestedCount: input.questionCount || TRIVIA_TARGET_COUNT,
+    });
     const generated = await generateAndStoreTrivia(sql, tmdbId, mediaType, input.userId, {
       questionCount: input.questionCount,
       spoilerMode: input.spoilerMode,
@@ -2265,6 +2290,7 @@ async function handleGet(request: any, response: any) {
   const questionCount = Math.max(TRIVIA_MIN_READY_COUNT, Math.min(100, Number(Array.isArray(request.query.questionCount) ? request.query.questionCount[0] : request.query.questionCount) || TRIVIA_TARGET_COUNT));
   const spoilerMode = String(Array.isArray(request.query.spoilerMode) ? request.query.spoilerMode[0] : request.query.spoilerMode || "false") === "true";
   const forceRefresh = String(Array.isArray(request.query.forceRefresh) ? request.query.forceRefresh[0] : request.query.forceRefresh || "false") === "true";
+  const caller = diagnosticCaller(request.query.caller || request.headers?.["x-flim-client"]);
   if (!Number.isFinite(tmdbId)) return sendJson(response, 400, { error: "A valid tmdbId is required." });
   logTriviaPipeline("feed_request_received", {
     tmdbId,
@@ -2286,10 +2312,19 @@ async function handleGet(request: any, response: any) {
   let generatedTriviaThisRequest = false;
 
   try {
+    if (!forceRefresh && questions.length >= TRIVIA_MIN_READY_COUNT) {
+      logCacheEvent("CACHE_HIT", {
+        namespace: "title_trivia",
+        caller,
+        tmdbId,
+        mediaType,
+        questionCount: questions.length,
+      });
+    }
     if (forceRefresh || questions.length < TRIVIA_MIN_READY_COUNT || hunts.length === 0) {
       const details = await loadTitleDetails(sql, tmdbId, mediaType);
       if (forceRefresh || questions.length < TRIVIA_MIN_READY_COUNT) {
-        questions = await ensureTriviaPack(sql, tmdbId, mediaType, { userId: user?.id, interestSource: "trivia_page", questionCount, spoilerMode, forceRefresh });
+        questions = await ensureTriviaPack(sql, tmdbId, mediaType, { userId: user?.id, interestSource: "trivia_page", questionCount, spoilerMode, forceRefresh, caller });
         generatedTriviaThisRequest = true;
       }
       if (hunts.length === 0) hunts = await generateAndStoreEasterEggs(sql, tmdbId, mediaType, details, user?.id);
@@ -2447,6 +2482,13 @@ async function handleInterest(request: any, response: any) {
 
   const cached = await readCachedTrivia(sql, tmdbId, mediaType, user?.id);
   if (cached.length >= TRIVIA_MIN_READY_COUNT) {
+    logCacheEvent("CACHE_HIT", {
+      namespace: "title_trivia",
+      caller: diagnosticCaller(request.query.caller || request.headers?.["x-flim-client"]),
+      tmdbId,
+      mediaType,
+      questionCount: cached.length,
+    });
     await updateTriviaJob(sql, tmdbId, mediaType, "ready", { interestSource, questionCount: cached.length, error: null });
     return sendJson(response, 202, { ok: true, generationStatus: "ready", questionCount: cached.length });
   }
@@ -2454,7 +2496,7 @@ async function handleInterest(request: any, response: any) {
   await updateTriviaJob(sql, tmdbId, mediaType, "queued", { interestSource, questionCount: cached.length, error: null });
 
   try {
-    const questions = await ensureTriviaPack(sql, tmdbId, mediaType, { userId: user?.id, interestSource });
+    const questions = await ensureTriviaPack(sql, tmdbId, mediaType, { userId: user?.id, interestSource, caller: diagnosticCaller(request.query.caller || request.headers?.["x-flim-client"]) });
     return sendJson(response, 202, {
       ok: true,
       generationStatus: questions.length >= TRIVIA_MIN_READY_COUNT ? "ready" : "failed",

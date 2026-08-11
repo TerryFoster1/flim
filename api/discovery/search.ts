@@ -8,8 +8,10 @@ import {
 } from "../_mediaCatalog.js";
 import { ensureProviderAvailabilityTables } from "../_providers.js";
 import { ensureTmdbCacheTables, fetchTmdbPersonDetails, fetchTmdbPersonSearch, fetchTmdbSearch, normalizeMovieQuery } from "../_tmdb.js";
+import { cacheDays, cacheHeader, limitExternalFanout } from "../_cachePolicy.js";
 
-const SEARCH_CACHE_DAYS = 7;
+const SEARCH_CACHE_DAYS = cacheDays("tmdb_search");
+const DISCOVERY_SEARCH_CACHE = cacheHeader("discovery_search");
 const MAX_TITLE_RESULTS = 12;
 const MAX_PLAYLIST_RESULTS = 12;
 const MAX_PROFILE_RESULTS = 8;
@@ -282,7 +284,7 @@ function alternateTitleSearchQueries(query: string) {
   const normalizedQuery = normalizeSearchText(query);
   const alternates = naturalLanguageTerms(query)
     .filter((term) => normalizeSearchText(term) && normalizeSearchText(term) !== normalizedQuery);
-  return Array.from(new Set(alternates)).slice(0, 4);
+  return limitExternalFanout("tmdb_search", Array.from(new Set(alternates)));
 }
 
 function expandedSearchTerms(query: string) {
@@ -917,7 +919,7 @@ export default async function handler(request: any, response: any) {
         hubs: [],
         actors: [],
         titleSource: "empty",
-      });
+      }, { "Cache-Control": DISCOVERY_SEARCH_CACHE });
     }
 
     const sql = db();
@@ -965,7 +967,7 @@ export default async function handler(request: any, response: any) {
       availabilityMatches: availability.matches,
       availabilityPrioritized: availability.prioritized,
       titleSource: titleResults.source,
-    });
+    }, { "Cache-Control": DISCOVERY_SEARCH_CACHE });
   } catch (error) {
     console.error("discovery_search_failed", error instanceof Error ? error.message : "Discovery search failed.");
     return sendJson(response, errorStatus(error), { error: error instanceof Error ? error.message : "Discovery search failed. Please try again." });

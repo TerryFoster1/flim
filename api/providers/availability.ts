@@ -1,5 +1,6 @@
 import { sendJson } from "../_db.js";
 import { db } from "../_db.js";
+import { cacheHeader, diagnosticCaller, logCacheEvent } from "../_cachePolicy.js";
 import { ensureTicketAffiliateTables } from "../_commerceFoundation.js";
 import { getCatalogMediaItem, type CatalogMediaType } from "../_mediaCatalog.js";
 import {
@@ -77,6 +78,7 @@ export default async function handler(request: any, response: any) {
     const tmdbId = Number(firstQueryValue(request.query.tmdbId));
     const clientTitle = firstQueryValue(request.query.title).trim();
     const region = normalizeRegion(firstQueryValue(request.query.region));
+    const caller = diagnosticCaller(request.query.caller || request.headers?.["x-flim-client"]);
 
     if (!Number.isFinite(tmdbId)) {
       return sendJson(response, 400, { error: "A valid title ID is required." });
@@ -88,6 +90,7 @@ export default async function handler(request: any, response: any) {
     const cachedLinks = await getCachedProviderAvailability(mediaType, tmdbId, region);
     if (cachedLinks.length > 0) {
       response.setHeader("X-Flim-Provider-Cache", "HIT");
+      logCacheEvent("CACHE_HIT", { route: "/api/providers/availability", layer: "provider_availability_cache", caller, mediaType, tmdbId, region });
       return sendJson(response, 200, {
         mediaType,
         tmdbId,
@@ -97,12 +100,13 @@ export default async function handler(request: any, response: any) {
         links: cachedLinks,
         ticketLinks,
         notes: "Confirmed provider availability for this region.",
-      }, { "Cache-Control": "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400" });
+      }, { "Cache-Control": cacheHeader("provider_availability") });
     }
 
     const cacheStatus = await getProviderAvailabilityCacheStatus(mediaType, tmdbId, region);
     if (cacheStatus) {
       response.setHeader("X-Flim-Provider-Cache", "HIT");
+      logCacheEvent("CACHE_HIT", { route: "/api/providers/availability", layer: "provider_availability_empty", caller, mediaType, tmdbId, region });
       return sendJson(response, 200, {
         mediaType,
         tmdbId,
@@ -112,10 +116,12 @@ export default async function handler(request: any, response: any) {
         links: [],
         ticketLinks,
         notes: "Streaming availability coming soon.",
-      }, { "Cache-Control": "public, max-age=300, s-maxage=1800, stale-while-revalidate=86400" });
+      }, { "Cache-Control": cacheHeader("provider_availability") });
     }
 
     if (hasProviderAvailabilitySource() && title) {
+      logCacheEvent("CACHE_MISS", { route: "/api/providers/availability", layer: "provider_availability_cache", caller, mediaType, tmdbId, region });
+      logCacheEvent("EXTERNAL_FETCH", { route: "/api/providers/availability", provider: "availability", caller, mediaType, tmdbId, region });
       const freshLinks = await fetchAndCacheProviderAvailability(mediaType, tmdbId, region, title);
       response.setHeader("X-Flim-Provider-Cache", "MISS");
       const links = freshLinks || [];
@@ -130,10 +136,11 @@ export default async function handler(request: any, response: any) {
         notes: links.length
           ? "Confirmed provider availability for this region."
           : "Streaming availability coming soon.",
-      }, { "Cache-Control": "public, max-age=300, s-maxage=1800, stale-while-revalidate=86400" });
+      }, { "Cache-Control": cacheHeader("provider_availability") });
     }
 
     response.setHeader("X-Flim-Provider-Cache", "MISS");
+    logCacheEvent("CACHE_MISS", { route: "/api/providers/availability", layer: "provider_availability_cache", caller, mediaType, tmdbId, region });
     return sendJson(response, 200, {
       mediaType,
       tmdbId,
@@ -143,7 +150,7 @@ export default async function handler(request: any, response: any) {
       links: [],
       ticketLinks,
       notes: "Streaming availability coming soon.",
-    }, { "Cache-Control": "public, max-age=120, s-maxage=600, stale-while-revalidate=3600" });
+    }, { "Cache-Control": cacheHeader("provider_availability_empty") });
   } catch (error) {
     return sendJson(response, 500, { error: error instanceof Error ? error.message : "Provider availability request failed." });
   }
