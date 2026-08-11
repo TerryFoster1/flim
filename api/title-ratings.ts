@@ -1,13 +1,13 @@
 import { db, ensureTitleRatingsTable, getCurrentUser, readBody, sendJson } from "./_db.js";
+import { cleanEnum, cleanInteger, requireRecord, safeApiError } from "./_security.js";
 
 function mediaTypeFromQuery(value: unknown) {
-  return value === "tv" ? "tv" : "movie";
+  return cleanEnum(value, ["movie", "tv"], { field: "mediaType", fallback: "movie" });
 }
 
 function tmdbIdFromQuery(value: unknown) {
   const raw = Array.isArray(value) ? value[0] : value;
-  const tmdbId = Number(raw);
-  return Number.isFinite(tmdbId) && tmdbId > 0 ? Math.trunc(tmdbId) : null;
+  return cleanInteger(raw, { field: "tmdbId", min: 1, max: 99999999, fallback: null });
 }
 
 async function readAggregate(sql: any, mediaType: string, tmdbId: number, userId?: string) {
@@ -60,9 +60,8 @@ export default async function handler(request: any, response: any) {
     if (!user) return sendJson(response, 401, { error: "Sign in to rate titles." });
 
     if (request.method === "PUT") {
-      const body = await readBody(request);
-      const rating = Math.trunc(Number(body.rating));
-      if (rating < 1 || rating > 3) return sendJson(response, 400, { error: "Rating must be 1, 2, or 3 stars." });
+      const body = requireRecord(await readBody(request));
+      const rating = cleanInteger(body.rating, { field: "rating", min: 1, max: 3, required: true });
 
       await sql`
         insert into title_ratings (user_id, media_type, tmdb_id, rating)
@@ -88,6 +87,6 @@ export default async function handler(request: any, response: any) {
     return sendJson(response, 405, { error: "Method not allowed." });
   } catch (error) {
     console.error("title_rating_failed", error instanceof Error ? error.message : "Title rating failed.");
-    return sendJson(response, 500, { error: "Unable to update title rating right now." });
+    return sendJson(response, 500, { error: safeApiError(error, "Unable to update title rating right now.") });
   }
 }

@@ -16,20 +16,24 @@ function byUpdated(playlists: Playlist[]) {
   return [...playlists].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
 }
 
+function playlistTitleCount(playlist: Playlist) {
+  return playlist.movieCount ?? playlist.movies.length;
+}
+
 function byFollowerCount(playlists: Playlist[]) {
   return [...playlists].sort((a, b) => {
     const followerDelta = (b.followerCount || 0) - (a.followerCount || 0);
     if (followerDelta !== 0) return followerDelta;
     const likeDelta = (b.likeCount || 0) - (a.likeCount || 0);
     if (likeDelta !== 0) return likeDelta;
-    const titleDelta = b.movies.length - a.movies.length;
+    const titleDelta = playlistTitleCount(b) - playlistTitleCount(a);
     if (titleDelta !== 0) return titleDelta;
     return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
   });
 }
 
 function playlistSignalScore(playlist: Playlist) {
-  return (playlist.followerCount || 0) * 4 + (playlist.likeCount || 0) * 3 + playlist.movies.length;
+  return (playlist.followerCount || 0) * 4 + (playlist.likeCount || 0) * 3 + playlistTitleCount(playlist);
 }
 
 function byTrending(playlists: Playlist[]) {

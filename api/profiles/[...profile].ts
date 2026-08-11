@@ -27,6 +27,7 @@ import {
 } from "../_db.js";
 import { ensureTicketTables } from "../_arcadeEconomy.js";
 import { directorHandle, ensureDirectorSeed } from "../_director.js";
+import { cleanBoolean, cleanJsonObject, cleanText, cleanUrl, cleanUuidArray, requireRecord } from "../_security.js";
 
 const defaultProfile = {
   displayName: "",
@@ -41,6 +42,7 @@ const defaultProfile = {
   preferredProviders: [],
   showCountryPublicly: false,
   featuredPlaylistIds: [],
+  themePreference: "dark",
 };
 
 const exportSchemaVersion = "2026-06-01-neon-hardening";
@@ -81,47 +83,47 @@ async function safeRows(query: Promise<any[]>) {
   }
 }
 
-function cleanProfileInput(body: any) {
+function cleanProfileInput(rawBody: any) {
+  const body = requireRecord(rawBody);
   const featuredPlaylistIds = Array.isArray(body.featuredPlaylistIds)
-    ? body.featuredPlaylistIds.map((id: unknown) => String(id)).filter(Boolean).slice(0, 3)
+    ? cleanUuidArray(body.featuredPlaylistIds, { field: "featuredPlaylistIds", max: 3 })
     : [];
 
-  const avatarKey = String(body.avatarKey || "classic").trim().toLowerCase();
+  const avatarKey = cleanText(body.avatarKey || "classic", { field: "avatarKey", max: 40 }).toLowerCase();
+  const countryCode = cleanText(body.countryCode, { field: "countryCode", max: 2 }).toUpperCase();
+  const preferredProviders = Array.isArray(body.preferredProviders)
+    ? body.preferredProviders.slice(0, 20).map((provider: unknown) => cleanText(provider, { field: "preferredProviders", max: 80 })).filter(Boolean)
+    : [];
+  const themePreference = cleanText(body.themePreference, { field: "themePreference", max: 12 });
 
   return {
-    displayName: String(body.displayName || "").trim().slice(0, 80),
+    displayName: cleanText(body.displayName, { field: "displayName", max: 80 }),
     handle: normalizeHandle(String(body.handle || "")).replace(/[^a-z0-9_]/g, ""),
-    bio: String(body.bio || "").trim().slice(0, 240),
-    countryCode: String(body.countryCode || "").trim().toUpperCase().slice(0, 2),
-    provinceState: String(body.provinceState || body.region || "").trim().slice(0, 80),
-    postalCode: String(body.postalCode || "").trim().slice(0, 20),
-    streamingRegion: String(body.streamingRegion || "").trim().slice(0, 80),
-    preferredProviders: Array.isArray(body.preferredProviders)
-      ? body.preferredProviders.map((provider: unknown) => String(provider)).filter(Boolean).slice(0, 20)
-      : [],
-    showCountryPublicly: Boolean(body.showCountryPublicly),
+    bio: cleanText(body.bio, { field: "bio", max: 240, allowNewlines: true }),
+    countryCode: /^[A-Z]{0,2}$/.test(countryCode) ? countryCode : "",
+    provinceState: cleanText(body.provinceState || body.region, { field: "provinceState", max: 80 }),
+    postalCode: cleanText(body.postalCode, { field: "postalCode", max: 20 }),
+    streamingRegion: cleanText(body.streamingRegion, { field: "streamingRegion", max: 80 }),
+    preferredProviders,
+    showCountryPublicly: cleanBoolean(body.showCountryPublicly, { field: "showCountryPublicly", fallback: false }),
     avatarKey: allowedAvatarKeys.has(avatarKey) ? avatarKey : "classic",
-    avatarCustomization: typeof body.avatarCustomization === "object" && body.avatarCustomization ? body.avatarCustomization : {},
+    avatarCustomization: cleanJsonObject(body.avatarCustomization, { field: "avatarCustomization", maxDepth: 3, maxKeys: 30 }),
     profileImageUrl: cleanImageUrl(body.profileImageUrl),
     heroImageUrl: cleanImageUrl(body.heroImageUrl),
-    favoriteMovie: String(body.favoriteMovie || "").trim().slice(0, 120),
-    favoriteGenre: String(body.favoriteGenre || "").trim().slice(0, 80),
-    favoriteDirector: String(body.favoriteDirector || "").trim().slice(0, 120),
-    profileStatus: String(body.profileStatus || "").trim().slice(0, 150),
+    favoriteMovie: cleanText(body.favoriteMovie, { field: "favoriteMovie", max: 120 }),
+    favoriteGenre: cleanText(body.favoriteGenre, { field: "favoriteGenre", max: 80 }),
+    favoriteDirector: cleanText(body.favoriteDirector, { field: "favoriteDirector", max: 120 }),
+    profileStatus: cleanText(body.profileStatus, { field: "profileStatus", max: 150 }),
     featuredPlaylistIds,
+    themePreference: ["dark", "light", "system"].includes(themePreference) ? themePreference : "dark",
   };
 }
 
 function cleanImageUrl(value: unknown) {
-  const raw = String(value || "").trim().slice(0, 500);
-  if (!raw) return "";
-  if (raw.startsWith("/")) return raw;
-  try {
-    const url = new URL(raw);
-    return url.protocol === "https:" ? url.toString() : "";
-  } catch {
-    return "";
-  }
+  const raw = cleanUrl(value, { field: "imageUrl", max: 500 });
+  if (!raw || raw.startsWith("/")) return raw;
+  const url = new URL(raw);
+  return url.protocol === "https:" ? url.toString() : "";
 }
 
 function cleanSignupHandle(value: string) {
@@ -189,7 +191,8 @@ async function handleCurrentProfile(request: any, response: any, sql: any) {
         favorite_genre,
         favorite_director,
         profile_status,
-        featured_playlist_ids
+        featured_playlist_ids,
+        theme_preference
       )
       values (
         ${user.id},
@@ -211,7 +214,8 @@ async function handleCurrentProfile(request: any, response: any, sql: any) {
         ${input.favoriteGenre || null},
         ${input.favoriteDirector || null},
         ${input.profileStatus || null},
-        ${JSON.stringify(input.featuredPlaylistIds)}::jsonb
+        ${JSON.stringify(input.featuredPlaylistIds)}::jsonb,
+        ${input.themePreference}
       )
       on conflict (user_id) do update set
         display_name = excluded.display_name,
@@ -233,6 +237,7 @@ async function handleCurrentProfile(request: any, response: any, sql: any) {
         favorite_director = excluded.favorite_director,
         profile_status = excluded.profile_status,
         featured_playlist_ids = excluded.featured_playlist_ids,
+        theme_preference = excluded.theme_preference,
         updated_at = now()
       returning *
     `;
@@ -276,16 +281,16 @@ async function handleAuth(request: any, response: any, sql: any, action: string)
 
   if ((action === "signup" || action === "signin") && request.method === "POST") {
     await checkRateLimit(sql, request, `auth:${action}`, undefined, action === "signup" ? 8 : 20, 15 * 60);
-    const body = await readBody(request);
-    const email = normalizeEmail(String(body.email || ""));
-    const password = String(body.password || "");
+    const body = requireRecord(await readBody(request));
+    const email = normalizeEmail(cleanText(body.email, { field: "email", max: 254, required: true }));
+    const password = cleanText(body.password, { field: "password", max: 256, required: true });
 
     if (!email.includes("@")) return sendJson(response, 400, { error: "Enter a valid email address." });
     if (password.length < 8) return sendJson(response, 400, { error: "Password must be at least 8 characters." });
 
     if (action === "signup") {
-      const handle = cleanSignupHandle(String(body.handle || body.username || ""));
-      const displayName = String(body.displayName || "").trim().slice(0, 80) || handle;
+      const handle = cleanSignupHandle(cleanText(body.handle || body.username, { field: "username", max: 40, required: true }));
+      const displayName = cleanText(body.displayName, { field: "displayName", max: 80, fallback: "" }) || handle;
       const validationMessage = validateProfileHandle(handle);
       if (validationMessage) return sendJson(response, 400, { error: validationMessage });
 
@@ -344,8 +349,8 @@ async function handleFollowProfile(request: any, response: any, sql: any) {
   if (!user) return sendJson(response, 401, { error: "Sign in to follow creators." });
   await checkRateLimit(sql, request, "profile:follow", user.id, 120, 60);
 
-  const body = await readBody(request);
-  const handle = normalizeHandle(String(body.handle || ""));
+  const body = requireRecord(await readBody(request));
+  const handle = normalizeHandle(cleanText(body.handle, { field: "handle", max: 40, required: true }));
   const targetRows = await sql`
     select user_id
     from user_profiles

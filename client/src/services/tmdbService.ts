@@ -4,6 +4,8 @@ interface ApiRequestOptions extends RequestInit {
   timeoutMs?: number;
 }
 
+const TMDB_REQUEST_LOGGING = import.meta.env.DEV;
+
 async function apiRequest<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
   const controller = new AbortController();
   const timeoutMs = typeof options.timeoutMs === "number" ? options.timeoutMs : 15000;
@@ -47,7 +49,7 @@ async function apiRequest<T>(path: string, options: ApiRequestOptions = {}): Pro
 
   try {
     const payload = await response.json() as T;
-    if (path.startsWith("/api/movies/")) {
+    if (TMDB_REQUEST_LOGGING && path.startsWith("/api/movies/")) {
       console.info("tmdb_client_request_complete", {
         path,
         status: response.status,
@@ -90,7 +92,7 @@ interface DetailRequestOptions {
 function detailPath(tmdbId: number, mediaType: MediaType, options: DetailRequestOptions = {}) {
   const params = new URLSearchParams({ type: mediaType });
   if (options.refreshMode) params.set("refreshMode", options.refreshMode);
-  params.set("_ts", String(Date.now()));
+  if (options.refreshMode === "source") params.set("_ts", String(Date.now()));
   return `/api/movies/${tmdbId}?${params.toString()}`;
 }
 
@@ -100,7 +102,7 @@ export async function getMovieDetails(tmdbId: number, options: DetailRequestOpti
   }
 
   return apiRequest<MovieDetails>(detailPath(tmdbId, "movie", options), {
-    cache: "no-store" as RequestCache,
+    cache: options.refreshMode === "source" ? "no-store" as RequestCache : "default" as RequestCache,
     timeoutMs: options.timeoutMs ?? 45000,
   });
 }
@@ -111,7 +113,7 @@ export async function getTvDetails(tmdbId: number, options: DetailRequestOptions
   }
 
   return apiRequest<MovieDetails>(detailPath(tmdbId, "tv", options), {
-    cache: "no-store" as RequestCache,
+    cache: options.refreshMode === "source" ? "no-store" as RequestCache : "default" as RequestCache,
     timeoutMs: options.timeoutMs ?? 45000,
   });
 }

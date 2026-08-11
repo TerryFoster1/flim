@@ -1,5 +1,6 @@
 import { db, errorStatus, getCurrentUser, sendJson } from "./_db.js";
 import { readTicketEarningRules, readTicketHistory, readTicketWallet } from "./_arcadeEconomy.js";
+import { cleanInteger, safeApiError } from "./_security.js";
 
 export default async function handler(request: any, response: any) {
   if (request.method !== "GET") return sendJson(response, 405, { error: "Method not allowed." });
@@ -10,7 +11,7 @@ export default async function handler(request: any, response: any) {
     if (!user?.id) return sendJson(response, 401, { error: "Sign in to view Tickets." });
 
     const url = new URL(request.url || "/api/tickets", "https://www.flim.ca");
-    const limit = Number(url.searchParams.get("limit") || 20);
+    const limit = cleanInteger(url.searchParams.get("limit") || 20, { field: "History limit", min: 1, max: 50, fallback: 20 });
     const [wallet, history, earningRules] = await Promise.all([
       readTicketWallet(sql, user.id),
       readTicketHistory(sql, user.id, limit),
@@ -29,6 +30,6 @@ export default async function handler(request: any, response: any) {
       },
     });
   } catch (error) {
-    return sendJson(response, errorStatus(error), { error: error instanceof Error ? error.message : "Tickets are unavailable right now." });
+    return sendJson(response, errorStatus(error), { error: safeApiError(error, "Tickets are unavailable right now.") });
   }
 }

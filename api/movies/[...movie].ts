@@ -15,6 +15,7 @@ const SEARCH_CACHE_DAYS = 7;
 const MOVIE_CACHE_DAYS = 30;
 const USEFUL_SEARCH_RESULT_COUNT = 8;
 const MAX_SEARCH_RESULTS = 24;
+const DETAILS_BROWSER_CACHE = "private, max-age=60, stale-while-revalidate=300";
 
 function hasCoreTitlePayload(details: any, mediaType: "movie" | "tv", tmdbId: number) {
   const id = Number(details?.tmdbId ?? details?.tmdb_id);
@@ -32,7 +33,7 @@ function hasUsefulCastPayload(details: any) {
 }
 
 function hasVideoPayload(details: any) {
-  return details?.videoVersion === 1;
+  return details?.videoVersion === 2;
 }
 
 function withCatalogCast(details: any, catalogCast: any[]) {
@@ -51,16 +52,18 @@ function logTitleDetailsIssue(event: string, details: Record<string, unknown>) {
   });
 }
 
-function sendDetailsJson(response: any, status: number, payload: any, startedAt: number, details: Record<string, unknown>) {
+function sendDetailsJson(response: any, status: number, payload: any, startedAt: number, details: Record<string, unknown>, cacheControl = DETAILS_BROWSER_CACHE) {
   const durationMs = Date.now() - startedAt;
   response.setHeader("X-Flim-Details-Duration-Ms", String(durationMs));
-  console.info("title_details_api_complete", {
-    durationMs,
-    cache: response.getHeader?.("X-Flim-Cache"),
-    catalog: response.getHeader?.("X-Flim-Catalog"),
-    ...details,
-  });
-  return sendJson(response, status, payload);
+  if (process.env.NODE_ENV !== "production") {
+    console.info("title_details_api_complete", {
+      durationMs,
+      cache: response.getHeader?.("X-Flim-Cache"),
+      catalog: response.getHeader?.("X-Flim-Catalog"),
+      ...details,
+    });
+  }
+  return sendJson(response, status, payload, { "Cache-Control": cacheControl });
 }
 
 function moviePath(request: any) {
@@ -365,3 +368,4 @@ export default async function handler(request: any, response: any) {
     return sendJson(response, 500, { error: error instanceof Error ? error.message : "Movie request failed." });
   }
 }
+

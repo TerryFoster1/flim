@@ -7,6 +7,7 @@ import {
   setSeasonProgress,
   setShowProgress,
 } from "../_tvProgress.js";
+import { cleanBoolean, cleanEnum, cleanInteger, requireRecord, safeApiError } from "../_security.js";
 
 function showIdFromRequest(request: any) {
   const pathname = new URL(request.url || "", "https://www.flim.ca").pathname;
@@ -34,21 +35,22 @@ export default async function handler(request: any, response: any) {
 
     if (request.method !== "PATCH") return sendJson(response, 405, { error: "Method not allowed." });
 
-    const body = await readBody(request);
-    const action = String(body.action || "");
-    const seasonNumber = Number(body.seasonNumber);
-    const episodeNumber = Number(body.episodeNumber);
+    const body = requireRecord(await readBody(request));
+    const action = cleanEnum(body.action, ["episode", "season", "show", "start"], { field: "action", required: true });
+    const seasonNumber = cleanInteger(body.seasonNumber, { field: "seasonNumber", min: 0, max: 300, fallback: null });
+    const episodeNumber = cleanInteger(body.episodeNumber, { field: "episodeNumber", min: 0, max: 10000, fallback: null });
 
     if (action === "episode") {
-      if (!Number.isFinite(seasonNumber) || !Number.isFinite(episodeNumber)) {
+      if (seasonNumber === null || episodeNumber === null) {
         return sendJson(response, 400, { error: "Choose a valid episode." });
       }
-      await setEpisodeProgress(sql, user.id, mediaItem, seasonNumber, episodeNumber, body.status);
+      const status = cleanEnum(body.status, ["unwatched", "watching", "watched"], { field: "status", fallback: "watched" });
+      await setEpisodeProgress(sql, user.id, mediaItem, seasonNumber, episodeNumber, status);
     } else if (action === "season") {
-      if (!Number.isFinite(seasonNumber)) return sendJson(response, 400, { error: "Choose a valid season." });
-      await setSeasonProgress(sql, user.id, mediaItem, seasonNumber, Boolean(body.watched));
+      if (seasonNumber === null) return sendJson(response, 400, { error: "Choose a valid season." });
+      await setSeasonProgress(sql, user.id, mediaItem, seasonNumber, cleanBoolean(body.watched, { field: "watched" }));
     } else if (action === "show") {
-      await setShowProgress(sql, user.id, mediaItem, Boolean(body.watched));
+      await setShowProgress(sql, user.id, mediaItem, cleanBoolean(body.watched, { field: "watched" }));
     } else if (action === "start") {
       const current = await getTvProgress(sql, user.id, mediaItem);
       const next = current.show.nextEpisode || current.seasons.flatMap((season: any) => season.episodes).find((episode: any) => episode.released);
@@ -62,6 +64,6 @@ export default async function handler(request: any, response: any) {
     return sendJson(response, 200, { ...progress, unlockedAchievements });
   } catch (error) {
     console.error("tv_progress_request_failed", error instanceof Error ? error.message : "TV progress request failed.");
-    return sendJson(response, 500, { error: "Unable to update TV progress. Please try again." });
+    return sendJson(response, (error as any)?.statusCode || 500, { error: safeApiError(error, "Unable to update TV progress. Please try again.") });
   }
 }

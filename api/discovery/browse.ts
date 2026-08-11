@@ -152,28 +152,51 @@ async function playlistsForHub(sql: any, kind: string, config: any, userId?: str
           and ${userId || null}::uuid is not null
           and my_pl.user_id = ${userId || null}::uuid
       ) as is_liked,
-      coalesce(json_agg(pm order by coalesce(pm.sort_order, 2147483647), pm.added_at desc) filter (where pm.id is not null), '[]') as movies
+      (select count(*)::int from playlist_movies pm_count where pm_count.playlist_id = p.id) as movie_count,
+      coalesce(movie_preview.movies, '[]'::jsonb) as movies
     from playlists p
     left join user_profiles up on up.user_id = p.owner_user_id::text
     left join users u on u.id = p.owner_user_id
-    left join playlist_movies pm on pm.playlist_id = p.id
-    left join media_items mi on mi.media_type = coalesce(pm.media_type, 'movie') and mi.tmdb_id = pm.tmdb_id
+    left join lateral (
+      select jsonb_agg(
+        to_jsonb(pm_preview) || jsonb_build_object(
+          'genres', coalesce(mi_preview.genres, '[]'::jsonb),
+          'genre_ids', coalesce(mi_preview.source_payload->'genreIds', '[]'::jsonb)
+        )
+        order by coalesce(pm_preview.sort_order, 2147483647), pm_preview.added_at desc
+      ) as movies
+      from (
+        select *
+        from playlist_movies pm
+        where pm.playlist_id = p.id
+        order by coalesce(pm.sort_order, 2147483647), pm.added_at desc
+        limit 6
+      ) pm_preview
+      left join media_items mi_preview on mi_preview.media_type = coalesce(pm_preview.media_type, 'movie') and mi_preview.tmdb_id = pm_preview.tmdb_id
+    ) movie_preview on true
     where p.visibility = 'public'
       and (
         lower(p.name) like any(${searchPatterns})
         or lower(coalesce(p.description, '')) like any(${searchPatterns})
         or lower(coalesce(up.display_name, '')) like any(${searchPatterns})
-        or lower(coalesce(pm.title, '')) like any(${searchPatterns})
-        or lower(coalesce(mi.genres::text, '')) like any(${searchPatterns})
-        or (
-          ${decade?.start || null}::int is not null
-          and (
-            (case when pm.year ~ '^[0-9]{4}$' then pm.year::int end) between ${decade?.start || null}::int and ${decade?.end || null}::int
-            or extract(year from mi.release_date)::int between ${decade?.start || null}::int and ${decade?.end || null}::int
-          )
+        or exists (
+          select 1
+          from playlist_movies pm_match
+          left join media_items mi_match on mi_match.media_type = coalesce(pm_match.media_type, 'movie') and mi_match.tmdb_id = pm_match.tmdb_id
+          where pm_match.playlist_id = p.id
+            and (
+              lower(coalesce(pm_match.title, '')) like any(${searchPatterns})
+              or lower(coalesce(mi_match.genres::text, '')) like any(${searchPatterns})
+              or (
+                ${decade?.start || null}::int is not null
+                and (
+                  (case when pm_match.year ~ '^[0-9]{4}$' then pm_match.year::int end) between ${decade?.start || null}::int and ${decade?.end || null}::int
+                  or extract(year from mi_match.release_date)::int between ${decade?.start || null}::int and ${decade?.end || null}::int
+                )
+              )
+            )
         )
       )
-    group by p.id, up.handle, up.display_name, u.email
     order by like_count desc, follower_count desc, p.updated_at desc
     limit 12
   `;

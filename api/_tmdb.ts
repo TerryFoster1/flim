@@ -259,35 +259,76 @@ function chooseContentRating(ratings: Array<{ countryCode: string; rating: strin
   )?.rating;
 }
 
-function normalizeVideoContentType(type?: string, official?: boolean) {
+function includesAny(value: string, keywords: string[]) {
+  return keywords.some((keyword) => value.includes(keyword));
+}
+
+function normalizeVideoContentType(type?: string, official?: boolean, name?: string) {
   const normalized = (type || "").toLowerCase();
+  const label = `${name || ""} ${type || ""}`.toLowerCase();
+
+  if (includesAny(label, ["recap", "previously on", "what you need to know", "before you watch", "catch up"])) return "recap";
+  if (includesAny(label, ["behind the scenes", "behind-the-scenes", "bts", "making of", "on set"])) return "behind_the_scenes";
+  if (includesAny(label, ["interview", "director", "filmmaker", "cast talks", "conversation with"])) return "interview";
+  if (normalized === "featurette" || normalized === "clip" || includesAny(label, ["featurette", "special look", "inside look", "sneak peek"])) return "featurette";
   if (normalized === "trailer") return official ? "official_trailer" : "teaser_trailer";
   if (normalized === "teaser") return "teaser_trailer";
-  if (normalized === "behind the scenes") return "behind_the_scenes";
-  if (normalized === "interview") return "interview";
-  if (normalized === "featurette" || normalized === "clip") return "featurette";
   return null;
 }
 
-function videoSortRank(video: { contentType: string; official?: boolean; publishedAt?: string }) {
-  const typeRank: Record<string, number> = {
-    official_trailer: 0,
-    teaser_trailer: 1,
-    featurette: 2,
-    behind_the_scenes: 3,
-    interview: 4,
-  };
+function videoPublishedAtValue(video: { publishedAt?: string }) {
+  return video.publishedAt ? Date.parse(video.publishedAt) || 0 : 0;
+}
+
+function officialTrailerRank(video: { label: string; official?: boolean; publishedAt?: string; contentType: string }) {
+  const label = video.label.toLowerCase();
   return [
+    video.contentType === "official_trailer" ? 0 : 1,
     video.official ? 0 : 1,
-    typeRank[video.contentType] ?? 9,
-    video.publishedAt ? -Date.parse(video.publishedAt) : 0,
+    label.includes("official trailer") ? 0 : 1,
+    includesAny(label, ["teaser", "tv spot", "promo"]) ? 1 : 0,
+    -videoPublishedAtValue(video),
   ];
 }
 
+function extraVideoRank(video: { contentType: string; official?: boolean; publishedAt?: string; label: string }) {
+  const typeRank: Record<string, number> = {
+    recap: 0,
+    behind_the_scenes: 1,
+    interview: 2,
+    featurette: 3,
+  };
+  return [
+    typeRank[video.contentType] ?? 9,
+    video.official ? 0 : 1,
+    -videoPublishedAtValue(video),
+  ];
+}
+
+function compareRank(left: Array<string | number>, right: Array<string | number>) {
+  for (let index = 0; index < Math.max(left.length, right.length); index += 1) {
+    const leftValue = left[index] ?? 0;
+    const rightValue = right[index] ?? 0;
+    if (leftValue < rightValue) return -1;
+    if (leftValue > rightValue) return 1;
+  }
+  return 0;
+}
+
+function uniqueVideos<T extends { url: string; contentType: string }>(videos: T[]) {
+  const seen = new Set<string>();
+  return videos.filter((video) => {
+    const key = `${video.contentType}:${video.url}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 function mapVideos(payload: TmdbMovieDetails) {
-  return (payload.videos?.results || [])
+  const videos = (payload.videos?.results || [])
     .map((video) => {
-      const contentType = normalizeVideoContentType(video.type, video.official);
+      const contentType = normalizeVideoContentType(video.type, video.official, video.name);
       if (!contentType || video.site?.toLowerCase() !== "youtube" || !video.key) return null;
       return {
         provider: "youtube" as const,
@@ -300,13 +341,29 @@ function mapVideos(payload: TmdbMovieDetails) {
         publishedAt: video.published_at,
       };
     })
+    .filter(Boolean) as Array<{
+      provider: "youtube";
+      contentType: string;
+      url: string;
+      linkType: "exact";
+      label: string;
+      thumbnailUrl: string;
+      official: boolean;
+      publishedAt?: string;
+    }>;
+
+  const trailer = [...videos]
+    .filter((video) => video.contentType === "official_trailer" || video.contentType === "teaser_trailer")
+    .sort((a, b) => compareRank(officialTrailerRank(a), officialTrailerRank(b)))[0];
+
+  const extras = uniqueVideos(
+    videos
+      .filter((video) => ["recap", "behind_the_scenes", "interview", "featurette"].includes(video.contentType))
+      .sort((a, b) => compareRank(extraVideoRank(a), extraVideoRank(b)))
+  ).slice(0, 4);
+
+  return [trailer, ...extras]
     .filter(Boolean)
-    .sort((a: any, b: any) => {
-      const left = videoSortRank(a);
-      const right = videoSortRank(b);
-      return left[0] - right[0] || left[1] - right[1] || left[2] - right[2];
-    })
-    .slice(0, 8)
     .map(({ official, publishedAt, ...video }: any) => video);
 }
 
@@ -450,7 +507,7 @@ export async function fetchTmdbMovieDetails(tmdbId: number, mediaType: "movie" |
     cast: (payload.credits?.cast || []).slice(0, 16).map(mapCastMember),
     castVersion: 1,
     videos: mapVideos(payload),
-    videoVersion: 1,
+    videoVersion: 2,
   };
 }
 
@@ -582,3 +639,5 @@ export async function fetchTmdbTvSeasonDetails(tmdbShowId: number, seasonNumber:
       })),
   };
 }
+
+

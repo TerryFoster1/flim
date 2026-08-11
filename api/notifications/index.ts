@@ -1,4 +1,5 @@
 import { db, ensureNotificationsTable, ensureUserProfilesTable, getCurrentUser, readBody, sendJson } from "../_db.js";
+import { cleanBoolean, requireRecord, requireUuid, safeApiError } from "../_security.js";
 
 function mapNotification(row: any) {
   const actorName = row.actor_display_name || row.actor_handle || row.actor_email_name || "Someone";
@@ -66,9 +67,9 @@ export default async function handler(request: any, response: any) {
     }
 
     if (request.method === "PATCH") {
-      const body = await readBody(request);
+      const body = requireRecord(await readBody(request));
 
-      if (body.markAllRead) {
+      if (cleanBoolean(body.markAllRead, { field: "Mark all read", fallback: false })) {
         await sql`
           update notifications
           set read_at = coalesce(read_at, now())
@@ -76,8 +77,7 @@ export default async function handler(request: any, response: any) {
             and read_at is null
         `;
       } else {
-        const notificationId = String(body.notificationId || "");
-        if (!notificationId) return sendJson(response, 400, { error: "Choose a notification to update." });
+        const notificationId = requireUuid(body.notificationId, "notificationId");
 
         await sql`
           update notifications
@@ -100,6 +100,6 @@ export default async function handler(request: any, response: any) {
     return sendJson(response, 405, { error: "Method not allowed." });
   } catch (error) {
     console.error("notifications_request_failed", error instanceof Error ? error.message : "Notification request failed.");
-    return sendJson(response, 500, { error: "Unable to load notifications. Please try again." });
+    return sendJson(response, (error as any)?.statusCode || 500, { error: safeApiError(error, "Unable to load notifications. Please try again.") });
   }
 }

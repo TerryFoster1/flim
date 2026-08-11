@@ -7,7 +7,7 @@ interface SharePlaylistButtonProps {
   label?: string;
   iconOnly?: boolean;
   onMakePublic?: () => void | Promise<void>;
-  onCreateSharedLink?: (playlistId: string) => Promise<{ sharedSlug: string; visibility: "shared" }>;
+  onCreateSharedLink?: (playlistId: string) => Promise<{ sharedSlug: string; visibility: "shared" | "public"; expiresAt?: string }>;
   openToken?: number;
 }
 
@@ -34,7 +34,7 @@ export function SharePlaylistButton({ playlist, label = "Share", iconOnly = fals
   const publicUrl = useMemo(() => `${getPublicOrigin()}/p/${playlist.publicSlug}`, [playlist.publicSlug]);
   const sharedUrl = useMemo(() => (sharedSlug ? `${getPublicOrigin()}/s/${sharedSlug}` : ""), [sharedSlug]);
   const activeUrl = isPublicShareable ? publicUrl : sharedUrl;
-  const activeLinkLabel = isPublicShareable ? "Public Link" : "Shared Link";
+  const activeLinkLabel = isPublicShareable ? "Public Link" : "Collaborator Invite";
   const shareCardUrl = useMemo(() => `${getPublicOrigin()}/api/og/playlist/${encodeURIComponent(playlist.publicSlug)}`, [playlist.publicSlug]);
 
   useEffect(() => {
@@ -136,7 +136,7 @@ export function SharePlaylistButton({ playlist, label = "Share", iconOnly = fals
     try {
       const result = await onCreateSharedLink(playlist.id);
       setSharedSlug(result.sharedSlug);
-      setStatus("Shared link ready.");
+      setStatus("Invite link ready.");
     } catch {
       setStatus("Unable to create a shared link. Please try again.");
     } finally {
@@ -174,7 +174,10 @@ export function SharePlaylistButton({ playlist, label = "Share", iconOnly = fals
               <>
                 <section className="share-mode-section">
                   <h3>Share with people</h3>
-                  <p className="helper-text">People with this private shared link can view, add, and remove titles. This does not make the playlist public.</p>
+                  <p className="helper-text">
+                    People who accept this invite can view and edit titles. They cannot delete the playlist, change privacy, or manage collaborators.
+                    {playlist.visibility === "private" ? " Creating an invite changes this playlist to Shared." : ""}
+                  </p>
                   {!sharedUrl ? (
                     <div className="share-link-loading" aria-live="polite">
                       {isCreatingSharedLink ? "Preparing shared link and QR code..." : "Shared link will appear here."}
@@ -207,7 +210,7 @@ export function SharePlaylistButton({ playlist, label = "Share", iconOnly = fals
                 {onMakePublic ? (
                   <section className="share-mode-section">
                     <h3>Make Public</h3>
-                    <p className="helper-text">Public playlists can be discovered and followed by anyone on Flim. Public visitors cannot edit titles.</p>
+                    <p className="helper-text">Public playlists can be discovered and followed by anyone on Flim. Existing collaborators can still edit titles.</p>
                     <button className="secondary-button share-primary-action" disabled={isMakingPublic} onClick={makePublic} type="button">
                       {isMakingPublic ? "Making Public..." : "Make Public"}
                     </button>

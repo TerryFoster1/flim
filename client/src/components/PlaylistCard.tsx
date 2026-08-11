@@ -13,7 +13,10 @@ export function PlaylistCard({ playlist, large, onNavigate, hideLikes = false }:
   const detailPath = playlist.visibility === "public" && !playlist.isOwner ? `/p/${playlist.publicSlug}` : `/playlists/${playlist.id}`;
   const followerCount = playlist.followerCount || 0;
   const likeCount = playlist.likeCount || 0;
-  const titleCountLabel = `${playlist.movies.length} ${playlist.movies.length === 1 ? "title" : "titles"}`;
+  const titleCount = playlist.movieCount ?? playlist.movies.length;
+  const titleCountLabel = `${titleCount} ${titleCount === 1 ? "title" : "titles"}`;
+  const visibilityLabel = playlist.visibility.charAt(0).toUpperCase() + playlist.visibility.slice(1);
+  const collaboratorCount = playlist.collaboratorCount || 0;
   const creatorLabel = isDirectorPlaylist
     ? "Curated by The Director"
     : playlist.creatorDisplayName
@@ -44,8 +47,9 @@ export function PlaylistCard({ playlist, large, onNavigate, hideLikes = false }:
         {playlist.description ? <p>{playlist.description}</p> : null}
         {playlist.recommendationReason ? <p className="recommendation-reason">{playlist.recommendationReason}</p> : null}
         <div className="card-meta">
-          {playlist.visibility !== "public" ? <span>{playlist.visibility}</span> : null}
+          <span>{visibilityLabel}</span>
           <span>{titleCountLabel}</span>
+          {playlist.visibility === "shared" && collaboratorCount > 0 ? <span>{collaboratorCount} {collaboratorCount === 1 ? "collaborator" : "collaborators"}</span> : null}
           {playlist.visibility === "public" ? <span>{followerCount} {followerCount === 1 ? "follower" : "followers"}</span> : null}
           {playlist.visibility === "public" && !hideLikes ? <span>{likeCount} {likeCount === 1 ? "like" : "likes"}</span> : null}
           {playlist.isFollowing ? <span>Following</span> : null}

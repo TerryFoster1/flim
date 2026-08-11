@@ -685,6 +685,7 @@ export interface UserProfile {
   favoriteDirector?: string;
   profileStatus?: string;
   featuredPlaylistIds?: string[];
+  themePreference?: ThemePreference;
   countryCode: string;
   region?: string;
   provinceState?: string;
@@ -758,6 +759,8 @@ export interface PushNotificationPreferences {
   rewardUnlocked: boolean;
   accountUpdates: boolean;
 }
+
+export type ThemePreference = "dark" | "light" | "system";
 
 export interface PushSubscriptionStatus {
   configured: boolean;
@@ -1226,7 +1229,7 @@ export interface SoundtrackAvailability {
   notes: string;
 }
 
-export type VideoContentType = "official_trailer" | "teaser_trailer" | "behind_the_scenes" | "interview" | "featurette";
+export type VideoContentType = "official_trailer" | "teaser_trailer" | "behind_the_scenes" | "interview" | "featurette" | "recap";
 
 export interface MediaVideoLink {
   provider: "youtube";
@@ -1549,6 +1552,7 @@ export interface Playlist {
   description: string;
   visibility: "private" | "shared" | "public";
   movies: PlaylistMovie[];
+  movieCount?: number;
   creatorHandle?: string;
   creatorDisplayName?: string;
   ownerUserId?: string;
@@ -1557,7 +1561,10 @@ export interface Playlist {
   canRemoveTitles?: boolean;
   canReorderTitles?: boolean;
   canEditPlaylist?: boolean;
-  accessMode?: "owner" | "private" | "shared" | "public";
+  canManageCollaborators?: boolean;
+  collaboratorCount?: number;
+  inviteExpiresAt?: string;
+  accessMode?: "owner" | "private" | "shared" | "public" | "invite";
   isFollowing?: boolean;
   followerCount?: number;
   isLiked?: boolean;
@@ -1572,3 +1579,4 @@ export interface Playlist {
   isSystem?: boolean;
   systemType?: "most_watched" | "recommended" | "plex_library";
 }
+

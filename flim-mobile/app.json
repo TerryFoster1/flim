@@ -1,0 +1,71 @@
+{
+  "expo": {
+    "name": "Flim",
+    "slug": "flim",
+    "scheme": "flim",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#050407"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "ca.flim.app",
+      "associatedDomains": [
+        "applinks:flim.ca",
+        "applinks:www.flim.ca"
+      ]
+    },
+    "android": {
+      "package": "ca.flim.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#050407"
+      },
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "flim.ca"
+            },
+            {
+              "scheme": "https",
+              "host": "www.flim.ca"
+            },
+            {
+              "scheme": "flim"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-splash-screen",
+      "expo-font"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "645c0c98-b371-46af-9268-3542a706eaeb"
+      }
+    }
+  }
+}

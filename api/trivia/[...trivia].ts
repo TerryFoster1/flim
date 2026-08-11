@@ -6,6 +6,7 @@ import { checkRateLimit, db, ensureNotificationsTable, ensureTriviaTables, error
 import { getCatalogMediaItem, mapCatalogDetails, upsertMediaItem } from "../_mediaCatalog.js";
 import { ensureTmdbCacheTables, fetchTmdbMovieDetails } from "../_tmdb.js";
 import { buildTriviaPrompt } from "../../src/prompts/triviaPrompt.js";
+import { cleanEnum, cleanInteger, cleanText, requireRecord, requireUuid, safeApiError } from "../_security.js";
 
 type MediaType = "movie" | "tv";
 
@@ -2365,12 +2366,14 @@ async function handleGet(request: any, response: any) {
 }
 
 async function handleReport(request: any, response: any) {
-  const body = await readBody(request);
-  const triviaId = String(body.triviaId || "").trim();
-  const easterEggId = String(body.easterEggId || "").trim();
-  const reason = String(body.reason || "").trim();
-  const allowedReasons = new Set(["wrong_answer", "confusing", "spoiler", "low_quality", "inappropriate"]);
-  if ((!triviaId && !easterEggId) || !allowedReasons.has(reason)) return sendJson(response, 400, { error: "A valid item id and reason are required." });
+  const body = requireRecord(await readBody(request));
+  const triviaId = body.triviaId ? requireUuid(body.triviaId, "triviaId") : "";
+  const easterEggId = body.easterEggId ? requireUuid(body.easterEggId, "easterEggId") : "";
+  const reason = cleanEnum(body.reason, ["wrong_answer", "confusing", "spoiler", "low_quality", "inappropriate"], {
+    field: "reason",
+    required: true,
+  });
+  if (!triviaId && !easterEggId) return sendJson(response, 400, { error: "A valid item id and reason are required." });
 
   const sql = db();
   await ensureTriviaTables(sql);
@@ -2426,11 +2429,10 @@ async function handleReport(request: any, response: any) {
 }
 
 async function handleInterest(request: any, response: any) {
-  const body = await readBody(request);
-  const mediaType = normalizeMediaType(body.mediaType);
-  const tmdbId = Number(body.tmdbId);
-  const interestSource = String(body.source || "unknown").slice(0, 80);
-  if (!Number.isFinite(tmdbId)) return sendJson(response, 400, { error: "A valid tmdbId is required." });
+  const body = requireRecord(await readBody(request));
+  const mediaType = normalizeMediaType(cleanEnum(body.mediaType, ["movie", "tv"], { field: "mediaType", fallback: "movie" }));
+  const tmdbId = cleanInteger(body.tmdbId, { field: "tmdbId", min: 1, max: 999999999, required: true });
+  const interestSource = cleanText(body.source, { field: "source", max: 80, fallback: "unknown" });
   logTriviaPipeline("interest_request_received", {
     tmdbId,
     mediaType,
@@ -2469,10 +2471,9 @@ async function handleInterest(request: any, response: any) {
 }
 
 async function handleNotifyReady(request: any, response: any) {
-  const body = await readBody(request);
-  const mediaType = normalizeMediaType(body.mediaType);
-  const tmdbId = Number(body.tmdbId);
-  if (!Number.isFinite(tmdbId)) return sendJson(response, 400, { error: "A valid title is required." });
+  const body = requireRecord(await readBody(request));
+  const mediaType = normalizeMediaType(cleanEnum(body.mediaType, ["movie", "tv"], { field: "mediaType", fallback: "movie" }));
+  const tmdbId = cleanInteger(body.tmdbId, { field: "tmdbId", min: 1, max: 999999999, required: true });
 
   const sql = db();
   await ensureTmdbCacheTables(sql);
@@ -2490,7 +2491,7 @@ async function handleNotifyReady(request: any, response: any) {
 
   const details = await loadTitleDetails(sql, tmdbId, mediaType).catch(() => null);
   const mediaItem = details ? await upsertMediaItem(sql, { ...details, mediaType, tmdbId }).catch(() => null) : await getCatalogMediaItem(sql, tmdbId, mediaType).catch(() => null);
-  const title = String(body.title || details?.title || details?.name || mediaItem?.title || "This title").slice(0, 160);
+  const title = cleanText(body.title || details?.title || details?.name || mediaItem?.title || "This title", { field: "title", max: 160, fallback: "This title" });
   await sql`
     insert into trivia_pack_ready_subscriptions (user_id, media_type, tmdb_id, media_item_id, title, status, updated_at)
     values (${user.id}, ${mediaType}, ${tmdbId}, ${mediaItem?.id || null}, ${title}, 'subscribed', now())
@@ -2513,12 +2514,10 @@ async function handleNotifyReady(request: any, response: any) {
 }
 
 async function handleHuntAction(request: any, response: any) {
-  const body = await readBody(request);
-  const huntId = String(body.huntId || body.easterEggId || "").trim();
-  const action = String(body.action || "").trim();
-  const submittedAnswer = String(body.answer || "").trim();
-  const allowedActions = new Set(["start", "hint", "answer", "complete"]);
-  if (!huntId || !allowedActions.has(action)) return sendJson(response, 400, { error: "A valid hunt action is required." });
+  const body = requireRecord(await readBody(request));
+  const huntId = requireUuid(body.huntId || body.easterEggId, "huntId");
+  const action = cleanEnum(body.action, ["start", "hint", "answer", "complete"], { field: "action", required: true });
+  const submittedAnswer = cleanText(body.answer, { field: "answer", max: 240, fallback: "" });
 
   const sql = db();
   await ensureTriviaTables(sql);
@@ -2607,15 +2606,14 @@ async function handleHuntAction(request: any, response: any) {
 }
 
 async function handleComplete(request: any, response: any) {
-  const body = await readBody(request);
-  const itemType = String(body.itemType || "");
-  const itemId = String(body.itemId || "").trim();
+  const body = requireRecord(await readBody(request));
+  const itemType = cleanEnum(body.itemType, ["trivia", "easter_egg"], { field: "itemType", required: true });
+  const itemId = requireUuid(body.itemId, "itemId");
   const sql = db();
   await ensureTriviaTables(sql);
   const user = await getCurrentUser(sql, request);
   if (!user) return sendJson(response, 401, { error: "Sign in to save trivia progress." });
   await checkRateLimit(sql, request, "trivia:complete", user.id, 120, 60);
-  if (!itemId || !["trivia", "easter_egg"].includes(itemType)) return sendJson(response, 400, { error: "A valid completion item is required." });
 
   let item: any;
   if (itemType === "trivia") {
@@ -2694,6 +2692,6 @@ export default async function handler(request: any, response: any) {
     if (request.method === "POST" && path === "report") return handleReport(request, response);
     return sendJson(response, 405, { error: "Method not allowed." });
   } catch (error) {
-    return sendJson(response, errorStatus(error), { error: error instanceof Error ? error.message : "Trivia request failed." });
+    return sendJson(response, errorStatus(error), { error: safeApiError(error, "Trivia request failed.") });
   }
 }

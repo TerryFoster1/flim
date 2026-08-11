@@ -2,6 +2,7 @@ import { db, ensureFollowTitleTables, getCurrentUser, readBody, sendJson } from 
 import { ensureMediaCatalogTables, getCatalogMediaItem } from "../_mediaCatalog.js";
 import { checkReleaseIntelligenceForMediaItem, mapReleaseEvent, readReleaseTracking, snapshotFromBody, snapshotFromMedia, snapshotFromTracking } from "../_releaseCheck.js";
 import type { ReleaseMediaType } from "../_releaseIntelligence.js";
+import { cleanEnum, cleanInteger, requireRecord, safeApiError } from "../_security.js";
 
 function normalizeMediaType(value: unknown): ReleaseMediaType {
   return value === "tv" ? "tv" : "movie";
@@ -30,12 +31,9 @@ export default async function handler(request: any, response: any) {
 
     if (request.method !== "POST") return sendJson(response, 405, { error: "Method not allowed." });
 
-    const body = await readBody(request);
-    const mediaType = normalizeMediaType(body.mediaType);
-    const tmdbId = Number(body.tmdbId);
-    if (!Number.isFinite(tmdbId) || tmdbId <= 0) {
-      return sendJson(response, 400, { error: "Choose a valid title to check." });
-    }
+    const body = requireRecord(await readBody(request));
+    const mediaType = normalizeMediaType(cleanEnum(body.mediaType, ["movie", "tv"], { field: "mediaType", fallback: "movie" }));
+    const tmdbId = cleanInteger(body.tmdbId, { field: "tmdbId", min: 1, max: 999999999, required: true });
 
     const mediaItem = await getCatalogMediaItem(sql, tmdbId, mediaType);
     if (!mediaItem) return sendJson(response, 404, { error: "Title is not in the Flim media catalog yet." });
@@ -68,6 +66,6 @@ export default async function handler(request: any, response: any) {
     });
   } catch (error) {
     console.error("release_intelligence_failed", error instanceof Error ? error.message : "Release intelligence failed.");
-    return sendJson(response, 500, { error: "Unable to check release intelligence. Please try again." });
+    return sendJson(response, (error as any)?.statusCode || 500, { error: safeApiError(error, "Unable to check release intelligence. Please try again.") });
   }
 }

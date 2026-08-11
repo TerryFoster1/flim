@@ -1,4 +1,5 @@
-import { db, getCurrentUser, readBody, sendJson } from "./_db.js";
+import { db, errorStatus, getCurrentUser, readBody, sendJson } from "./_db.js";
+import { cleanEnum, requireRecord, requireUuid, safeApiError } from "./_security.js";
 import {
   joinSeasonalChallenge,
   seasonalChallengeDetail,
@@ -26,10 +27,9 @@ export default async function handler(request: any, response: any) {
     const user = await getCurrentUser(sql, request);
     if (request.method === "POST") {
       if (!user?.id) return sendJson(response, 401, { error: "Sign in to join seasonal challenges." });
-      const body = await readBody(request);
-      const action = String(body.action || "join");
-      const eventId = typeof body.eventId === "string" ? body.eventId : "";
-      if (!eventId) return sendJson(response, 400, { error: "eventId is required." });
+      const body = requireRecord(await readBody(request));
+      const action = cleanEnum(body.action || "join", ["join", "submit"], { field: "action", fallback: "join" });
+      const eventId = requireUuid(body.eventId, "eventId");
       if (action === "submit") {
         const result = await submitSeasonalChallengeAttempt(sql, user.id, eventId, body);
         if (!result) return sendJson(response, 404, { error: "Active seasonal challenge not found." });
@@ -56,6 +56,7 @@ export default async function handler(request: any, response: any) {
       user?.id ? undefined : { "Cache-Control": "public, max-age=300, s-maxage=1800, stale-while-revalidate=3600" },
     );
   } catch (error) {
-    return sendJson(response, 500, { error: error instanceof Error ? error.message : "Seasonal challenge request failed." });
+    const status = errorStatus(error);
+    return sendJson(response, status, { error: safeApiError(error, "Seasonal challenge request failed.") });
   }
 }

@@ -2,6 +2,7 @@ import { ensureCollectionChallengeTables } from "./_challenges.js";
 import { awardTickets } from "./_arcadeEconomy.js";
 import { stableShuffleOptions } from "./_answerOptions.js";
 import { ensureNotificationsTable, ensureTriviaTables } from "./_db.js";
+import { cleanBoolean, cleanEnum, cleanInteger, cleanJsonObject, cleanText, cleanUrl, requireRecord, ValidationError } from "./_security.js";
 
 type SeasonalStatus = "upcoming" | "active" | "ended";
 type ChallengeType = "weekly" | "monthly" | "seasonal" | "special_event";
@@ -4670,6 +4671,7 @@ export async function seasonalChallengeDetail(sql: any, slug: string, userId?: s
 
 export async function submitSeasonalChallengeAttempt(sql: any, userId: string, eventId: string, body: any) {
   await ensureSeasonalChallengeTables(sql);
+  const input = requireRecord(body);
   const [event] = await sql`
     select *
     from seasonal_challenge_events
@@ -4681,11 +4683,18 @@ export async function submitSeasonalChallengeAttempt(sql: any, userId: string, e
   `;
   if (!event) return null;
   const questions = await challengeQuestions(sql, event);
-  const answers = safeObject(body.answers);
-  const answerTimesMs = safeObject(body.answerTimesMs || body.answerTimes);
-  const skippedQuestionIdSet = new Set(Array.isArray(body.skippedQuestionIds) ? body.skippedQuestionIds.map(String) : []);
-  const submittedQuestionIds = Array.isArray(body.questionIds) ? body.questionIds.map(String) : questions.map((question: any) => question.id);
+  const answers = cleanJsonObject(input.answers || {}, { field: "answers", maxDepth: 1, maxKeys: 150 });
+  const answerTimesMs = cleanJsonObject(input.answerTimesMs || input.answerTimes || {}, { field: "answerTimesMs", maxDepth: 1, maxKeys: 150 });
+  const skippedQuestionIdSet = new Set(
+    Array.isArray(input.skippedQuestionIds)
+      ? input.skippedQuestionIds.slice(0, 150).map((id: unknown) => cleanText(id, { field: "skippedQuestionIds", max: 120 }))
+      : [],
+  );
+  const submittedQuestionIds = Array.isArray(input.questionIds)
+    ? input.questionIds.slice(0, 150).map((id: unknown) => cleanText(id, { field: "questionIds", max: 120 }))
+    : questions.map((question: any) => question.id);
   const playableQuestions = questions.filter((question: any) => submittedQuestionIds.includes(question.id));
+  if (playableQuestions.length === 0) throw new ValidationError("No playable challenge questions were submitted.");
   const totalCount = playableQuestions.length;
   let correctCount = 0;
   let skippedCount = 0;
@@ -4711,8 +4720,14 @@ export async function submitSeasonalChallengeAttempt(sql: any, userId: string, e
   const score = correctCount * 100;
   const timedValues = playableQuestions
     .map((question: any) => Number(answerTimesMs[question.id] || 0))
-    .filter((value: number) => Number.isFinite(value) && value > 0);
-  const totalTimeMs = Math.max(0, Math.round(Number(body.totalTimeMs || body.total_time_ms || timedValues.reduce((sum: number, value: number) => sum + value, 0)) || 0));
+    .filter((value: number) => Number.isFinite(value) && value > 0 && value <= 60000);
+  const computedTotalTimeMs = timedValues.reduce((sum: number, value: number) => sum + value, 0);
+  const totalTimeMs = cleanInteger(input.totalTimeMs || input.total_time_ms || computedTotalTimeMs, {
+    field: "totalTimeMs",
+    min: 0,
+    max: 2 * 60 * 60 * 1000,
+    fallback: 0,
+  });
   const answeredCount = Math.max(1, totalCount - skippedCount);
   const averageAnswerTimeMs = totalTimeMs ? Math.round(totalTimeMs / answeredCount) : 0;
   const [activeWindow] = await sql`
@@ -4725,7 +4740,11 @@ export async function submitSeasonalChallengeAttempt(sql: any, userId: string, e
     order by start_at asc
     limit 1
   `.catch(() => []);
-  const challengeWeekId = String(body.challengeWeekId || body.challenge_week_id || activeWindow?.challenge_week_id || currentChallengeWeekId()).slice(0, 64);
+  const challengeWeekId = cleanText(input.challengeWeekId || input.challenge_week_id || activeWindow?.challenge_week_id || currentChallengeWeekId(), {
+    field: "challengeWeekId",
+    max: 64,
+    required: true,
+  });
   const [attempt] = await sql`
     insert into seasonal_challenge_attempts (
       event_id,
@@ -4934,28 +4953,41 @@ function slugify(value: string) {
 }
 
 export function cleanSeasonalChallengeInput(body: any) {
-  const name = String(body.name || "").trim().slice(0, 120);
+  body = requireRecord(body);
+  const name = cleanText(body.name, { field: "name", max: 120 });
   const rawIsActive = body.isActive ?? body.is_active ?? true;
   const rawIsFeatured = body.isFeatured ?? body.is_featured ?? false;
   return {
-    slug: slugify(String(body.slug || name)),
+    slug: slugify(cleanText(body.slug || name, { field: "slug", max: 120 })),
     name,
-    description: String(body.description || "").trim().slice(0, 600),
-    startDate: String(body.startDate || body.start_date || "").slice(0, 10),
-    endDate: String(body.endDate || body.end_date || "").slice(0, 10),
-    seasonKey: String(body.seasonKey || body.season_key || "general").trim().toLowerCase().replace(/[^a-z0-9_]+/g, "_").slice(0, 80) || "general",
+    description: cleanText(body.description, { field: "description", max: 600, allowNewlines: true }),
+    startDate: cleanDateOnly(body.startDate || body.start_date, "startDate"),
+    endDate: cleanDateOnly(body.endDate || body.end_date, "endDate"),
+    seasonKey: cleanText(body.seasonKey || body.season_key || "general", { field: "seasonKey", max: 80 }).toLowerCase().replace(/[^a-z0-9_]+/g, "_") || "general",
     challengeType: normalizeChallengeType(body.challengeType || body.challenge_type),
-    isFeatured: rawIsFeatured === true || rawIsFeatured === "true" || rawIsFeatured === "on" || rawIsFeatured === "1" || rawIsFeatured === 1,
-    heroImageUrl: String(body.heroImageUrl || body.hero_image_url || "").trim().slice(0, 600),
-    questionCount: Math.max(1, Math.min(100, Number(body.questionCount || body.question_count || 10))),
+    isFeatured: cleanLooseBoolean(rawIsFeatured),
+    heroImageUrl: cleanUrl(body.heroImageUrl || body.hero_image_url, { field: "heroImageUrl", max: 600 }),
+    questionCount: cleanInteger(body.questionCount || body.question_count || 10, { field: "questionCount", min: 1, max: 100, fallback: 10 }),
     targetMedia: normalizeTargetMedia(body.targetMedia || body.target_media),
-    rewardMetadata: safeObject(body.rewardMetadata || body.reward_metadata),
-    isActive: rawIsActive === true || rawIsActive === "true" || rawIsActive === "on" || rawIsActive === "1" || rawIsActive === 1,
-    badge: String(body.badge || `${name} Badge`).trim().slice(0, 120),
-    banner: String(body.banner || "").trim().slice(0, 120),
-    difficulty: ["easy", "medium", "hard", "expert"].includes(body.difficulty) ? body.difficulty : "medium",
+    rewardMetadata: cleanJsonObject(body.rewardMetadata || body.reward_metadata, { field: "rewardMetadata", maxDepth: 3, maxKeys: 40 }),
+    isActive: cleanLooseBoolean(rawIsActive),
+    badge: cleanText(body.badge || `${name} Badge`, { field: "badge", max: 120 }),
+    banner: cleanText(body.banner, { field: "banner", max: 120 }),
+    difficulty: cleanEnum(body.difficulty || "medium", ["easy", "medium", "hard", "expert"], { field: "difficulty", fallback: "medium" }),
     requirements: normalizeRequirements(body.requirements).slice(0, 8),
-    points: Math.max(0, Math.min(1000, Number(body.points || 0))),
-    status: ["draft", "published", "archived"].includes(body.status) ? body.status : "draft",
+    points: cleanInteger(body.points || 0, { field: "points", min: 0, max: 1000, fallback: 0 }),
+    status: cleanEnum(body.status || "draft", ["draft", "published", "archived"], { field: "status", fallback: "draft" }),
   };
+}
+
+function cleanDateOnly(value: unknown, field: string) {
+  const text = cleanText(value, { field, max: 10 });
+  if (!text) return "";
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) throw new ValidationError(`${field} is invalid.`);
+  return text;
+}
+
+function cleanLooseBoolean(value: unknown) {
+  if (value === "on" || value === "1" || value === 1) return true;
+  return cleanBoolean(value, { fallback: false });
 }

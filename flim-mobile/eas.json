@@ -1,0 +1,46 @@
+{
+  "cli": {
+    "version": ">= 14.0.0"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_FLIM_APP_ENV": "development",
+        "EXPO_PUBLIC_FLIM_API_BASE_URL": "http://localhost:3000"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_FLIM_APP_ENV": "preview",
+        "EXPO_PUBLIC_FLIM_API_BASE_URL": "https://flim-kw7pbbku1-terryfoster1s-projects.vercel.app"
+      }
+    },
+    "staging": {
+      "environment": "preview",
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_FLIM_APP_ENV": "staging",
+        "EXPO_PUBLIC_FLIM_API_BASE_URL": "https://staging.flim.ca"
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_FLIM_APP_ENV": "production",
+        "EXPO_PUBLIC_FLIM_API_BASE_URL": "https://www.flim.ca"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}

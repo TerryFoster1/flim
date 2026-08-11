@@ -1,11 +1,12 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode } from "react";
 import { ContinueWatchingRow } from "../components/ContinueWatchingRow";
 import { DiscoveryRecommendationShelf } from "../components/DiscoveryRecommendationShelf";
 import { AddToPlaylistControl } from "../components/AddToPlaylistControl";
 import { PlaylistGrid } from "../components/PlaylistGrid";
 import { landingPosterSeeds } from "../data/landingPosterSeeds";
 import { searchDiscovery } from "../services/discoveryService";
-import type { CurrentUser, DiscoveryCollectionResult, DiscoveryHubLink, DiscoverySearchResults, MovieSearchResult, Playlist } from "../types";
+import { getRecommendations } from "../services/recommendationService";
+import type { ActorSummary, CurrentUser, DiscoveryCollectionResult, DiscoveryHubLink, DiscoverySearchResults, MovieSearchResult, Playlist, PlaylistMovie } from "../types";
 
 interface PlaylistsProps {
   onNavigate: (path: string) => void;
@@ -17,9 +18,82 @@ interface PlaylistsProps {
   currentUser: CurrentUser | null;
   notice?: string;
   initialView?: PlaylistView;
+  playlistLoadStatus?: "loading" | "ready" | "error";
+  playlistLoadMessage?: string;
 }
 
 type PlaylistView = "my" | "public";
+type SearchResultTab = "playlists" | "titles" | "actors" | "genre";
+type SearchContentFilter = "both" | "movie" | "tv";
+type InlineDiscoveryStatus = "loading" | "ready" | "error";
+
+interface PlaylistSearchFilters {
+  content: SearchContentFilter;
+  genre: string;
+  mood: string;
+}
+
+interface InlineDiscoveryState {
+  status: InlineDiscoveryStatus;
+  similarTitles: MovieSearchResult[];
+  relatedPlaylists: Playlist[];
+}
+
+const defaultPlaylistSearchFilters: PlaylistSearchFilters = {
+  content: "both",
+  genre: "",
+  mood: "",
+};
+
+const playlistSearchGenres = ["Comedy", "Drama", "Horror", "Sci-Fi", "Action", "Romance", "Animation", "Adventure", "Fantasy", "Thriller"];
+const playlistSearchMoods = ["Funny", "Dark", "Feel Good", "Scary", "Romantic", "Mind-Bending", "Family", "Adventure"];
+
+const PLAYLIST_VISIBILITY_OPTIONS: Array<{ value: Playlist["visibility"]; label: string; helper: string }> = [
+  { value: "private", label: "Private", helper: "Only you can view and edit." },
+  { value: "shared", label: "Shared", helper: "Invite collaborators to edit titles." },
+  { value: "public", label: "Public", helper: "Anyone can view. Collaborators can edit." },
+];
+
+const PLAYLIST_VISIBILITY_HELP: Record<Playlist["visibility"], string> = {
+  private: "Private playlists are only visible to you.",
+  shared: "Shared playlists stay hidden from public discovery. Invited collaborators can add, remove, and reorder titles.",
+  public: "Public playlists can be discovered by anyone. Owner and invited collaborators can edit titles.",
+};
+
+const searchResultTabs: Array<{ id: SearchResultTab; label: string }> = [
+  { id: "playlists", label: "Playlists" },
+  { id: "titles", label: "Titles" },
+  { id: "actors", label: "Actors" },
+  { id: "genre", label: "Genre" },
+];
+
+const genreIdLabels: Record<number, string> = {
+  12: "Adventure",
+  14: "Fantasy",
+  16: "Animation",
+  18: "Drama",
+  27: "Horror",
+  28: "Action",
+  35: "Comedy",
+  53: "Thriller",
+  878: "Sci-Fi",
+  10749: "Romance",
+  10751: "Family",
+  10759: "Action",
+  10762: "Family",
+  10765: "Sci-Fi",
+};
+
+const moodSearchTerms: Record<string, string[]> = {
+  Funny: ["comedy", "funny", "hilarious", "rom-com"],
+  Dark: ["dark", "thriller", "horror", "crime"],
+  "Feel Good": ["feel good", "family", "comedy", "romance"],
+  Scary: ["horror", "scary", "slasher", "ghost", "zombie"],
+  Romantic: ["romance", "rom-com", "love"],
+  "Mind-Bending": ["sci-fi", "science fiction", "mystery", "thriller", "time travel"],
+  Family: ["family", "animation", "adventure"],
+  Adventure: ["adventure", "quest", "action"],
+};
 
 const curatedSearchSignals: Array<{ terms: string[]; titles: string[]; genres?: string[]; label: string }> = [
   {
@@ -132,6 +206,85 @@ function playlistMatchesQuery(playlist: Playlist, normalizedQuery: string) {
   });
 }
 
+function normalizeSearchTerm(value: string) {
+  return value.toLowerCase().replace(/&/g, "and").replace(/sci fi|science-fiction/g, "science fiction").trim();
+}
+
+function filterTerms(filters: PlaylistSearchFilters) {
+  const terms = new Set<string>();
+  if (filters.genre) {
+    terms.add(normalizeSearchTerm(filters.genre));
+    if (filters.genre === "Sci-Fi") terms.add("science fiction");
+  }
+  if (filters.mood) {
+    moodSearchTerms[filters.mood]?.forEach((term) => terms.add(normalizeSearchTerm(term)));
+  }
+  return [...terms].filter(Boolean);
+}
+
+function movieSearchValues(movie: MovieSearchResult) {
+  return [
+    movie.title,
+    movie.overview || "",
+    movie.releaseYear || "",
+    movie.mediaType === "tv" ? "tv" : "movie",
+    ...movie.genreIds.map((id) => genreIdLabels[id] || ""),
+  ].filter(Boolean);
+}
+
+function movieMatchesFilters(movie: MovieSearchResult, filters: PlaylistSearchFilters) {
+  if (filters.content !== "both" && movie.mediaType !== filters.content) return false;
+  const terms = filterTerms(filters);
+  if (!terms.length) return true;
+  const haystack = movieSearchValues(movie).map(normalizeSearchTerm).join(" ");
+  return terms.some((term) => haystack.includes(term));
+}
+
+function playlistMatchesFilters(playlist: Playlist, filters: PlaylistSearchFilters) {
+  if (filters.content !== "both" && !playlist.movies.some((movie) => (movie.mediaType || "movie") === filters.content)) return false;
+  const terms = filterTerms(filters);
+  if (!terms.length) return true;
+  const haystack = playlistSearchValues(playlist).map(normalizeSearchTerm).join(" ");
+  return terms.some((term) => haystack.includes(term));
+}
+
+function discoveryLinkMatchesFilters(result: DiscoveryCollectionResult | DiscoveryHubLink, filters: PlaylistSearchFilters) {
+  const terms = filterTerms(filters);
+  if (!terms.length) return true;
+  const values =
+    "slug" in result
+      ? [result.title, result.overview || "", result.category || ""]
+      : [result.title, result.description || "", result.kind, result.key];
+  const haystack = values.map(normalizeSearchTerm).join(" ");
+  return terms.some((term) => haystack.includes(term));
+}
+
+function actorMatchesFilters(actor: ActorSummary, filters: PlaylistSearchFilters) {
+  const terms = filterTerms(filters);
+  if (!terms.length) return true;
+  const haystack = [actor.name, actor.knownForDepartment || "", ...(actor.knownFor || [])].map(normalizeSearchTerm).join(" ");
+  return terms.some((term) => haystack.includes(term));
+}
+
+function recognizedPersonContext(discoveryResults: DiscoverySearchResults, query: string) {
+  const normalizedQuery = normalizeSearchTerm(query);
+  if (!normalizedQuery || normalizedQuery.length < 3) return null;
+  return (
+    discoveryResults.actors.find((actor) => {
+      const actorName = normalizeSearchTerm(actor.name);
+      return actorName === normalizedQuery || actorName.includes(normalizedQuery) || normalizedQuery.includes(actorName);
+    }) || null
+  );
+}
+
+function hasActiveSearchFilters(filters: PlaylistSearchFilters) {
+  return filters.content !== "both" || Boolean(filters.genre) || Boolean(filters.mood);
+}
+
+function isExactTitleMatch(movie: MovieSearchResult, query: string) {
+  return normalizeSearchTerm(movie.title) === normalizeSearchTerm(query);
+}
+
 function playlistMatchReason(playlist: Playlist, normalizedQuery: string) {
   if (!normalizedQuery) return playlist.recommendationReason;
   const lowerName = playlist.name.toLowerCase();
@@ -167,13 +320,17 @@ function decorateSearchResults(playlists: Playlist[], normalizedQuery: string) {
   }));
 }
 
+function playlistTitleCount(playlist: Playlist) {
+  return playlist.movieCount ?? playlist.movies.length;
+}
+
 function byFollowerCount(playlists: Playlist[]) {
   return [...playlists].sort((a, b) => {
     const followerDelta = (b.followerCount || 0) - (a.followerCount || 0);
     if (followerDelta !== 0) return followerDelta;
     const likeDelta = (b.likeCount || 0) - (a.likeCount || 0);
     if (likeDelta !== 0) return likeDelta;
-    const titleDelta = b.movies.length - a.movies.length;
+    const titleDelta = playlistTitleCount(b) - playlistTitleCount(a);
     if (titleDelta !== 0) return titleDelta;
     return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
   });
@@ -184,7 +341,7 @@ function byUpdated(playlists: Playlist[]) {
 }
 
 function playlistSignalScore(playlist: Playlist) {
-  return (playlist.followerCount || 0) * 4 + (playlist.likeCount || 0) * 3 + playlist.movies.length;
+  return (playlist.followerCount || 0) * 4 + (playlist.likeCount || 0) * 3 + playlistTitleCount(playlist);
 }
 
 function byTrending(playlists: Playlist[]) {
@@ -278,6 +435,32 @@ function preferredAddTargets(playlists: Playlist[]) {
   return playlists.filter((playlist) => (playlist.isOwner || playlist.saved || playlist.clonedFromId) && !playlist.isSystem);
 }
 
+function playlistPath(playlist: Playlist) {
+  return playlist.visibility === "public" && playlist.publicSlug ? `/p/${playlist.publicSlug}` : `/playlists/${playlist.id}`;
+}
+
+function actorPath(actor: ActorSummary) {
+  return `/actors/${actor.tmdbId}`;
+}
+
+function playlistResultRank(playlist: Playlist) {
+  if (playlist.isOwner) return 0;
+  if (playlist.saved || playlist.clonedFromId) return 1;
+  if (playlist.isFollowing) return 2;
+  if (isDirectorPlaylist(playlist)) return 3;
+  return 4;
+}
+
+function sortedUniversalDiscoveryPlaylists(playlists: Playlist[]) {
+  return [...playlists].sort((a, b) => {
+    const rankDelta = playlistResultRank(a) - playlistResultRank(b);
+    if (rankDelta !== 0) return rankDelta;
+    const signalDelta = playlistSignalScore(b) - playlistSignalScore(a);
+    if (signalDelta !== 0) return signalDelta;
+    return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+  });
+}
+
 function sortedDiscoveryPlaylists(view: PlaylistView, playlists: Playlist[]) {
   return [...playlists].sort((a, b) => {
     if (view === "public") {
@@ -295,47 +478,219 @@ function titlePath(movie: MovieSearchResult) {
   return movie.mediaType === "tv" ? `/tv/${movie.tmdbId}` : `/movies/${movie.tmdbId}`;
 }
 
+function recommendationToSearchResult(movie: PlaylistMovie): MovieSearchResult {
+  return {
+    tmdbId: movie.tmdbId,
+    mediaType: movie.mediaType || "movie",
+    title: movie.title,
+    releaseYear: movie.releaseYear,
+    overview: movie.overview,
+    posterPath: movie.posterPath,
+    posterUrl: movie.posterUrl,
+    genreIds: [],
+  };
+}
+
+function uniqueTitleResults(movies: MovieSearchResult[]) {
+  const seen = new Set<string>();
+  return movies.filter((movie) => {
+    const key = titleResultKey(movie);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function uniquePlaylists(playlists: Playlist[]) {
+  const seen = new Set<string>();
+  return playlists.filter((playlist) => {
+    if (seen.has(playlist.id)) return false;
+    seen.add(playlist.id);
+    return true;
+  });
+}
+
+function relatedPlaylistsForTitle(movie: MovieSearchResult, candidates: Playlist[]) {
+  return candidates
+    .filter((playlist) => playlist.movies.some((item) => item.tmdbId === movie.tmdbId && (item.mediaType || "movie") === (movie.mediaType || "movie")))
+    .sort((a, b) => (b.followerCount || 0) - (a.followerCount || 0) || (b.movieCount || b.movies.length) - (a.movieCount || a.movies.length) || a.name.localeCompare(b.name))
+    .slice(0, 6);
+}
+
+function fallbackSimilarTitles(movie: MovieSearchResult, titleRows: MovieSearchResult[]) {
+  const sourceGenres = new Set(movie.genreIds || []);
+  return titleRows
+    .filter((candidate) => titleResultKey(candidate) !== titleResultKey(movie))
+    .filter((candidate) => !sourceGenres.size || (candidate.genreIds || []).some((genreId) => sourceGenres.has(genreId)))
+    .slice(0, 8);
+}
+
+function InlineDiscoveryShelf({
+  addTargets,
+  addToPlaylist,
+  discovery,
+  locallyAddedKeys,
+  onAdded,
+  onCreatePlaylist,
+  onNavigate,
+  personalPlaylists,
+  sourceTitle,
+}: {
+  addTargets: Playlist[];
+  addToPlaylist: (playlistId: string, movie: MovieSearchResult) => void | Promise<void>;
+  discovery?: InlineDiscoveryState;
+  locallyAddedKeys: Set<string>;
+  onAdded: (movie: MovieSearchResult) => void;
+  onCreatePlaylist: (input: Pick<Playlist, "name" | "description" | "visibility">) => Promise<Playlist>;
+  onNavigate: (path: string) => void;
+  personalPlaylists: Playlist[];
+  sourceTitle: MovieSearchResult;
+}) {
+  if (!discovery || discovery.status === "loading") {
+    return (
+      <div className="playlist-inline-discovery-shelf" aria-label={`More like ${sourceTitle.title}`}>
+        <div className="inline-discovery-heading">
+          <h4>More like {sourceTitle.title}</h4>
+          <span>Finding a few good next picks...</span>
+        </div>
+        <div className="inline-discovery-scroll">
+          {[0, 1, 2].map((item) => <div className="inline-discovery-card is-loading" key={item} />)}
+        </div>
+      </div>
+    );
+  }
+
+  if (discovery.status === "error" || (!discovery.similarTitles.length && !discovery.relatedPlaylists.length)) return null;
+
+  return (
+    <div className="playlist-inline-discovery-shelf" aria-label={`More like ${sourceTitle.title}`}>
+      {discovery.similarTitles.length ? (
+        <section>
+          <div className="inline-discovery-heading">
+            <h4>Similar Titles</h4>
+            <span>Add another without leaving results</span>
+          </div>
+          <div className="inline-discovery-scroll">
+            {discovery.similarTitles.map((movie) => {
+              const savedIn = playlistsContainingTitle(movie, personalPlaylists);
+              const isAdded = savedIn.length > 0 || locallyAddedKeys.has(titleResultKey(movie));
+              return (
+                <article className="inline-discovery-card" key={titleResultKey(movie)}>
+                  <button className="inline-discovery-poster reset-button" onClick={() => onNavigate(titlePath(movie))} type="button">
+                    {movie.posterUrl ? <img alt={`${movie.title} poster`} decoding="async" loading="lazy" src={movie.posterUrl} /> : <span />}
+                  </button>
+                  <div>
+                    <strong>{movie.title}</strong>
+                    <small>{movie.releaseYear || "Year TBA"} • {movie.mediaType === "tv" ? "TV Show" : "Movie"}</small>
+                  </div>
+                  {isAdded ? (
+                    <span className="inline-added-pill">Added</span>
+                  ) : (
+                    <AddToPlaylistControl
+                      addToPlaylist={addToPlaylist}
+                      movie={movie}
+                      onAdded={() => onAdded(movie)}
+                      onCreatePlaylist={onCreatePlaylist}
+                      openLabel="Add"
+                      playlists={addTargets}
+                    />
+                  )}
+                </article>
+              );
+            })}
+          </div>
+        </section>
+      ) : null}
+
+      {discovery.relatedPlaylists.length ? (
+        <section>
+          <div className="inline-discovery-heading">
+            <h4>Related Playlists</h4>
+            <span>Collections that already include this title</span>
+          </div>
+          <div className="inline-discovery-playlists">
+            {discovery.relatedPlaylists.map((playlist) => (
+              <button className="inline-discovery-playlist" key={playlist.id} onClick={() => onNavigate(playlistPath(playlist))} type="button">
+                <strong>{playlist.name}</strong>
+                <small>{playlist.movieCount || playlist.movies.length} titles</small>
+              </button>
+            ))}
+          </div>
+        </section>
+      ) : null}
+    </div>
+  );
+}
+
 function UniversalTitleResult({
   movie,
   savedIn,
   addTargets,
   addToPlaylist,
+  discovery,
+  isDiscoveryOpen,
+  locallyAddedKeys,
+  onAdded,
   onCreatePlaylist,
   onNavigate,
+  personalPlaylists,
 }: {
   movie: MovieSearchResult;
   savedIn: Playlist[];
   addTargets: Playlist[];
   addToPlaylist: (playlistId: string, movie: MovieSearchResult) => void | Promise<void>;
+  discovery?: InlineDiscoveryState;
+  isDiscoveryOpen: boolean;
+  locallyAddedKeys: Set<string>;
+  onAdded: (movie: MovieSearchResult) => void;
   onCreatePlaylist: (input: Pick<Playlist, "name" | "description" | "visibility">) => Promise<Playlist>;
   onNavigate: (path: string) => void;
+  personalPlaylists: Playlist[];
 }) {
   const savedNames = savedIn.slice(0, 3).map((playlist) => playlist.name).join(", ");
+  const localAdd = locallyAddedKeys.has(titleResultKey(movie));
+  const isAdded = savedIn.length > 0 || localAdd;
   return (
-    <article className="playlist-universal-title-card">
-      <button className="poster-card-button reset-button" onClick={() => onNavigate(titlePath(movie))} type="button">
-        {movie.posterUrl ? <img alt={`${movie.title} poster`} className="poster-image" decoding="async" loading="lazy" src={movie.posterUrl} /> : <div className="poster tone-blue" />}
-      </button>
-      <div className="playlist-universal-title-body">
-        <span className={savedIn.length ? "result-status-pill is-saved" : "result-status-pill"}>{savedIn.length ? "In Your Playlists" : "Not Yet Saved"}</span>
-        <h3>{movie.title}</h3>
-        <div className="card-meta">
-          <span>{movie.releaseYear || "Year TBA"}</span>
-          <span>{movie.mediaType === "tv" ? "TV Show" : "Movie"}</span>
+    <div className="playlist-universal-title-result">
+      <article className="playlist-universal-title-card">
+        <button className="poster-card-button reset-button" onClick={() => onNavigate(titlePath(movie))} type="button">
+          {movie.posterUrl ? <img alt={`${movie.title} poster`} className="poster-image" decoding="async" loading="lazy" src={movie.posterUrl} /> : <div className="poster tone-blue" />}
+        </button>
+        <div className="playlist-universal-title-body">
+          <span className={isAdded ? "result-status-pill is-saved" : "result-status-pill"}>{isAdded ? "Added" : "Not Yet Saved"}</span>
+          <h3>{movie.title}</h3>
+          <div className="card-meta">
+            <span>{movie.releaseYear || "Year TBA"}</span>
+            <span>{movie.mediaType === "tv" ? "TV Show" : "Movie"}</span>
+          </div>
+          {savedIn.length ? <p className="playlist-result-reason">In: {savedNames}{savedIn.length > 3 ? ` +${savedIn.length - 3} more` : ""}</p> : localAdd ? <p className="playlist-result-reason">Added. Here are a few good next picks.</p> : <p className="playlist-result-reason">Add it to a playlist when you are ready.</p>}
+          <div className="button-row">
+            <button className="secondary-button" onClick={() => onNavigate(titlePath(movie))} type="button">Details</button>
+            <AddToPlaylistControl
+              addToPlaylist={addToPlaylist}
+              movie={movie}
+              onAdded={() => onAdded(movie)}
+              onCreatePlaylist={onCreatePlaylist}
+              openLabel={isAdded ? "Add to Another Playlist" : "Add to Playlist"}
+              playlists={addTargets}
+            />
+          </div>
         </div>
-        {savedIn.length ? <p className="playlist-result-reason">In: {savedNames}{savedIn.length > 3 ? ` +${savedIn.length - 3} more` : ""}</p> : <p className="playlist-result-reason">Add it to a playlist when you are ready.</p>}
-        <div className="button-row">
-          <button className="secondary-button" onClick={() => onNavigate(titlePath(movie))} type="button">Details</button>
-          <AddToPlaylistControl
-            addToPlaylist={addToPlaylist}
-            movie={movie}
-            onCreatePlaylist={onCreatePlaylist}
-            openLabel={savedIn.length ? "Add to Another Playlist" : "Add to Playlist"}
-            playlists={addTargets}
-          />
-        </div>
-      </div>
-    </article>
+      </article>
+      {isDiscoveryOpen ? (
+        <InlineDiscoveryShelf
+          addTargets={addTargets}
+          addToPlaylist={addToPlaylist}
+          discovery={discovery}
+          locallyAddedKeys={locallyAddedKeys}
+          onAdded={onAdded}
+          onCreatePlaylist={onCreatePlaylist}
+          onNavigate={onNavigate}
+          personalPlaylists={personalPlaylists}
+          sourceTitle={movie}
+        />
+      ) : null}
+    </div>
   );
 }
 
@@ -351,9 +706,15 @@ function CompactDiscoveryLink({ title, meta, description, onClick }: { title: st
 
 function UniversalPlaylistSearchResults({
   addToPlaylist,
+  activeTab,
   discoveryResults,
+  filters,
+  isFilterOpen,
   localPlaylistResults,
+  onActiveTabChange,
   onCreatePlaylist,
+  onFiltersChange,
+  onFilterOpenChange,
   onNavigate,
   playlists,
   query,
@@ -361,81 +722,291 @@ function UniversalPlaylistSearchResults({
   view,
 }: {
   addToPlaylist: (playlistId: string, movie: MovieSearchResult) => void | Promise<void>;
+  activeTab: SearchResultTab;
   discoveryResults: DiscoverySearchResults;
+  filters: PlaylistSearchFilters;
+  isFilterOpen: boolean;
   localPlaylistResults: Playlist[];
+  onActiveTabChange: (tab: SearchResultTab) => void;
   onCreatePlaylist: (input: Pick<Playlist, "name" | "description" | "visibility">) => Promise<Playlist>;
+  onFiltersChange: (filters: PlaylistSearchFilters) => void;
+  onFilterOpenChange: (isOpen: boolean) => void;
   onNavigate: (path: string) => void;
   playlists: Playlist[];
   query: string;
   status: "idle" | "loading" | "done" | "error";
   view: PlaylistView;
 }) {
+  const [expandedDiscoveryKey, setExpandedDiscoveryKey] = useState<string | null>(null);
+  const [inlineDiscoveryByTitle, setInlineDiscoveryByTitle] = useState<Record<string, InlineDiscoveryState>>({});
+  const [locallyAddedTitleKeys, setLocallyAddedTitleKeys] = useState<string[]>([]);
   const addTargets = preferredAddTargets(playlists);
   const personalPlaylists = playlists.filter((playlist) => (playlist.isOwner || playlist.saved || playlist.clonedFromId) && !playlist.isSystem);
-  const titleRows = discoveryResults.titles.map((movie) => ({ movie, savedIn: playlistsContainingTitle(movie, personalPlaylists) }));
+  const titleRows = discoveryResults.titles
+    .filter((movie) => movieMatchesFilters(movie, filters))
+    .map((movie) => ({ movie, savedIn: playlistsContainingTitle(movie, personalPlaylists) }));
+  const locallyAddedKeys = useMemo(() => new Set(locallyAddedTitleKeys), [locallyAddedTitleKeys]);
   const savedTitleRows = titleRows.filter((row) => row.savedIn.length > 0);
   const mergedPlaylistMap = new Map<string, Playlist>();
   [...localPlaylistResults, ...discoveryResults.playlists].forEach((playlist) => mergedPlaylistMap.set(playlist.id, playlist));
-  const playlistRows = sortedDiscoveryPlaylists(view, [...mergedPlaylistMap.values()]);
+  const playlistRows = sortedUniversalDiscoveryPlaylists([...mergedPlaylistMap.values()].filter((playlist) => playlistMatchesFilters(playlist, filters)));
+  const yourRows = playlistRows.filter((playlist) => (playlist.isOwner || playlist.saved || playlist.clonedFromId) && !isDirectorPlaylist(playlist));
+  const followedRows = playlistRows.filter((playlist) => playlist.isFollowing && !playlist.isOwner && !isDirectorPlaylist(playlist));
   const directorRows = playlistRows.filter(isDirectorPlaylist);
-  const communityRows = playlistRows.filter((playlist) => !isDirectorPlaylist(playlist));
-  const hasResults = titleRows.length || playlistRows.length || discoveryResults.collections.length || discoveryResults.hubs.length || discoveryResults.actors.length;
+  const publicRows = playlistRows.filter((playlist) => !playlist.isOwner && !playlist.saved && !playlist.clonedFromId && !playlist.isFollowing && !isDirectorPlaylist(playlist));
+  const collectionRows = discoveryResults.collections.filter((collection) => discoveryLinkMatchesFilters(collection, filters));
+  const hubRows = discoveryResults.hubs.filter((hub) => discoveryLinkMatchesFilters(hub, filters));
+  const actorRows = discoveryResults.actors.filter((actor) => actorMatchesFilters(actor, filters));
+  const genreRows = hubRows.filter((hub) => hub.kind === "genre");
+  const themeRows = hubRows.filter((hub) => hub.kind !== "genre");
+  const recognizedPerson = recognizedPersonContext(discoveryResults, query);
+  const hasPlaylistResults = playlistRows.length || collectionRows.length || hubRows.length;
+  const hasTitleResults = titleRows.length;
+  const hasActorResults = actorRows.length;
+  const hasGenreResults = genreRows.length || themeRows.length || collectionRows.length;
+  const hasResults = hasPlaylistResults || hasTitleResults || hasActorResults || hasGenreResults;
+  const exactTitleFound = titleRows.some((row) => isExactTitleMatch(row.movie, query));
+
+  useEffect(() => {
+    setExpandedDiscoveryKey(null);
+  }, [query, activeTab, view]);
+
+  const updateFilters = (nextFilters: Partial<PlaylistSearchFilters>) => onFiltersChange({ ...filters, ...nextFilters });
+  const clearFilters = () => onFiltersChange(defaultPlaylistSearchFilters);
+  const handleTitleAdded = async (movie: MovieSearchResult) => {
+    const key = titleResultKey(movie);
+    setLocallyAddedTitleKeys((current) => [...new Set([...current, key])]);
+    setExpandedDiscoveryKey(key);
+
+    if (inlineDiscoveryByTitle[key]?.status === "ready") return;
+
+    setInlineDiscoveryByTitle((current) => ({ ...current, [key]: { status: "loading", similarTitles: [], relatedPlaylists: [] } }));
+
+    try {
+      const response = await getRecommendations({ mediaType: movie.mediaType || "movie", tmdbId: movie.tmdbId });
+      const fetchedTitles = uniqueTitleResults(response.recommendations.map(recommendationToSearchResult))
+        .filter((candidate) => titleResultKey(candidate) !== key)
+        .slice(0, 10);
+      const similarTitles = fetchedTitles.length ? fetchedTitles : fallbackSimilarTitles(movie, titleRows.map((row) => row.movie));
+      const relatedPlaylists = relatedPlaylistsForTitle(movie, uniquePlaylists([...(response.playlistRecommendations || []), ...localPlaylistResults, ...discoveryResults.playlists, ...playlists]));
+
+      setInlineDiscoveryByTitle((current) => ({
+        ...current,
+        [key]: {
+          status: "ready",
+          similarTitles,
+          relatedPlaylists,
+        },
+      }));
+    } catch {
+      setInlineDiscoveryByTitle((current) => ({ ...current, [key]: { status: "error", similarTitles: [], relatedPlaylists: [] } }));
+    }
+  };
+
+  const renderTitleResult = ({ movie, savedIn }: { movie: MovieSearchResult; savedIn: Playlist[] }) => (
+    <UniversalTitleResult
+      addTargets={addTargets}
+      addToPlaylist={addToPlaylist}
+      discovery={inlineDiscoveryByTitle[titleResultKey(movie)]}
+      isDiscoveryOpen={expandedDiscoveryKey === titleResultKey(movie)}
+      key={titleResultKey(movie)}
+      locallyAddedKeys={locallyAddedKeys}
+      movie={movie}
+      onAdded={handleTitleAdded}
+      onCreatePlaylist={onCreatePlaylist}
+      onNavigate={onNavigate}
+      personalPlaylists={personalPlaylists}
+      savedIn={savedIn}
+    />
+  );
+
+  const renderFilterPanel = () =>
+    isFilterOpen ? (
+      <div className="playlist-filter-panel">
+        <div className="playlist-filter-group">
+          <span>Content</span>
+          <div className="playlist-filter-options">
+            {(["both", "movie", "tv"] as SearchContentFilter[]).map((content) => (
+              <button className={`playlist-filter-pill${filters.content === content ? " is-active" : ""}`} key={content} onClick={() => updateFilters({ content })} type="button">
+                {content === "both" ? "Both" : content === "movie" ? "Movies" : "TV"}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="playlist-filter-group">
+          <span>Genre</span>
+          <div className="playlist-filter-options">
+            {playlistSearchGenres.map((genre) => (
+              <button className={`playlist-filter-pill${filters.genre === genre ? " is-active" : ""}`} key={genre} onClick={() => updateFilters({ genre: filters.genre === genre ? "" : genre })} type="button">
+                {genre}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="playlist-filter-group">
+          <span>Mood / Theme</span>
+          <div className="playlist-filter-options">
+            {playlistSearchMoods.map((mood) => (
+              <button className={`playlist-filter-pill${filters.mood === mood ? " is-active" : ""}`} key={mood} onClick={() => updateFilters({ mood: filters.mood === mood ? "" : mood })} type="button">
+                {mood}
+              </button>
+            ))}
+          </div>
+        </div>
+        {hasActiveSearchFilters(filters) ? (
+          <button className="playlist-filter-clear" onClick={clearFilters} type="button">
+            Clear Filters
+          </button>
+        ) : null}
+      </div>
+    ) : null;
+
+  const renderSearchShell = (children: ReactNode) => (
+    <div className="playlist-universal-results">
+      <div className="playlist-search-toolbar">
+        <div className="playlist-result-tabs" role="tablist" aria-label="Search result type">
+          {searchResultTabs.map((tab) => (
+            <button
+              aria-selected={activeTab === tab.id}
+              className={`playlist-result-tab${activeTab === tab.id ? " is-active" : ""}`}
+              key={tab.id}
+              onClick={() => onActiveTabChange(tab.id)}
+              role="tab"
+              type="button"
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+        <button className={`playlist-filter-toggle${isFilterOpen ? " is-active" : ""}`} onClick={() => onFilterOpenChange(!isFilterOpen)} type="button">
+          Filter
+        </button>
+      </div>
+      {renderFilterPanel()}
+      {recognizedPerson ? (
+        <div className="playlist-search-context-row">
+          <strong>{recognizedPerson.name}</strong>
+          <span>{recognizedPerson.knownForDepartment || "Actor"}</span>
+        </div>
+      ) : null}
+      <div className="playlist-active-filters" aria-label="Active filters">
+        {recognizedPerson ? <span className="playlist-active-chip">Person: {recognizedPerson.name}</span> : null}
+        {filters.content !== "both" ? (
+          <button className="playlist-active-chip" onClick={() => updateFilters({ content: "both" })} type="button">
+            {filters.content === "movie" ? "Movies" : "TV"} x
+          </button>
+        ) : null}
+        {filters.genre ? (
+          <button className="playlist-active-chip" onClick={() => updateFilters({ genre: "" })} type="button">
+            Genre: {filters.genre} x
+          </button>
+        ) : null}
+        {filters.mood ? (
+          <button className="playlist-active-chip" onClick={() => updateFilters({ mood: "" })} type="button">
+            Mood: {filters.mood} x
+          </button>
+        ) : null}
+      </div>
+      {exactTitleFound ? <p className="playlist-exact-title-note">Exact title match found in Titles.</p> : null}
+      {children}
+    </div>
+  );
 
   if (status === "loading") {
-    return <p className="playlist-universal-status">Searching Flim for {query}...</p>;
+    return renderSearchShell(<p className="playlist-universal-status">Searching for {query}...</p>);
   }
 
   if (status === "error") {
-    return <p className="empty-state">Search could not finish right now. Try again shortly.</p>;
+    return renderSearchShell(<p className="empty-state">Search could not finish right now. Try again shortly.</p>);
   }
 
   if (!hasResults) {
-    return <p className="empty-state">No matches found for {query}. Try a title, actor, genre, or playlist idea.</p>;
+    return renderSearchShell(<p className="empty-state">No matches found for {query}. Try a title, actor, genre, or playlist idea.</p>);
   }
 
-  if (view === "public") {
-    return (
-      <div className="playlist-universal-results">
-        <DiscoveryShelf title="Playlists" playlists={communityRows} onNavigate={onNavigate} emptyMessage="No public playlists matched." />
-        <DiscoveryShelf title="Director's Cut" playlists={directorRows} onNavigate={onNavigate} emptyMessage="No curated collections matched." />
-        {discoveryResults.collections.length ? (
-          <section className="discovery-section"><div className="discovery-section-heading"><h2>Collections</h2></div><div className="playlist-universal-link-grid">
-            {discoveryResults.collections.map((collection: DiscoveryCollectionResult) => (
-              <CompactDiscoveryLink key={collection.slug} title={collection.title} meta="Director's Cut" description={collection.overview || `${collection.titleCount} titles`} onClick={() => onNavigate(`/collection/${collection.slug}`)} />
-            ))}
-          </div></section>
+  if (activeTab === "titles") {
+    return renderSearchShell(
+      <>
+        {view === "my" && savedTitleRows.length ? (
+          <section className="discovery-section">
+            <div className="discovery-section-heading"><h2>In Your Playlists</h2></div>
+            <div className="playlist-universal-title-list">
+              {savedTitleRows.map(renderTitleResult)}
+            </div>
+          </section>
         ) : null}
-        {discoveryResults.actors.length ? (
-          <section className="discovery-section"><div className="discovery-section-heading"><h2>People</h2></div><div className="playlist-universal-link-grid">
-            {discoveryResults.actors.slice(0, 6).map((actor) => (
-              <CompactDiscoveryLink key={actor.tmdbId} title={actor.name} meta={actor.knownForDepartment || "Person"} description={actor.knownFor?.join(", ")} onClick={() => onNavigate(`/person/${actor.tmdbId}`)} />
-            ))}
-          </div></section>
+        {titleRows.filter((row) => view !== "my" || row.savedIn.length === 0).length ? (
+          <section className="discovery-section">
+            <div className="discovery-section-heading"><h2>{view === "my" ? "Not Yet Saved" : "Title Results"}</h2></div>
+            <div className="playlist-universal-title-list">
+              {titleRows
+                .filter((row) => view !== "my" || row.savedIn.length === 0)
+                .slice(0, 14)
+                .map(renderTitleResult)}
+            </div>
+          </section>
         ) : null}
-        {titleRows.length ? (
-          <section className="discovery-section"><div className="discovery-section-heading"><h2>Discovery Results</h2></div><div className="playlist-universal-title-list">
-            {titleRows.slice(0, 10).map(({ movie, savedIn }) => <UniversalTitleResult key={titleResultKey(movie)} addTargets={addTargets} addToPlaylist={addToPlaylist} movie={movie} onCreatePlaylist={onCreatePlaylist} onNavigate={onNavigate} savedIn={savedIn} />)}
-          </div></section>
-        ) : null}
-      </div>
+        {!hasTitleResults ? <p className="playlist-universal-empty">No title matches for this search yet.</p> : null}
+      </>,
     );
   }
 
-  return (
-    <div className="playlist-universal-results">
-      {savedTitleRows.length ? (
-        <section className="discovery-section"><div className="discovery-section-heading"><h2>In Your Playlists</h2></div><div className="playlist-universal-title-list">
-          {savedTitleRows.map(({ movie, savedIn }) => <UniversalTitleResult key={titleResultKey(movie)} addTargets={addTargets} addToPlaylist={addToPlaylist} movie={movie} onCreatePlaylist={onCreatePlaylist} onNavigate={onNavigate} savedIn={savedIn} />)}
-        </div></section>
+  if (activeTab === "actors") {
+    return renderSearchShell(
+      <section className="discovery-section">
+        <div className="discovery-section-heading"><h2>Actors</h2></div>
+        {actorRows.length ? (
+          <div className="playlist-actor-result-grid">
+            {actorRows.slice(0, 18).map((actor) => (
+              <button className="playlist-actor-result-card" key={actor.tmdbId} onClick={() => onNavigate(actorPath(actor))} type="button">
+                {actor.profileUrl ? <img alt="" src={actor.profileUrl} loading="lazy" decoding="async" /> : <span aria-hidden="true">{actor.name.slice(0, 1)}</span>}
+                <strong>{actor.name}</strong>
+                <small>{actor.knownForDepartment || "Actor"}</small>
+                {actor.knownFor?.length ? <em>{actor.knownFor.slice(0, 3).join(", ")}</em> : null}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <p className="playlist-universal-empty">No actor matches for this search yet.</p>
+        )}
+      </section>,
+    );
+  }
+
+  if (activeTab === "genre") {
+    return renderSearchShell(
+      <section className="discovery-section">
+        <div className="discovery-section-heading"><h2>Genres & Themes</h2></div>
+        {hasGenreResults ? (
+          <div className="playlist-universal-link-grid">
+            {genreRows.map((hub: DiscoveryHubLink) => <CompactDiscoveryLink key={`${hub.kind}-${hub.key}`} title={hub.title} meta="Genre" description={hub.description} onClick={() => onNavigate(hub.path)} />)}
+            {themeRows.map((hub: DiscoveryHubLink) => <CompactDiscoveryLink key={`${hub.kind}-${hub.key}`} title={hub.title} meta={hub.kind === "decade" ? "Era" : "Theme"} description={hub.description} onClick={() => onNavigate(hub.path)} />)}
+            {collectionRows.map((collection) => <CompactDiscoveryLink key={collection.slug} title={collection.title} meta="Collection" description={collection.overview || `${collection.titleCount} titles`} onClick={() => onNavigate(`/collection/${collection.slug}`)} />)}
+          </div>
+        ) : (
+          <p className="playlist-universal-empty">No genre or theme matches for this search yet.</p>
+        )}
+      </section>,
+    );
+  }
+
+  return renderSearchShell(
+    <>
+      <DiscoveryShelf title="Your Playlists" playlists={yourRows} onNavigate={onNavigate} emptyMessage="No saved playlist matches yet." />
+      <DiscoveryShelf title="Followed Playlists" playlists={followedRows} onNavigate={onNavigate} emptyMessage="No followed playlist matches yet." />
+      <DiscoveryShelf title="Director's Cut" playlists={directorRows} onNavigate={onNavigate} emptyMessage="No curated collections matched." />
+      <DiscoveryShelf title="Public Playlists" playlists={publicRows} onNavigate={onNavigate} emptyMessage="No public playlists matched." />
+      {(collectionRows.length || hubRows.length) ? (
+        <section className="discovery-section">
+          <div className="discovery-section-heading"><h2>Collections & Themes</h2></div>
+          <div className="playlist-universal-link-grid">
+            {collectionRows.map((collection) => <CompactDiscoveryLink key={collection.slug} title={collection.title} meta="Director's Cut" description={collection.overview || `${collection.titleCount} titles`} onClick={() => onNavigate(`/collection/${collection.slug}`)} />)}
+            {hubRows.map((hub: DiscoveryHubLink) => <CompactDiscoveryLink key={`${hub.kind}-${hub.key}`} title={hub.title} meta={hub.kind === "genre" ? "Genre" : hub.kind === "decade" ? "Decade" : "Theme"} description={hub.description} onClick={() => onNavigate(hub.path)} />)}
+          </div>
+        </section>
       ) : null}
-      {playlistRows.length ? <DiscoveryShelf title="Playlist Matches" playlists={playlistRows} onNavigate={onNavigate} emptyMessage="No matching playlists yet." /> : null}
-      {(discoveryResults.collections.length || discoveryResults.hubs.length) ? (
-        <section className="discovery-section"><div className="discovery-section-heading"><h2>Collections & Themes</h2></div><div className="playlist-universal-link-grid">
-          {discoveryResults.collections.map((collection) => <CompactDiscoveryLink key={collection.slug} title={collection.title} meta="Director's Cut" description={collection.overview || `${collection.titleCount} titles`} onClick={() => onNavigate(`/collection/${collection.slug}`)} />)}
-          {discoveryResults.hubs.map((hub: DiscoveryHubLink) => <CompactDiscoveryLink key={`${hub.kind}-${hub.key}`} title={hub.title} meta={hub.kind === "genre" ? "Genre" : hub.kind === "decade" ? "Decade" : "Theme"} description={hub.description} onClick={() => onNavigate(hub.path)} />)}
-        </div></section>
-      ) : null}
-    </div>
+      {!hasPlaylistResults ? <p className="playlist-universal-empty">No playlist matches yet. Titles may still have results.</p> : null}
+    </>,
   );
 }
 
@@ -501,7 +1072,19 @@ function PublicDiscovery({
   );
 }
 
-export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlaylist, addToPlaylist, onOpenRoulette, currentUser, notice, initialView = "my" }: PlaylistsProps) {
+export function Playlists({
+  onNavigate,
+  playlists,
+  rewindPlaylists,
+  onCreatePlaylist,
+  addToPlaylist,
+  onOpenRoulette,
+  currentUser,
+  notice,
+  initialView = "my",
+  playlistLoadStatus = "ready",
+  playlistLoadMessage = "",
+}: PlaylistsProps) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [visibility, setVisibility] = useState<Playlist["visibility"]>("private");
@@ -513,6 +1096,12 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
   const [visibleCount, setVisibleCount] = useState(7);
   const [discoveryResults, setDiscoveryResults] = useState<DiscoverySearchResults>(emptyDiscoveryResults);
   const [discoveryStatus, setDiscoveryStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
+  const [searchTab, setSearchTab] = useState<SearchResultTab>("playlists");
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [searchFilters, setSearchFilters] = useState<PlaylistSearchFilters>(defaultPlaylistSearchFilters);
+  const [rouletteGate, setRouletteGate] = useState<"auth" | "empty" | null>(null);
+  const rouletteGateRef = useRef<HTMLDivElement | null>(null);
+  const heroSearchRef = useRef<HTMLInputElement | null>(null);
   const directorPlaylists = useMemo(
     () => playlists.filter(isDirectorPlaylist),
     [playlists],
@@ -553,6 +1142,8 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
 
   useEffect(() => {
     setVisibleCount(7);
+    setSearchTab("playlists");
+    setIsFilterOpen(false);
   }, [query, view]);
 
   useEffect(() => {
@@ -605,8 +1196,35 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
       });
   }, [query, sourcePlaylists, view]);
 
+  const universalPlaylistResults = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+    if (!normalizedQuery) return [];
+    return decorateSearchResults(
+      playlists.filter((playlist) => !playlist.isSystem && !isTemporaryVerificationPlaylist(playlist) && playlistMatchesQuery(playlist, normalizedQuery)),
+      normalizedQuery,
+    ).sort((a, b) => {
+      const rankDelta = playlistResultRank(a) - playlistResultRank(b);
+      if (rankDelta !== 0) return rankDelta;
+      const scoreDelta = scorePlaylistSearch(a, normalizedQuery) - scorePlaylistSearch(b, normalizedQuery);
+      if (scoreDelta !== 0) return scoreDelta;
+      return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+    });
+  }, [playlists, query]);
+
   const visiblePagePlaylists = visiblePlaylists.slice(0, visibleCount);
   const hasMorePlaylists = visiblePlaylists.length > visibleCount;
+  const isLoadingPlaylists = playlistLoadStatus === "loading";
+  const playlistLoadFailed = playlistLoadStatus === "error";
+  const rouletteTitleCount = useMemo(
+    () => sourcePlaylists.reduce((count, playlist) => count + playlist.movies.length, 0),
+    [sourcePlaylists],
+  );
+
+  useEffect(() => {
+    if (!rouletteGate) return;
+    const firstButton = rouletteGateRef.current?.querySelector<HTMLButtonElement>("button");
+    firstButton?.focus();
+  }, [rouletteGate]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -638,8 +1256,50 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
     setShowCreate((current) => !current);
   }
 
+  function openRouletteFromCard() {
+    if (!currentUser) {
+      setRouletteGate("auth");
+      return;
+    }
+    if (rouletteTitleCount === 0) {
+      setRouletteGate("empty");
+      return;
+    }
+    onOpenRoulette?.(sourcePlaylists);
+  }
+
+  function handleRouletteGateKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (event.key === "Escape") {
+      setRouletteGate(null);
+      return;
+    }
+    if (event.key !== "Tab") return;
+
+    const focusable = Array.from(
+      rouletteGateRef.current?.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+      ) || [],
+    ).filter((element) => !element.hasAttribute("disabled"));
+    if (!focusable.length) return;
+
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+
+  function focusHeroSearch() {
+    setRouletteGate(null);
+    heroSearchRef.current?.focus();
+  }
+
   const ownedPreview = ownedPlaylists.slice(0, visibleCount);
-  const universalResultCount = visiblePlaylists.length + discoveryResults.titles.length + discoveryResults.playlists.length + discoveryResults.collections.length + discoveryResults.hubs.length + discoveryResults.actors.length;
+  const universalResultCount = universalPlaylistResults.length + discoveryResults.titles.length + discoveryResults.playlists.length + discoveryResults.collections.length + discoveryResults.hubs.length + discoveryResults.actors.length;
   const searchStatusLabel = normalizedQuery
     ? universalResultCount > 0 || discoveryStatus === "loading"
       ? discoveryStatus === "loading"
@@ -654,10 +1314,34 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
       {error ? <p className="error-message">{error}</p> : null}
 
       <section className={`playlist-landing-hero playlist-landing-hero-${view}`} aria-label={view === "public" ? "Public Playlists" : "My Playlists"}>
+        <link
+          rel="preload"
+          as="image"
+          href={view === "public" ? "/playlist-heroes/public-playlists-hero-mobile.webp" : "/playlist-heroes/my-playlists-hero-mobile.webp"}
+          media="(max-width: 767px)"
+        />
+        <link
+          rel="preload"
+          as="image"
+          href={view === "public" ? "/playlist-heroes/public-playlists-hero.webp" : "/playlist-heroes/my-playlists-hero.webp"}
+          media="(min-width: 768px)"
+        />
         <picture className="playlist-landing-hero-picture" aria-hidden="true">
+          <source
+            media="(max-width: 767px)"
+            srcSet={view === "public" ? "/playlist-heroes/public-playlists-hero-mobile.webp" : "/playlist-heroes/my-playlists-hero-mobile.webp"}
+            type="image/webp"
+          />
+          <source
+            media="(min-width: 768px)"
+            srcSet={view === "public" ? "/playlist-heroes/public-playlists-hero.webp" : "/playlist-heroes/my-playlists-hero.webp"}
+            type="image/webp"
+          />
           <img
             alt=""
             decoding="async"
+            fetchPriority="high"
+            loading="eager"
             src={view === "public" ? "/playlist-heroes/public-playlists-hero.png" : "/playlist-heroes/my-playlists-hero.png"}
           />
         </picture>
@@ -672,19 +1356,29 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
             aria-label={view === "public" ? "Search movies, shows, actors, genres, or public playlists" : "Search movies, shows, actors, genres, or playlists"}
             className="collection-search playlist-title-search playlist-hero-search"
           >
-            <input onChange={(event) => setQuery(event.target.value)} placeholder={view === "public" ? "Search movies, shows, actors, genres, or public playlists" : "Search movies, shows, actors, genres, or playlists"} type="search" value={query} />
+            <input ref={heroSearchRef} onChange={(event) => setQuery(event.target.value)} placeholder={view === "public" ? "Search movies, shows, actors, genres, or public playlists" : "Search movies, shows, actors, genres, or playlists"} type="search" value={query} />
           </label>
           {searchStatusLabel ? <p className="playlist-search-state" aria-live="polite">{searchStatusLabel}</p> : null}
         </div>
       </section>
 
+      <button className="playlist-roulette-hero-card" onClick={openRouletteFromCard} type="button" aria-label="Spin to pick what to watch tonight">
+        <span className="playlist-roulette-wheel" aria-hidden="true">
+          <span className="playlist-roulette-wheel-pointer" />
+          <span className="playlist-roulette-wheel-core" />
+        </span>
+        <span className="playlist-roulette-hero-copy">
+          <strong>What Are We Watching Tonight?</strong>
+          <small>Can&apos;t decide?</small>
+          <small>Let Flim pick for you.</small>
+        </span>
+        <span className="playlist-roulette-spin-label">SPIN</span>
+      </button>
+
       {view === "my" ? (
         <div className="playlist-page-actions">
           <button className="primary-button" onClick={requestCreatePlaylist} type="button">
             {!currentUser ? "Create Account" : showCreate ? "Close" : "Create Playlist"}
-          </button>
-          <button className="primary-button" onClick={() => onOpenRoulette?.(sourcePlaylists)} type="button">
-            Director&apos;s Choice
           </button>
         </div>
       ) : null}
@@ -700,32 +1394,119 @@ export function Playlists({ onNavigate, playlists, rewindPlaylists, onCreatePlay
             <span>Description</span>
             <textarea onChange={(event) => setDescription(event.target.value)} placeholder="A few words for the playlist" value={description} />
           </label>
-          <label>
-            <span>Visibility</span>
-            <select onChange={(event) => setVisibility(event.target.value as Playlist["visibility"])} value={visibility}>
-              <option value="private">private</option>
-              <option value="shared">shared</option>
-              <option value="public">public</option>
-            </select>
-          </label>
+          <div className="visibility-picker">
+            <span className="visibility-picker-label">Visibility</span>
+            <div className="visibility-options" role="radiogroup" aria-label="Playlist visibility">
+              {PLAYLIST_VISIBILITY_OPTIONS.map((option) => (
+                <button
+                  aria-pressed={visibility === option.value}
+                  className={`visibility-option ${visibility === option.value ? "active" : ""}`}
+                  key={option.value}
+                  onClick={() => setVisibility(option.value)}
+                  type="button"
+                >
+                  <strong>{option.label}</strong>
+                  <small>{option.helper}</small>
+                </button>
+              ))}
+            </div>
+            <p className="helper-text">{PLAYLIST_VISIBILITY_HELP[visibility]}</p>
+          </div>
           <button className="primary-button" disabled={isSaving} type="submit">
             {isSaving ? "Creating..." : "Create Playlist"}
           </button>
         </form>
       ) : null}
 
+      {rouletteGate ? (
+        <div
+          className="playlist-roulette-gate-backdrop"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setRouletteGate(null);
+          }}
+          role="presentation"
+        >
+          <div
+            aria-labelledby="playlist-roulette-gate-title"
+            aria-modal="true"
+            className="playlist-roulette-gate"
+            onKeyDown={handleRouletteGateKeyDown}
+            ref={rouletteGateRef}
+            role="dialog"
+          >
+            <button className="playlist-roulette-gate-close" onClick={() => setRouletteGate(null)} type="button" aria-label="Close">
+              X
+            </button>
+            <span className="playlist-roulette-gate-wheel" aria-hidden="true">
+              <span />
+            </span>
+            {rouletteGate === "auth" ? (
+              <>
+                <h2 id="playlist-roulette-gate-title">Build your movie night first</h2>
+                <p>Add movies to your playlists, then Flim can spin from the things you actually want to watch.</p>
+                <div className="playlist-roulette-gate-actions">
+                  <button className="primary-button" onClick={() => onNavigate("/signup")} type="button">
+                    Create Free Account
+                  </button>
+                  <button className="secondary-button" onClick={() => onNavigate("/signin")} type="button">
+                    Sign In
+                  </button>
+                  <button className="text-button" onClick={() => setRouletteGate(null)} type="button">
+                    Maybe Later
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <h2 id="playlist-roulette-gate-title">Nothing to spin yet</h2>
+                <p>Add a few movies to your playlists and come back when you&apos;re ready to let Flim choose.</p>
+                <div className="playlist-roulette-gate-actions">
+                  <button className="primary-button" onClick={view === "public" ? focusHeroSearch : () => onNavigate("/public")} type="button">
+                    Add Movies
+                  </button>
+                  <button className="text-button" onClick={() => setRouletteGate(null)} type="button">
+                    Maybe Later
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      ) : null}
+
+      {playlistLoadFailed && !normalizedQuery ? (
+        <p className="error-message playlist-section-message">{playlistLoadMessage || "Could not load playlists right now. Please try again shortly."}</p>
+      ) : null}
+
       {normalizedQuery ? (
         <UniversalPlaylistSearchResults
           addToPlaylist={addToPlaylist}
+          activeTab={searchTab}
           discoveryResults={discoveryResults}
-          localPlaylistResults={visiblePlaylists}
+          filters={searchFilters}
+          isFilterOpen={isFilterOpen}
+          localPlaylistResults={universalPlaylistResults}
+          onActiveTabChange={setSearchTab}
           onCreatePlaylist={onCreatePlaylist}
+          onFiltersChange={setSearchFilters}
+          onFilterOpenChange={setIsFilterOpen}
           onNavigate={onNavigate}
           playlists={playlists}
           query={normalizedQuery}
           status={discoveryStatus}
           view={view}
         />
+      ) : isLoadingPlaylists ? (
+        <section className="discovery-section playlist-loading-section" aria-busy="true">
+          <div className="discovery-section-heading">
+            <h2>{view === "public" ? "Public Playlists" : "Your Playlists"}</h2>
+          </div>
+          <div className="playlist-loading-grid" aria-label="Loading playlist previews">
+            {Array.from({ length: 6 }).map((_, index) => (
+              <span className="playlist-loading-card" key={index} />
+            ))}
+          </div>
+        </section>
       ) : view === "public" ? (
         <PublicDiscovery
           onNavigate={onNavigate}

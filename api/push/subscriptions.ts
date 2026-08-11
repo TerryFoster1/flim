@@ -1,11 +1,12 @@
 import { db, getCurrentUser, readBody, sendJson } from "../_db.js";
 import { ensurePushTables, getVapidPublicKey, isPushConfigured, normalizePushPreferences } from "../_push.js";
+import { cleanText, cleanUrl, requireRecord, safeApiError } from "../_security.js";
 
 function subscriptionKeys(subscription: any) {
   return {
-    endpoint: String(subscription?.endpoint || ""),
-    p256dh: String(subscription?.keys?.p256dh || ""),
-    auth: String(subscription?.keys?.auth || ""),
+    endpoint: cleanUrl(subscription?.endpoint, { field: "endpoint", max: 2048 }),
+    p256dh: cleanText(subscription?.keys?.p256dh, { field: "p256dh", max: 512, required: true }),
+    auth: cleanText(subscription?.keys?.auth, { field: "auth", max: 512, required: true }),
   };
 }
 
@@ -45,7 +46,7 @@ export default async function handler(request: any, response: any) {
         return sendJson(response, 503, { error: "Push notifications are not configured yet." });
       }
 
-      const body = await readBody(request);
+      const body = requireRecord(await readBody(request));
       const keys = subscriptionKeys(body.subscription);
       if (!keys.endpoint || !keys.p256dh || !keys.auth) {
         return sendJson(response, 400, { error: "A valid push subscription is required." });
@@ -58,7 +59,7 @@ export default async function handler(request: any, response: any) {
           ${keys.endpoint},
           ${keys.p256dh},
           ${keys.auth},
-          ${String(body.userAgent || request.headers["user-agent"] || "").slice(0, 500)},
+          ${cleanText(body.userAgent || request.headers["user-agent"] || "", { field: "userAgent", max: 500 })},
           true,
           now()
         )
@@ -76,8 +77,8 @@ export default async function handler(request: any, response: any) {
     }
 
     if (request.method === "DELETE") {
-      const body = await readBody(request);
-      const endpoint = String(body.endpoint || "");
+      const body = requireRecord(await readBody(request));
+      const endpoint = cleanUrl(body.endpoint, { field: "endpoint", max: 2048 });
       if (!endpoint) return sendJson(response, 400, { error: "Choose a subscription to disable." });
 
       await sql`
@@ -92,7 +93,7 @@ export default async function handler(request: any, response: any) {
     }
 
     if (request.method === "PATCH") {
-      const body = await readBody(request);
+      const body = requireRecord(await readBody(request));
       const preferences = normalizePushPreferences(body.preferences);
       await sql`
         insert into push_notification_preferences (user_id, preferences, updated_at)
@@ -108,6 +109,6 @@ export default async function handler(request: any, response: any) {
     return sendJson(response, 405, { error: "Method not allowed." });
   } catch (error) {
     console.error("push_subscriptions_request_failed", error instanceof Error ? error.message : "Push subscription request failed.");
-    return sendJson(response, 500, { error: "Unable to update push notifications. Please try again." });
+    return sendJson(response, 500, { error: safeApiError(error, "Unable to update push notifications. Please try again.") });
   }
 }

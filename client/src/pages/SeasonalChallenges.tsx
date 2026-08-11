@@ -3,6 +3,7 @@ import type { KeyboardEvent, ReactNode } from "react";
 import { getSeasonalChallengeHistory, getSeasonalChallenges } from "../services/seasonalChallengeService";
 import { getTicketFeed } from "../services/ticketService";
 import type { SeasonalChallengeEvent, SeasonalChallengeFeed, SeasonalChallengeHistoryItem, TicketFeed } from "../types";
+import { arcadeCollectionArtworkForText } from "../utils/arcadeArtwork";
 
 interface SeasonalChallengesProps {
   onNavigate: (path: string) => void;
@@ -28,41 +29,7 @@ function titleOg(id: number) {
 
 function challengeArtworkUrls(event: SeasonalChallengeEvent) {
   if (event.heroImageUrl) return [event.heroImageUrl];
-
-  const key = `${event.slug} ${event.name} ${event.banner || ""} ${event.seasonKey || ""}`.toLowerCase();
-
-  if (key.includes("adventure")) {
-    return [titleOg(85), titleOg(22), titleOg(564), titleOg(87)];
-  }
-  if (key.includes("disney") || key.includes("animation")) {
-    return [titleOg(8587), titleOg(812), titleOg(277834), titleOg(109445)];
-  }
-  if (key.includes("simpsons") || key.includes("springfield")) {
-    return ["/api/og/title/tv/456?card=game", titleOg(35), titleOg(862), titleOg(12)];
-  }
-  if (key.includes("quote")) {
-    return [titleOg(289), titleOg(11), titleOg(218), titleOg(603)];
-  }
-  if (key.includes("space") || key.includes("world")) {
-    return [titleOg(11), titleOg(348), titleOg(157336), titleOg(286217)];
-  }
-  if (key.includes("time")) {
-    return [titleOg(105), titleOg(218), titleOg(59967), titleOg(137113)];
-  }
-  if (key.includes("blockbuster") || key.includes("summer")) {
-    return [titleOg(329), titleOg(603), titleOg(575265), titleOg(85)];
-  }
-  if (key.includes("horror") || key.includes("halloween")) {
-    return [titleOg(694), titleOg(348), titleOg(1091), titleOg(138843)];
-  }
-  if (key.includes("christmas") || key.includes("holiday")) {
-    return [titleOg(771), titleOg(772), titleOg(1585), titleOg(11395)];
-  }
-  if (key.includes("oscar") || key.includes("award")) {
-    return [titleOg(13), titleOg(238), titleOg(11216), titleOg(496243)];
-  }
-
-  return ["/arcade/flim-arcade-hero.png"];
+  return [arcadeCollectionArtworkForText(event.slug, event.name, event.description, event.banner, event.seasonKey, event.badge) || "/arcade/flim-arcade-hero.webp"];
 }
 
 export function SeasonalChallengeCard({

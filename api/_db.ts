@@ -11,6 +11,14 @@ export class RequestBodyTooLargeError extends Error {
   }
 }
 
+export class MalformedJsonBodyError extends Error {
+  statusCode = 400;
+
+  constructor() {
+    super("Malformed JSON body.");
+  }
+}
+
 export class RateLimitError extends Error {
   statusCode = 429;
 
@@ -38,10 +46,13 @@ export async function ensurePgCrypto(sql: any) {
   }
 }
 
-export function sendJson(response: any, status: number, body: unknown) {
+export function sendJson(response: any, status: number, body: unknown, headers: Record<string, string> = {}) {
   response.statusCode = status;
   response.setHeader("Content-Type", "application/json");
   response.setHeader("Cache-Control", "no-store");
+  for (const [key, value] of Object.entries(headers)) {
+    response.setHeader(key, value);
+  }
   response.end(JSON.stringify(body));
 }
 
@@ -60,7 +71,7 @@ export function readBody(request: any): Promise<any> {
     try {
       return Promise.resolve(JSON.parse(request.body || "{}"));
     } catch {
-      return Promise.resolve({});
+      return Promise.reject(new MalformedJsonBodyError());
     }
   }
 
@@ -81,12 +92,12 @@ export function readBody(request: any): Promise<any> {
     });
     request.on("end", () => {
       if (rejected) return;
-      try {
-        resolve(raw ? JSON.parse(raw) : {});
-      } catch (error) {
-        resolve({});
-      }
-    });
+        try {
+          resolve(raw ? JSON.parse(raw) : {});
+        } catch (error) {
+          reject(new MalformedJsonBodyError());
+        }
+      });
     request.on("error", reject);
   });
 }
@@ -110,6 +121,8 @@ export function createPublicSlug(name: string) {
 export function mapPlaylist(row: any, movies: any[] = []) {
   const followerCount = Number(row.follower_count || 0);
   const likeCount = Number(row.like_count || 0);
+  const movieCount = Number(row.movie_count ?? row.movieCount ?? movies.length);
+  const collaboratorCount = Number(row.collaborator_count ?? row.collaboratorCount ?? 0);
 
   return {
     id: row.id,
@@ -126,11 +139,15 @@ export function mapPlaylist(row: any, movies: any[] = []) {
     canRemoveTitles: Boolean(row.can_remove_titles || row.is_owner),
     canReorderTitles: Boolean(row.can_reorder_titles || row.is_owner),
     canEditPlaylist: Boolean(row.can_edit_playlist || row.is_owner),
+    canManageCollaborators: Boolean(row.can_manage_collaborators || row.is_owner),
     accessMode: row.access_mode || (row.is_owner ? "owner" : row.visibility === "public" ? "public" : "private"),
+    collaboratorCount: Number.isFinite(collaboratorCount) ? collaboratorCount : 0,
+    inviteExpiresAt: row.invite_expires_at || undefined,
     isFollowing: Boolean(row.is_following),
     followerCount: Number.isFinite(followerCount) ? followerCount : 0,
     isLiked: Boolean(row.is_liked),
     likeCount: Number.isFinite(likeCount) ? likeCount : 0,
+    movieCount: Number.isFinite(movieCount) ? movieCount : movies.length,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     movies: movies.map(mapPlaylistMovie),
@@ -386,6 +403,14 @@ export function createSharedPlaylistToken() {
   return randomBytes(18).toString("base64url");
 }
 
+export function createPlaylistInviteToken() {
+  return randomBytes(32).toString("base64url");
+}
+
+export function hashPlaylistInviteToken(token: string) {
+  return createHash("sha256").update(`playlist-invite:${token}`).digest("hex");
+}
+
 export function hashSessionToken(token: string) {
   return scryptSync(token, "flim-session-token", 64).toString("hex");
 }
@@ -457,6 +482,7 @@ export async function ensureUserProfilesTable(sql: any) {
       favorite_director text,
       profile_status text,
       featured_playlist_ids jsonb not null default '[]'::jsonb,
+      theme_preference text not null default 'dark',
       created_at timestamptz not null default now(),
       updated_at timestamptz not null default now()
     )
@@ -471,6 +497,7 @@ export async function ensureUserProfilesTable(sql: any) {
   await sql`alter table user_profiles add column if not exists favorite_director text`;
   await sql`alter table user_profiles add column if not exists profile_status text`;
   await sql`alter table user_profiles add column if not exists featured_playlist_ids jsonb not null default '[]'::jsonb`;
+  await sql`alter table user_profiles add column if not exists theme_preference text not null default 'dark'`;
   await sql`create unique index if not exists user_profiles_handle_unique on user_profiles (handle)`;
   await sql`create unique index if not exists user_profiles_user_id_unique on user_profiles (user_id)`;
   await sql`create index if not exists user_profiles_updated_at_idx on user_profiles (updated_at desc)`;
@@ -546,6 +573,149 @@ export async function ensurePlaylistSharingColumns(sql: any) {
     on playlists (shared_slug)
     where shared_slug is not null
   `;
+}
+
+export async function ensurePlaylistCollaborationTables(sql: any) {
+  await ensureAuthTables(sql);
+  await ensurePgCrypto(sql);
+  await ensurePlaylistSharingColumns(sql);
+  await sql`
+    create table if not exists playlist_collaborators (
+      id uuid primary key default gen_random_uuid(),
+      playlist_id uuid not null references playlists(id) on delete cascade,
+      user_id uuid not null references users(id) on delete cascade,
+      role text not null default 'editor' check (role in ('viewer', 'editor', 'admin')),
+      status text not null default 'active' check (status in ('active', 'inactive', 'removed')),
+      invited_at timestamptz not null default now(),
+      accepted_at timestamptz,
+      removed_at timestamptz,
+      created_at timestamptz not null default now(),
+      updated_at timestamptz not null default now(),
+      unique (playlist_id, user_id)
+    )
+  `;
+  await sql`create index if not exists playlist_collaborators_playlist_idx on playlist_collaborators (playlist_id)`;
+  await sql`create index if not exists playlist_collaborators_user_idx on playlist_collaborators (user_id)`;
+  await sql`create index if not exists playlist_collaborators_active_idx on playlist_collaborators (playlist_id, user_id) where status = 'active'`;
+  await sql`
+    create table if not exists playlist_invites (
+      id uuid primary key default gen_random_uuid(),
+      playlist_id uuid not null references playlists(id) on delete cascade,
+      token_hash text not null unique,
+      created_by uuid references users(id) on delete set null,
+      role text not null default 'editor' check (role in ('viewer', 'editor')),
+      status text not null default 'active' check (status in ('active', 'used', 'revoked', 'expired')),
+      created_at timestamptz not null default now(),
+      expires_at timestamptz not null default now() + interval '14 days',
+      used_at timestamptz,
+      revoked_at timestamptz,
+      accepted_by uuid references users(id) on delete set null
+    )
+  `;
+  await sql`create index if not exists playlist_invites_playlist_idx on playlist_invites (playlist_id)`;
+  await sql`create index if not exists playlist_invites_active_idx on playlist_invites (token_hash, status, expires_at)`;
+}
+
+export async function createPlaylistInvite(sql: any, playlistId: string, createdBy: string, role = "editor") {
+  await ensurePlaylistCollaborationTables(sql);
+  const token = createPlaylistInviteToken();
+  const tokenHash = hashPlaylistInviteToken(token);
+  const rows = await sql`
+    insert into playlist_invites (playlist_id, token_hash, created_by, role)
+    values (${playlistId}, ${tokenHash}, ${createdBy}, ${role})
+    returning id, expires_at
+  `;
+  return { token, expiresAt: rows[0]?.expires_at };
+}
+
+export async function findPlaylistInvite(sql: any, token: string) {
+  await ensurePlaylistCollaborationTables(sql);
+  const tokenHash = hashPlaylistInviteToken(token);
+  const rows = await sql`
+    select pi.*, p.visibility, p.owner_user_id
+    from playlist_invites pi
+    inner join playlists p on p.id = pi.playlist_id
+    where pi.token_hash = ${tokenHash}
+      and pi.status = 'active'
+      and pi.expires_at > now()
+    limit 1
+  `;
+  return rows[0] || null;
+}
+
+export async function getPlaylistPermission(sql: any, playlistId: string, userId?: string | null) {
+  await ensurePlaylistCollaborationTables(sql);
+  const rows = await sql`
+    select
+      p.id,
+      p.visibility,
+      p.owner_user_id,
+      case when ${userId || null}::uuid is not null and p.owner_user_id = ${userId || null}::uuid then true else false end as is_owner,
+      pc.role as collaborator_role,
+      pc.status as collaborator_status,
+      case
+        when ${userId || null}::uuid is not null
+          and pc.status = 'active'
+          and pc.role in ('editor', 'admin')
+          and p.visibility in ('shared', 'public')
+        then true
+        else false
+      end as is_active_editor,
+      (
+        select count(*)::int
+        from playlist_collaborators pc_count
+        where pc_count.playlist_id = p.id
+          and pc_count.status = 'active'
+      ) as collaborator_count
+    from playlists p
+    left join playlist_collaborators pc
+      on pc.playlist_id = p.id
+      and ${userId || null}::uuid is not null
+      and pc.user_id = ${userId || null}::uuid
+    where p.id = ${playlistId}
+    limit 1
+  `;
+  const row = rows[0];
+  if (!row) return null;
+  const isOwner = Boolean(row.is_owner);
+  const isEditor = Boolean(row.is_active_editor);
+  const canRead = row.visibility === "public" || isOwner || (row.visibility === "shared" && row.collaborator_status === "active");
+  const canEditContent = isOwner || isEditor;
+  return {
+    ...row,
+    isOwner,
+    canRead,
+    canEditContent,
+    canManage: isOwner,
+    collaboratorCount: Number(row.collaborator_count || 0),
+    accessMode: isOwner ? "owner" : row.collaborator_status === "active" ? "shared" : row.visibility === "public" ? "public" : "private",
+  };
+}
+
+export async function acceptPlaylistInvite(sql: any, token: string, userId: string) {
+  await ensurePlaylistCollaborationTables(sql);
+  const invite = await findPlaylistInvite(sql, token);
+  if (!invite) return null;
+  if (String(invite.owner_user_id) !== String(userId)) {
+    await sql`
+      insert into playlist_collaborators (playlist_id, user_id, role, status, accepted_at, updated_at)
+      values (${invite.playlist_id}, ${userId}, ${invite.role || "editor"}, 'active', now(), now())
+      on conflict (playlist_id, user_id)
+      do update set
+        role = excluded.role,
+        status = 'active',
+        accepted_at = coalesce(playlist_collaborators.accepted_at, now()),
+        removed_at = null,
+        updated_at = now()
+    `;
+  }
+  await sql`
+    update playlist_invites
+    set used_at = coalesce(used_at, now()),
+        accepted_by = coalesce(accepted_by, ${userId})
+    where id = ${invite.id}
+  `;
+  return invite;
 }
 
 export async function ensureSharedPlaylistSlug(sql: any, playlistId: string) {
@@ -1237,6 +1407,7 @@ export function mapUserProfile(row: any) {
     favoriteDirector: row.favorite_director || "",
     profileStatus: row.profile_status || "",
     featuredPlaylistIds: Array.isArray(row.featured_playlist_ids) ? row.featured_playlist_ids : [],
+    themePreference: ["dark", "light", "system"].includes(row.theme_preference) ? row.theme_preference : "dark",
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };

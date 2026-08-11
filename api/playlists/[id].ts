@@ -1,18 +1,21 @@
-import { db, ensurePlaylistFollowsTable, ensurePlaylistLikesTable, ensurePlaylistSharingColumns, ensureUserProfilesTable, getCurrentUser, mapPlaylist, readBody, sendJson } from "../_db.js";
+import { db, ensurePlaylistCollaborationTables, ensurePlaylistFollowsTable, ensurePlaylistLikesTable, ensurePlaylistSharingColumns, ensureUserProfilesTable, getCurrentUser, getPlaylistPermission, mapPlaylist, readBody, sendJson } from "../_db.js";
+import { cleanEnum, cleanText, requireRecord, requireUuid, safeApiError } from "../_security.js";
 
 export default async function handler(request: any, response: any) {
-  const playlistId = request.query.id as string;
-
   try {
+    const playlistId = requireUuid(request.query.id, "playlistId");
     const sql = db();
     await ensureUserProfilesTable(sql);
     await ensurePlaylistFollowsTable(sql);
     await ensurePlaylistLikesTable(sql);
     await ensurePlaylistSharingColumns(sql);
+    await ensurePlaylistCollaborationTables(sql);
     await sql`alter table playlists add column if not exists owner_user_id uuid references users(id) on delete set null`;
     const user = await getCurrentUser(sql, request);
 
     if (request.method === "GET") {
+      const permission = await getPlaylistPermission(sql, playlistId, user?.id);
+      if (!permission?.canRead) return sendJson(response, 404, { error: "Playlist not found." });
       const rows = await sql`
         select
           p.*,
@@ -23,6 +26,13 @@ export default async function handler(request: any, response: any) {
           ) as creator_display_name,
           case when ${user?.id || null}::uuid is not null and p.owner_user_id = ${user?.id || null}::uuid then true else false end as is_owner,
           case when ${user?.id || null}::uuid is not null and p.owner_user_id = ${user?.id || null}::uuid then true else false end as expose_shared_slug,
+          ${permission.canEditContent} as can_add_titles,
+          ${permission.canEditContent} as can_remove_titles,
+          ${permission.canEditContent} as can_reorder_titles,
+          ${permission.canManage} as can_edit_playlist,
+          ${permission.canManage} as can_manage_collaborators,
+          ${permission.collaboratorCount}::int as collaborator_count,
+          ${permission.accessMode} as access_mode,
           (
             select count(*)::int
             from playlist_follows pf
@@ -33,6 +43,11 @@ export default async function handler(request: any, response: any) {
             from playlist_likes pl
             where pl.playlist_id = p.id
           ) as like_count,
+          (
+            select count(*)::int
+            from playlist_movies pm_count
+            where pm_count.playlist_id = p.id
+          ) as movie_count,
           exists (
             select 1
             from playlist_follows my_pf
@@ -63,10 +78,6 @@ export default async function handler(request: any, response: any) {
         left join playlist_movies pm on pm.playlist_id = p.id
         left join media_items mi on mi.media_type = coalesce(pm.media_type, 'movie') and mi.tmdb_id = pm.tmdb_id
         where p.id = ${playlistId}
-          and (
-            p.visibility = 'public'
-            or (${user?.id || null}::uuid is not null and p.owner_user_id = ${user?.id || null}::uuid)
-          )
         group by p.id, up.handle, up.display_name, u.email
       `;
 
@@ -83,10 +94,10 @@ export default async function handler(request: any, response: any) {
 
     if (request.method === "PATCH") {
       if (!user) return sendJson(response, 401, { error: "Sign in to edit playlists." });
-      const body = await readBody(request);
-      const name = typeof body.name === "string" ? body.name.trim().slice(0, 120) : undefined;
-      const description = typeof body.description === "string" ? body.description.trim().slice(0, 600) : undefined;
-      const visibility = ["private", "shared", "public"].includes(body.visibility) ? body.visibility : undefined;
+      const body = requireRecord(await readBody(request));
+      const name = body.name === undefined ? undefined : cleanText(body.name, { field: "Playlist name", max: 120, required: true });
+      const description = body.description === undefined ? undefined : cleanText(body.description, { field: "Playlist description", max: 600, allowNewlines: true });
+      const visibility = body.visibility === undefined ? undefined : cleanEnum(body.visibility, ["private", "shared", "public"], { field: "Playlist visibility" });
 
       const rows = await sql`
         update playlists
@@ -101,11 +112,26 @@ export default async function handler(request: any, response: any) {
       `;
 
       if (!rows[0]) return sendJson(response, 403, { error: "Only the playlist owner can edit this playlist." });
+      if (visibility === "private") {
+        await sql`
+          update playlist_collaborators
+          set status = 'inactive', updated_at = now()
+          where playlist_id = ${playlistId}
+            and status = 'active'
+        `;
+      } else if (visibility === "shared" || visibility === "public") {
+        await sql`
+          update playlist_collaborators
+          set status = 'active', removed_at = null, updated_at = now()
+          where playlist_id = ${playlistId}
+            and status = 'inactive'
+        `;
+      }
       return sendJson(response, 200, mapPlaylist({ ...rows[0], is_owner: true }));
     }
 
     return sendJson(response, 405, { error: "Method not allowed." });
   } catch (error) {
-    return sendJson(response, 500, { error: error instanceof Error ? error.message : "Playlist request failed." });
+    return sendJson(response, (error as any)?.statusCode || 500, { error: safeApiError(error, "Playlist request failed.") });
   }
 }

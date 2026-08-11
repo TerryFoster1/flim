@@ -98,22 +98,22 @@ const playlistTriviaCards = [
 ];
 
 const arcadeCollectionFallbacks = [
-  { title: "Time Travel", query: "time", theme: "time", countLabel: "18 challenges", image: "/arcade/art/time-travel.png" },
-  { title: "Sci-Fi", query: "space", theme: "space", countLabel: "24 challenges", image: "/arcade/art/sci-fi.png" },
-  { title: "Adventure", query: "adventure", theme: "adventure", countLabel: "22 challenges", image: "/arcade/art/adventure.png" },
-  { title: "Fantasy", query: "fantasy", theme: "fantasy", countLabel: "18 challenges", image: "/arcade/art/fantasy.png" },
-  { title: "Anime", query: "anime", theme: "anime", countLabel: "20 challenges", image: "/arcade/art/anime.png" },
-  { title: "Animation", query: "animation", theme: "animation", countLabel: "20 challenges", image: "/arcade/art/animation.png" },
-  { title: "Horror", query: "horror", theme: "horror", countLabel: "16 challenges", image: "/arcade/art/horror.png" },
-  { title: "Action", query: "action", theme: "hero", countLabel: "19 challenges", image: "/arcade/art/action.png" },
-  { title: "Comedy", query: "comedy", theme: "comedy", countLabel: "20 challenges", image: "/arcade/art/comedy.png" },
-  { title: "Natural Disaster", query: "natural disaster", theme: "natural-disaster", countLabel: "14 challenges", image: "/arcade/art/natural-disaster.png" },
-  { title: "Summer", query: "summer beach vacation shark baseball camp", theme: "summer", countLabel: "20 challenges", image: "/arcade/art/summer.png" },
-  { title: "Christmas", query: "christmas holiday santa snow family", theme: "christmas", countLabel: "20 challenges", image: "/arcade/art/christmas.png" },
-  { title: "Zombie", query: "zombie", theme: "zombie", countLabel: "20 challenges", image: "/arcade/art/zombie.png" },
-  { title: "Apocalypse", query: "apocalypse", theme: "apocalypse", countLabel: "12 challenges", image: "/arcade/art/apocalypse.png" },
-  { title: "Alien", query: "alien", theme: "alien", countLabel: "14 challenges", image: "/arcade/art/alien.png" },
-  { title: "Tom Cruise", query: "tom cruise mission", theme: "cinema", countLabel: "15 packs", image: "/arcade/art/tom-cruise.png" },
+  { title: "Time Travel", query: "time", theme: "time", countLabel: "18 challenges", image: "/arcade/art/time-travel.webp" },
+  { title: "Sci-Fi", query: "space", theme: "space", countLabel: "24 challenges", image: "/arcade/art/sci-fi.webp" },
+  { title: "Adventure", query: "adventure", theme: "adventure", countLabel: "22 challenges", image: "/arcade/art/adventure.webp" },
+  { title: "Fantasy", query: "fantasy", theme: "fantasy", countLabel: "18 challenges", image: "/arcade/art/fantasy.webp" },
+  { title: "Anime", query: "anime", theme: "anime", countLabel: "20 challenges", image: "/arcade/art/anime.webp" },
+  { title: "Animation", query: "animation", theme: "animation", countLabel: "20 challenges", image: "/arcade/art/animation.webp" },
+  { title: "Horror", query: "horror", theme: "horror", countLabel: "16 challenges", image: "/arcade/art/horror.webp" },
+  { title: "Action", query: "action", theme: "hero", countLabel: "19 challenges", image: "/arcade/art/action.webp" },
+  { title: "Comedy", query: "comedy", theme: "comedy", countLabel: "20 challenges", image: "/arcade/art/comedy.webp" },
+  { title: "Natural Disaster", query: "natural disaster", theme: "natural-disaster", countLabel: "14 challenges", image: "/arcade/art/natural-disaster.webp" },
+  { title: "Summer", query: "summer beach vacation shark baseball camp", theme: "summer", countLabel: "20 challenges", image: "/arcade/art/summer.webp" },
+  { title: "Christmas", query: "christmas holiday santa snow family", theme: "christmas", countLabel: "20 challenges", image: "/arcade/art/christmas.webp" },
+  { title: "Zombie", query: "zombie", theme: "zombie", countLabel: "20 challenges", image: "/arcade/art/zombie.webp" },
+  { title: "Apocalypse", query: "apocalypse", theme: "apocalypse", countLabel: "12 challenges", image: "/arcade/art/apocalypse.webp" },
+  { title: "Alien", query: "alien", theme: "alien", countLabel: "14 challenges", image: "/arcade/art/alien.webp" },
+  { title: "Tom Cruise", query: "tom cruise mission", theme: "cinema", countLabel: "15 packs", image: "/arcade/art/tom-cruise.webp" },
   { title: "Arnold Schwarzenegger", query: "arnold terminator action", theme: "hero", countLabel: "13 packs", image: "/api/og/title/movie/218?card=game" },
 ];
 
@@ -134,7 +134,7 @@ const featuredChallengeFallback: SeasonalChallengeEvent = {
   windowStartAt: "2026-06-28T04:00:00.000Z",
   windowEndAt: "2026-07-05T03:59:59.000Z",
   winnersFinalized: false,
-  heroImageUrl: "/arcade/art/sci-fi.png",
+  heroImageUrl: "/arcade/art/sci-fi.webp",
   questionCount: 100,
   playableQuestionCount: 100,
   isActive: true,
@@ -423,7 +423,7 @@ function FeaturedChallengeCard({ event, onNavigate }: { event: SeasonalChallenge
       type="button"
     >
       <div className="arcade-challenge-artwork" data-art-theme={artworkTheme}>
-        <img alt="" src={challengeDisplayArtworkUrl(event)} loading="lazy" decoding="async" />
+        <img alt="" src={challengeDisplayArtworkUrl(event)} loading="eager" fetchPriority="high" decoding="async" />
       </div>
       <div>
         <h3>{event.name}</h3>
@@ -484,23 +484,23 @@ function challengeArtworkTheme(event: SeasonalChallengeEvent) {
 
 function arcadeArtUrl(theme: string) {
   const artMap: Record<string, string> = {
-    time: "/arcade/art/time-travel.png",
-    space: "/arcade/art/sci-fi.png",
-    adventure: "/arcade/art/adventure.png",
-    fantasy: "/arcade/art/fantasy.png",
-    anime: "/arcade/art/anime.png",
-    animation: "/arcade/art/animation.png",
-    horror: "/arcade/art/horror.png",
-    comedy: "/arcade/art/comedy.png",
-    "natural-disaster": "/arcade/art/natural-disaster.png",
-    apocalypse: "/arcade/art/apocalypse.png",
-    zombie: "/arcade/art/zombie.png",
-    alien: "/arcade/art/alien.png",
+    time: "/arcade/art/time-travel.webp",
+    space: "/arcade/art/sci-fi.webp",
+    adventure: "/arcade/art/adventure.webp",
+    fantasy: "/arcade/art/fantasy.webp",
+    anime: "/arcade/art/anime.webp",
+    animation: "/arcade/art/animation.webp",
+    horror: "/arcade/art/horror.webp",
+    comedy: "/arcade/art/comedy.webp",
+    "natural-disaster": "/arcade/art/natural-disaster.webp",
+    apocalypse: "/arcade/art/apocalypse.webp",
+    zombie: "/arcade/art/zombie.webp",
+    alien: "/arcade/art/alien.webp",
     quote: "/arcade/art/quote.svg",
-    jurassic: "/arcade/art/adventure.png",
-    holiday: "/arcade/art/christmas.png",
-    summer: "/arcade/art/summer.png",
-    hero: "/arcade/art/action.png",
+    jurassic: "/arcade/art/adventure.webp",
+    holiday: "/arcade/art/christmas.webp",
+    summer: "/arcade/art/summer.webp",
+    hero: "/arcade/art/action.webp",
     cinema: "/arcade/art/cinema.svg",
   };
   return artMap[theme] || artMap.cinema;
@@ -770,7 +770,13 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
   return (
     <section className="route-page trivia-games-page arcade-preview-page">
       <header className="arcade-preview-hero">
-        <img aria-hidden="true" className="arcade-hero-image" src="/arcade/flim-arcade-hero.png" />
+        <link rel="preload" as="image" href="/arcade/flim-arcade-hero-mobile.webp" media="(max-width: 767px)" />
+        <link rel="preload" as="image" href="/arcade/flim-arcade-hero.webp" media="(min-width: 768px)" />
+        <picture aria-hidden="true" className="arcade-hero-image">
+          <source media="(max-width: 767px)" srcSet="/arcade/flim-arcade-hero-mobile.webp" type="image/webp" />
+          <source media="(min-width: 768px)" srcSet="/arcade/flim-arcade-hero.webp" type="image/webp" />
+          <img alt="" decoding="async" fetchPriority="high" loading="eager" src="/arcade/flim-arcade-hero.png" />
+        </picture>
         <div className="arcade-hero-copy">
           <h1>Flim Arcade</h1>
           <p>Movie trivia, group challenges, and game-night experiences.</p>
@@ -905,11 +911,10 @@ function GlobalTriviaGames({ onNavigate }: { onNavigate: (path: string) => void 
                   className={`arcade-collection-card artwork-${collection.theme}`}
                   key={collection.title}
                   onClick={() => collection.event ? onNavigate(`/challenges/${collection.event.slug}`) : setArcadeSearchQuery(collection.query)}
+                  aria-label={`${collection.title} collection`}
                   type="button"
                 >
                   <img alt="" src={collection.image} loading="lazy" decoding="async" />
-                  <span>{collection.title}</span>
-                  <small>{collection.countLabel || `${collection.count} questions`}</small>
                 </button>
               ))}
             </div>

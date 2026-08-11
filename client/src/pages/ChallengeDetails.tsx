@@ -56,7 +56,7 @@ function challengeResultHeadline(correctCount: number, totalCount: number) {
   return "Try again?";
 }
 function challengeHeroArtworkUrl(event: SeasonalChallengeDetail["event"]) {
-  return event.heroImageUrl || arcadeCollectionArtworkForText(event.slug, event.name, event.description, event.banner, event.seasonKey, event.badge) || "/arcade/flim-arcade-hero.png";
+  return event.heroImageUrl || arcadeCollectionArtworkForText(event.slug, event.name, event.description, event.banner, event.seasonKey, event.badge) || "/arcade/flim-arcade-hero.webp";
 }
 
 function StandingRow({ score }: { score: SeasonalChallengeScore }) {
@@ -289,8 +289,16 @@ export function ChallengeDetails({ slug, onNavigate }: ChallengeDetailsProps) {
 
       <header
         className={`challenge-landing-hero theme-${event.banner || event.seasonKey || "general"}`}
-        style={{ backgroundImage: `linear-gradient(90deg, rgba(5, 5, 8, .94) 0%, rgba(5, 5, 8, .78) 42%, rgba(5, 5, 8, .38) 100%), url(${heroArtworkUrl})` }}
       >
+        <img
+          alt=""
+          aria-hidden="true"
+          className="challenge-landing-hero-image"
+          decoding="async"
+          fetchPriority="high"
+          loading="eager"
+          src={heroArtworkUrl}
+        />
         <div className="challenge-landing-copy">
           <h1>{event.name}</h1>
           <p>{event.description}</p>

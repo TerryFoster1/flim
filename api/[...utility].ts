@@ -1,5 +1,6 @@
 import { db, ensurePlaylistMediaColumns, getCurrentUser, mapPlaylistMovie, readBody, sendJson } from "./_db.js";
 import { ensureTmdbCacheTables, fetchTmdbMovieDetails } from "./_tmdb.js";
+import { cleanEnum, cleanInteger, cleanText, cleanUrl, requireRecord, requireUuid, safeApiError } from "./_security.js";
 
 const schemaVersion = "2026-06-01-neon-hardening";
 const titleDetailsCacheDays = 30;
@@ -28,9 +29,15 @@ async function handleContact(request: any, response: any) {
     return sendJson(response, 405, { error: "Method not allowed." });
   }
 
-  const body = await readBody(request);
+  const body = requireRecord(await readBody(request));
   const requiredFields = ["name", "email", "subject", "message"];
-  const missing = requiredFields.filter((field) => !String(body[field] || "").trim());
+  const input = {
+    name: cleanText(body.name, { field: "name", max: 120, required: true }),
+    email: cleanText(body.email, { field: "email", max: 254, required: true }),
+    subject: cleanText(body.subject, { field: "subject", max: 160, required: true }),
+    message: cleanText(body.message, { field: "message", max: 2000, required: true, allowNewlines: true }),
+  };
+  const missing = requiredFields.filter((field) => !String((input as any)[field] || "").trim());
   if (missing.length > 0) {
     return sendJson(response, 400, { error: "Please complete all contact fields." });
   }
@@ -98,10 +105,12 @@ async function handleTitleDetails(request: any, response: any) {
   response.setHeader("X-Flim-Title-Details", "ratings-v1");
   const requestedType = Array.isArray(request.query.type) ? request.query.type[0] : request.query.type;
   const mediaType = requestedType === "tv" ? "tv" : "movie";
-  const tmdbId = Number(Array.isArray(request.query.id) ? request.query.id[0] : request.query.id);
-  if (!Number.isFinite(tmdbId)) {
-    return sendJson(response, 400, { error: mediaType === "tv" ? "A valid TV show ID is required." : "A valid movie ID is required." });
-  }
+  const tmdbId = cleanInteger(Array.isArray(request.query.id) ? request.query.id[0] : request.query.id, {
+    field: "id",
+    min: 1,
+    max: 999999999,
+    required: true,
+  });
 
   const sql = db();
   await ensureTmdbCacheTables(sql);
@@ -136,9 +145,10 @@ async function handleTitleDetails(request: any, response: any) {
 }
 
 async function handlePlaylistMovies(request: any, response: any) {
-  const playlistId = String(Array.isArray(request.query.id) ? request.query.id[0] : request.query.id || "");
+  let playlistId = "";
 
   try {
+    playlistId = requireUuid(Array.isArray(request.query.id) ? request.query.id[0] : request.query.id, "playlistId");
     const sql = db();
     await ensurePlaylistMediaColumns(sql);
     const user = await getCurrentUser(sql, request);
@@ -164,18 +174,28 @@ async function handlePlaylistMovies(request: any, response: any) {
       const ownsPlaylist = await sql`select id from playlists where id = ${playlistId} and owner_user_id = ${user.id} limit 1`;
       if (!ownsPlaylist[0]) return sendJson(response, 403, { error: "Only the playlist owner can add movies." });
 
-      const body = await readBody(request);
-      const mediaType = body.mediaType === "tv" ? "tv" : "movie";
-      const tmdbId = Number(body.tmdbId);
-      const title = String(body.title || "").trim();
+      const body = requireRecord(await readBody(request));
+      const mediaType = cleanEnum(body.mediaType, ["movie", "tv"], { field: "mediaType", fallback: "movie" }) || "movie";
+      const tmdbId = cleanInteger(body.tmdbId, { field: "tmdbId", min: 1, max: 999999999, required: true });
+      const title = cleanText(body.title, { field: "title", max: 220, required: true });
 
-      if (!Number.isFinite(tmdbId) || tmdbId <= 0 || !title) {
-        return sendJson(response, 400, { error: "Choose a valid movie or TV show before adding it." });
-      }
+      if (!title) return sendJson(response, 400, { error: "Choose a valid movie or TV show before adding it." });
 
       const [movie] = await sql`
         insert into playlist_movies (playlist_id, media_type, tmdb_id, title, year, poster_url, overview, runtime_minutes, season_count, episode_count, watched)
-        values (${playlistId}, ${mediaType}, ${tmdbId}, ${title}, ${body.releaseYear || body.firstAirYear || null}, ${body.posterUrl || null}, ${body.overview || null}, ${body.runtimeMinutes || null}, ${body.seasonCount || null}, ${body.episodeCount || null}, false)
+        values (
+          ${playlistId},
+          ${mediaType},
+          ${tmdbId},
+          ${title},
+          ${cleanInteger(body.releaseYear || body.firstAirYear, { field: "releaseYear", min: 1800, max: 2200, fallback: null })},
+          ${cleanUrl(body.posterUrl, { field: "posterUrl", max: 2048 }) || null},
+          ${cleanText(body.overview, { field: "overview", max: 1200 }) || null},
+          ${cleanInteger(body.runtimeMinutes, { field: "runtimeMinutes", min: 0, max: 10000, fallback: null })},
+          ${cleanInteger(body.seasonCount, { field: "seasonCount", min: 0, max: 1000, fallback: null })},
+          ${cleanInteger(body.episodeCount, { field: "episodeCount", min: 0, max: 10000, fallback: null })},
+          false
+        )
         on conflict (playlist_id, media_type, tmdb_id)
         do update set
           title = excluded.title,
@@ -198,7 +218,7 @@ async function handlePlaylistMovies(request: any, response: any) {
       method: request.method,
       message: error instanceof Error ? error.message : "Unknown playlist movie error",
     });
-    return sendJson(response, 500, { error: "Unable to add movie. Please try again." });
+    return sendJson(response, (error as any)?.statusCode || 500, { error: safeApiError(error, "Unable to add movie. Please try again.") });
   }
 }
 
@@ -211,6 +231,6 @@ export default async function handler(request: any, response: any) {
     if (path === "playlist-movies") return handlePlaylistMovies(request, response);
     return sendJson(response, 404, { error: "Not found." });
   } catch (error) {
-    return sendJson(response, 500, { error: error instanceof Error ? error.message : "Request failed." });
+    return sendJson(response, (error as any)?.statusCode || 500, { error: safeApiError(error) });
   }
 }

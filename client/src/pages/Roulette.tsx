@@ -298,13 +298,13 @@ export function Roulette({ playlists, onNavigate }: RouletteProps) {
           {phase === "revealed" && resultMovie ? (
             <div className="roulette-action-row">
               <button className="primary-button" onClick={() => onNavigate((resultMovie.mediaType || "movie") === "tv" ? `/tv/${resultMovie.tmdbId}` : `/movies/${resultMovie.tmdbId}`)} type="button">
-                Watch Tonight
+                Where To Watch
               </button>
               <button className="secondary-button" onClick={() => onNavigate((resultMovie.mediaType || "movie") === "tv" ? `/tv/${resultMovie.tmdbId}` : `/movies/${resultMovie.tmdbId}`)} type="button">
                 View Details
               </button>
               <button className="secondary-button" onClick={startSpin} type="button">
-                Choose Again
+                Try Again
               </button>
             </div>
           ) : null}

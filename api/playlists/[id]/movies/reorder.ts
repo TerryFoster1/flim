@@ -1,29 +1,25 @@
-import { db, getCurrentUser, readBody, sendJson } from "../../../_db.js";
+import { db, ensurePlaylistCollaborationTables, getCurrentUser, getPlaylistPermission, readBody, sendJson } from "../../../_db.js";
+import { cleanUuidArray, requireRecord, requireUuid, safeApiError } from "../../../_security.js";
 
 export default async function handler(request: any, response: any) {
-  const playlistId = request.query.id as string;
+  let playlistId = "";
 
   try {
+    playlistId = requireUuid(request.query.id, "playlistId");
     const sql = db();
+    await ensurePlaylistCollaborationTables(sql);
     const user = await getCurrentUser(sql, request);
 
     if (request.method === "PATCH") {
       if (!user) return sendJson(response, 401, { error: "Sign in to reorder movies." });
+      const permission = await getPlaylistPermission(sql, playlistId, user.id);
 
-      const ownsPlaylist = await sql`
-        select id
-        from playlists
-        where id = ${playlistId}
-          and owner_user_id = ${user.id}
-        limit 1
-      `;
-
-      if (!ownsPlaylist[0]) {
-        return sendJson(response, 403, { error: "Only the playlist owner can reorder this playlist." });
+      if (!permission?.canEditContent) {
+        return sendJson(response, 403, { error: "You do not have permission to reorder this playlist." });
       }
 
-      const body = await readBody(request);
-      const movieIds = Array.isArray(body.movieIds) ? body.movieIds.map(String).filter(Boolean) : [];
+      const body = requireRecord(await readBody(request));
+      const movieIds = cleanUuidArray(body.movieIds, { field: "movieIds", max: 300 });
 
       for (const [index, movieId] of movieIds.entries()) {
         await sql`
@@ -44,6 +40,6 @@ export default async function handler(request: any, response: any) {
       method: request.method,
       message: error instanceof Error ? error.message : "Unknown playlist reorder error",
     });
-    return sendJson(response, 500, { error: "Unable to reorder movies. Please try again." });
+    return sendJson(response, (error as any)?.statusCode || 500, { error: safeApiError(error, "Unable to reorder movies. Please try again.") });
   }
 }

@@ -28,16 +28,6 @@ async function getCatalogTitle(mediaType: ProviderMediaType, tmdbId: number) {
   return item?.title || "";
 }
 
-async function markCatalogProviderChecked(mediaType: ProviderMediaType, tmdbId: number) {
-  const sql = db();
-  await sql`
-    update media_items
-    set provider_last_checked = now(), updated_at = now()
-    where media_type = ${mediaType}
-      and tmdb_id = ${tmdbId}
-  `;
-}
-
 async function getActiveTicketLinks(mediaType: ProviderMediaType, tmdbId: number, region: string) {
   const sql = db();
   await ensureTicketAffiliateTables(sql);
@@ -98,7 +88,6 @@ export default async function handler(request: any, response: any) {
     const cachedLinks = await getCachedProviderAvailability(mediaType, tmdbId, region);
     if (cachedLinks.length > 0) {
       response.setHeader("X-Flim-Provider-Cache", "HIT");
-      await markCatalogProviderChecked(mediaType, tmdbId).catch(() => undefined);
       return sendJson(response, 200, {
         mediaType,
         tmdbId,
@@ -108,13 +97,12 @@ export default async function handler(request: any, response: any) {
         links: cachedLinks,
         ticketLinks,
         notes: "Confirmed provider availability for this region.",
-      });
+      }, { "Cache-Control": "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400" });
     }
 
     const cacheStatus = await getProviderAvailabilityCacheStatus(mediaType, tmdbId, region);
     if (cacheStatus) {
       response.setHeader("X-Flim-Provider-Cache", "HIT");
-      await markCatalogProviderChecked(mediaType, tmdbId).catch(() => undefined);
       return sendJson(response, 200, {
         mediaType,
         tmdbId,
@@ -124,13 +112,12 @@ export default async function handler(request: any, response: any) {
         links: [],
         ticketLinks,
         notes: "Streaming availability coming soon.",
-      });
+      }, { "Cache-Control": "public, max-age=300, s-maxage=1800, stale-while-revalidate=86400" });
     }
 
     if (hasProviderAvailabilitySource() && title) {
       const freshLinks = await fetchAndCacheProviderAvailability(mediaType, tmdbId, region, title);
       response.setHeader("X-Flim-Provider-Cache", "MISS");
-      await markCatalogProviderChecked(mediaType, tmdbId).catch(() => undefined);
       const links = freshLinks || [];
       return sendJson(response, 200, {
         mediaType,
@@ -143,7 +130,7 @@ export default async function handler(request: any, response: any) {
         notes: links.length
           ? "Confirmed provider availability for this region."
           : "Streaming availability coming soon.",
-      });
+      }, { "Cache-Control": "public, max-age=300, s-maxage=1800, stale-while-revalidate=86400" });
     }
 
     response.setHeader("X-Flim-Provider-Cache", "MISS");
@@ -156,7 +143,7 @@ export default async function handler(request: any, response: any) {
       links: [],
       ticketLinks,
       notes: "Streaming availability coming soon.",
-    });
+    }, { "Cache-Control": "public, max-age=120, s-maxage=600, stale-while-revalidate=3600" });
   } catch (error) {
     return sendJson(response, 500, { error: error instanceof Error ? error.message : "Provider availability request failed." });
   }
