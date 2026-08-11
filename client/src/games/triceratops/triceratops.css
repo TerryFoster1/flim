@@ -1,0 +1,159 @@
+.triceratops-game-page {
+  min-height: calc(100vh - 96px);
+  padding: 18px clamp(12px, 3vw, 28px) 120px;
+  background:
+    radial-gradient(circle at 72% 10%, rgba(245, 193, 111, 0.14), transparent 34%),
+    linear-gradient(180deg, rgba(7, 7, 10, 0.96), rgba(11, 8, 10, 0.98));
+}
+
+.triceratops-game-header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.triceratops-game-header p,
+.triceratops-game-header h1 {
+  margin: 0;
+}
+
+.triceratops-game-header p {
+  color: #f5c16f;
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.triceratops-game-header h1 {
+  color: #fff3dc;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(1.8rem, 5vw, 3.4rem);
+  line-height: 0.94;
+}
+
+.triceratops-game-header strong {
+  color: #ffe2a0;
+  font-size: clamp(1rem, 3vw, 1.4rem);
+}
+
+.triceratops-game-shell {
+  position: relative;
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto;
+  overflow: hidden;
+  border: 1px solid rgba(245, 193, 111, 0.35);
+  border-radius: 24px;
+  background: #050407;
+  box-shadow: 0 28px 88px rgba(0, 0, 0, 0.46), 0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+  touch-action: none;
+  user-select: none;
+}
+
+.triceratops-game-canvas {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  min-height: 260px;
+}
+
+.triceratops-game-canvas canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.triceratops-touch-controls {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  z-index: 5;
+  display: flex;
+  gap: 10px;
+}
+
+.triceratops-touch-controls button {
+  min-width: 104px;
+  min-height: 56px;
+  border: 1px solid rgba(245, 193, 111, 0.55);
+  border-radius: 999px;
+  color: #09070b;
+  background: linear-gradient(135deg, #ffe6a8, #f5a248);
+  box-shadow: 0 10px 30px rgba(245, 162, 72, 0.24);
+  font-weight: 950;
+}
+
+.triceratops-game-help {
+  max-width: 1180px;
+  margin: 12px auto 0;
+  color: rgba(255, 246, 225, 0.78);
+  font-weight: 800;
+}
+
+.backlot-game-pending {
+  padding: 24px clamp(16px, 4vw, 36px) 120px;
+}
+
+.backlot-game-pending-card {
+  max-width: 760px;
+  margin: 24px auto 0;
+  padding: clamp(24px, 5vw, 48px);
+  border: 1px solid rgba(245, 193, 111, 0.24);
+  border-radius: 28px;
+  background: linear-gradient(145deg, rgba(14, 14, 18, 0.98), rgba(35, 25, 17, 0.9));
+}
+
+.backlot-game-pending-card span {
+  color: #f5c16f;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.backlot-game-pending-card h1 {
+  margin: 10px 0;
+  color: #fff3dc;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(3rem, 9vw, 5.5rem);
+  line-height: 0.95;
+}
+
+.backlot-game-pending-card p {
+  color: rgba(255, 255, 255, 0.74);
+  font-size: 1.05rem;
+}
+
+@media (max-width: 680px) {
+  .triceratops-game-page {
+    padding-inline: 10px;
+  }
+
+  .triceratops-game-header {
+    grid-template-columns: 1fr auto;
+  }
+
+  .triceratops-game-header .secondary-button {
+    grid-column: 1 / -1;
+    width: fit-content;
+  }
+
+  .triceratops-game-shell {
+    border-radius: 18px;
+  }
+
+  .triceratops-game-canvas {
+    min-height: 230px;
+  }
+
+  .triceratops-touch-controls {
+    right: 10px;
+    bottom: 10px;
+  }
+
+  .triceratops-touch-controls button {
+    min-width: 92px;
+    min-height: 52px;
+  }
+}
