@@ -146,30 +146,20 @@ button { color: inherit; font: inherit; }
 }
 .brand, .mobile-brand, .top-brand { display: flex; align-items: center; gap: 10px; font-weight: 900; font-size: 1.24rem; }
 .brand-logo {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  color: #fff7df;
-  font-size: 1.72rem;
-  font-weight: 950;
-  font-style: italic;
-  letter-spacing: -0.03em;
-  text-shadow: 0 0 22px rgba(255, 184, 77, 0.2), 0 2px 18px rgba(0,0,0,.5);
+  display: block;
+  width: clamp(150px, 14vw, 214px);
+  height: 64px;
+  flex: 0 0 auto;
 }
 .brand-logo img {
-  width: 42px;
-  height: 42px;
+  width: 100%;
+  height: 100%;
   display: block;
   object-fit: contain;
+  object-position: left center;
   filter: drop-shadow(0 10px 22px rgba(255, 134, 45, 0.32));
 }
-.brand-logo span {
-  background: linear-gradient(135deg, #fffdf4 0%, #ffd27a 58%, #ff8a45 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-.mobile-brand .brand-logo, .top-brand .brand-logo { min-width: 132px; }
+.mobile-brand .brand-logo, .top-brand .brand-logo { min-width: 150px; }
 .nav-stack { display: grid; gap: 6px; }
 .nav-stack button, .top-links button, .mobile-nav button, .profile-tabs button {
   color: var(--muted);
@@ -12419,12 +12409,13 @@ textarea { min-height: 42px; resize: vertical; }
       linear-gradient(180deg, rgba(7,7,10,.99), rgba(8,7,10,.96));
   }
   .top-brand .brand-logo {
-    min-width: 142px;
-    font-size: 1.82rem;
+    width: clamp(132px, 42vw, 176px);
+    min-width: 132px;
+    height: 54px;
   }
   .top-brand .brand-logo img {
-    width: 44px;
-    height: 44px;
+    width: 100%;
+    height: 100%;
   }
   .hamburger-button {
     width: 44px;
