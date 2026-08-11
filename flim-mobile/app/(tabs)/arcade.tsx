@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Animated, FlatList, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Animated, FlatList, Modal, Pressable, ScrollView, StyleSheet, Text, Vibration, View } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
@@ -15,12 +15,20 @@ import { Screen } from "@/components/Screen";
 import { SectionHeader } from "@/components/SectionHeader";
 import { ErrorState } from "@/components/StateViews";
 import {
+  backlotGameCatalog,
   backlotGamesById,
+  type BacklotGameCatalogEntry,
   isDinosaurChallenge,
   relicRunDiscoverySource,
   triceratopsDinosaurDiscoverySource
 } from "@/games/backlot/registry";
-import { discoverBacklotGame, getBacklotStateCache, reconcileBacklotState } from "@/games/backlot/unlocks";
+import {
+  discoverBacklotGame,
+  getBacklotStateCache,
+  reconcileBacklotState,
+  recordBacklotGameEvent,
+  resetBacklotLocalTestState
+} from "@/games/backlot/unlocks";
 import { useAsync } from "@/hooks/useAsync";
 import { colors, radii, shadows, spacing, typography } from "@/theme/theme";
 
@@ -46,6 +54,13 @@ const collections = [
   { id: "alien", title: "Alien", count: "15 challenges", route: "/arcade/challenge/alien-collection" },
   { id: "tom-cruise", title: "Tom Cruise", count: "15 challenges", route: "/arcade/challenge/tom-cruise-collection" }
 ];
+
+const backlotProjectionBoothEnv = (process.env.EXPO_PUBLIC_FLIM_APP_ENV || "development").toLowerCase();
+const isBacklotProjectionBoothEnabled =
+  typeof __DEV__ !== "undefined" && __DEV__ ||
+  backlotProjectionBoothEnv === "development" ||
+  backlotProjectionBoothEnv === "preview" ||
+  backlotProjectionBoothEnv === "staging";
 
 function emptyBacklotState(): BacklotState {
   return {
@@ -90,7 +105,12 @@ export default function ArcadeScreen() {
   const [backlotState, setBacklotState] = useState<BacklotState>(emptyBacklotState);
   const [discoveredGame, setDiscoveredGame] = useState<BacklotGame | null>(null);
   const [discoveryVisible, setDiscoveryVisible] = useState(false);
+  const [projectionBoothVisible, setProjectionBoothVisible] = useState(false);
+  const [projectionBoothMessage, setProjectionBoothMessage] = useState("Welcome back, Director.");
   const discoveryPulse = useRef(new Animated.Value(0)).current;
+  const projectionBoothProgress = useRef(new Animated.Value(0)).current;
+  const projectionBoothDoor = useRef(new Animated.Value(0)).current;
+  const projectionBoothTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const unlockedBacklotGames = useMemo(() => {
     return backlotState.games.filter((game) => backlotState.unlockIds.includes(game.id));
   }, [backlotState.games, backlotState.unlockIds]);
@@ -105,6 +125,12 @@ export default function ArcadeScreen() {
     }).catch(() => undefined);
     return () => {
       isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (projectionBoothTimer.current) clearTimeout(projectionBoothTimer.current);
     };
   }, []);
 
@@ -151,11 +177,127 @@ export default function ArcadeScreen() {
     router.push(discoveredGame.route as never);
   }
 
+  function startProjectionBoothHold() {
+    if (!isBacklotProjectionBoothEnabled) return;
+    if (projectionBoothTimer.current) clearTimeout(projectionBoothTimer.current);
+    projectionBoothProgress.stopAnimation();
+    projectionBoothProgress.setValue(0);
+    Animated.timing(projectionBoothProgress, {
+      toValue: 1,
+      duration: 5000,
+      useNativeDriver: false
+    }).start();
+    projectionBoothTimer.current = setTimeout(() => {
+      projectionBoothTimer.current = null;
+      Vibration.vibrate(35);
+      // Future sound cue hook: play a subtle projector chime here.
+      setProjectionBoothMessage("Welcome back, Director.");
+      setProjectionBoothVisible(true);
+      projectionBoothDoor.setValue(0);
+      Animated.timing(projectionBoothDoor, {
+        toValue: 1,
+        duration: 520,
+        useNativeDriver: true
+      }).start();
+    }, 5000);
+  }
+
+  function cancelProjectionBoothHold() {
+    if (projectionBoothTimer.current) {
+      clearTimeout(projectionBoothTimer.current);
+      projectionBoothTimer.current = null;
+      projectionBoothProgress.stopAnimation();
+      Animated.timing(projectionBoothProgress, {
+        toValue: 0,
+        duration: 180,
+        useNativeDriver: false
+      }).start();
+    }
+  }
+
+  async function refreshProjectionBoothState() {
+    if (!isBacklotProjectionBoothEnabled) return;
+    const state = await reconcileBacklotState();
+    setBacklotState(state);
+    setProjectionBoothMessage("Server state refreshed.");
+  }
+
+  async function resetProjectionBoothDiscoveries() {
+    if (!isBacklotProjectionBoothEnabled) return;
+    const state = await resetBacklotLocalTestState();
+    setBacklotState(state);
+    setProjectionBoothMessage("Local staging discoveries reset.");
+  }
+
+  async function simulateProjectionBoothDiscovery(game: BacklotGameCatalogEntry) {
+    if (!isBacklotProjectionBoothEnabled) return;
+    const result = await discoverBacklotGame(game.testDiscoverySource);
+    setBacklotState(result.state);
+    setProjectionBoothMessage(`${game.title} discovery simulated.`);
+  }
+
+  async function launchProjectionBoothGame(game: BacklotGameCatalogEntry) {
+    if (!isBacklotProjectionBoothEnabled) return;
+    await recordBacklotGameEvent({ gameId: game.gameId, eventType: "launch" });
+    setProjectionBoothVisible(false);
+    router.push(game.route as never);
+  }
+
+  function showProjectionBoothLastSession(game: BacklotGameCatalogEntry) {
+    const discovery = backlotState.discoveries.find((item) => item.gameId === game.gameId);
+    const firstPlayed = formatShortDate(discovery?.firstPlayedAt);
+    const totalPlay = formatPlayTime(discovery?.totalPlayTimeMs);
+    setProjectionBoothMessage(discovery ? `${game.title}: first played ${firstPlayed}; total play ${totalPlay}.` : `${game.title}: no session recorded yet.`);
+  }
+
+  function showProjectionBoothPersonalBest(game: BacklotGameCatalogEntry) {
+    const discovery = backlotState.discoveries.find((item) => item.gameId === game.gameId);
+    setProjectionBoothMessage(discovery?.firstPlayedAt ? `${game.title}: personal best is saved in the game session records.` : `${game.title}: no personal best recorded yet.`);
+  }
+
   function renderDiscoveryHotspot(onPress: () => void, label: string) {
     return (
       <Pressable accessibilityRole="button" accessibilityLabel={label} style={({ pressed }) => [styles.discoveryHotspot, pressed && styles.discoveryHotspotPressed]} onPress={onPress}>
         <Ionicons name="sparkles-outline" size={16} color={colors.gold} />
       </Pressable>
+    );
+  }
+
+  function renderProjectionBoothGame(game: BacklotGameCatalogEntry) {
+    const discovery = backlotState.discoveries.find((item) => item.gameId === game.gameId);
+    const isUnlocked = backlotState.unlockIds.includes(game.gameId);
+    return (
+      <View key={game.gameId} style={styles.testLabGameCard}>
+        <Image
+          source={arcadeCollectionImages[game.artworkKey] || arcadeCollectionImages["time-travel"]}
+          style={styles.testLabArtwork}
+          contentFit="cover"
+        />
+        <View style={styles.testLabGameCopy}>
+          <Text style={styles.testLabGameTitle}>{game.title}</Text>
+          <Text style={styles.testLabGameSubtitle}>{game.subtitle}</Text>
+          <View style={styles.statusGrid}>
+            <Text style={styles.statusPill}>Discovery: {discovery ? "found" : "not found"}</Text>
+            <Text style={styles.statusPill}>Unlock: {isUnlocked ? "unlocked" : "locked"}</Text>
+          </View>
+        </View>
+        <View style={styles.testLabActions}>
+          <Pressable accessibilityRole="button" style={styles.testLabPrimaryAction} onPress={() => launchProjectionBoothGame(game)}>
+            <Text style={styles.testLabPrimaryActionText}>Launch Game</Text>
+          </Pressable>
+          <View style={styles.testLabActionRow}>
+            <Pressable accessibilityRole="button" style={styles.testLabAction} onPress={() => simulateProjectionBoothDiscovery(game)}>
+              <Text style={styles.testLabActionText}>Simulate Discovery</Text>
+            </Pressable>
+            <Pressable accessibilityRole="button" style={styles.testLabAction} onPress={() => showProjectionBoothLastSession(game)}>
+              <Text style={styles.testLabActionText}>View Last Session</Text>
+            </Pressable>
+          </View>
+          <Pressable accessibilityRole="button" style={styles.testLabAction} onPress={() => showProjectionBoothPersonalBest(game)}>
+            <Text style={styles.testLabActionText}>View Personal Best</Text>
+          </Pressable>
+        </View>
+      </View>
     );
   }
 
@@ -291,6 +433,40 @@ export default function ArcadeScreen() {
           </View>
         </View>
 
+        {isBacklotProjectionBoothEnabled ? (
+          <View style={styles.padded}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Backlot Arcade staging access. Press and hold for 5 seconds."
+              onPressIn={startProjectionBoothHold}
+              onPressOut={cancelProjectionBoothHold}
+              onPress={cancelProjectionBoothHold}
+              style={({ pressed }) => [styles.backlotLogoPanel, pressed && styles.discoveryHotspotPressed]}
+            >
+              <View style={styles.backlotLogoIcon}>
+                <Ionicons name="film-outline" size={28} color={colors.gold} />
+              </View>
+              <View style={styles.backlotLogoCopy}>
+                <Text style={styles.backlotLogoTitle}>Backlot Arcade</Text>
+                <Text style={styles.backlotLogoSubtitle}>Press and hold to enter the Projection Booth.</Text>
+              </View>
+              <View style={styles.backlotHoldTrack}>
+                <Animated.View
+                  style={[
+                    styles.backlotHoldFill,
+                    {
+                      width: projectionBoothProgress.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: ["0%", "100%"]
+                      })
+                    }
+                  ]}
+                />
+              </View>
+            </Pressable>
+          </View>
+        ) : null}
+
         {unlockedBacklotGames.length ? (
           <View style={styles.padded}>
             <View style={styles.backlotPanel}>
@@ -365,6 +541,67 @@ export default function ArcadeScreen() {
             <Pressable accessibilityRole="button" style={styles.discoveryDismiss} onPress={() => setDiscoveryVisible(false)}>
               <Text style={styles.discoveryDismissText}>Keep browsing</Text>
             </Pressable>
+          </Animated.View>
+        </View>
+      </Modal>
+
+      <Modal
+        transparent
+        visible={isBacklotProjectionBoothEnabled && projectionBoothVisible}
+        animationType="fade"
+        onRequestClose={() => setProjectionBoothVisible(false)}
+      >
+        <View style={styles.projectionBackdrop}>
+          <Animated.View
+            style={[
+              styles.projectionDoorGlow,
+              {
+                opacity: projectionBoothDoor,
+                transform: [
+                  {
+                    translateY: projectionBoothDoor.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [18, 0]
+                    })
+                  }
+                ]
+              }
+            ]}
+          >
+            <ScrollView contentContainerStyle={styles.projectionCard} showsVerticalScrollIndicator={false}>
+              <View style={styles.projectionHeader}>
+                <View style={styles.projectionBadge}>
+                  <Ionicons name="videocam-outline" size={24} color={colors.gold} />
+                </View>
+                <View style={styles.projectionHeaderCopy}>
+                  <Text style={styles.projectionTitle}>Projection Booth</Text>
+                  <Text style={styles.projectionSubtitle}>Authorized Personnel Only</Text>
+                  <Text style={styles.projectionWelcome}>Welcome back, Director.</Text>
+                </View>
+                <Pressable accessibilityRole="button" accessibilityLabel="Close Projection Booth" style={styles.projectionClose} onPress={() => setProjectionBoothVisible(false)}>
+                  <Ionicons name="close" size={20} color={colors.text} />
+                </Pressable>
+              </View>
+
+              <View style={styles.testLabHeader}>
+                <View>
+                  <Text style={styles.testLabTitle}>Backlot Test Lab</Text>
+                  <Text style={styles.testLabSubtitle}>Staging access for registered Backlot games.</Text>
+                </View>
+                <Pressable accessibilityRole="button" style={styles.testLabSmallAction} onPress={refreshProjectionBoothState}>
+                  <Text style={styles.testLabSmallActionText}>Refresh Server State</Text>
+                </Pressable>
+              </View>
+
+              <Text style={styles.testLabMessage}>{projectionBoothMessage}</Text>
+
+              {backlotGameCatalog.map(renderProjectionBoothGame)}
+
+              <Pressable accessibilityRole="button" style={styles.testLabResetAction} onPress={resetProjectionBoothDiscoveries}>
+                <Ionicons name="refresh-outline" size={17} color={colors.gold} />
+                <Text style={styles.testLabResetText}>Reset Discoveries</Text>
+              </Pressable>
+            </ScrollView>
           </Animated.View>
         </View>
       </Modal>
@@ -519,6 +756,59 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: spacing.md
   },
+  backlotLogoPanel: {
+    minHeight: 92,
+    overflow: "hidden",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+    borderRadius: radii.xl,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    backgroundColor: "rgba(13, 11, 16, 0.94)",
+    padding: spacing.md,
+    ...shadows.goldGlow
+  },
+  backlotLogoIcon: {
+    width: 54,
+    height: 54,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: radii.pill,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    backgroundColor: "rgba(245,193,111,0.12)"
+  },
+  backlotLogoCopy: {
+    flex: 1,
+    gap: 3
+  },
+  backlotLogoTitle: {
+    color: colors.cream,
+    fontFamily: typography.serif,
+    fontSize: 25,
+    fontWeight: "900"
+  },
+  backlotLogoSubtitle: {
+    color: colors.muted,
+    fontSize: 13,
+    lineHeight: 18
+  },
+  backlotHoldTrack: {
+    position: "absolute",
+    left: spacing.md,
+    right: spacing.md,
+    bottom: spacing.sm,
+    height: 4,
+    overflow: "hidden",
+    borderRadius: radii.pill,
+    backgroundColor: "rgba(255,255,255,0.1)"
+  },
+  backlotHoldFill: {
+    height: "100%",
+    borderRadius: radii.pill,
+    backgroundColor: colors.gold
+  },
   backlotPanel: {
     gap: spacing.md,
     borderRadius: radii.xl,
@@ -660,6 +950,210 @@ const styles = StyleSheet.create({
   discoveryDismissText: {
     color: colors.mutedStrong,
     fontWeight: "800"
+  },
+  projectionBackdrop: {
+    flex: 1,
+    padding: spacing.md,
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.82)"
+  },
+  projectionDoorGlow: {
+    flex: 1,
+    maxHeight: 720,
+    borderRadius: radii.xl,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    backgroundColor: "rgba(7, 7, 10, 0.98)",
+    ...shadows.goldGlow
+  },
+  projectionCard: {
+    gap: spacing.md,
+    padding: spacing.md
+  },
+  projectionHeader: {
+    flexDirection: "row",
+    gap: spacing.md,
+    alignItems: "flex-start",
+    paddingBottom: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(245,193,111,0.18)"
+  },
+  projectionBadge: {
+    width: 50,
+    height: 50,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: radii.pill,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    backgroundColor: "rgba(245,193,111,0.12)"
+  },
+  projectionHeaderCopy: {
+    flex: 1,
+    gap: 3
+  },
+  projectionTitle: {
+    color: colors.cream,
+    fontFamily: typography.serif,
+    fontSize: 32,
+    lineHeight: 36,
+    fontWeight: "900"
+  },
+  projectionSubtitle: {
+    color: colors.gold,
+    fontSize: 12,
+    fontWeight: "900",
+    letterSpacing: 1.2,
+    textTransform: "uppercase"
+  },
+  projectionWelcome: {
+    color: colors.mutedStrong,
+    fontSize: 15,
+    lineHeight: 21
+  },
+  projectionClose: {
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: radii.pill,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: "rgba(255,255,255,0.07)"
+  },
+  testLabHeader: {
+    gap: spacing.sm
+  },
+  testLabTitle: {
+    color: colors.text,
+    fontSize: 22,
+    fontWeight: "900"
+  },
+  testLabSubtitle: {
+    color: colors.muted,
+    marginTop: 3,
+    lineHeight: 19
+  },
+  testLabSmallAction: {
+    minHeight: 40,
+    alignItems: "center",
+    justifyContent: "center",
+    alignSelf: "flex-start",
+    paddingHorizontal: spacing.md,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    backgroundColor: "rgba(245,193,111,0.1)"
+  },
+  testLabSmallActionText: {
+    color: colors.goldSoft,
+    fontWeight: "900",
+    fontSize: 12
+  },
+  testLabMessage: {
+    color: colors.mutedStrong,
+    lineHeight: 20,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+    backgroundColor: "rgba(255,255,255,0.045)",
+    padding: spacing.md
+  },
+  testLabGameCard: {
+    overflow: "hidden",
+    gap: spacing.md,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: "rgba(255,255,255,0.06)",
+    paddingBottom: spacing.md
+  },
+  testLabArtwork: {
+    width: "100%",
+    height: 136
+  },
+  testLabGameCopy: {
+    gap: spacing.xs,
+    paddingHorizontal: spacing.md
+  },
+  testLabGameTitle: {
+    color: colors.cream,
+    fontFamily: typography.serif,
+    fontSize: 24,
+    lineHeight: 28,
+    fontWeight: "900"
+  },
+  testLabGameSubtitle: {
+    color: colors.mutedStrong,
+    fontWeight: "800"
+  },
+  statusGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.xs
+  },
+  statusPill: {
+    overflow: "hidden",
+    color: colors.goldSoft,
+    fontSize: 12,
+    fontWeight: "900",
+    borderRadius: radii.pill,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: "rgba(245,193,111,0.1)",
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 5
+  },
+  testLabActions: {
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md
+  },
+  testLabActionRow: {
+    flexDirection: "row",
+    gap: spacing.sm
+  },
+  testLabPrimaryAction: {
+    minHeight: 46,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: radii.md,
+    backgroundColor: colors.gold
+  },
+  testLabPrimaryActionText: {
+    color: "#160b02",
+    fontWeight: "900"
+  },
+  testLabAction: {
+    flex: 1,
+    minHeight: 42,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: "rgba(255,255,255,0.06)",
+    paddingHorizontal: spacing.sm
+  },
+  testLabActionText: {
+    color: colors.text,
+    textAlign: "center",
+    fontSize: 12,
+    fontWeight: "900"
+  },
+  testLabResetAction: {
+    minHeight: 44,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.xs,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    backgroundColor: "rgba(245,193,111,0.08)"
+  },
+  testLabResetText: {
+    color: colors.goldSoft,
+    fontWeight: "900"
   },
   pressedCard: {
     opacity: 0.84,

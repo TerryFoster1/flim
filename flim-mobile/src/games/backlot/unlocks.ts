@@ -3,6 +3,9 @@ import { flimApi } from "@/api/flimApi";
 import type { BacklotDiscoveryRequest, BacklotEventRequest, BacklotState } from "@/api/types";
 import {
   appendPendingDiscoveryToState,
+  BACKLOT_OFFLINE_QUEUE_KEY,
+  BACKLOT_STATE_CACHE_KEY,
+  BACKLOT_UNLOCK_STORAGE_KEY,
   clearBacklotOfflineQueueInStorage,
   getBacklotUnlockIdsFromStorage,
   queueBacklotDiscoveryInStorage,
@@ -30,6 +33,19 @@ export function getBacklotUnlockIds(): Promise<string[]> {
 }
 
 export async function getBacklotStateCache() {
+  return readBacklotStateCacheFromStorage(SecureStore);
+}
+
+export async function resetBacklotLocalTestState(): Promise<BacklotState> {
+  if (SecureStore.deleteItemAsync) {
+    await SecureStore.deleteItemAsync(BACKLOT_STATE_CACHE_KEY);
+    await SecureStore.deleteItemAsync(BACKLOT_UNLOCK_STORAGE_KEY);
+    await SecureStore.deleteItemAsync(BACKLOT_OFFLINE_QUEUE_KEY);
+  } else {
+    await SecureStore.setItemAsync(BACKLOT_STATE_CACHE_KEY, JSON.stringify(null));
+    await SecureStore.setItemAsync(BACKLOT_UNLOCK_STORAGE_KEY, JSON.stringify([]));
+    await SecureStore.setItemAsync(BACKLOT_OFFLINE_QUEUE_KEY, JSON.stringify([]));
+  }
   return readBacklotStateCacheFromStorage(SecureStore);
 }
 

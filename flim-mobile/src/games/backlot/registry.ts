@@ -10,53 +10,18 @@ export interface BacklotGameCatalogEntry {
   subtitle: string;
   description: string;
   route: "/games/relic-run" | "/games/triceratops";
+  artworkKey: string;
   difficulty: "easy" | "medium" | "hard" | "expert";
   estimatedPlayTimeMinutes: number;
   genre: string;
   unlockType: "discovery";
+  testDiscoverySource: BacklotDiscoveryRequest;
   rewardId: string;
   achievementSetId: string;
   statisticsProvider: string;
   saveProvider: string;
   launchProvider: string;
 }
-
-export const backlotGameCatalog: BacklotGameCatalogEntry[] = [
-  {
-    gameId: relicRunGameRegistration.gameId,
-    title: relicRunGameRegistration.title,
-    subtitle: relicRunGameRegistration.subtitle,
-    description: "Dash through a lost adventure reel hidden inside Flim.",
-    route: "/games/relic-run",
-    difficulty: "medium",
-    estimatedPlayTimeMinutes: 3,
-    genre: "adventure",
-    unlockType: "discovery",
-    rewardId: "relic-run-lost-chapter-ticket-bonus",
-    achievementSetId: "relic-run-lost-chapter-achievements",
-    statisticsProvider: "backlot.server.stats.v1",
-    saveProvider: "backlot.server.save.v1",
-    launchProvider: "native.expo-router"
-  },
-  {
-    gameId: triceratopsGameRegistration.gameId,
-    title: triceratopsGameRegistration.title,
-    subtitle: triceratopsGameRegistration.subtitle,
-    description: "Terror on Backlot Boulevard, uncovered through dinosaur movie play.",
-    route: "/games/triceratops",
-    difficulty: "medium",
-    estimatedPlayTimeMinutes: 3,
-    genre: "dinosaur",
-    unlockType: "discovery",
-    rewardId: "triceratops-runner-ticket-bonus",
-    achievementSetId: "triceratops-backlot-runner-achievements",
-    statisticsProvider: "backlot.server.stats.v1",
-    saveProvider: "backlot.server.save.v1",
-    launchProvider: "native.expo-router"
-  }
-];
-
-export const backlotGamesById = new Map(backlotGameCatalog.map((game) => [game.gameId, game]));
 
 export const relicRunDiscoverySource: BacklotDiscoveryRequest = {
   gameId: RELIC_RUN_GAME_ID,
@@ -71,6 +36,47 @@ export const triceratopsDinosaurDiscoverySource: BacklotDiscoveryRequest = {
   sourceId: "dinosaur-theme",
   sourceTitle: "Dinosaur Movie Challenge"
 };
+
+export const backlotGameCatalog: BacklotGameCatalogEntry[] = [
+  {
+    gameId: relicRunGameRegistration.gameId,
+    title: relicRunGameRegistration.title,
+    subtitle: relicRunGameRegistration.subtitle,
+    description: "Dash through a lost adventure reel hidden inside Flim.",
+    route: "/games/relic-run",
+    artworkKey: "adventure",
+    difficulty: "medium",
+    estimatedPlayTimeMinutes: 3,
+    genre: "adventure",
+    unlockType: "discovery",
+    testDiscoverySource: relicRunDiscoverySource,
+    rewardId: "relic-run-lost-chapter-ticket-bonus",
+    achievementSetId: "relic-run-lost-chapter-achievements",
+    statisticsProvider: "backlot.server.stats.v1",
+    saveProvider: "backlot.server.save.v1",
+    launchProvider: "native.expo-router"
+  },
+  {
+    gameId: triceratopsGameRegistration.gameId,
+    title: triceratopsGameRegistration.title,
+    subtitle: triceratopsGameRegistration.subtitle,
+    description: "Terror on Backlot Boulevard, uncovered through dinosaur movie play.",
+    route: "/games/triceratops",
+    artworkKey: "action",
+    difficulty: "medium",
+    estimatedPlayTimeMinutes: 3,
+    genre: "dinosaur",
+    unlockType: "discovery",
+    testDiscoverySource: triceratopsDinosaurDiscoverySource,
+    rewardId: "triceratops-runner-ticket-bonus",
+    achievementSetId: "triceratops-backlot-runner-achievements",
+    statisticsProvider: "backlot.server.stats.v1",
+    saveProvider: "backlot.server.save.v1",
+    launchProvider: "native.expo-router"
+  }
+];
+
+export const backlotGamesById = new Map(backlotGameCatalog.map((game) => [game.gameId, game]));
 
 export function isDinosaurChallenge(value: { title?: string; name?: string; description?: string; slug?: string; id?: string }) {
   const haystack = [value.title, value.name, value.description, value.slug, value.id].filter(Boolean).join(" ").toLowerCase();
