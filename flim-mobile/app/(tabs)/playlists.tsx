@@ -52,8 +52,13 @@ export default function MyPlaylistsScreen() {
       {user ? (
         <View style={styles.actionRow}>
           <PrimaryButton label="Create Playlist" onPress={() => router.push("/playlist/create")} style={styles.actionButton} />
-          <Pressable accessibilityRole="button" style={styles.secondaryAction} onPress={() => router.push("/roulette" as never)}>
-            <Text style={styles.secondaryActionText}>Director's Choice</Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Open What Are We Watching Tonight picker"
+            style={styles.secondaryAction}
+            onPress={() => router.push("/roulette" as never)}
+          >
+            <Text style={styles.secondaryActionText}>SPIN TO PICK</Text>
           </Pressable>
         </View>
       ) : null}

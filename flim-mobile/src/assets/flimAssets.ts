@@ -3,6 +3,7 @@ import type { ImageSourcePropType } from "react-native";
 export const flimImages = {
   logo: require("../../assets/flim/brand/flim-logo.png") as ImageSourcePropType,
   icon: require("../../assets/flim/brand/flim-icon-512.png") as ImageSourcePropType,
+  iconMark: require("../../assets/flim/brand/flim-icon-mark.png") as ImageSourcePropType,
   homeHero: require("../../assets/flim/brand/flim-hero-mobile.webp") as ImageSourcePropType,
   myPlaylistsHero: require("../../assets/flim/playlist-heroes/my-playlists-hero-mobile.webp") as ImageSourcePropType,
   publicPlaylistsHero: require("../../assets/flim/playlist-heroes/public-playlists-hero-mobile.webp") as ImageSourcePropType,
