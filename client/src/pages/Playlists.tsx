@@ -1363,9 +1363,8 @@ export function Playlists({
       </section>
 
       <button className="playlist-roulette-hero-card" onClick={openRouletteFromCard} type="button" aria-label="Spin to pick what to watch tonight">
-        <span className="playlist-roulette-wheel" aria-hidden="true">
-          <span className="playlist-roulette-wheel-pointer" />
-          <span className="playlist-roulette-wheel-core" />
+        <span className="playlist-roulette-mark" aria-hidden="true">
+          <img alt="" src="/brand/flim-icon-mark-source.png" decoding="async" loading="eager" />
         </span>
         <span className="playlist-roulette-hero-copy">
           <strong>What Are We Watching Tonight?</strong>
@@ -1437,13 +1436,13 @@ export function Playlists({
             <button className="playlist-roulette-gate-close" onClick={() => setRouletteGate(null)} type="button" aria-label="Close">
               X
             </button>
-            <span className="playlist-roulette-gate-wheel" aria-hidden="true">
-              <span />
+            <span className="playlist-roulette-gate-mark" aria-hidden="true">
+              <img alt="" src="/brand/flim-icon-mark-source.png" decoding="async" loading="eager" />
             </span>
             {rouletteGate === "auth" ? (
               <>
                 <h2 id="playlist-roulette-gate-title">Build your movie night first</h2>
-                <p>Add movies to your playlists, then Flim can spin from the things you actually want to watch.</p>
+                <p>Add movies to your playlists, then Flim can pick from the things you actually want to watch.</p>
                 <div className="playlist-roulette-gate-actions">
                   <button className="primary-button" onClick={() => onNavigate("/signup")} type="button">
                     Create Free Account
