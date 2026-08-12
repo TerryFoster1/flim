@@ -444,6 +444,7 @@ export default function App() {
   const isDirectorAdminRoute = activeRoute.startsWith("/director-admin");
   const isTitleDetailRoute = activeRoute === "/movies/:tmdbId" || activeRoute === "/tv/:tmdbId";
   const isTitleGameRoute = activeRoute === "/games/title/:mediaType/:tmdbId";
+  const isBacklotGameRoute = activeRoute === "/games/triceratops" || activeRoute === "/games/relic-run";
   const openNowPlaying = (sourcePlaylists?: Playlist[]) => {
     setRoulettePlaylists(Array.isArray(sourcePlaylists) ? sourcePlaylists : null);
     setIsRouletteOpen(true);
@@ -563,6 +564,10 @@ export default function App() {
     "/director-admin/analytics": <DirectorAdmin page="analytics" onNavigate={navigate} />,
   };
   const page = pages[activeRoute] ?? playlistsPage("my");
+
+  if (isBacklotGameRoute) {
+    return <>{page}</>;
+  }
 
   return (
     <div
