@@ -3,29 +3,49 @@ export const TRICERATOPS_GAME_ID = "triceratops-backlot-runner";
 export const triceratopsGameConfig = {
   gameId: TRICERATOPS_GAME_ID,
   title: "TRICERATOPS!",
-  subtitle: "Terror on Backlot Boulevard",
+  subtitle: "Rampage the Backlot",
+  art: {
+    internalResolution: "480x270",
+    spriteScale: 3,
+    tileSize: 16,
+    characterFrame: { width: 64, height: 48 },
+    palette: {
+      ink: "#07070a",
+      gold: "#f5c16f",
+      cream: "#fff3dc",
+      dino: "#47c66c",
+      dinoDark: "#1f6f3c",
+      warning: "#ff5a62",
+      sky: "#141728",
+      asphalt: "#1b171b",
+    },
+  },
   world: {
-    width: 960,
-    height: 540,
-    groundY: 424,
-    playerX: 158,
-    baseSpeed: 260,
-    maxSpeed: 525,
+    width: 480,
+    height: 270,
+    groundY: 212,
+    playerX: 72,
+    baseSpeed: 146,
+    maxSpeed: 292,
+    gravity: 720,
+    jumpVelocity: 342,
   },
   attack: {
-    activeMs: 360,
-    cooldownMs: 430,
+    activeMs: 380,
+    cooldownMs: 460,
   },
   spawn: {
-    carMs: 1450,
+    smashMs: 1450,
     hazardMs: 1900,
-    sceneryMs: 900,
+    propMs: 900,
     reelMs: 1320,
     powerMs: 9200,
   },
   scoring: {
+    smashTarget: 220,
     carSmash: 220,
     perfectCharge: 460,
+    propDestroyed: 55,
     sceneryDestroyed: 55,
     reelCollected: 110,
     hazardCleared: 85,
@@ -45,9 +65,12 @@ export type TriceratopsResult = {
   score: number;
   playTimeMs: number;
   distance: number;
+  objectsSmashed: number;
   carsSmashed: number;
   reelsCollected: number;
   propsDestroyed: number;
+  hazardsCleared: number;
   maxCombo: number;
 };
 
+export type TriceratopsInput = "left" | "right" | "jump" | "charge";
