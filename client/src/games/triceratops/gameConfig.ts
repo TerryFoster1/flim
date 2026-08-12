@@ -1,19 +1,37 @@
 export const TRICERATOPS_GAME_ID = "triceratops-backlot-runner";
 
+export type TriceratopsObstacleKind =
+  | "jump_obstacle"
+  | "smash_camera"
+  | "smash_crate"
+  | "smash_wall"
+  | "collectible"
+  | "hazard_cable"
+  | "finish";
+
+export type TriceratopsScriptEvent = {
+  id: string;
+  kind: TriceratopsObstacleKind;
+  distance: number;
+  label: string;
+  tutorial?: string;
+  points?: number;
+};
+
 export const triceratopsGameConfig = {
   gameId: TRICERATOPS_GAME_ID,
   title: "TRICERATOPS!",
-  subtitle: "Rampage the Backlot",
+  subtitle: "Smash the Studio Backlot",
   art: {
     internalResolution: "480x270",
     spriteScale: 3,
     tileSize: 16,
-    characterFrame: { width: 64, height: 48 },
+    characterFrame: { width: 72, height: 56 },
     palette: {
       ink: "#07070a",
       gold: "#f5c16f",
       cream: "#fff3dc",
-      dino: "#47c66c",
+      dino: "#4ed074",
       dinoDark: "#1f6f3c",
       warning: "#ff5a62",
       sky: "#141728",
@@ -23,69 +41,103 @@ export const triceratopsGameConfig = {
   world: {
     width: 480,
     height: 270,
-    groundY: 212,
-    playerX: 72,
-    baseSpeed: 146,
-    maxSpeed: 292,
-    gravity: 720,
-    jumpVelocity: 342,
-    highJumpVelocity: 410,
+    groundY: 214,
+    playerX: 74,
+    baseSpeed: 86,
+    gravity: 760,
+    jumpVelocity: 334,
+    coyoteMs: 150,
+    inputBufferMs: 180,
+    playerBody: { width: 34, height: 34, offsetX: 20, offsetY: 16 },
   },
   scene: {
     sceneId: "studio-backlot-1",
     name: "Studio Backlot",
-    targetDistance: 3600,
-    checkpointEvery: 1200,
+    targetDistance: 4100,
     startingHp: 3,
-    sRankTimeMs: 155000,
+    clearBonus: 1000,
   },
   attack: {
-    activeMs: 380,
-    cooldownMs: 460,
-  },
-  spawn: {
-    smashMs: 1450,
-    hazardMs: 1900,
-    propMs: 900,
-    reelMs: 1320,
-    powerMs: 9200,
+    activeMs: 330,
+    cooldownMs: 380,
+    hitboxWidth: 48,
+    hitboxHeight: 34,
   },
   scoring: {
-    smashTarget: 220,
-    carSmash: 220,
-    perfectCharge: 460,
-    propDestroyed: 55,
-    sceneryDestroyed: 55,
-    reelCollected: 110,
-    hazardCleared: 85,
-    rampageBonus: 75,
-    distancePointEveryPx: 48,
-    comboStep: 0.22,
-    maxMultiplier: 5,
+    smashTarget: 100,
+    collectible: 250,
+    sceneClear: 1000,
   },
-  powerUps: {
-    rampageDurationMs: 5200,
-    directorsCutDurationMs: 4200,
-    directorsCutTimeScale: 0.58,
-  },
+  timeline: [
+    {
+      id: "tutorial-jump",
+      kind: "jump_obstacle",
+      distance: 560,
+      label: "Foam curb",
+      tutorial: "Tap the left side to JUMP",
+    },
+    {
+      id: "tutorial-smash",
+      kind: "smash_camera",
+      distance: 1060,
+      label: "Studio camera",
+      tutorial: "Tap the right side to SMASH",
+      points: 100,
+    },
+    {
+      id: "jump-two",
+      kind: "jump_obstacle",
+      distance: 1520,
+      label: "Cable ramp",
+    },
+    {
+      id: "crate-one",
+      kind: "smash_crate",
+      distance: 1820,
+      label: "Prop crate",
+      points: 100,
+    },
+    {
+      id: "golden-reel",
+      kind: "collectible",
+      distance: 2240,
+      label: "Golden reel",
+      points: 250,
+    },
+    {
+      id: "first-hazard",
+      kind: "hazard_cable",
+      distance: 2820,
+      label: "Sparking cable",
+      tutorial: "Jump over live set hazards",
+    },
+    {
+      id: "finale-wall",
+      kind: "smash_wall",
+      distance: 3500,
+      label: "Breakaway wall",
+      tutorial: "Smash the finale set",
+      points: 100,
+    },
+    {
+      id: "wrap-marker",
+      kind: "finish",
+      distance: 4040,
+      label: "Wrap marker",
+    },
+  ] satisfies TriceratopsScriptEvent[],
 } as const;
 
 export type TriceratopsResult = {
   sceneId: string;
   completed: boolean;
-  grade: "S" | "A" | "B" | "C";
   score: number;
   playTimeMs: number;
   distance: number;
   hpRemaining: number;
   objectsSmashed: number;
-  carsSmashed: number;
-  reelsCollected: number;
-  propsDestroyed: number;
-  hazardsCleared: number;
-  rampageActivations: number;
-  checkpointsCleared: number;
-  maxCombo: number;
+  hitsTaken: number;
+  collectibles: number;
 };
 
-export type TriceratopsInput = "left" | "right" | "jump" | "charge";
+export type TriceratopsInput = "jump" | "smash";

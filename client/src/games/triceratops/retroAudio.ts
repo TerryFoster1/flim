@@ -2,12 +2,9 @@ export type TriceratopsSfx =
   | "start"
   | "jump"
   | "land"
-  | "charge"
   | "smash"
   | "collect"
   | "damage"
-  | "combo"
-  | "rampage"
   | "wrap"
   | "cut";
 
@@ -140,10 +137,6 @@ export function createRetroAudioEngine(): RetroAudioEngine {
       const now = audio.currentTime;
       if (name === "jump") tone(420, now, 0.08, "square", 0.055);
       if (name === "land") noise(now, 0.055, 0.045);
-      if (name === "charge") {
-        tone(110, now, 0.12, "sawtooth", 0.055);
-        tone(220, now + 0.05, 0.11, "square", 0.04);
-      }
       if (name === "smash") {
         noise(now, 0.13, 0.11);
         tone(74, now, 0.12, "square", 0.07);
@@ -155,10 +148,6 @@ export function createRetroAudioEngine(): RetroAudioEngine {
       if (name === "damage" || name === "cut") {
         tone(155.56, now, 0.12, "sawtooth", 0.06);
         tone(103.83, now + 0.08, 0.18, "sawtooth", 0.055);
-      }
-      if (name === "combo") tone(659.25, now, 0.06, "square", 0.04);
-      if (name === "rampage") {
-        [196, 261.63, 329.63, 392].forEach((note, index) => tone(note, now + index * 0.045, 0.12, "square", 0.052));
       }
       if (name === "wrap") {
         [392, 493.88, 587.33, 783.99].forEach((note, index) => tone(note, now + index * 0.075, 0.18, "triangle", 0.058));

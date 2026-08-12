@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState, type PointerEvent } from "react";
 import { recordBacklotGameOver, recordBacklotLaunch } from "../../services/backlotService";
 import {
   TRICERATOPS_GAME_ID,
   triceratopsGameConfig,
   type TriceratopsInput,
   type TriceratopsResult,
+  type TriceratopsScriptEvent,
 } from "./gameConfig";
 import { createRetroAudioEngine, type RetroAudioEngine, type TriceratopsSfx } from "./retroAudio";
 import "./triceratops.css";
@@ -30,50 +31,36 @@ type GameBridge = {
   pauseRun: () => void;
 };
 
-type SpawnKind = "smash" | "hazard" | "prop" | "reel" | "rampage" | "spotlight";
+type DinoState = "idle" | "run" | "jump" | "smash" | "hit" | "over" | "victory";
 
-type SpawnedObject = Phaser.Physics.Arcade.Sprite & {
-  vx: number;
-  vy?: number;
-  spin?: number;
-  kind: SpawnKind;
+type SceneObject = Phaser.Physics.Arcade.Sprite & {
+  script: TriceratopsScriptEvent;
   handled?: boolean;
+  destroyedState?: boolean;
 };
 
 const LANDSCAPE_QUERY = "(orientation: landscape)";
-const DINO_STATES = {
+const DINO_STATES: Record<DinoState, number> = {
   idle: 2,
   run: 6,
-  fastRun: 6,
   jump: 3,
-  jumpFall: 2,
-  land: 2,
-  charge: 4,
   smash: 4,
   hit: 2,
-  stunned: 2,
-  rampage: 4,
-  victory: 3,
   over: 2,
-} as const;
-
-const DINO_FRAME_MS: Record<keyof typeof DINO_STATES, number> = {
-  idle: 220,
-  run: 82,
-  fastRun: 58,
-  jump: 130,
-  jumpFall: 110,
-  land: 88,
-  charge: 68,
-  smash: 62,
-  hit: 150,
-  stunned: 160,
-  rampage: 52,
-  victory: 150,
-  over: 240,
+  victory: 3,
 };
 
-function dinoTexture(state: keyof typeof DINO_STATES, frame = 0) {
+const DINO_FRAME_MS: Record<DinoState, number> = {
+  idle: 220,
+  run: 84,
+  jump: 125,
+  smash: 64,
+  hit: 150,
+  over: 240,
+  victory: 150,
+};
+
+function dinoTexture(state: DinoState, frame = 0) {
   return `dino-${state}-${frame % DINO_STATES[state]}`;
 }
 
@@ -87,6 +74,10 @@ function supportsFullscreen(element: HTMLElement | null) {
   return Boolean(element?.requestFullscreen);
 }
 
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, value));
+}
+
 export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGameProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const shellRef = useRef<HTMLElement | null>(null);
@@ -94,7 +85,6 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
   const bridgeRef = useRef<GameBridge | null>(null);
   const audioRef = useRef<RetroAudioEngine | null>(null);
   const countdownTimersRef = useRef<number[]>([]);
-  const startedAtRef = useRef(Date.now());
   const gameOverSentRef = useRef(false);
   const [phase, setPhase] = useState<"start" | "intro" | "running" | "complete" | "over">("start");
   const [syncStatus, setSyncStatus] = useState("");
@@ -105,14 +95,6 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
   const [countdown, setCountdown] = useState<string | null>(null);
   const [paused, setPaused] = useState(false);
   const [audioMuted, setAudioMuted] = useState(false);
-
-  const controlHint = useMemo(
-    () => ({
-      mobile: "Left pad moves. A jumps; double-tap for a high jump. Hold B to charge.",
-      desktop: "Arrows or WASD move. Space jumps; double-tap for high jump. Shift charges. P pauses.",
-    }),
-    [],
-  );
 
   useEffect(() => {
     const engine = createRetroAudioEngine();
@@ -139,6 +121,7 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
     updateOrientation();
     query?.addEventListener?.("change", updateOrientation);
     window.addEventListener("resize", updateOrientation);
+    setFullscreenAvailable(supportsFullscreen(shellRef.current));
     return () => {
       query?.removeEventListener?.("change", updateOrientation);
       window.removeEventListener("resize", updateOrientation);
@@ -146,828 +129,729 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
   }, []);
 
   useEffect(() => {
-    setFullscreenAvailable(supportsFullscreen(shellRef.current));
-  }, []);
-
-  useEffect(() => {
-    startedAtRef.current = Date.now();
-    recordBacklotLaunch(TRICERATOPS_GAME_ID).catch(() => {
-      setSyncStatus("Sign in on staging to save Backlot progress.");
-    });
-  }, []);
-
-  useEffect(() => {
-    let mounted = true;
     let activeGame: Phaser.Game | null = null;
+    let isMounted = true;
 
-    async function bootGame() {
-      const Phaser = (await import("phaser")).default as unknown as PhaserModule;
-      if (!mounted || !hostRef.current || gameRef.current) return;
+    const handleSceneEvent = (event: Event) => {
+      const detail = (event as CustomEvent<SceneMessage>).detail;
+      if (!detail) return;
+      if (detail.type === "ready") return;
+      if (detail.type === "score") {
+        setLastScore(detail.score);
+        return;
+      }
+      if (detail.type === "pause") {
+        setPaused(detail.paused);
+        return;
+      }
+      if (detail.type === "sfx") {
+        audioRef.current?.playSfx(detail.name);
+        return;
+      }
+      if (detail.type === "scene-complete") {
+        setPhase("complete");
+        recordResult(detail.result);
+        return;
+      }
+      if (detail.type === "game-over") {
+        setPhase("over");
+        recordResult(detail.result);
+      }
+    };
 
-      class BacklotRampageScene extends Phaser.Scene {
-        private state: "boot" | "running" | "paused" | "complete" | "over" = "boot";
-        private inputState: Record<TriceratopsInput, boolean> = {
-          left: false,
-          right: false,
-          jump: false,
-          charge: false,
-        };
-        private score = 0;
-        private distance = 0;
-        private combo = 1;
-        private comboHits = 0;
-        private longestCombo = 1;
-        private objectsSmashed = 0;
-        private reelsCollected = 0;
-        private hazardsCleared = 0;
-        private hp = triceratopsGameConfig.scene.startingHp;
-        private checkpointDistance = 0;
-        private rampageActivations = 0;
-        private invulnerableUntil = 0;
-        private sceneStartedAt = 0;
-        private lastJumpTapAt = 0;
-        private wasAirborne = false;
-        private runSpeed: number = triceratopsGameConfig.world.baseSpeed;
+    window.addEventListener("triceratops:scene", handleSceneEvent);
+
+    void import("phaser").then((Phaser) => {
+      if (!isMounted || !hostRef.current) return;
+
+      class StudioBacklotScene extends Phaser.Scene {
         private player!: Phaser.Physics.Arcade.Sprite;
-        private dust!: Phaser.GameObjects.Particles.ParticleEmitter;
-        private ground!: Phaser.Physics.Arcade.StaticGroup;
-        private smashables!: Phaser.Physics.Arcade.Group;
-        private hazards!: Phaser.Physics.Arcade.Group;
-        private props!: Phaser.Physics.Arcade.Group;
-        private reels!: Phaser.Physics.Arcade.Group;
-        private powerUps!: Phaser.Physics.Arcade.Group;
-        private backLayer: Phaser.GameObjects.TileSprite[] = [];
-        private midLayer: Phaser.GameObjects.TileSprite[] = [];
-        private scoreText!: Phaser.GameObjects.Text;
-        private comboText!: Phaser.GameObjects.Text;
+        private ground!: Phaser.GameObjects.Rectangle;
+        private objects!: Phaser.Physics.Arcade.Group;
+        private smashHitbox!: Phaser.GameObjects.Rectangle;
+        private farLayer!: Phaser.GameObjects.TileSprite;
+        private midLayer!: Phaser.GameObjects.TileSprite;
+        private foregroundLayer!: Phaser.GameObjects.TileSprite;
+        private hudText!: Phaser.GameObjects.Text;
         private hpText!: Phaser.GameObjects.Text;
-        private progressText!: Phaser.GameObjects.Text;
-        private rampageText!: Phaser.GameObjects.Text;
-        private pauseText!: Phaser.GameObjects.Text;
-        private jumpLocked = false;
-        private chargeUntil = 0;
-        private chargeReadyAt = 0;
-        private rampageUntil = 0;
-        private nextSmashAt = 0;
-        private nextHazardAt = 0;
-        private nextPropAt = 0;
-        private nextReelAt = 0;
-        private nextPowerAt = 0;
-        private lastScoreNotifyAt = 0;
-        private currentDinoState: keyof typeof DINO_STATES = "run";
-        private currentDinoFrame = 0;
-        private keyboardChargeLocked = false;
-        private keys?: {
-          left: Phaser.Input.Keyboard.Key;
-          right: Phaser.Input.Keyboard.Key;
-          up: Phaser.Input.Keyboard.Key;
-          down: Phaser.Input.Keyboard.Key;
-          a: Phaser.Input.Keyboard.Key;
-          d: Phaser.Input.Keyboard.Key;
-          w: Phaser.Input.Keyboard.Key;
-          s: Phaser.Input.Keyboard.Key;
+        private hintText!: Phaser.GameObjects.Text;
+        private progressBar!: Phaser.GameObjects.Rectangle;
+        private wrapLine!: Phaser.GameObjects.Rectangle;
+        private spawnedIds = new Set<string>();
+        private distance = 0;
+        private score = 0;
+        private hp = triceratopsGameConfig.scene.startingHp;
+        private hitsTaken = 0;
+        private objectsSmashed = 0;
+        private collectibles = 0;
+        private state: "ready" | "running" | "paused" | "complete" | "over" = "ready";
+        private currentDinoState: DinoState = "idle";
+        private runStartedAt = 0;
+        private lastGroundedAt = 0;
+        private jumpBufferedUntil = 0;
+        private smashUntil = 0;
+        private smashReadyAt = 0;
+        private invulnerableUntil = 0;
+        private keys!: {
           space: Phaser.Input.Keyboard.Key;
-          shift: Phaser.Input.Keyboard.Key;
+          up: Phaser.Input.Keyboard.Key;
+          w: Phaser.Input.Keyboard.Key;
+          x: Phaser.Input.Keyboard.Key;
+          k: Phaser.Input.Keyboard.Key;
+          enter: Phaser.Input.Keyboard.Key;
+          p: Phaser.Input.Keyboard.Key;
         };
+
+        constructor() {
+          super("StudioBacklotScene");
+        }
 
         create() {
-          this.createTextureAtlas();
+          this.physics.world.setBounds(0, 0, triceratopsGameConfig.world.width, triceratopsGameConfig.world.height);
+          this.physics.world.gravity.y = triceratopsGameConfig.world.gravity;
+          this.createTextures(Phaser);
           this.createWorld();
           this.createPlayer();
           this.createHud();
-          this.createCollisions();
-          this.bindKeyboard();
+          this.createInput();
+
+          this.events.on("resume", () => this.emitPause(false));
+          this.events.on("pause", () => this.emitPause(true));
+
           bridgeRef.current = {
             setInput: (input, active) => {
-              this.inputState[input] = active;
-              if (input === "jump" && active) this.jump();
-              if (input === "charge" && active) this.charge();
+              if (!active) return;
+              if (input === "jump") this.requestJump();
+              if (input === "smash") this.requestSmash();
             },
             startRun: () => this.startRun(),
-            restartRun: () => this.restartRun(),
+            restartRun: () => this.resetRun(),
             pauseRun: () => this.togglePause(),
           };
+
           window.dispatchEvent(new CustomEvent<SceneMessage>("triceratops:scene", { detail: { type: "ready" } }));
-          this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
-            bridgeRef.current = null;
-          });
         }
 
         update(time: number, delta: number) {
-          const dt = Math.min(delta, 34) / 1000;
-          this.scrollWorld(dt);
-          this.animatePlayer(time);
-          if (this.state !== "running") return;
+          if (this.state !== "running") {
+            this.updateDinoAnimation(time);
+            return;
+          }
 
-          this.applyKeyboardInput();
-          this.applyMovement(dt);
-          this.updateDifficulty();
-          this.spawnLoop(time);
-          this.moveObjects(dt);
-          this.updateHud(time);
-          this.cleanupObjects();
+          const dt = delta / 1000;
+          this.distance += triceratopsGameConfig.world.baseSpeed * dt;
+          this.spawnScriptedEvents();
+          this.updateMovement(time, dt);
+          this.updateObjects(dt);
+          this.updateDinoAnimation(time);
+          this.updateHud();
+
+          if (this.distance >= triceratopsGameConfig.scene.targetDistance) {
+            this.sceneComplete();
+          }
         }
 
-        private createTextureAtlas() {
-          Object.entries(DINO_STATES).forEach(([state, frames]) => {
-            for (let frame = 0; frame < frames; frame += 1) this.createTriceratopsFrame(`${state}-${frame}`, state as keyof typeof DINO_STATES, frame);
-          });
-          this.createBacklotSprites();
-        }
-
-        private makeTextureNearest(key: string) {
-          this.textures.get(key).setFilter(Phaser.Textures.FilterMode.NEAREST);
-        }
-
-        private createTriceratopsFrame(key: string, state: keyof typeof DINO_STATES, frame: number) {
-          const g = this.add.graphics();
-          const scale = 2;
-          const px = (x: number, y: number, w: number, h: number, color: number) => {
-            g.fillStyle(color, 1);
-            g.fillRect(x * scale, y * scale, w * scale, h * scale);
-          };
-          const fast = state === "fastRun" || state === "rampage";
-          const bob =
-            state === "run" || state === "fastRun" || state === "rampage"
-              ? frame % 2
-              : state === "jump"
-                ? -4
-                : state === "jumpFall"
-                  ? -2
-                  : state === "charge" || state === "smash"
-                    ? 1
-                    : state === "victory"
-                      ? -1 - (frame % 2)
-                      : 0;
-          const lean =
-            state === "charge" || state === "smash" || fast
-              ? 3
-              : state === "jumpFall"
-                ? -1
-                : state === "hit" || state === "stunned" || state === "over"
-                  ? -2
-                  : 0;
-          const main =
-            state === "hit" || state === "stunned"
-              ? 0xff6969
-              : state === "rampage"
-                ? 0xffd85f
-                : state === "charge" || state === "smash"
-                  ? 0xf4b14e
-                  : state === "victory"
-                    ? 0x7be879
-                    : 0x49c86b;
-          const dark = state === "hit" || state === "stunned" || state === "over" ? 0x7f2430 : fast ? 0x815414 : 0x1c6f3d;
-          px(5 + lean, 25 + bob, 24, 6, dark);
-          px(11 + lean, 18 + bob, 30, 12, main);
-          px(27 + lean, 11 + bob, 25, 11, main);
-          px(45 + lean, 8 + bob, 14, 4, 0xf6e6bd);
-          px(48 + lean, 18 + bob, 14, 4, 0xf6e6bd);
-          px(31 + lean, 8 + bob, 6, 7, 0xf3d39b);
-          px(40 + lean, 8 + bob, 9, 7, 0xf3d39b);
-          px(41 + lean, 14 + bob, 2, 2, 0x05070a);
-          px(16 + lean, 14 + bob, 4, 4, 0x76e08d);
-          px(20 + lean, 15 + bob, 4, 3, 0x76e08d);
-          const legA = frame % 2 === 0 || state === "jump" || state === "jumpFall" ? 0 : fast ? 4 : 3;
-          const legB = frame % 2 === 0 || state === "jump" || state === "jumpFall" ? (fast ? 4 : 3) : 0;
-          px(15 + lean, 30 + bob, 5, 10 - Math.min(legA, 2), dark);
-          px(28 + lean, 30 + bob, 5, 10 - Math.min(legB, 2), dark);
-          px(12 + lean, 38 + bob - legA, 9, 3, 0x102618);
-          px(26 + lean, 38 + bob - legB, 9, 3, 0x102618);
-          if (state === "charge" || state === "smash" || state === "rampage") {
-            px(52 + lean, 12 + bob, 8, 2, 0xfff0bc);
-            px(53 + lean, 22 + bob, 8, 2, 0xfff0bc);
-          }
-          if (state === "smash") {
-            px(55, 6 + frame, 3, 3, 0xfff0bc);
-            px(58, 28 - frame, 2, 2, 0xff595f);
-          }
-          if (state === "over") {
-            px(38, 13 + bob, 5, 2, 0x05070a);
-          }
-          if (state === "victory") {
-            px(19 + frame, 8 + bob, 3, 3, 0xfff0bc);
-            px(23 + frame, 6 + bob, 2, 2, 0xfff0bc);
-          }
-          g.generateTexture(`dino-${key}`, 128, 96);
-          this.makeTextureNearest(`dino-${key}`);
-          g.destroy();
-        }
-
-        private createBacklotSprites() {
-          const pixelTexture = (key: string, width: number, height: number, draw: (g: Phaser.GameObjects.Graphics) => void) => {
-            const g = this.add.graphics();
-            draw(g);
-            g.generateTexture(key, width, height);
-            this.makeTextureNearest(key);
-            g.destroy();
+        private createTextures(PhaserRef: PhaserModule) {
+          const makeCanvas = (key: string, width: number, height: number, draw: (ctx: CanvasRenderingContext2D) => void) => {
+            const texture = this.textures.createCanvas(key, width, height);
+            const ctx = texture?.getContext();
+            if (!texture || !ctx) return;
+            ctx.imageSmoothingEnabled = false;
+            draw(ctx);
+            texture.refresh();
           };
 
-          pixelTexture("breakaway-car", 72, 44, (g) => {
-            g.fillStyle(0x07070a, 1).fillRect(0, 0, 72, 44);
-            g.fillStyle(0x20314a, 1).fillRect(8, 18, 54, 16);
-            g.fillStyle(0xff5a62, 1).fillRect(22, 8, 28, 13);
-            g.fillStyle(0xf5c16f, 1).fillRect(28, 12, 7, 5).fillRect(39, 12, 7, 5);
-            g.fillStyle(0x020204, 1).fillRect(14, 32, 10, 10).fillRect(49, 32, 10, 10);
-            g.fillStyle(0xf5c16f, 1).fillRect(6, 24, 4, 4).fillRect(60, 24, 4, 4);
-          });
-          pixelTexture("danger-barrier", 48, 50, (g) => {
-            g.fillStyle(0x000000, 0).fillRect(0, 0, 48, 50);
-            g.fillStyle(0x2b2630, 1).fillRect(8, 8, 32, 34);
-            g.fillStyle(0xff5a62, 1).fillRect(12, 32, 24, 5).fillRect(18, 14, 12, 5);
-            g.fillStyle(0xf5c16f, 1).fillRect(14, 20, 20, 4).fillRect(14, 27, 20, 4);
-            g.fillStyle(0x07070a, 1).fillRect(9, 42, 6, 8).fillRect(33, 42, 6, 8);
-          });
-          pixelTexture("breakaway-prop", 42, 50, (g) => {
-            g.fillStyle(0x000000, 0).fillRect(0, 0, 42, 50);
-            g.fillStyle(0x7d5431, 1).fillRect(12, 18, 20, 28);
-            g.fillStyle(0xf5c16f, 1).fillRect(8, 12, 28, 7).fillRect(15, 7, 14, 5);
-            g.fillStyle(0x18100c, 1).fillRect(17, 23, 3, 3).fillRect(25, 23, 3, 3);
-            g.fillStyle(0xff5a62, 1).fillRect(13, 35, 18, 3);
-          });
-          pixelTexture("bonus-reel", 30, 30, (g) => {
-            g.fillStyle(0x000000, 0).fillRect(0, 0, 30, 30);
-            g.fillStyle(0xf5c16f, 1).fillRect(7, 2, 16, 3).fillRect(4, 5, 22, 20).fillRect(7, 25, 16, 3);
-            g.fillStyle(0x07070a, 1).fillRect(9, 8, 4, 4).fillRect(18, 8, 4, 4).fillRect(9, 17, 4, 4).fillRect(18, 17, 4, 4).fillRect(14, 14, 3, 3);
-          });
-          pixelTexture("impact-spark", 6, 6, (g) => {
-            g.fillStyle(0xf5c16f, 1).fillRect(2, 0, 2, 6).fillRect(0, 2, 6, 2);
-          });
-          pixelTexture("backlot-sky", 480, 270, (g) => {
-            g.fillStyle(0x08070b, 1).fillRect(0, 0, 480, 270);
-            g.fillStyle(0x141728, 1).fillRect(0, 0, 480, 180);
-            g.fillStyle(0x2a1720, 1).fillRect(0, 92, 480, 88);
-            g.fillStyle(0xf5c16f, 1).fillRect(344, 28, 46, 4).fillRect(354, 36, 38, 3);
-            g.fillStyle(0x342322, 1).fillRect(0, 180, 480, 90);
-          });
-          pixelTexture("studio-skyline", 480, 180, (g) => {
-            g.fillStyle(0x000000, 0).fillRect(0, 0, 480, 180);
-            for (let i = 0; i < 10; i += 1) {
-              const x = i * 52;
-              const h = 70 + (i % 4) * 14;
-              g.fillStyle(i % 2 ? 0x121521 : 0x1c202f, 1).fillRect(x, 180 - h, 38, h);
-              g.fillStyle(0xf5c16f, 0.45).fillRect(x + 8, 180 - h + 18, 4, 7).fillRect(x + 22, 180 - h + 36, 4, 7);
+          const px = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, color: string) => {
+            ctx.fillStyle = color;
+            ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
+          };
+
+          const drawDino = (ctx: CanvasRenderingContext2D, frame: number, state: DinoState) => {
+            ctx.clearRect(0, 0, 72, 56);
+            const jump = state === "jump";
+            const smash = state === "smash";
+            const hit = state === "hit";
+            const over = state === "over";
+            const victory = state === "victory";
+            const bob = state === "run" ? (frame % 2 === 0 ? 1 : -1) : 0;
+            const legA = state === "run" ? (frame % 3) - 1 : 0;
+            const baseY = over ? 36 : jump ? 24 : 31 + bob;
+            const body = hit ? "#68e88b" : triceratopsGameConfig.art.palette.dino;
+            const dark = triceratopsGameConfig.art.palette.dinoDark;
+            const horn = "#fff3dc";
+            const outline = "#07110a";
+            const headX = smash ? 38 + frame * 2 : 34;
+            const headY = baseY - 18;
+
+            if (over) {
+              px(ctx, 18, 38, 30, 7, outline);
+              px(ctx, 21, 32, 25, 8, dark);
+              px(ctx, 39, 27, 17, 10, body);
+              px(ctx, 51, 24, 12, 5, horn);
+              px(ctx, 46, 30, 3, 3, "#fff3dc");
+              px(ctx, 52, 30, 3, 3, "#fff3dc");
+              px(ctx, 16, 41, 8, 4, "#2e3b2f");
+              return;
+            }
+
+            px(ctx, 8, baseY - 12, 28, 15, outline);
+            px(ctx, 12, baseY - 17, 29, 19, body);
+            px(ctx, 14, baseY - 14, 8, 6, "#83f0a1");
+            px(ctx, 10, baseY - 2, 22, 5, dark);
+            px(ctx, 36, headY - 7, 18, 27, outline);
+            px(ctx, headX - 3, headY - 4, 23, 22, body);
+            px(ctx, headX - 8, headY - 9, 15, 27, dark);
+            px(ctx, headX + 14, headY + 6, 17, 11, outline);
+            px(ctx, headX + 14, headY + 7, 14, 8, body);
+            px(ctx, headX + 24, headY + 4, smash ? 16 : 10, 4, horn);
+            px(ctx, headX + 10, headY - 9, 5, 10, horn);
+            px(ctx, headX + 2, headY - 7, 5, 10, horn);
+            px(ctx, headX + 12, headY + 4, 3, 3, "#050407");
+            px(ctx, headX + 18, headY + 12, 6, 2, "#050407");
+            px(ctx, 5, baseY - 7, 8, 6, dark);
+            px(ctx, 2, baseY - 10, 6, 5, body);
+
+            const frontLeg = jump ? 39 : 34 + legA;
+            const backLeg = jump ? 18 : 18 - legA;
+            px(ctx, backLeg, baseY + 1, 6, jump ? 12 : 16, outline);
+            px(ctx, backLeg + 1, baseY + 2, 4, jump ? 10 : 14, body);
+            px(ctx, frontLeg, baseY + 1, 6, jump ? 11 : 16, outline);
+            px(ctx, frontLeg + 1, baseY + 2, 4, jump ? 9 : 14, body);
+            px(ctx, backLeg - 2, baseY + (jump ? 10 : 16), 11, 3, dark);
+            px(ctx, frontLeg - 1, baseY + (jump ? 9 : 16), 11, 3, dark);
+
+            if (smash) {
+              px(ctx, headX + 38, headY + 4, 12 + frame * 2, 3, "#ffe8a9");
+              px(ctx, headX + 42, headY - 1, 8, 2, "#ff8848");
+            }
+            if (hit) {
+              px(ctx, 12, 10, 12, 4, "#ff5a62");
+              px(ctx, 25, 6, 7, 5, "#ff5a62");
+              px(ctx, 34, 11, 10, 3, "#ff5a62");
+            }
+            if (victory) {
+              px(ctx, 58, 10 - frame, 4, 16, "#ffe8a9");
+              px(ctx, 61, 7 - frame, 5, 5, "#f5c16f");
+            }
+          };
+
+          Object.entries(DINO_STATES).forEach(([state, frameCount]) => {
+            for (let frame = 0; frame < frameCount; frame += 1) {
+              makeCanvas(dinoTexture(state as DinoState, frame), 72, 56, (ctx) => drawDino(ctx, frame, state as DinoState));
             }
           });
-          pixelTexture("backlot-street", 480, 58, (g) => {
-            g.fillStyle(0x171318, 1).fillRect(0, 0, 480, 58);
-            g.fillStyle(0x3a2b27, 1).fillRect(0, 0, 480, 5);
-            g.fillStyle(0xf5c16f, 0.72).fillRect(0, 7, 480, 2);
-            g.fillStyle(0xffffff, 0.18);
-            for (let i = 0; i < 12; i += 1) g.fillRect(i * 45, 32, 20, 2);
+
+          makeCanvas("stage-far", 480, 270, (ctx) => {
+            const gradient = ctx.createLinearGradient(0, 0, 0, 270);
+            gradient.addColorStop(0, "#11172b");
+            gradient.addColorStop(0.5, "#211720");
+            gradient.addColorStop(1, "#07070a");
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, 480, 270);
+            for (let i = 0; i < 36; i += 1) px(ctx, i * 15, 24 + ((i * 13) % 55), 2, 2, i % 3 ? "#f5c16f" : "#91d8ff");
+            px(ctx, 0, 138, 480, 22, "#1a1622");
+            for (let i = 0; i < 10; i += 1) {
+              const x = i * 52;
+              px(ctx, x, 100 + (i % 2) * 16, 34, 58, "#231c24");
+              px(ctx, x + 5, 108 + (i % 2) * 16, 20, 4, "#f5c16f");
+              px(ctx, x + 8, 122 + (i % 2) * 16, 8, 8, "#493024");
+            }
           });
+
+          makeCanvas("stage-mid", 240, 88, (ctx) => {
+            px(ctx, 0, 30, 240, 58, "#22181e");
+            for (let i = 0; i < 5; i += 1) {
+              const x = i * 48;
+              px(ctx, x + 2, 15, 36, 54, "#2e2528");
+              px(ctx, x + 6, 22, 24, 6, "#f5c16f");
+              px(ctx, x + 8, 38, 8, 20, "#0e0d12");
+              px(ctx, x + 22, 38, 8, 20, "#0e0d12");
+              px(ctx, x + 36, 45, 8, 24, "#382922");
+            }
+          });
+
+          makeCanvas("stage-front", 160, 58, (ctx) => {
+            px(ctx, 0, 0, 160, 58, "#191419");
+            px(ctx, 0, 0, 160, 5, "#3b3027");
+            for (let x = 0; x < 160; x += 16) {
+              px(ctx, x, 8, 10, 2, "#4b4038");
+              px(ctx, x + 4, 30, 24, 2, "#2b2425");
+              px(ctx, x + 11, 13, 2, 28, "#241d20");
+            }
+          });
+
+          makeCanvas("foam-curb", 32, 20, (ctx) => {
+            px(ctx, 0, 8, 32, 12, "#111318");
+            px(ctx, 2, 3, 28, 12, "#f5c16f");
+            px(ctx, 4, 6, 8, 5, "#ff8848");
+            px(ctx, 18, 6, 8, 5, "#ff8848");
+          });
+
+          makeCanvas("studio-camera", 40, 34, (ctx) => {
+            px(ctx, 3, 12, 23, 17, "#07070a");
+            px(ctx, 6, 9, 22, 16, "#323944");
+            px(ctx, 28, 13, 9, 7, "#111318");
+            px(ctx, 31, 15, 7, 4, "#91d8ff");
+            px(ctx, 10, 25, 4, 7, "#6a5242");
+            px(ctx, 22, 25, 4, 7, "#6a5242");
+            px(ctx, 8, 5, 12, 6, "#f5c16f");
+          });
+
+          makeCanvas("prop-crate", 34, 30, (ctx) => {
+            px(ctx, 2, 5, 30, 24, "#20140e");
+            px(ctx, 5, 3, 25, 22, "#a96a30");
+            px(ctx, 7, 7, 21, 3, "#f5c16f");
+            px(ctx, 9, 13, 16, 3, "#6a3e22");
+            px(ctx, 5, 20, 25, 3, "#4a2b1a");
+          });
+
+          makeCanvas("breakaway-wall", 44, 54, (ctx) => {
+            px(ctx, 4, 4, 36, 48, "#141018");
+            px(ctx, 6, 2, 34, 46, "#5c5147");
+            for (let y = 8; y < 44; y += 10) px(ctx, 8, y, 29, 2, "#221b1b");
+            for (let x = 10; x < 36; x += 12) px(ctx, x, 6, 2, 38, "#221b1b");
+            px(ctx, 11, 13, 18, 4, "#f5c16f");
+          });
+
+          makeCanvas("sparking-cable", 44, 18, (ctx) => {
+            px(ctx, 0, 10, 44, 5, "#050407");
+            px(ctx, 4, 6, 30, 3, "#2b2f38");
+            px(ctx, 24, 1, 4, 11, "#ffe8a9");
+            px(ctx, 30, 4, 10, 4, "#ff5a62");
+            px(ctx, 14, 0, 3, 8, "#91d8ff");
+          });
+
+          makeCanvas("golden-reel", 24, 24, (ctx) => {
+            px(ctx, 3, 3, 18, 18, "#7a451a");
+            px(ctx, 5, 2, 16, 17, "#f5c16f");
+            px(ctx, 9, 7, 3, 3, "#07070a");
+            px(ctx, 15, 7, 3, 3, "#07070a");
+            px(ctx, 9, 14, 3, 3, "#07070a");
+            px(ctx, 15, 14, 3, 3, "#07070a");
+          });
+
+          makeCanvas("wrap-marker", 34, 52, (ctx) => {
+            px(ctx, 14, 2, 5, 50, "#f5c16f");
+            px(ctx, 18, 4, 14, 18, "#fff3dc");
+            px(ctx, 18, 8, 14, 4, "#ff5a62");
+            px(ctx, 18, 16, 14, 4, "#07070a");
+          });
+
+          makeCanvas("impact-star", 20, 20, (ctx) => {
+            px(ctx, 8, 0, 4, 20, "#ffe8a9");
+            px(ctx, 0, 8, 20, 4, "#ffe8a9");
+            px(ctx, 4, 4, 12, 12, "#ff8848");
+          });
+
+          const dust = this.textures.createCanvas("pixel-dust", 6, 6);
+          const dustCtx = dust?.getContext();
+          if (dust && dustCtx) {
+            dustCtx.imageSmoothingEnabled = false;
+            px(dustCtx, 1, 1, 4, 4, "#d8b07a");
+            dust.refresh();
+          }
+
+          this.textures.get(dinoTexture("run")).setFilter(PhaserRef.Textures.FilterMode.NEAREST);
         }
 
         private createWorld() {
           const { width, height, groundY } = triceratopsGameConfig.world;
-          this.add.image(width / 2, height / 2, "backlot-sky").setDisplaySize(width, height).setDepth(0);
-          this.backLayer.push(this.add.tileSprite(width / 2, groundY - 168, width, 360, "studio-skyline").setDepth(1));
-          this.add.rectangle(width / 2, groundY - 48, width, 122, 0x291a13, 0.35).setDepth(2);
-          for (let i = 0; i < 9; i += 1) {
-            const sign = this.add.container(88 + i * 76, groundY - 132 + (i % 3) * 8).setDepth(2);
-            sign.add(this.add.rectangle(0, 0, 58, 34, 0x241820, 0.9).setStrokeStyle(1, 0xf5c16f, 0.42));
-            sign.add(
-              this.add.text(-22, -8, i % 2 ? "SET" : "PROP", {
-                fontFamily: "system-ui, sans-serif",
-                fontSize: "8px",
-                color: "#f5c16f",
-                fontStyle: "bold",
-              }),
-            );
-          }
-          this.midLayer.push(this.add.tileSprite(width / 2, groundY + 58, width, 118, "backlot-street").setDepth(3));
-          this.ground = this.physics.add.staticGroup();
-          this.ground.add(this.add.rectangle(width / 2, groundY + 54, width, 96, 0x000000, 0));
-          this.smashables = this.physics.add.group({ allowGravity: false });
-          this.hazards = this.physics.add.group({ allowGravity: false });
-          this.props = this.physics.add.group({ allowGravity: false });
-          this.reels = this.physics.add.group({ allowGravity: false });
-          this.powerUps = this.physics.add.group({ allowGravity: false });
+          this.add.image(width / 2, height / 2, "stage-far").setDepth(0);
+          this.farLayer = this.add.tileSprite(width / 2, 128, width, 88, "stage-mid").setDepth(1).setAlpha(0.82);
+          this.midLayer = this.add.tileSprite(width / 2, groundY - 14, width, 88, "stage-mid").setDepth(2);
+          this.foregroundLayer = this.add.tileSprite(width / 2, groundY + 25, width, 58, "stage-front").setDepth(8).setAlpha(0.86);
+          this.ground = this.add.rectangle(width / 2, groundY + 20, width, 32, 0x000000, 0);
+          this.physics.add.existing(this.ground, true);
+          this.objects = this.physics.add.group({ allowGravity: false });
+          this.wrapLine = this.add.rectangle(width - 52, groundY - 28, 2, 84, 0xf5c16f, 0.18).setDepth(4);
         }
 
         private createPlayer() {
-          const { playerX, groundY } = triceratopsGameConfig.world;
-          this.player = this.physics.add.sprite(playerX, groundY - 68, dinoTexture("run")).setDepth(8);
-          this.player.setSize(70, 38).setOffset(20, 46);
-          this.player.setGravityY(triceratopsGameConfig.world.gravity);
+          const { playerX, groundY, playerBody } = triceratopsGameConfig.world;
+          this.player = this.physics.add.sprite(playerX, groundY - 28, dinoTexture("idle")).setDepth(7);
           this.player.setCollideWorldBounds(true);
-          this.dust = this.add.particles(0, 0, "impact-spark", {
-            lifespan: 260,
-            speed: { min: 90, max: 220 },
-            scale: { start: 0.55, end: 0 },
-            alpha: { start: 0.42, end: 0 },
-            quantity: 0,
-            tint: 0xf5c16f,
-          }).setDepth(7);
+          this.player.setGravityY(triceratopsGameConfig.world.gravity);
+          this.player.body?.setSize(playerBody.width, playerBody.height);
+          this.player.body?.setOffset(playerBody.offsetX, playerBody.offsetY);
+          this.physics.add.collider(this.player, this.ground);
+          this.physics.add.overlap(this.player, this.objects, (_player, item) => this.handleOverlap(item as SceneObject));
+          this.smashHitbox = this.add.rectangle(playerX + 46, groundY - 30, triceratopsGameConfig.attack.hitboxWidth, triceratopsGameConfig.attack.hitboxHeight, 0xffe8a9, 0);
+          this.smashHitbox.setDepth(9);
         }
 
         private createHud() {
-          const { width } = triceratopsGameConfig.world;
-          this.scoreText = this.add.text(28, 22, "0", {
-            fontFamily: "system-ui, sans-serif",
-            fontSize: "30px",
-            color: "#fff7e8",
-            fontStyle: "900",
-          }).setDepth(30);
-          this.comboText = this.add.text(30, 58, "Combo x1.00", {
-            fontFamily: "system-ui, sans-serif",
-            fontSize: "14px",
+          this.hudText = this.add.text(14, 12, "", {
+            color: "#fff3dc",
+            fontFamily: "monospace",
+            fontSize: "12px",
+            fontStyle: "bold",
+          }).setDepth(20).setShadow(2, 2, "#07070a", 0, true, true);
+          this.hpText = this.add.text(356, 12, "", {
             color: "#f5c16f",
-            fontStyle: "900",
-          }).setDepth(30);
-          this.hpText = this.add.text(30, 78, "HP 3", {
-            fontFamily: "system-ui, sans-serif",
+            fontFamily: "monospace",
+            fontSize: "12px",
+            fontStyle: "bold",
+          }).setDepth(20).setShadow(2, 2, "#07070a", 0, true, true);
+          this.hintText = this.add.text(240, 44, "Get ready...", {
+            color: "#ffe8a9",
+            fontFamily: "monospace",
             fontSize: "13px",
-            color: "#91ffd5",
-            fontStyle: "900",
-          }).setDepth(30);
-          this.progressText = this.add.text(width / 2, 22, "Scene 1: Studio Backlot", {
-            fontFamily: "system-ui, sans-serif",
-            fontSize: "13px",
-            color: "#fff0cf",
-            fontStyle: "900",
-          }).setOrigin(0.5, 0).setDepth(30);
-          this.rampageText = this.add.text(width - 28, 24, "", {
-            fontFamily: "system-ui, sans-serif",
-            fontSize: "18px",
-            color: "#8fffd1",
-            fontStyle: "900",
-          }).setOrigin(1, 0).setDepth(30);
-          this.pauseText = this.add.text(width - 28, 58, "Pause", {
-            fontFamily: "system-ui, sans-serif",
-            fontSize: "14px",
-            color: "#fff0cf",
-          }).setOrigin(1, 0).setDepth(30);
+            fontStyle: "bold",
+            align: "center",
+          }).setDepth(20).setOrigin(0.5, 0).setShadow(2, 2, "#07070a", 0, true, true);
+          this.add.rectangle(240, 258, 260, 5, 0x07070a, 0.72).setDepth(20);
+          this.progressBar = this.add.rectangle(110, 258, 1, 5, 0xf5c16f, 0.92).setOrigin(0, 0.5).setDepth(21);
+          this.updateHud();
         }
 
-        private createCollisions() {
-          this.physics.add.collider(this.player, this.ground);
-          this.physics.add.overlap(this.player, this.smashables, (_p, object) => this.hitSmashable(object as SpawnedObject));
-          this.physics.add.overlap(this.player, this.hazards, (_p, object) => this.hitHazard(object as SpawnedObject));
-          this.physics.add.overlap(this.player, this.props, (_p, object) => this.hitProp(object as SpawnedObject));
-          this.physics.add.overlap(this.player, this.reels, (_p, object) => this.collectReel(object as SpawnedObject));
-          this.physics.add.overlap(this.player, this.powerUps, (_p, object) => this.collectPower(object as SpawnedObject));
-        }
-
-        private bindKeyboard() {
+        private createInput() {
           const keyboard = this.input.keyboard;
-          if (!keyboard) return;
           this.keys = {
-            left: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.LEFT),
-            right: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT),
-            up: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.UP),
-            down: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.DOWN),
-            a: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A),
-            d: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D),
-            w: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W),
-            s: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S),
-            space: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE),
-            shift: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT),
+            space: keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE) as Phaser.Input.Keyboard.Key,
+            up: keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.UP) as Phaser.Input.Keyboard.Key,
+            w: keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.W) as Phaser.Input.Keyboard.Key,
+            x: keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.X) as Phaser.Input.Keyboard.Key,
+            k: keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.K) as Phaser.Input.Keyboard.Key,
+            enter: keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER) as Phaser.Input.Keyboard.Key,
+            p: keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.P) as Phaser.Input.Keyboard.Key,
           };
-          this.input.keyboard?.on("keydown-ESC", () => this.togglePause());
-          this.input.keyboard?.on("keydown-P", () => this.togglePause());
+          keyboard?.on("keydown-SPACE", () => this.requestJump());
+          keyboard?.on("keydown-UP", () => this.requestJump());
+          keyboard?.on("keydown-W", () => this.requestJump());
+          keyboard?.on("keydown-X", () => this.requestSmash());
+          keyboard?.on("keydown-K", () => this.requestSmash());
+          keyboard?.on("keydown-ENTER", () => this.requestSmash());
+          keyboard?.on("keydown-P", () => this.togglePause());
+          keyboard?.on("keydown-ESC", () => this.togglePause());
         }
 
         private startRun() {
-          if (this.state === "running") return;
+          this.resetRun();
           this.state = "running";
-          this.sceneStartedAt = Date.now();
-          this.score = 0;
-          this.distance = 0;
-          this.combo = 1;
-          this.comboHits = 0;
-          this.longestCombo = 1;
-          this.objectsSmashed = 0;
-          this.reelsCollected = 0;
-          this.hazardsCleared = 0;
-          this.hp = triceratopsGameConfig.scene.startingHp;
-          this.checkpointDistance = 0;
-          this.rampageActivations = 0;
-          this.invulnerableUntil = 0;
-          this.rampageUntil = 0;
-          this.chargeUntil = 0;
-          this.wasAirborne = false;
-          this.runSpeed = triceratopsGameConfig.world.baseSpeed;
-          this.nextSmashAt = this.time.now + 580;
-          this.nextHazardAt = this.time.now + 1300;
-          this.nextPropAt = this.time.now + 840;
-          this.nextReelAt = this.time.now + 1000;
-          this.nextPowerAt = this.time.now + 7600;
-          this.clearGroups();
-          this.currentDinoState = "run";
-          this.currentDinoFrame = 0;
-          this.player.setTexture(dinoTexture("run")).setPosition(triceratopsGameConfig.world.playerX, triceratopsGameConfig.world.groundY - 68);
-          this.player.setAngle(0).setVelocity(0, 0).setAlpha(1);
+          this.runStartedAt = this.time.now;
+          this.lastGroundedAt = this.time.now;
+          this.hintText.setText("Tap the left side to JUMP");
           this.emitSfx("start");
         }
 
-        private restartRun() {
-          this.startRun();
+        private resetRun() {
+          this.spawnedIds.clear();
+          this.distance = 0;
+          this.score = 0;
+          this.hp = triceratopsGameConfig.scene.startingHp;
+          this.hitsTaken = 0;
+          this.objectsSmashed = 0;
+          this.collectibles = 0;
+          this.state = "ready";
+          this.currentDinoState = "idle";
+          this.jumpBufferedUntil = 0;
+          this.smashUntil = 0;
+          this.smashReadyAt = 0;
+          this.invulnerableUntil = 0;
+          this.objects.clear(true, true);
+          this.player.setPosition(triceratopsGameConfig.world.playerX, triceratopsGameConfig.world.groundY - 28);
+          this.player.setVelocity(0, 0);
+          this.player.setTexture(dinoTexture("idle"));
+          this.player.clearTint();
+          this.updateHud();
         }
 
-        private togglePause() {
-          if (this.state === "running") {
-            this.state = "paused";
-            this.pauseText.setText("Paused");
-            window.dispatchEvent(new CustomEvent<SceneMessage>("triceratops:scene", { detail: { type: "pause", paused: true } }));
-          } else if (this.state === "paused") {
-            this.state = "running";
-            this.pauseText.setText("Pause");
-            window.dispatchEvent(new CustomEvent<SceneMessage>("triceratops:scene", { detail: { type: "pause", paused: false } }));
-          }
+        private requestJump() {
+          if (this.state !== "running") return;
+          this.jumpBufferedUntil = this.time.now + triceratopsGameConfig.world.inputBufferMs;
+          this.tryJump();
         }
 
-        private clearGroups() {
-          [this.smashables, this.hazards, this.props, this.reels, this.powerUps].forEach((group) => group.clear(true, true));
+        private requestSmash() {
+          if (this.state !== "running") return;
+          const now = this.time.now;
+          if (now < this.smashReadyAt) return;
+          this.smashUntil = now + triceratopsGameConfig.attack.activeMs;
+          this.smashReadyAt = now + triceratopsGameConfig.attack.cooldownMs;
+          this.currentDinoState = "smash";
+          this.emitSfx("smash");
+          this.checkSmashCollisions();
         }
 
-        private scrollWorld(dt: number) {
-          const scroll = this.state === "running" ? this.runSpeed * dt : triceratopsGameConfig.world.baseSpeed * 0.25 * dt;
-          this.backLayer.forEach((layer) => {
-            layer.tilePositionX += scroll * 0.16;
-          });
-          this.midLayer.forEach((layer) => {
-            layer.tilePositionX += scroll * 0.78;
-          });
+        private tryJump() {
+          const now = this.time.now;
+          if (this.jumpBufferedUntil < now) return;
+          const grounded = this.player.body?.blocked.down || this.player.body?.touching.down;
+          if (!grounded && now - this.lastGroundedAt > triceratopsGameConfig.world.coyoteMs) return;
+          this.player.setVelocityY(-triceratopsGameConfig.world.jumpVelocity);
+          this.jumpBufferedUntil = 0;
+          this.currentDinoState = "jump";
+          this.emitSfx("jump");
         }
 
-        private applyKeyboardInput() {
-          if (!this.keys) return;
-          this.inputState.left = this.keys.left.isDown || this.keys.a.isDown;
-          this.inputState.right = this.keys.right.isDown || this.keys.d.isDown;
-
-          const jumpDown =
-            this.keys.space.isDown ||
-            this.keys.up.isDown ||
-            this.keys.w.isDown;
-          if (jumpDown && !this.jumpLocked) {
-            this.jump();
-            this.jumpLocked = true;
-          }
-          if (!jumpDown) this.jumpLocked = false;
-
-          const chargeDown = this.keys.shift.isDown || this.keys.s.isDown || this.keys.down.isDown;
-          if (chargeDown && !this.keyboardChargeLocked) {
-            this.charge();
-          }
-          this.keyboardChargeLocked = chargeDown;
-        }
-
-        private applyMovement(dt: number) {
+        private updateMovement(time: number, dt: number) {
           const body = this.player.body as Phaser.Physics.Arcade.Body;
-          const targetX = triceratopsGameConfig.world.playerX + (this.inputState.right ? 32 : 0) - (this.inputState.left ? 26 : 0);
-          this.player.x += (targetX - this.player.x) * Math.min(1, dt * 12);
-          const grounded = body.blocked.down || this.player.y >= triceratopsGameConfig.world.groundY - 70;
-          const airborne = !grounded;
-          if (grounded && this.wasAirborne) this.emitSfx("land");
-          this.wasAirborne = airborne;
-          if (grounded && this.state === "running") {
-            this.dust.emitParticleAt(this.player.x - 42, triceratopsGameConfig.world.groundY - 10, 1);
+          const grounded = body.blocked.down || body.touching.down;
+          if (grounded) {
+            this.lastGroundedAt = time;
+            this.tryJump();
+          }
+          this.player.x = triceratopsGameConfig.world.playerX;
+          this.farLayer.tilePositionX += triceratopsGameConfig.world.baseSpeed * 0.1 * dt;
+          this.midLayer.tilePositionX += triceratopsGameConfig.world.baseSpeed * 0.32 * dt;
+          this.foregroundLayer.tilePositionX += triceratopsGameConfig.world.baseSpeed * 0.9 * dt;
+          this.wrapLine.x = 110 + clamp(this.distance / triceratopsGameConfig.scene.targetDistance, 0, 1) * 260;
+          if (time <= this.smashUntil) {
+            this.smashHitbox.setPosition(this.player.x + 47, this.player.y + 6).setAlpha(0.18);
+            this.checkSmashCollisions();
+          } else {
+            this.smashHitbox.setAlpha(0);
           }
         }
 
-        private updateDifficulty() {
-          this.distance += this.runSpeed / triceratopsGameConfig.scoring.distancePointEveryPx;
-          if (this.distance >= this.checkpointDistance + triceratopsGameConfig.scene.checkpointEvery) {
-            this.checkpointDistance += triceratopsGameConfig.scene.checkpointEvery;
-            this.showScorePopup(240, 100, "Checkpoint");
-            this.emitSfx("combo");
+        private spawnScriptedEvents() {
+          const spawnLead = 420;
+          triceratopsGameConfig.timeline.forEach((script) => {
+            if (this.spawnedIds.has(script.id)) return;
+            if (this.distance < script.distance - spawnLead) return;
+            this.spawnedIds.add(script.id);
+            this.spawnScript(script);
+          });
+        }
+
+        private spawnScript(script: TriceratopsScriptEvent) {
+          const { width, groundY } = triceratopsGameConfig.world;
+          let key = "foam-curb";
+          let y = groundY - 10;
+          if (script.kind === "smash_camera") {
+            key = "studio-camera";
+            y = groundY - 18;
+          } else if (script.kind === "smash_crate") {
+            key = "prop-crate";
+            y = groundY - 15;
+          } else if (script.kind === "smash_wall") {
+            key = "breakaway-wall";
+            y = groundY - 27;
+          } else if (script.kind === "collectible") {
+            key = "golden-reel";
+            y = groundY - 70;
+          } else if (script.kind === "hazard_cable") {
+            key = "sparking-cable";
+            y = groundY - 9;
+          } else if (script.kind === "finish") {
+            key = "wrap-marker";
+            y = groundY - 27;
           }
-          if (this.distance >= triceratopsGameConfig.scene.targetDistance) {
+          const object = this.objects.create(width + 60, y, key) as SceneObject;
+          object.script = script;
+          object.setDepth(script.kind === "collectible" ? 6 : 5);
+          object.setImmovable(true);
+          const body = object.body as Phaser.Physics.Arcade.Body | undefined;
+          body?.setAllowGravity(false);
+          if (script.kind === "jump_obstacle") body?.setSize(25, 11).setOffset(3, 8);
+          if (script.kind === "hazard_cable") body?.setSize(34, 9).setOffset(5, 7);
+          if (script.kind === "collectible") body?.setSize(18, 18).setOffset(3, 3);
+          if (script.tutorial) this.showHint(script.tutorial, 2600);
+        }
+
+        private updateObjects(dt: number) {
+          const speed = triceratopsGameConfig.world.baseSpeed * dt;
+          this.objects.getChildren().forEach((child) => {
+            const object = child as SceneObject;
+            object.x -= speed;
+            if (object.script.kind === "collectible") object.angle += 220 * dt;
+            if (object.x < -80) object.destroy();
+          });
+        }
+
+        private handleOverlap(item: SceneObject) {
+          if (item.handled) return;
+          if (item.script.kind === "collectible") {
+            item.handled = true;
+            this.collectibles += 1;
+            this.addScore(triceratopsGameConfig.scoring.collectible);
+            this.popScore(item.x, item.y - 16, "+250");
+            this.emitSfx("collect");
+            item.destroy();
+            return;
+          }
+          if (item.script.kind === "finish") {
             this.sceneComplete();
             return;
           }
-          this.runSpeed = Math.min(
-            triceratopsGameConfig.world.maxSpeed,
-            triceratopsGameConfig.world.baseSpeed + Math.floor(this.distance / 900) * 18,
-          );
-          this.score += Math.max(1, Math.floor(this.runSpeed / 68));
-        }
-
-        private spawnLoop(time: number) {
-          if (time >= this.nextSmashAt) {
-            this.spawnObject("smash");
-            this.nextSmashAt = time + Math.max(760, triceratopsGameConfig.spawn.smashMs - this.distance / 9);
-          }
-          if (time >= this.nextHazardAt) {
-            this.spawnObject("hazard");
-            this.nextHazardAt = time + triceratopsGameConfig.spawn.hazardMs + this.randomBetween(-240, 380);
-          }
-          if (time >= this.nextPropAt) {
-            this.spawnObject("prop");
-            this.nextPropAt = time + triceratopsGameConfig.spawn.propMs + this.randomBetween(-180, 310);
-          }
-          if (time >= this.nextReelAt) {
-            this.spawnObject("reel");
-            this.nextReelAt = time + triceratopsGameConfig.spawn.reelMs + this.randomBetween(-260, 420);
-          }
-          if (time >= this.nextPowerAt) {
-            this.spawnObject(this.randomBetween(0, 1) ? "rampage" : "spotlight");
-            this.nextPowerAt = time + this.randomBetween(9200, 14200);
-          }
-        }
-
-        private spawnObject(kind: SpawnKind) {
-          const { width, groundY } = triceratopsGameConfig.world;
-          let object: SpawnedObject;
-          if (kind === "smash") {
-            object = this.smashables.create(width + 80, groundY - 24, "breakaway-car") as SpawnedObject;
-            object.setSize(58, 24).setOffset(7, 18);
-          } else if (kind === "hazard") {
-            object = this.hazards.create(width + 72, groundY - 27, "danger-barrier") as SpawnedObject;
-            object.setSize(30, 34).setOffset(9, 9);
-          } else if (kind === "prop") {
-            object = this.props.create(width + 64, groundY - 26, "breakaway-prop") as SpawnedObject;
-            object.setSize(22, 28).setOffset(10, 18);
-          } else if (kind === "reel") {
-            object = this.reels.create(width + 72, groundY - this.randomBetween(58, 108), "bonus-reel") as SpawnedObject;
-            object.setCircle(12).setOffset(3, 3);
-          } else {
-            object = this.powerUps.create(width + 72, groundY - 96, "bonus-reel") as SpawnedObject;
-            object.setTint(kind === "rampage" ? 0xff6475 : 0x91ffd5);
-            object.setCircle(12).setOffset(3, 3);
-          }
-          object.kind = kind;
-          object.vx = -this.runSpeed * (kind === "prop" ? 0.84 : kind === "hazard" ? 0.96 : 1);
-          object.setDepth(kind === "reel" || kind === "rampage" || kind === "spotlight" ? 7 : 6);
-        }
-
-        private moveObjects(dt: number) {
-          [this.smashables, this.hazards, this.props, this.reels, this.powerUps].forEach((group) => {
-            group.getChildren().forEach((child) => {
-              const item = child as SpawnedObject;
-              item.x += item.vx * dt;
-              if (item.kind === "reel" || item.kind === "rampage" || item.kind === "spotlight") item.angle += 240 * dt;
-              if (item.handled) {
-                item.y += (item.vy || 0) * dt;
-                item.vy = (item.vy || 0) + 980 * dt;
-                item.angle += (item.spin || 320) * dt;
-              }
-            });
-          });
-        }
-
-        private cleanupObjects() {
-          [this.smashables, this.hazards, this.props, this.reels, this.powerUps].forEach((group) => {
-            group.getChildren().forEach((child) => {
-              const item = child as SpawnedObject;
-              if (item.x < -120 || item.y > 340) item.destroy();
-            });
-          });
-        }
-
-        private jump() {
-          if (this.state !== "running") return;
-          const body = this.player.body as Phaser.Physics.Arcade.Body;
-          if (body.blocked.down || this.player.y >= triceratopsGameConfig.world.groundY - 70) {
-            const now = this.time.now;
-            const highJump = now - this.lastJumpTapAt < 280;
-            this.lastJumpTapAt = now;
-            this.player.setVelocityY(highJump ? -triceratopsGameConfig.world.highJumpVelocity : -triceratopsGameConfig.world.jumpVelocity);
-            this.currentDinoState = "jump";
-            this.currentDinoFrame = 0;
-            this.player.setTexture(dinoTexture("jump"));
-            this.emitSfx("jump");
-          }
-        }
-
-        private charge() {
-          if (this.state !== "running") return;
-          const now = this.time.now;
-          if (now < this.chargeReadyAt) return;
-          this.chargeUntil = now + triceratopsGameConfig.attack.activeMs;
-          this.chargeReadyAt = now + triceratopsGameConfig.attack.cooldownMs;
-          this.currentDinoState = "charge";
-          this.currentDinoFrame = 0;
-          this.player.setTexture(dinoTexture("charge"));
-          this.cameras.main.shake(85, 0.004);
-          this.emitSfx("charge");
-          this.time.delayedCall(triceratopsGameConfig.attack.activeMs, () => {
-            if (this.state === "running") this.currentDinoState = "run";
-          });
-        }
-
-        private isChargeActive() {
-          const now = this.time.now;
-          return now <= this.chargeUntil || now <= this.rampageUntil;
-        }
-
-        private hitSmashable(item: SpawnedObject) {
-          if (item.handled) return;
-          if (!this.isChargeActive()) {
-            this.takeDamage(item, "Charge through breakaway sets");
+          if (item.script.kind === "smash_camera" || item.script.kind === "smash_crate" || item.script.kind === "smash_wall") {
+            if (this.time.now <= this.smashUntil) {
+              this.smashObject(item);
+            } else {
+              this.takeDamage(item, "Smash breakaway props");
+            }
             return;
           }
-          this.smashObject(item, "smashable", triceratopsGameConfig.scoring.smashTarget);
+          this.takeDamage(item, item.script.kind === "hazard_cable" ? "Jump over live set hazards" : "Jump early and land wide");
         }
 
-        private hitHazard(item: SpawnedObject) {
-          if (item.handled) return;
-          const body = this.player.body as Phaser.Physics.Arcade.Body;
-          const stomped = body.velocity.y > 170 && this.player.y < item.y - 22;
-          if (this.isChargeActive() || stomped) {
-            this.hazardsCleared += 1;
-            if (stomped) this.player.setVelocityY(-360);
-            this.smashObject(item, "hazard", triceratopsGameConfig.scoring.hazardCleared);
-            return;
-          }
-          this.takeDamage(item, "Jump, stomp, or charge hazards");
+        private checkSmashCollisions() {
+          const hitbox = this.smashHitbox.getBounds();
+          this.objects.getChildren().forEach((child) => {
+            const item = child as SceneObject;
+            if (item.handled) return;
+            if (!["smash_camera", "smash_crate", "smash_wall"].includes(item.script.kind)) return;
+            if (Phaser.Geom.Intersects.RectangleToRectangle(hitbox, item.getBounds())) this.smashObject(item);
+          });
         }
 
-        private hitProp(item: SpawnedObject) {
-          if (item.handled) return;
-          this.smashObject(item, "prop", triceratopsGameConfig.scoring.propDestroyed);
-        }
-
-        private collectReel(item: SpawnedObject) {
+        private smashObject(item: SceneObject) {
           if (item.handled) return;
           item.handled = true;
-          this.reelsCollected += 1;
-          this.addScore(triceratopsGameConfig.scoring.reelCollected);
-          this.emitSfx("collect");
-          this.showScorePopup(item.x, item.y - 26, "+REEL");
-          item.destroy();
-        }
-
-        private collectPower(item: SpawnedObject) {
-          if (item.handled) return;
-          item.handled = true;
-          this.rampageUntil = this.time.now + triceratopsGameConfig.powerUps.rampageDurationMs;
-          this.rampageActivations += 1;
-          this.addScore(triceratopsGameConfig.scoring.rampageBonus);
-          this.emitSfx("rampage");
-          this.showScorePopup(item.x, item.y - 34, "RAMPAGE");
-          item.destroy();
-        }
-
-        private smashObject(item: SpawnedObject, label: "smashable" | "hazard" | "prop", points: number) {
-          item.handled = true;
-          item.vx = -150;
-          item.vy = -this.randomBetween(330, 560);
-          item.spin = this.randomBetween(240, 520);
-          item.setTint(label === "hazard" ? 0xffd27d : 0xff6978);
-          this.currentDinoState = "smash";
-          this.currentDinoFrame = 0;
           this.objectsSmashed += 1;
-          this.cameras.main.shake(label === "smashable" ? 120 : 70, label === "smashable" ? 0.009 : 0.004);
-          this.dust.emitParticleAt(item.x, item.y, label === "smashable" ? 18 : 8);
-          this.addScore(points);
-          this.emitSfx(label === "prop" ? "combo" : "smash");
-          this.showScorePopup(item.x, item.y - 42, `+${Math.round(points * this.combo)}`);
-          this.time.delayedCall(220, () => {
-            if (this.state === "running" && this.time.now > this.chargeUntil) this.currentDinoState = "run";
+          this.addScore(triceratopsGameConfig.scoring.smashTarget);
+          item.setTint(0xffe8a9);
+          item.setVelocity(0, -60);
+          item.setAngularVelocity(420);
+          const body = item.body as Phaser.Physics.Arcade.Body | undefined;
+          body?.setEnable(false);
+          this.cameras.main.shake(105, 0.006);
+          this.cameras.main.flash(70, 255, 226, 168, false);
+          this.popScore(item.x, item.y - 22, "+100");
+          this.emitSfx("smash");
+          this.spawnImpact(item.x + 8, item.y - 8);
+          this.time.delayedCall(160, () => item.destroy());
+        }
+
+        private takeDamage(item: SceneObject, hint: string) {
+          const now = this.time.now;
+          if (now < this.invulnerableUntil) return;
+          item.handled = true;
+          this.hp -= 1;
+          this.hitsTaken += 1;
+          this.invulnerableUntil = now + 950;
+          this.currentDinoState = "hit";
+          this.player.setTint(0xff6978);
+          this.cameras.main.shake(140, 0.008);
+          this.showHint(hint, 1800);
+          this.emitSfx("damage");
+          this.time.delayedCall(210, () => {
+            if (this.state === "running") this.player.clearTint();
+          });
+          item.destroy();
+          this.updateHud();
+          if (this.hp <= 0) {
+            this.time.delayedCall(220, () => this.gameOver());
+          }
+        }
+
+        private spawnImpact(x: number, y: number) {
+          for (let i = 0; i < 8; i += 1) {
+            const star = this.add.image(x, y, i % 2 ? "impact-star" : "pixel-dust").setDepth(12);
+            star.setScale(i % 2 ? 0.42 : 1);
+            this.tweens.add({
+              targets: star,
+              x: x + this.randomBetween(-22, 28),
+              y: y + this.randomBetween(-24, 12),
+              alpha: 0,
+              duration: 360,
+              ease: "Quad.easeOut",
+              onComplete: () => star.destroy(),
+            });
+          }
+        }
+
+        private popScore(x: number, y: number, label: string) {
+          const text = this.add.text(x, y, label, {
+            color: "#ffe8a9",
+            fontFamily: "monospace",
+            fontSize: "12px",
+            fontStyle: "bold",
+          }).setDepth(15).setOrigin(0.5);
+          this.tweens.add({
+            targets: text,
+            y: y - 24,
+            alpha: 0,
+            duration: 720,
+            ease: "Quad.easeOut",
+            onComplete: () => text.destroy(),
           });
         }
 
         private addScore(points: number) {
-          this.comboHits += 1;
-          this.combo = Math.min(1 + this.comboHits * triceratopsGameConfig.scoring.comboStep, triceratopsGameConfig.scoring.maxMultiplier);
-          this.longestCombo = Math.max(this.longestCombo, this.combo);
-          this.score += Math.round(points * this.combo);
-          if (this.comboHits > 0 && this.comboHits % 8 === 0) this.emitSfx("combo");
+          this.score += points;
+          window.dispatchEvent(new CustomEvent<SceneMessage>("triceratops:scene", { detail: { type: "score", score: this.score } }));
         }
 
-        private showScorePopup(x: number, y: number, value: string) {
-          const text = this.add.text(x, y, value, {
-            fontFamily: "system-ui, sans-serif",
-            fontSize: "20px",
-            color: "#ffe6a8",
-            fontStyle: "900",
-          }).setOrigin(0.5).setDepth(20);
-          this.tweens.add({ targets: text, y: y - 44, alpha: 0, duration: 620, ease: "Quad.easeOut", onComplete: () => text.destroy() });
-        }
-
-        private emitSfx(name: TriceratopsSfx) {
-          window.dispatchEvent(new CustomEvent<SceneMessage>("triceratops:scene", { detail: { type: "sfx", name } }));
-        }
-
-        private takeDamage(item: SpawnedObject, hint: string) {
-          if (item.handled || this.time.now < this.invulnerableUntil || this.state !== "running") return;
-          item.handled = true;
-          item.vx = -110;
-          item.vy = -360;
-          item.spin = 420;
-          item.setTint(0xff5a62);
-          this.hp -= 1;
-          this.combo = 1;
-          this.comboHits = 0;
-          this.invulnerableUntil = this.time.now + 1600;
-          this.chargeUntil = 0;
-          this.currentDinoState = "hit";
-          this.currentDinoFrame = 0;
-          this.player.setTexture(dinoTexture("hit")).setVelocityY(-240).setAlpha(0.62);
-          this.dust.emitParticleAt(this.player.x, this.player.y + 18, 18);
-          this.cameras.main.shake(180, 0.011);
-          this.emitSfx("damage");
-          this.showScorePopup(this.player.x + 60, this.player.y - 34, hint);
-          if (this.hp <= 0) {
-            this.time.delayedCall(220, () => this.gameOver());
-            return;
-          }
-          this.time.delayedCall(450, () => {
-            if (this.state === "running") {
-              this.currentDinoState = "stunned";
-              this.runSpeed = Math.max(triceratopsGameConfig.world.baseSpeed, this.runSpeed - 28);
-            }
-          });
-          this.time.delayedCall(1600, () => {
-            if (this.state === "running") {
-              this.player.setAlpha(1);
-              this.currentDinoState = "run";
-            }
+        private showHint(message: string, ms: number) {
+          this.hintText.setText(message);
+          this.time.delayedCall(ms, () => {
+            if (this.state === "running" && this.hintText.text === message) this.hintText.setText("");
           });
         }
 
-        private updateHud(time: number) {
-          this.scoreText.setText(Math.round(this.score).toLocaleString());
-          this.comboText.setText(`Combo x${this.combo.toFixed(2)}`);
-          this.hpText.setText(`HP ${Math.max(0, this.hp)}`);
-          const progress = Math.min(100, Math.round((this.distance / triceratopsGameConfig.scene.targetDistance) * 100));
-          this.progressText.setText(`Scene 1 ${progress}%`);
-          this.rampageText.setText(time < this.rampageUntil ? "RAMPAGE" : "");
-          if (time - this.lastScoreNotifyAt > 180) {
-            this.lastScoreNotifyAt = time;
-            window.dispatchEvent(new CustomEvent<SceneMessage>("triceratops:scene", { detail: { type: "score", score: Math.round(this.score) } }));
-          }
+        private updateHud() {
+          this.hudText.setText(`SCORE ${this.score.toLocaleString()}  SMASHED ${this.objectsSmashed}`);
+          this.hpText.setText(`HP ${"H".repeat(Math.max(0, this.hp)).padEnd(triceratopsGameConfig.scene.startingHp, "-")}`);
+          this.progressBar.width = 260 * clamp(this.distance / triceratopsGameConfig.scene.targetDistance, 0, 1);
         }
 
         private sceneComplete() {
-          if (this.state === "complete") return;
+          if (this.state === "complete" || this.state === "over") return;
           this.state = "complete";
-          this.clearGroups();
           this.currentDinoState = "victory";
-          this.currentDinoFrame = 0;
-          this.player.setTexture(dinoTexture("victory")).setVelocity(0, 0).setAlpha(1).setAngle(0);
-          this.score += 1200 + this.hp * 350 + Math.round(this.combo * 220);
+          this.addScore(triceratopsGameConfig.scoring.sceneClear);
           this.emitSfx("wrap");
-          this.cameras.main.flash(280, 245, 193, 111, false);
-          this.cameras.main.shake(220, 0.006);
           window.dispatchEvent(new CustomEvent<SceneMessage>("triceratops:scene", { detail: { type: "scene-complete", result: this.resultPayload(true) } }));
         }
 
         private gameOver() {
-          if (this.state === "over") return;
+          if (this.state === "over" || this.state === "complete") return;
           this.state = "over";
-          this.clearGroups();
           this.currentDinoState = "over";
-          this.currentDinoFrame = 0;
-          this.player.setTexture(dinoTexture("over")).setVelocity(0, -160).setAngle(-8).setAlpha(1);
-          this.cameras.main.shake(220, 0.012);
+          this.player.clearTint();
           this.emitSfx("cut");
           window.dispatchEvent(new CustomEvent<SceneMessage>("triceratops:scene", { detail: { type: "game-over", result: this.resultPayload(false) } }));
         }
 
-        private animatePlayer(time: number) {
-          if (!this.player) return;
-          const body = this.player.body as Phaser.Physics.Arcade.Body | undefined;
-          const airborne = Boolean(body && !body.blocked.down && this.player.y < triceratopsGameConfig.world.groundY - 68);
-          let state = this.currentDinoState;
-          if (this.state === "complete") state = "victory";
-          else if (this.state === "over") state = "over";
-          else if (this.state === "running") {
-            if (this.time.now < this.invulnerableUntil && (state === "hit" || state === "stunned")) state = state === "hit" ? "hit" : "stunned";
-            else if (this.time.now <= this.rampageUntil) state = state === "smash" ? "smash" : "rampage";
-            else if (this.time.now <= this.chargeUntil) state = state === "smash" ? "smash" : "charge";
-            else if (airborne) state = body && body.velocity.y > 0 ? "jumpFall" : "jump";
-            else if (state !== "smash" && state !== "land") state = this.runSpeed > triceratopsGameConfig.world.baseSpeed + 54 ? "fastRun" : "run";
-          } else if (this.state === "boot") {
-            state = "idle";
-          }
-          const frameMs = DINO_FRAME_MS[state];
-          const frame = Math.floor(time / frameMs) % DINO_STATES[state];
-          if (state !== this.currentDinoState || frame !== this.currentDinoFrame) {
-            this.currentDinoState = state;
-            this.currentDinoFrame = frame;
-            this.player.setTexture(dinoTexture(state, frame));
-          }
-        }
-
         private resultPayload(completed: boolean): TriceratopsResult {
-          const playTimeMs = Math.max(1000, Date.now() - startedAtRef.current);
           return {
             sceneId: triceratopsGameConfig.scene.sceneId,
             completed,
-            grade: this.gradeFor(completed, playTimeMs),
             score: Math.max(0, Math.round(this.score)),
-            playTimeMs,
+            playTimeMs: Math.max(1000, Math.round(this.time.now - this.runStartedAt)),
             distance: Math.round(this.distance),
             hpRemaining: Math.max(0, this.hp),
             objectsSmashed: this.objectsSmashed,
-            carsSmashed: this.objectsSmashed,
-            reelsCollected: this.reelsCollected,
-            propsDestroyed: this.objectsSmashed,
-            hazardsCleared: this.hazardsCleared,
-            rampageActivations: this.rampageActivations,
-            checkpointsCleared: Math.floor(this.checkpointDistance / triceratopsGameConfig.scene.checkpointEvery),
-            maxCombo: Number(this.longestCombo.toFixed(2)),
+            hitsTaken: this.hitsTaken,
+            collectibles: this.collectibles,
           };
         }
 
-        private gradeFor(completed: boolean, playTimeMs: number): TriceratopsResult["grade"] {
-          if (!completed) return "C";
-          if (this.hp >= 2 && playTimeMs <= triceratopsGameConfig.scene.sRankTimeMs && this.longestCombo >= 3.4) return "S";
-          if (this.hp >= 1 && this.longestCombo >= 2.4) return "A";
-          return "B";
+        private updateDinoAnimation(time: number) {
+          const body = this.player?.body as Phaser.Physics.Arcade.Body | undefined;
+          if (!this.player || !body) return;
+          let state = this.currentDinoState;
+          if (this.state === "running") {
+            if (time <= this.smashUntil) state = "smash";
+            else if (body.velocity.y < -20 || body.velocity.y > 20) state = "jump";
+            else if (state !== "hit") state = "run";
+          }
+          const frames = DINO_STATES[state];
+          const frame = Math.floor(time / DINO_FRAME_MS[state]) % frames;
+          this.player.setTexture(dinoTexture(state, frame));
+          if (state === "hit" && time > this.invulnerableUntil - 620) this.currentDinoState = "run";
+        }
+
+        private togglePause() {
+          if (this.state !== "running" && this.state !== "paused") return;
+          if (this.state === "paused") {
+            this.state = "running";
+            this.scene.resume();
+            this.emitPause(false);
+          } else {
+            this.state = "paused";
+            this.scene.pause();
+            this.emitPause(true);
+          }
+        }
+
+        private emitPause(paused: boolean) {
+          window.dispatchEvent(new CustomEvent<SceneMessage>("triceratops:scene", { detail: { type: "pause", paused } }));
+        }
+
+        private emitSfx(name: TriceratopsSfx) {
+          window.dispatchEvent(new CustomEvent<SceneMessage>("triceratops:scene", { detail: { type: "sfx", name } }));
         }
 
         private randomBetween(min: number, max: number) {
@@ -975,59 +859,37 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
         }
       }
 
-      const game = new Phaser.Game({
+      const config: Phaser.Types.Core.GameConfig = {
         type: Phaser.AUTO,
         parent: hostRef.current,
         width: triceratopsGameConfig.world.width,
         height: triceratopsGameConfig.world.height,
         backgroundColor: "#07070a",
         pixelArt: true,
-        render: {
-          antialias: false,
-          pixelArt: true,
-          roundPixels: true,
+        roundPixels: true,
+        scale: {
+          mode: Phaser.Scale.FIT,
+          autoCenter: Phaser.Scale.CENTER_BOTH,
+          width: triceratopsGameConfig.world.width,
+          height: triceratopsGameConfig.world.height,
         },
         physics: {
           default: "arcade",
           arcade: {
-            gravity: { x: 0, y: 0 },
             debug: false,
+            gravity: { x: 0, y: triceratopsGameConfig.world.gravity },
           },
         },
-        scale: {
-          mode: Phaser.Scale.FIT,
-          autoCenter: Phaser.Scale.CENTER_BOTH,
-        },
-        scene: BacklotRampageScene,
-      });
-      activeGame = game;
-      gameRef.current = game;
-    }
+        scene: StudioBacklotScene,
+      };
 
-    function handleSceneEvent(event: Event) {
-      const detail = (event as CustomEvent<SceneMessage>).detail;
-      if (detail.type === "score") setLastScore(detail.score);
-      if (detail.type === "sfx") audioRef.current?.playSfx(detail.name);
-      if (detail.type === "pause") setPaused(detail.paused);
-      if (detail.type === "scene-complete") {
-        audioRef.current?.stopMusic();
-        setPaused(false);
-        setPhase("complete");
-        recordResult(detail.result);
-      }
-      if (detail.type === "game-over") {
-        audioRef.current?.stopMusic();
-        setPaused(false);
-        setPhase("over");
-        recordResult(detail.result);
-      }
-    }
-
-    window.addEventListener("triceratops:scene", handleSceneEvent);
-    bootGame();
+      activeGame = new Phaser.Game(config);
+      gameRef.current = activeGame;
+      recordBacklotLaunch(TRICERATOPS_GAME_ID).catch(() => undefined);
+    });
 
     return () => {
-      mounted = false;
+      isMounted = false;
       window.removeEventListener("triceratops:scene", handleSceneEvent);
       bridgeRef.current = null;
       activeGame?.destroy(true);
@@ -1072,7 +934,6 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
   async function startGame() {
     if (isPortrait) return;
     clearCountdownTimers();
-    startedAtRef.current = Date.now();
     gameOverSentRef.current = false;
     setLastResult(null);
     setLastScore(0);
@@ -1114,14 +975,22 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
     onNavigate("/games");
   }
 
-  function setControl(input: TriceratopsInput, active: boolean) {
-    bridgeRef.current?.setInput(input, active);
+  function setControl(input: TriceratopsInput) {
+    bridgeRef.current?.setInput(input, true);
+  }
+
+  function handleTouchZone(event: PointerEvent<HTMLButtonElement>, input: TriceratopsInput) {
+    event.preventDefault();
+    setControl(input);
   }
 
   const resultTitle = phase === "complete" ? "THAT'S A WRAP!" : "CUT!";
 
   return (
-    <section ref={shellRef} className={`triceratops-fullscreen ${phase === "running" || phase === "intro" ? "is-running" : ""} ${paused ? "is-paused" : ""}`}>
+    <section
+      ref={shellRef}
+      className={`triceratops-fullscreen ${phase === "running" || phase === "intro" ? "is-running" : ""} ${paused ? "is-paused" : ""}`}
+    >
       <div className="triceratops-stage" aria-label="TRICERATOPS playable game">
         <div ref={hostRef} className="triceratops-game-canvas" />
 
@@ -1145,15 +1014,15 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
             </button>
             <p className="triceratops-kicker">Backlot Arcade</p>
             <h1>TRICERATOPS!</h1>
-            <h2>Rampage the Backlot</h2>
-            <p>Jump hazards, smash breakaway sets, collect golden reels, and keep your combo alive.</p>
+            <h2>Smash the Studio Backlot</h2>
+            <p>Auto-run through a movie studio. Jump with the left side. Smash with the right side.</p>
             <div className="triceratops-control-copy">
-              <span>{controlHint.mobile}</span>
-              <span>{controlHint.desktop}</span>
+              <span>Mobile: left half jumps, right half smashes.</span>
+              <span>Desktop: Space or Up jumps. X smashes. P pauses.</span>
             </div>
             <div className="triceratops-start-actions">
               <button className="triceratops-play-button" onClick={startGame} type="button">
-                Start Scene
+                Start Game
               </button>
               <button className="triceratops-sound-button" onClick={toggleAudio} type="button">
                 {audioMuted ? "Sound Off" : "Sound On"}
@@ -1161,8 +1030,8 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
             </div>
             <div className="triceratops-secondary-actions" aria-label="Scene information">
               <span>Scene 1: Studio Backlot</span>
+              <span>3 HP</span>
               <span>Goal: reach the wrap marker</span>
-              <span>Grade: speed, health, combo</span>
             </div>
             {fullscreenAvailable ? <small>Fullscreen starts when supported by your browser.</small> : null}
           </div>
@@ -1199,52 +1068,24 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
                 </div>
               </div>
             ) : null}
-            <div className="triceratops-control-pad triceratops-control-pad-left" aria-label="Movement controls">
+            <div className="triceratops-touch-zones" aria-label="TRICERATOPS touch controls">
               <button
                 type="button"
-                aria-label="Move left"
-                onContextMenu={(event) => event.preventDefault()}
-                onPointerDown={() => setControl("left", true)}
-                onPointerUp={() => setControl("left", false)}
-                onPointerCancel={() => setControl("left", false)}
-                onPointerLeave={() => setControl("left", false)}
-              >
-                Left
-              </button>
-              <button
-                type="button"
-                aria-label="Move right"
-                onContextMenu={(event) => event.preventDefault()}
-                onPointerDown={() => setControl("right", true)}
-                onPointerUp={() => setControl("right", false)}
-                onPointerCancel={() => setControl("right", false)}
-                onPointerLeave={() => setControl("right", false)}
-              >
-                Right
-              </button>
-            </div>
-            <div className="triceratops-control-pad triceratops-control-pad-right" aria-label="Action controls">
-              <button
-                type="button"
+                className="triceratops-touch-zone is-jump"
                 aria-label="Jump"
                 onContextMenu={(event) => event.preventDefault()}
-                onPointerDown={() => setControl("jump", true)}
-                onPointerUp={() => setControl("jump", false)}
-                onPointerCancel={() => setControl("jump", false)}
-                onPointerLeave={() => setControl("jump", false)}
+                onPointerDown={(event) => handleTouchZone(event, "jump")}
               >
-                A
+                <span>Jump</span>
               </button>
               <button
                 type="button"
-                aria-label="Charge and smash"
+                className="triceratops-touch-zone is-smash"
+                aria-label="Smash"
                 onContextMenu={(event) => event.preventDefault()}
-                onPointerDown={() => setControl("charge", true)}
-                onPointerUp={() => setControl("charge", false)}
-                onPointerCancel={() => setControl("charge", false)}
-                onPointerLeave={() => setControl("charge", false)}
+                onPointerDown={(event) => handleTouchZone(event, "smash")}
               >
-                B
+                <span>Smash</span>
               </button>
             </div>
           </>
@@ -1255,10 +1096,6 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
             <p className="triceratops-kicker">{phase === "complete" ? "Scene Complete" : "Backlot Busted"}</p>
             <h1>{resultTitle}</h1>
             <div className="triceratops-result-grid">
-              <span>
-                <strong>{lastResult.grade}</strong>
-                Grade
-              </span>
               <span>
                 <strong>{lastResult.score.toLocaleString()}</strong>
                 Score
@@ -1272,25 +1109,21 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
                 Smashed
               </span>
               <span>
-                <strong>{lastResult.reelsCollected}</strong>
+                <strong>{lastResult.hitsTaken}</strong>
+                Hits taken
+              </span>
+              <span>
+                <strong>{lastResult.collectibles}</strong>
                 Reels
               </span>
               <span>
-                <strong>x{lastResult.maxCombo.toFixed(2)}</strong>
-                Best combo
-              </span>
-              <span>
-                <strong>{lastResult.distance}</strong>
-                Distance
-              </span>
-              <span>
-                <strong>{lastResult.checkpointsCleared}</strong>
-                Checkpoints
+                <strong>{Math.round(lastResult.playTimeMs / 1000)}s</strong>
+                Time
               </span>
             </div>
             <div className="triceratops-end-actions">
               <button className="triceratops-play-button" onClick={restartGame} type="button">
-                Play Again
+                {phase === "complete" ? "Play Again" : "Try Again"}
               </button>
               <button className="secondary-button compact" onClick={exitGame} type="button">
                 Exit to Backlot
