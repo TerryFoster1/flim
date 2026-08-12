@@ -29,6 +29,15 @@ export const triceratopsGameConfig = {
     maxSpeed: 292,
     gravity: 720,
     jumpVelocity: 342,
+    highJumpVelocity: 410,
+  },
+  scene: {
+    sceneId: "studio-backlot-1",
+    name: "Studio Backlot",
+    targetDistance: 3600,
+    checkpointEvery: 1200,
+    startingHp: 3,
+    sRankTimeMs: 155000,
   },
   attack: {
     activeMs: 380,
@@ -62,14 +71,20 @@ export const triceratopsGameConfig = {
 } as const;
 
 export type TriceratopsResult = {
+  sceneId: string;
+  completed: boolean;
+  grade: "S" | "A" | "B" | "C";
   score: number;
   playTimeMs: number;
   distance: number;
+  hpRemaining: number;
   objectsSmashed: number;
   carsSmashed: number;
   reelsCollected: number;
   propsDestroyed: number;
   hazardsCleared: number;
+  rampageActivations: number;
+  checkpointsCleared: number;
   maxCombo: number;
 };
 

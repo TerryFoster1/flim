@@ -15,6 +15,15 @@ const config = {
     baseSpeed: 146,
     maxSpeed: 292,
     jumpVelocity: 342,
+    highJumpVelocity: 410,
+  },
+  scene: {
+    sceneId: "studio-backlot-1",
+    name: "Studio Backlot",
+    targetDistance: 3600,
+    checkpointEvery: 1200,
+    startingHp: 3,
+    sRankTimeMs: 155000,
   },
   attack: {
     activeMs: 380,
@@ -33,11 +42,18 @@ const config = {
 };
 
 const dinoStates = {
+  idle: 2,
   run: 6,
+  fastRun: 6,
   jump: 3,
+  jumpFall: 2,
+  land: 2,
   charge: 4,
   smash: 4,
   hit: 2,
+  stunned: 2,
+  rampage: 4,
+  victory: 3,
   over: 2,
 };
 
@@ -72,16 +88,32 @@ function controlStateAfter(events) {
 
 function validateResultPayload(payload) {
   return (
+    payload.sceneId === config.scene.sceneId &&
+    typeof payload.completed === "boolean" &&
+    ["S", "A", "B", "C"].includes(payload.grade) &&
     Number.isInteger(payload.score) &&
     payload.score >= 0 &&
     payload.score <= 1_000_000 &&
     Number.isInteger(payload.playTimeMs) &&
     payload.playTimeMs >= 1000 &&
     payload.playTimeMs <= 2 * 60 * 60 * 1000 &&
+    Number.isInteger(payload.hpRemaining) &&
+    payload.hpRemaining >= 0 &&
+    payload.hpRemaining <= config.scene.startingHp &&
     Number.isInteger(payload.objectsSmashed) &&
+    Number.isInteger(payload.rampageActivations) &&
+    Number.isInteger(payload.checkpointsCleared) &&
     Number.isInteger(payload.hazardsCleared) &&
     Number.isFinite(payload.maxCombo)
   );
+}
+
+function isSceneComplete(distance) {
+  return distance >= config.scene.targetDistance;
+}
+
+function checkpointCount(distance) {
+  return Math.floor(distance / config.scene.checkpointEvery);
 }
 
 function fullscreenCanvasFits(viewportWidth, viewportHeight) {
@@ -98,11 +130,20 @@ function fullscreenCanvasFits(viewportWidth, viewportHeight) {
 assert.equal(config.art.internalResolution, "480x270", "TRICERATOPS uses a fixed pixel-art internal resolution");
 assert.equal(config.world.width / config.world.height, 16 / 9, "gameplay canvas is landscape 16:9");
 assert.equal(config.art.spriteScale % 1, 0, "sprite scale is integer for crisp pixels");
-assert.deepEqual(dinoStates, { run: 6, jump: 3, charge: 4, smash: 4, hit: 2, over: 2 }, "all required dinosaur animation states exist");
+for (const [state, minimumFrames] of Object.entries({ run: 6, jump: 3, charge: 4, smash: 4, hit: 2, over: 2 })) {
+  assert.ok(dinoStates[state] >= minimumFrames, `${state} has enough animation frames`);
+}
+assert.ok(dinoStates.rampage >= 4, "rampage animation exists");
+assert.ok(dinoStates.victory >= 3, "scene-complete victory animation exists");
+assert.equal(config.scene.targetDistance, 3600, "scene one is finite rather than endless");
+assert.equal(config.scene.startingHp, 3, "scene one starts with a bounded HP pool");
 
 assert.equal(nextSpeed(0), 146, "run starts at base speed");
 assert.equal(nextSpeed(900), 164, "difficulty increases with distance");
 assert.equal(nextSpeed(99_999), 292, "difficulty has a hard cap");
+assert.equal(isSceneComplete(3599), false, "scene does not complete early");
+assert.equal(isSceneComplete(3600), true, "scene completes at the wrap marker");
+assert.equal(checkpointCount(2500), 2, "checkpoints track scene progress");
 
 let state = { score: 0, comboHits: 0, combo: 1, maxCombo: 1 };
 state = addComboScore(state, "smashTarget");
@@ -131,9 +172,15 @@ assert.equal(fullscreenCanvasFits(1366, 768), true, "desktop viewport fits the f
 
 assert.equal(
   validateResultPayload({
+    sceneId: "studio-backlot-1",
+    completed: true,
+    grade: "A",
     score: 4500,
     playTimeMs: 45000,
+    hpRemaining: 2,
     objectsSmashed: 12,
+    rampageActivations: 1,
+    checkpointsCleared: 3,
     hazardsCleared: 3,
     maxCombo: 2.54,
   }),
@@ -142,9 +189,15 @@ assert.equal(
 );
 assert.equal(
   validateResultPayload({
+    sceneId: "studio-backlot-1",
+    completed: true,
+    grade: "A",
     score: 1_000_001,
     playTimeMs: 45000,
+    hpRemaining: 2,
     objectsSmashed: 12,
+    rampageActivations: 1,
+    checkpointsCleared: 3,
     hazardsCleared: 3,
     maxCombo: 2.54,
   }),
@@ -153,9 +206,15 @@ assert.equal(
 );
 assert.equal(
   validateResultPayload({
+    sceneId: "studio-backlot-1",
+    completed: true,
+    grade: "A",
     score: 4500,
     playTimeMs: 10,
+    hpRemaining: 2,
     objectsSmashed: 12,
+    rampageActivations: 1,
+    checkpointsCleared: 3,
     hazardsCleared: 3,
     maxCombo: 2.54,
   }),
