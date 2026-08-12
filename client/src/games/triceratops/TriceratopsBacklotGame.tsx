@@ -60,8 +60,33 @@ const DINO_FRAME_MS: Record<DinoState, number> = {
   victory: 150,
 };
 
+const DINO_SHEET_KEY = "triceratops-dino-sheet";
+const OBJECT_ATLAS_KEY = "triceratops-object-atlas";
+const ASSET_BASE = "/backlot/triceratops";
+const DINO_FRAME_BASE: Record<DinoState, number> = {
+  idle: 0,
+  run: 6,
+  jump: 12,
+  smash: 18,
+  hit: 24,
+  over: 30,
+  victory: 36,
+};
+
+const OBJECT_FRAME: Record<TriceratopsScriptEvent["kind"] | "impact_star" | "pixel_dust", number> = {
+  jump_obstacle: 0,
+  smash_camera: 1,
+  smash_crate: 2,
+  smash_wall: 3,
+  hazard_cable: 4,
+  collectible: 5,
+  finish: 6,
+  impact_star: 7,
+  pixel_dust: 8,
+};
+
 function dinoTexture(state: DinoState, frame = 0) {
-  return `dino-${state}-${frame % DINO_STATES[state]}`;
+  return `triceratops-${state}-${frame}`;
 }
 
 function isLikelyPhonePortrait() {
@@ -150,11 +175,13 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
       }
       if (detail.type === "scene-complete") {
         setPhase("complete");
+        setLastScore(detail.result.score);
         recordResult(detail.result);
         return;
       }
       if (detail.type === "game-over") {
         setPhase("over");
+        setLastScore(detail.result.score);
         recordResult(detail.result);
       }
     };
@@ -206,14 +233,28 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
           super("StudioBacklotScene");
         }
 
+        preload() {
+          this.load.spritesheet(DINO_SHEET_KEY, `${ASSET_BASE}/triceratops-dino-sheet.png`, {
+            frameWidth: 80,
+            frameHeight: 64,
+          });
+          this.load.spritesheet(OBJECT_ATLAS_KEY, `${ASSET_BASE}/triceratops-object-atlas.png`, {
+            frameWidth: 48,
+            frameHeight: 64,
+          });
+          this.load.image("stage-far", `${ASSET_BASE}/triceratops-bg-far.png`);
+          this.load.image("stage-mid", `${ASSET_BASE}/triceratops-bg-mid.png`);
+          this.load.image("stage-front", `${ASSET_BASE}/triceratops-foreground-tiles.png`);
+        }
+
         create() {
           this.physics.world.setBounds(0, 0, triceratopsGameConfig.world.width, triceratopsGameConfig.world.height);
           this.physics.world.gravity.y = triceratopsGameConfig.world.gravity;
-          this.createTextures(Phaser);
           this.createWorld();
           this.createPlayer();
           this.createHud();
           this.createInput();
+          this.physics.world.pause();
 
           this.events.on("resume", () => this.emitPause(false));
           this.events.on("pause", () => this.emitPause(true));
@@ -457,9 +498,9 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
         private createWorld() {
           const { width, height, groundY } = triceratopsGameConfig.world;
           this.add.image(width / 2, height / 2, "stage-far").setDepth(0);
-          this.farLayer = this.add.tileSprite(width / 2, 128, width, 88, "stage-mid").setDepth(1).setAlpha(0.82);
-          this.midLayer = this.add.tileSprite(width / 2, groundY - 14, width, 88, "stage-mid").setDepth(2);
-          this.foregroundLayer = this.add.tileSprite(width / 2, groundY + 25, width, 58, "stage-front").setDepth(8).setAlpha(0.86);
+          this.farLayer = this.add.tileSprite(width / 2, 116, width, 96, "stage-mid").setDepth(1).setAlpha(0.76);
+          this.midLayer = this.add.tileSprite(width / 2, groundY - 12, width, 88, "stage-mid").setDepth(2);
+          this.foregroundLayer = this.add.tileSprite(width / 2, groundY + 25, width, 58, "stage-front").setDepth(8).setAlpha(0.92);
           this.ground = this.add.rectangle(width / 2, groundY + 20, width, 32, 0x000000, 0);
           this.physics.add.existing(this.ground, true);
           this.objects = this.physics.add.group({ allowGravity: false });
@@ -468,7 +509,7 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
 
         private createPlayer() {
           const { playerX, groundY, playerBody } = triceratopsGameConfig.world;
-          this.player = this.physics.add.sprite(playerX, groundY - 28, dinoTexture("idle")).setDepth(7);
+          this.player = this.physics.add.sprite(playerX, groundY - 28, DINO_SHEET_KEY, DINO_FRAME_BASE.idle).setDepth(7);
           this.player.setCollideWorldBounds(true);
           this.player.setGravityY(triceratopsGameConfig.world.gravity);
           this.player.body?.setSize(playerBody.width, playerBody.height);
@@ -528,6 +569,7 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
         private startRun() {
           this.resetRun();
           this.state = "running";
+          this.physics.world.resume();
           this.runStartedAt = this.time.now;
           this.lastGroundedAt = this.time.now;
           this.hintText.setText("Tap the left side to JUMP");
@@ -551,7 +593,8 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
           this.objects.clear(true, true);
           this.player.setPosition(triceratopsGameConfig.world.playerX, triceratopsGameConfig.world.groundY - 28);
           this.player.setVelocity(0, 0);
-          this.player.setTexture(dinoTexture("idle"));
+          this.physics.world.pause();
+          this.player.setTexture(DINO_SHEET_KEY, DINO_FRAME_BASE.idle);
           this.player.clearTint();
           this.updateHud();
         }
@@ -570,6 +613,7 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
           this.smashReadyAt = now + triceratopsGameConfig.attack.cooldownMs;
           this.currentDinoState = "smash";
           this.emitSfx("smash");
+          this.smashHitbox.setPosition(this.player.x + 66, this.player.y + 5).setAlpha(0.18);
           this.checkSmashCollisions();
         }
 
@@ -597,7 +641,7 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
           this.foregroundLayer.tilePositionX += triceratopsGameConfig.world.baseSpeed * 0.9 * dt;
           this.wrapLine.x = 110 + clamp(this.distance / triceratopsGameConfig.scene.targetDistance, 0, 1) * 260;
           if (time <= this.smashUntil) {
-            this.smashHitbox.setPosition(this.player.x + 47, this.player.y + 6).setAlpha(0.18);
+            this.smashHitbox.setPosition(this.player.x + 66, this.player.y + 5).setAlpha(0.18);
             this.checkSmashCollisions();
           } else {
             this.smashHitbox.setAlpha(0);
@@ -605,7 +649,7 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
         }
 
         private spawnScriptedEvents() {
-          const spawnLead = 420;
+          const spawnLead = triceratopsGameConfig.world.spawnLeadDistance;
           triceratopsGameConfig.timeline.forEach((script) => {
             if (this.spawnedIds.has(script.id)) return;
             if (this.distance < script.distance - spawnLead) return;
@@ -616,36 +660,34 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
 
         private spawnScript(script: TriceratopsScriptEvent) {
           const { width, groundY } = triceratopsGameConfig.world;
-          let key = "foam-curb";
+          const frame = OBJECT_FRAME[script.kind];
           let y = groundY - 10;
           if (script.kind === "smash_camera") {
-            key = "studio-camera";
             y = groundY - 18;
           } else if (script.kind === "smash_crate") {
-            key = "prop-crate";
             y = groundY - 15;
           } else if (script.kind === "smash_wall") {
-            key = "breakaway-wall";
             y = groundY - 27;
           } else if (script.kind === "collectible") {
-            key = "golden-reel";
             y = groundY - 70;
           } else if (script.kind === "hazard_cable") {
-            key = "sparking-cable";
             y = groundY - 9;
           } else if (script.kind === "finish") {
-            key = "wrap-marker";
             y = groundY - 27;
           }
-          const object = this.objects.create(width + 60, y, key) as SceneObject;
+          const object = this.objects.create(width + 60, y, OBJECT_ATLAS_KEY, frame) as SceneObject;
           object.script = script;
           object.setDepth(script.kind === "collectible" ? 6 : 5);
           object.setImmovable(true);
           const body = object.body as Phaser.Physics.Arcade.Body | undefined;
           body?.setAllowGravity(false);
-          if (script.kind === "jump_obstacle") body?.setSize(25, 11).setOffset(3, 8);
-          if (script.kind === "hazard_cable") body?.setSize(34, 9).setOffset(5, 7);
-          if (script.kind === "collectible") body?.setSize(18, 18).setOffset(3, 3);
+          if (script.kind === "jump_obstacle") body?.setSize(30, 13).setOffset(8, 12);
+          if (script.kind === "smash_camera") body?.setSize(34, 25).setOffset(7, 10);
+          if (script.kind === "smash_crate") body?.setSize(30, 25).setOffset(8, 10);
+          if (script.kind === "smash_wall") body?.setSize(34, 46).setOffset(7, 8);
+          if (script.kind === "hazard_cable") body?.setSize(38, 10).setOffset(5, 15);
+          if (script.kind === "collectible") body?.setSize(20, 20).setOffset(7, 8);
+          if (script.kind === "finish") body?.setSize(12, 52).setOffset(18, 6);
           if (script.tutorial) this.showHint(script.tutorial, 2600);
         }
 
@@ -660,7 +702,7 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
         }
 
         private handleOverlap(item: SceneObject) {
-          if (item.handled) return;
+          if (this.state !== "running" || item.handled) return;
           if (item.script.kind === "collectible") {
             item.handled = true;
             this.collectibles += 1;
@@ -678,7 +720,7 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
             if (this.time.now <= this.smashUntil) {
               this.smashObject(item);
             } else {
-              this.takeDamage(item, "Smash breakaway props");
+              this.bumpBreakable(item);
             }
             return;
           }
@@ -713,18 +755,34 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
           this.time.delayedCall(160, () => item.destroy());
         }
 
+        private bumpBreakable(item: SceneObject) {
+          if (item.handled) return;
+          item.handled = true;
+          item.setTint(0x9aa0ad);
+          item.setVelocity(-18, -24);
+          item.setAngularVelocity(180);
+          const body = item.body as Phaser.Physics.Arcade.Body | undefined;
+          body?.setEnable(false);
+          this.cameras.main.shake(55, 0.003);
+          this.popScore(item.x, item.y - 22, "MISS");
+          this.showHint("Smash props for points", 1200);
+          this.time.delayedCall(120, () => item.destroy());
+        }
+
         private takeDamage(item: SceneObject, hint: string) {
           const now = this.time.now;
           if (now < this.invulnerableUntil) return;
           item.handled = true;
-          this.hp -= 1;
+          const cost = item.script.kind === "jump_obstacle" ? 0 : 1;
+          this.hp -= cost;
           this.hitsTaken += 1;
           this.invulnerableUntil = now + 950;
           this.currentDinoState = "hit";
           this.player.setTint(0xff6978);
-          this.cameras.main.shake(140, 0.008);
+          this.cameras.main.shake(cost ? 140 : 70, cost ? 0.008 : 0.004);
           this.showHint(hint, 1800);
           this.emitSfx("damage");
+          if (!cost) this.popScore(item.x, item.y - 22, "SAFE");
           this.time.delayedCall(210, () => {
             if (this.state === "running") this.player.clearTint();
           });
@@ -737,7 +795,7 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
 
         private spawnImpact(x: number, y: number) {
           for (let i = 0; i < 8; i += 1) {
-            const star = this.add.image(x, y, i % 2 ? "impact-star" : "pixel-dust").setDepth(12);
+            const star = this.add.image(x, y, OBJECT_ATLAS_KEY, i % 2 ? OBJECT_FRAME.impact_star : OBJECT_FRAME.pixel_dust).setDepth(12);
             star.setScale(i % 2 ? 0.42 : 1);
             this.tweens.add({
               targets: star,
@@ -789,6 +847,7 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
         private sceneComplete() {
           if (this.state === "complete" || this.state === "over") return;
           this.state = "complete";
+          this.physics.world.pause();
           this.currentDinoState = "victory";
           this.addScore(triceratopsGameConfig.scoring.sceneClear);
           this.emitSfx("wrap");
@@ -798,6 +857,7 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
         private gameOver() {
           if (this.state === "over" || this.state === "complete") return;
           this.state = "over";
+          this.physics.world.pause();
           this.currentDinoState = "over";
           this.player.clearTint();
           this.emitSfx("cut");
@@ -829,7 +889,7 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
           }
           const frames = DINO_STATES[state];
           const frame = Math.floor(time / DINO_FRAME_MS[state]) % frames;
-          this.player.setTexture(dinoTexture(state, frame));
+          this.player.setTexture(DINO_SHEET_KEY, DINO_FRAME_BASE[state] + frame);
           if (state === "hit" && time > this.invulnerableUntil - 620) this.currentDinoState = "run";
         }
 
@@ -1030,7 +1090,7 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
             </div>
             <div className="triceratops-secondary-actions" aria-label="Scene information">
               <span>Scene 1: Studio Backlot</span>
-              <span>3 HP</span>
+              <span>5 HP</span>
               <span>Goal: reach the wrap marker</span>
             </div>
             {fullscreenAvailable ? <small>Fullscreen starts when supported by your browser.</small> : null}
