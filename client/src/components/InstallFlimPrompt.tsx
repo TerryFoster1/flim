@@ -50,6 +50,7 @@ export function InstallFlimPrompt({ alwaysShow = false, mode = "floating" }: Ins
   const ios = useMemo(isIos, []);
   const mobile = useMemo(isMobileLike, []);
   const showPersistentInstallHelp = mode === "settings" || alwaysShow;
+  const installAvailable = Boolean(installEvent) && !installed;
 
   useEffect(() => {
     setInstalled(isStandalone());
@@ -94,11 +95,7 @@ export function InstallFlimPrompt({ alwaysShow = false, mode = "floating" }: Ins
   if (!installEvent && !ios && !showPersistentInstallHelp) return null;
   if (!mobile && !installEvent && mode === "floating") return null;
 
-  const title = installed
-    ? "Flim is installed"
-    : ios && !installEvent
-      ? "Add Flim to your Home Screen"
-      : "Install Flim";
+  const title = installed ? "Flim is installed" : installAvailable ? "Install Flim" : "How to Install Flim";
 
   return (
     <aside className={`install-card ${mode === "settings" ? "settings-install-card" : "floating-install-card"}`} aria-label="Install Flim">
@@ -110,26 +107,26 @@ export function InstallFlimPrompt({ alwaysShow = false, mode = "floating" }: Ins
       </div>
       {installed ? (
         <p>Flim is already installed on this device.</p>
-      ) : ios && !installEvent ? (
+      ) : !installAvailable ? (
         <ol className="ios-install-steps">
-          <li>Tap Share.</li>
-          <li>Tap Add to Home Screen.</li>
+          {ios ? (
+            <>
+              <li>Tap Share.</li>
+              <li>Tap Add to Home Screen.</li>
+            </>
+          ) : (
+            <>
+              <li>On Android Chrome, open the browser menu.</li>
+              <li>Tap Install app or Add to Home screen.</li>
+              <li>On desktop Chrome or Edge, use the browser install option when it appears.</li>
+            </>
+          )}
         </ol>
-      ) : showPersistentInstallHelp && !installEvent ? (
-        <>
-          <p>Add Flim to your phone Home Screen as the mobile web app.</p>
-          <ol className="ios-install-steps">
-            <li>On Android Chrome, open the browser menu.</li>
-            <li>Tap Install app or Add to Home screen.</li>
-            <li>On iPhone Safari, tap Share, then Add to Home Screen.</li>
-          </ol>
-          <p className="helper-text">Google Play and App Store links will appear here once the native apps are published.</p>
-        </>
       ) : (
         <p>Get one-tap access to your movie playlists.</p>
       )}
       <div className="button-row">
-        {!ios || installEvent ? (
+        {installAvailable ? (
           <button className="primary-button" onClick={install} type="button">
             Install Flim
           </button>

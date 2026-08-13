@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type PointerEvent } from "react";
+import { useBacklotOrientation } from "../../backlot/orientation";
 import { recordBacklotGameOver, recordBacklotLaunch } from "../../services/backlotService";
 import {
   TRICERATOPS_GAME_ID,
@@ -31,6 +32,11 @@ type GameBridge = {
   pauseRun: () => void;
 };
 
+type LockableScreenOrientation = ScreenOrientation & {
+  lock?: (orientation: "landscape") => Promise<void>;
+  unlock?: () => void;
+};
+
 type DinoState = "idle" | "run" | "jump" | "smash" | "hit" | "over" | "victory";
 
 type SceneObject = Phaser.Physics.Arcade.Sprite & {
@@ -39,7 +45,6 @@ type SceneObject = Phaser.Physics.Arcade.Sprite & {
   destroyedState?: boolean;
 };
 
-const LANDSCAPE_QUERY = "(orientation: landscape)";
 const DINO_STATES: Record<DinoState, number> = {
   idle: 2,
   run: 6,
@@ -89,12 +94,6 @@ function dinoTexture(state: DinoState, frame = 0) {
   return `triceratops-${state}-${frame}`;
 }
 
-function isLikelyPhonePortrait() {
-  if (typeof window === "undefined") return false;
-  const coarsePointer = window.matchMedia?.("(pointer: coarse)").matches ?? false;
-  return coarsePointer && window.innerHeight > window.innerWidth;
-}
-
 function supportsFullscreen(element: HTMLElement | null) {
   return Boolean(element?.requestFullscreen);
 }
@@ -111,10 +110,10 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
   const audioRef = useRef<RetroAudioEngine | null>(null);
   const countdownTimersRef = useRef<number[]>([]);
   const gameOverSentRef = useRef(false);
+  const { isPortrait, isLandscape, snapshot: orientationSnapshot } = useBacklotOrientation();
   const [phase, setPhase] = useState<"start" | "intro" | "running" | "complete" | "over">("start");
   const [syncStatus, setSyncStatus] = useState("");
   const [lastScore, setLastScore] = useState(0);
-  const [isPortrait, setIsPortrait] = useState(isLikelyPhonePortrait);
   const [fullscreenAvailable, setFullscreenAvailable] = useState(false);
   const [lastResult, setLastResult] = useState<TriceratopsResult | null>(null);
   const [countdown, setCountdown] = useState<string | null>(null);
@@ -141,17 +140,25 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
   }, []);
 
   useEffect(() => {
-    const updateOrientation = () => setIsPortrait(isLikelyPhonePortrait());
-    const query = window.matchMedia?.(LANDSCAPE_QUERY);
-    updateOrientation();
-    query?.addEventListener?.("change", updateOrientation);
-    window.addEventListener("resize", updateOrientation);
     setFullscreenAvailable(supportsFullscreen(shellRef.current));
-    return () => {
-      query?.removeEventListener?.("change", updateOrientation);
-      window.removeEventListener("resize", updateOrientation);
-    };
   }, []);
+
+  useEffect(() => {
+    gameRef.current?.scale.resize(triceratopsGameConfig.world.width, triceratopsGameConfig.world.height);
+    gameRef.current?.scale.refresh();
+    window.dispatchEvent(new Event("resize"));
+  }, [orientationSnapshot.width, orientationSnapshot.height]);
+
+  useEffect(() => {
+    if (isPortrait && phase === "intro") {
+      clearCountdownTimers();
+      setCountdown(null);
+      setPhase("start");
+    }
+    if (isPortrait && phase === "running" && !paused) {
+      bridgeRef.current?.pauseRun();
+    }
+  }, [isPortrait, paused, phase]);
 
   useEffect(() => {
     let activeGame: Phaser.Game | null = null;
@@ -967,6 +974,16 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
     }
   }
 
+  async function requestLandscapeLock() {
+    const orientation = window.screen?.orientation as LockableScreenOrientation | undefined;
+    if (!orientation?.lock) return;
+    try {
+      await orientation.lock("landscape");
+    } catch {
+      // Orientation lock is only an enhancement; physical rotation remains the source of truth.
+    }
+  }
+
   function clearCountdownTimers() {
     countdownTimersRef.current.forEach((timer) => window.clearTimeout(timer));
     countdownTimersRef.current = [];
@@ -992,7 +1009,7 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
   }
 
   async function startGame() {
-    if (isPortrait) return;
+    if (!isLandscape) return;
     clearCountdownTimers();
     gameOverSentRef.current = false;
     setLastResult(null);
@@ -1001,6 +1018,7 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
     setPaused(false);
     setPhase("intro");
     await requestFullscreen();
+    await requestLandscapeLock();
     void audioRef.current?.startMusic();
     [
       ["Scene 1", 0],
@@ -1032,6 +1050,7 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
     if (document.fullscreenElement) {
       document.exitFullscreen().catch(() => undefined);
     }
+    (window.screen?.orientation as LockableScreenOrientation | undefined)?.unlock?.();
     onNavigate("/games");
   }
 

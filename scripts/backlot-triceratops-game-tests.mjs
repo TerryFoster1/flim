@@ -7,6 +7,8 @@ const gameConfigSource = readFileSync(join(root, "client/src/games/triceratops/g
 const gameSource = readFileSync(join(root, "client/src/games/triceratops/TriceratopsBacklotGame.tsx"), "utf8");
 const cssSource = readFileSync(join(root, "client/src/games/triceratops/triceratops.css"), "utf8");
 const audioSource = readFileSync(join(root, "client/src/games/triceratops/retroAudio.ts"), "utf8");
+const orientationSource = readFileSync(join(root, "client/src/backlot/orientation.ts"), "utf8");
+const manifestSource = readFileSync(join(root, "client/public/manifest.json"), "utf8");
 
 const generatorPath = join(root, "scripts/generate-triceratops-assets.mjs");
 const assetDir = join(root, "client/public/backlot/triceratops");
@@ -230,7 +232,17 @@ assert.equal(fullscreenCanvasFits(568, 320), true, "small landscape phone viewpo
 assert.equal(fullscreenCanvasFits(844, 390), true, "modern landscape phone viewport fits the game canvas");
 assert.equal(fullscreenCanvasFits(932, 430), true, "large landscape phone viewport fits the game canvas");
 assert.equal(fullscreenCanvasFits(1366, 768), true, "desktop viewport fits the game canvas");
+assert.match(orientationSource, /width > snapshot\.height/, "Backlot orientation detection is viewport-dimension first");
+assert.match(orientationSource, /visualViewport\?\.addEventListener\(\"resize\"/, "Backlot orientation listens to visual viewport resize");
+assert.match(orientationSource, /orientationchange/, "Backlot orientation listens to physical orientation changes");
+assert.match(orientationSource, /screen\?\.orientation\?\.addEventListener\?\.\(\"change\"/, "Backlot orientation listens to screen orientation as a supplement");
 assert.match(cssSource, /orientation: portrait/, "portrait phones get a rotate-device gate");
+assert.match(gameSource, /bridgeRef\.current\?\.pauseRun\(\)/, "game pauses when the orientation gate returns during play");
+assert.match(gameSource, /gameRef\.current\?\.scale\.resize/, "Phaser scale is refreshed after orientation changes");
+assert.match(gameSource, /gameRef\.current\?\.scale\.refresh/, "Phaser scale manager refreshes after orientation changes");
+assert.match(gameSource, /orientation\.lock\("landscape"\)/, "landscape lock is attempted only as a best-effort enhancement");
+assert.match(gameSource, /setPhase\("start"\)/, "intro countdown returns to start if portrait gate appears");
+assert.equal(JSON.parse(manifestSource).orientation, "any", "web PWA manifest does not globally force portrait");
 assert.match(gameSource, /activeGame\?\.destroy\(true\)/, "Phaser instance is destroyed during React cleanup");
 
 assert.equal(
