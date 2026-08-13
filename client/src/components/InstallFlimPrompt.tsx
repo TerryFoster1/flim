@@ -7,6 +7,7 @@ interface BeforeInstallPromptEvent extends Event {
 
 interface InstallFlimPromptProps {
   mode?: "floating" | "settings";
+  alwaysShow?: boolean;
 }
 
 function isStandalone() {
@@ -41,13 +42,14 @@ function rememberDismissal() {
   }
 }
 
-export function InstallFlimPrompt({ mode = "floating" }: InstallFlimPromptProps) {
+export function InstallFlimPrompt({ alwaysShow = false, mode = "floating" }: InstallFlimPromptProps) {
   const [installEvent, setInstallEvent] = useState<BeforeInstallPromptEvent | null>(null);
   const [dismissed, setDismissed] = useState(() => wasDismissedRecently());
   const [installed, setInstalled] = useState(false);
   const [message, setMessage] = useState("");
   const ios = useMemo(isIos, []);
   const mobile = useMemo(isMobileLike, []);
+  const showPersistentInstallHelp = mode === "settings" || alwaysShow;
 
   useEffect(() => {
     setInstalled(isStandalone());
@@ -87,24 +89,42 @@ export function InstallFlimPrompt({ mode = "floating" }: InstallFlimPromptProps)
     }
   }
 
-  if (installed) return null;
-  if (dismissed) return null;
-  if (!installEvent && !ios) return null;
+  if (installed && !showPersistentInstallHelp) return null;
+  if (dismissed && !showPersistentInstallHelp) return null;
+  if (!installEvent && !ios && !showPersistentInstallHelp) return null;
   if (!mobile && !installEvent && mode === "floating") return null;
+
+  const title = installed
+    ? "Flim is installed"
+    : ios && !installEvent
+      ? "Add Flim to your Home Screen"
+      : "Install Flim";
 
   return (
     <aside className={`install-card ${mode === "settings" ? "settings-install-card" : "floating-install-card"}`} aria-label="Install Flim">
       <div className="install-card-brand">
         <img alt="" src="/brand/flim-icon-192.png" />
         <div>
-          <h2>{ios && !installEvent ? "Add Flim to your Home Screen" : "Install Flim"}</h2>
+          <h2>{title}</h2>
         </div>
       </div>
-      {ios && !installEvent ? (
+      {installed ? (
+        <p>Flim is already installed on this device.</p>
+      ) : ios && !installEvent ? (
         <ol className="ios-install-steps">
           <li>Tap Share.</li>
           <li>Tap Add to Home Screen.</li>
         </ol>
+      ) : showPersistentInstallHelp && !installEvent ? (
+        <>
+          <p>Add Flim to your phone Home Screen as the mobile web app.</p>
+          <ol className="ios-install-steps">
+            <li>On Android Chrome, open the browser menu.</li>
+            <li>Tap Install app or Add to Home screen.</li>
+            <li>On iPhone Safari, tap Share, then Add to Home Screen.</li>
+          </ol>
+          <p className="helper-text">Google Play and App Store links will appear here once the native apps are published.</p>
+        </>
       ) : (
         <p>Get one-tap access to your movie playlists.</p>
       )}

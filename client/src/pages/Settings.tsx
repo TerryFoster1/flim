@@ -484,7 +484,13 @@ export function Settings({ currentUser, onNavigate, onThemePreferenceChange, pla
           </div>
         </section>
 
-        <InstallFlimPrompt mode="settings" />
+        <section className="settings-panel" id="install-flim">
+          <div className="settings-panel-heading">
+            <h2>Install Flim</h2>
+            <p>Add Flim to your phone Home Screen for quick access.</p>
+          </div>
+          <InstallFlimPrompt alwaysShow mode="settings" />
+        </section>
 
         {message ? <p className={status === "error" ? "error-message" : "success-message"}>{message}</p> : null}
         <button className="primary-button save-settings-button" disabled={status === "loading" || status === "saving"} type="submit">
