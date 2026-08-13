@@ -3,10 +3,12 @@ export const TRICERATOPS_GAME_ID = "triceratops-backlot-runner";
 export type TriceratopsObstacleKind =
   | "jump_obstacle"
   | "smash_camera"
+  | "smash_light"
   | "smash_crate"
   | "smash_wall"
   | "collectible"
   | "hazard_cable"
+  | "hazard_light"
   | "finish";
 
 export type TriceratopsScriptEvent = {
@@ -88,10 +90,10 @@ export const triceratopsGameConfig = {
       points: 100,
     },
     {
-      id: "golden-reel-one",
+      id: "film-frame-one",
       kind: "collectible",
       distance: 1680,
-      label: "Golden reel",
+      label: "Film frame",
       points: 250,
     },
     {
@@ -115,43 +117,52 @@ export const triceratopsGameConfig = {
       tutorial: "Jump over live set hazards",
     },
     {
+      id: "light-rig-one",
+      kind: "smash_light",
+      distance: 3180,
+      label: "Studio light",
+      tutorial: "Smash loose set lights",
+      points: 100,
+    },
+    {
       id: "breakaway-flat",
       kind: "smash_wall",
-      distance: 3340,
+      distance: 3520,
       label: "Breakaway flat",
       tutorial: "Smash the breakaway set",
       points: 100,
     },
     {
-      id: "golden-reel-two",
+      id: "film-frame-two",
       kind: "collectible",
-      distance: 3600,
-      label: "Golden reel",
+      distance: 3800,
+      label: "Film frame",
       points: 250,
     },
     {
       id: "jump-three",
       kind: "jump_obstacle",
-      distance: 3860,
+      distance: 4080,
       label: "Foam curb",
     },
     {
       id: "camera-two",
       kind: "smash_camera",
-      distance: 4200,
+      distance: 4380,
       label: "Studio camera",
       points: 100,
     },
     {
       id: "final-hazard",
-      kind: "hazard_cable",
-      distance: 4560,
-      label: "Sparking cable",
+      kind: "hazard_light",
+      distance: 4660,
+      label: "Falling studio light",
+      tutorial: "Duck past falling studio lights",
     },
     {
       id: "finale-wall",
       kind: "smash_wall",
-      distance: 4880,
+      distance: 4920,
       label: "Breakaway wall",
       tutorial: "Smash the finale set",
       points: 100,

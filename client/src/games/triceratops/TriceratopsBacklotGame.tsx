@@ -15,8 +15,6 @@ type TriceratopsBacklotGameProps = {
   onNavigate: (path: string) => void;
 };
 
-type PhaserModule = typeof import("phaser");
-
 type SceneMessage =
   | { type: "score"; score: number }
   | { type: "ready" }
@@ -81,18 +79,16 @@ const DINO_FRAME_BASE: Record<DinoState, number> = {
 const OBJECT_FRAME: Record<TriceratopsScriptEvent["kind"] | "impact_star" | "pixel_dust", number> = {
   jump_obstacle: 0,
   smash_camera: 1,
-  smash_crate: 2,
-  smash_wall: 3,
-  hazard_cable: 4,
-  collectible: 5,
-  finish: 6,
-  impact_star: 7,
-  pixel_dust: 8,
+  smash_light: 2,
+  smash_crate: 3,
+  smash_wall: 4,
+  hazard_cable: 5,
+  hazard_light: 6,
+  collectible: 7,
+  finish: 8,
+  impact_star: 9,
+  pixel_dust: 10,
 };
-
-function dinoTexture(state: DinoState, frame = 0) {
-  return `triceratops-${state}-${frame}`;
-}
 
 function supportsFullscreen(element: HTMLElement | null) {
   return Boolean(element?.requestFullscreen);
@@ -299,209 +295,6 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
           }
         }
 
-        private createTextures(PhaserRef: PhaserModule) {
-          const makeCanvas = (key: string, width: number, height: number, draw: (ctx: CanvasRenderingContext2D) => void) => {
-            const texture = this.textures.createCanvas(key, width, height);
-            const ctx = texture?.getContext();
-            if (!texture || !ctx) return;
-            ctx.imageSmoothingEnabled = false;
-            draw(ctx);
-            texture.refresh();
-          };
-
-          const px = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, color: string) => {
-            ctx.fillStyle = color;
-            ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
-          };
-
-          const drawDino = (ctx: CanvasRenderingContext2D, frame: number, state: DinoState) => {
-            ctx.clearRect(0, 0, 72, 56);
-            const jump = state === "jump";
-            const smash = state === "smash";
-            const hit = state === "hit";
-            const over = state === "over";
-            const victory = state === "victory";
-            const bob = state === "run" ? (frame % 2 === 0 ? 1 : -1) : 0;
-            const legA = state === "run" ? (frame % 3) - 1 : 0;
-            const baseY = over ? 36 : jump ? 24 : 31 + bob;
-            const body = hit ? "#68e88b" : triceratopsGameConfig.art.palette.dino;
-            const dark = triceratopsGameConfig.art.palette.dinoDark;
-            const horn = "#fff3dc";
-            const outline = "#07110a";
-            const headX = smash ? 38 + frame * 2 : 34;
-            const headY = baseY - 18;
-
-            if (over) {
-              px(ctx, 18, 38, 30, 7, outline);
-              px(ctx, 21, 32, 25, 8, dark);
-              px(ctx, 39, 27, 17, 10, body);
-              px(ctx, 51, 24, 12, 5, horn);
-              px(ctx, 46, 30, 3, 3, "#fff3dc");
-              px(ctx, 52, 30, 3, 3, "#fff3dc");
-              px(ctx, 16, 41, 8, 4, "#2e3b2f");
-              return;
-            }
-
-            px(ctx, 8, baseY - 12, 28, 15, outline);
-            px(ctx, 12, baseY - 17, 29, 19, body);
-            px(ctx, 14, baseY - 14, 8, 6, "#83f0a1");
-            px(ctx, 10, baseY - 2, 22, 5, dark);
-            px(ctx, 36, headY - 7, 18, 27, outline);
-            px(ctx, headX - 3, headY - 4, 23, 22, body);
-            px(ctx, headX - 8, headY - 9, 15, 27, dark);
-            px(ctx, headX + 14, headY + 6, 17, 11, outline);
-            px(ctx, headX + 14, headY + 7, 14, 8, body);
-            px(ctx, headX + 24, headY + 4, smash ? 16 : 10, 4, horn);
-            px(ctx, headX + 10, headY - 9, 5, 10, horn);
-            px(ctx, headX + 2, headY - 7, 5, 10, horn);
-            px(ctx, headX + 12, headY + 4, 3, 3, "#050407");
-            px(ctx, headX + 18, headY + 12, 6, 2, "#050407");
-            px(ctx, 5, baseY - 7, 8, 6, dark);
-            px(ctx, 2, baseY - 10, 6, 5, body);
-
-            const frontLeg = jump ? 39 : 34 + legA;
-            const backLeg = jump ? 18 : 18 - legA;
-            px(ctx, backLeg, baseY + 1, 6, jump ? 12 : 16, outline);
-            px(ctx, backLeg + 1, baseY + 2, 4, jump ? 10 : 14, body);
-            px(ctx, frontLeg, baseY + 1, 6, jump ? 11 : 16, outline);
-            px(ctx, frontLeg + 1, baseY + 2, 4, jump ? 9 : 14, body);
-            px(ctx, backLeg - 2, baseY + (jump ? 10 : 16), 11, 3, dark);
-            px(ctx, frontLeg - 1, baseY + (jump ? 9 : 16), 11, 3, dark);
-
-            if (smash) {
-              px(ctx, headX + 38, headY + 4, 12 + frame * 2, 3, "#ffe8a9");
-              px(ctx, headX + 42, headY - 1, 8, 2, "#ff8848");
-            }
-            if (hit) {
-              px(ctx, 12, 10, 12, 4, "#ff5a62");
-              px(ctx, 25, 6, 7, 5, "#ff5a62");
-              px(ctx, 34, 11, 10, 3, "#ff5a62");
-            }
-            if (victory) {
-              px(ctx, 58, 10 - frame, 4, 16, "#ffe8a9");
-              px(ctx, 61, 7 - frame, 5, 5, "#f5c16f");
-            }
-          };
-
-          Object.entries(DINO_STATES).forEach(([state, frameCount]) => {
-            for (let frame = 0; frame < frameCount; frame += 1) {
-              makeCanvas(dinoTexture(state as DinoState, frame), 72, 56, (ctx) => drawDino(ctx, frame, state as DinoState));
-            }
-          });
-
-          makeCanvas("stage-far", 480, 270, (ctx) => {
-            const gradient = ctx.createLinearGradient(0, 0, 0, 270);
-            gradient.addColorStop(0, "#11172b");
-            gradient.addColorStop(0.5, "#211720");
-            gradient.addColorStop(1, "#07070a");
-            ctx.fillStyle = gradient;
-            ctx.fillRect(0, 0, 480, 270);
-            for (let i = 0; i < 36; i += 1) px(ctx, i * 15, 24 + ((i * 13) % 55), 2, 2, i % 3 ? "#f5c16f" : "#91d8ff");
-            px(ctx, 0, 138, 480, 22, "#1a1622");
-            for (let i = 0; i < 10; i += 1) {
-              const x = i * 52;
-              px(ctx, x, 100 + (i % 2) * 16, 34, 58, "#231c24");
-              px(ctx, x + 5, 108 + (i % 2) * 16, 20, 4, "#f5c16f");
-              px(ctx, x + 8, 122 + (i % 2) * 16, 8, 8, "#493024");
-            }
-          });
-
-          makeCanvas("stage-mid", 240, 88, (ctx) => {
-            px(ctx, 0, 30, 240, 58, "#22181e");
-            for (let i = 0; i < 5; i += 1) {
-              const x = i * 48;
-              px(ctx, x + 2, 15, 36, 54, "#2e2528");
-              px(ctx, x + 6, 22, 24, 6, "#f5c16f");
-              px(ctx, x + 8, 38, 8, 20, "#0e0d12");
-              px(ctx, x + 22, 38, 8, 20, "#0e0d12");
-              px(ctx, x + 36, 45, 8, 24, "#382922");
-            }
-          });
-
-          makeCanvas("stage-front", 160, 58, (ctx) => {
-            px(ctx, 0, 0, 160, 58, "#191419");
-            px(ctx, 0, 0, 160, 5, "#3b3027");
-            for (let x = 0; x < 160; x += 16) {
-              px(ctx, x, 8, 10, 2, "#4b4038");
-              px(ctx, x + 4, 30, 24, 2, "#2b2425");
-              px(ctx, x + 11, 13, 2, 28, "#241d20");
-            }
-          });
-
-          makeCanvas("foam-curb", 32, 20, (ctx) => {
-            px(ctx, 0, 8, 32, 12, "#111318");
-            px(ctx, 2, 3, 28, 12, "#f5c16f");
-            px(ctx, 4, 6, 8, 5, "#ff8848");
-            px(ctx, 18, 6, 8, 5, "#ff8848");
-          });
-
-          makeCanvas("studio-camera", 40, 34, (ctx) => {
-            px(ctx, 3, 12, 23, 17, "#07070a");
-            px(ctx, 6, 9, 22, 16, "#323944");
-            px(ctx, 28, 13, 9, 7, "#111318");
-            px(ctx, 31, 15, 7, 4, "#91d8ff");
-            px(ctx, 10, 25, 4, 7, "#6a5242");
-            px(ctx, 22, 25, 4, 7, "#6a5242");
-            px(ctx, 8, 5, 12, 6, "#f5c16f");
-          });
-
-          makeCanvas("prop-crate", 34, 30, (ctx) => {
-            px(ctx, 2, 5, 30, 24, "#20140e");
-            px(ctx, 5, 3, 25, 22, "#a96a30");
-            px(ctx, 7, 7, 21, 3, "#f5c16f");
-            px(ctx, 9, 13, 16, 3, "#6a3e22");
-            px(ctx, 5, 20, 25, 3, "#4a2b1a");
-          });
-
-          makeCanvas("breakaway-wall", 44, 54, (ctx) => {
-            px(ctx, 4, 4, 36, 48, "#141018");
-            px(ctx, 6, 2, 34, 46, "#5c5147");
-            for (let y = 8; y < 44; y += 10) px(ctx, 8, y, 29, 2, "#221b1b");
-            for (let x = 10; x < 36; x += 12) px(ctx, x, 6, 2, 38, "#221b1b");
-            px(ctx, 11, 13, 18, 4, "#f5c16f");
-          });
-
-          makeCanvas("sparking-cable", 44, 18, (ctx) => {
-            px(ctx, 0, 10, 44, 5, "#050407");
-            px(ctx, 4, 6, 30, 3, "#2b2f38");
-            px(ctx, 24, 1, 4, 11, "#ffe8a9");
-            px(ctx, 30, 4, 10, 4, "#ff5a62");
-            px(ctx, 14, 0, 3, 8, "#91d8ff");
-          });
-
-          makeCanvas("golden-reel", 24, 24, (ctx) => {
-            px(ctx, 3, 3, 18, 18, "#7a451a");
-            px(ctx, 5, 2, 16, 17, "#f5c16f");
-            px(ctx, 9, 7, 3, 3, "#07070a");
-            px(ctx, 15, 7, 3, 3, "#07070a");
-            px(ctx, 9, 14, 3, 3, "#07070a");
-            px(ctx, 15, 14, 3, 3, "#07070a");
-          });
-
-          makeCanvas("wrap-marker", 34, 52, (ctx) => {
-            px(ctx, 14, 2, 5, 50, "#f5c16f");
-            px(ctx, 18, 4, 14, 18, "#fff3dc");
-            px(ctx, 18, 8, 14, 4, "#ff5a62");
-            px(ctx, 18, 16, 14, 4, "#07070a");
-          });
-
-          makeCanvas("impact-star", 20, 20, (ctx) => {
-            px(ctx, 8, 0, 4, 20, "#ffe8a9");
-            px(ctx, 0, 8, 20, 4, "#ffe8a9");
-            px(ctx, 4, 4, 12, 12, "#ff8848");
-          });
-
-          const dust = this.textures.createCanvas("pixel-dust", 6, 6);
-          const dustCtx = dust?.getContext();
-          if (dust && dustCtx) {
-            dustCtx.imageSmoothingEnabled = false;
-            px(dustCtx, 1, 1, 4, 4, "#d8b07a");
-            dust.refresh();
-          }
-
-          this.textures.get(dinoTexture("run")).setFilter(PhaserRef.Textures.FilterMode.NEAREST);
-        }
-
         private createWorld() {
           const { width, height, groundY } = triceratopsGameConfig.world;
           this.add.image(width / 2, height / 2, "stage-far").setDepth(0);
@@ -671,6 +464,8 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
           let y = groundY - 10;
           if (script.kind === "smash_camera") {
             y = groundY - 18;
+          } else if (script.kind === "smash_light") {
+            y = groundY - 38;
           } else if (script.kind === "smash_crate") {
             y = groundY - 15;
           } else if (script.kind === "smash_wall") {
@@ -679,6 +474,8 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
             y = groundY - 70;
           } else if (script.kind === "hazard_cable") {
             y = groundY - 9;
+          } else if (script.kind === "hazard_light") {
+            y = groundY - 62;
           } else if (script.kind === "finish") {
             y = groundY - 27;
           }
@@ -690,9 +487,11 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
           body?.setAllowGravity(false);
           if (script.kind === "jump_obstacle") body?.setSize(30, 13).setOffset(8, 12);
           if (script.kind === "smash_camera") body?.setSize(34, 25).setOffset(7, 10);
+          if (script.kind === "smash_light") body?.setSize(28, 44).setOffset(10, 11);
           if (script.kind === "smash_crate") body?.setSize(30, 25).setOffset(8, 10);
           if (script.kind === "smash_wall") body?.setSize(34, 46).setOffset(7, 8);
           if (script.kind === "hazard_cable") body?.setSize(38, 10).setOffset(5, 15);
+          if (script.kind === "hazard_light") body?.setSize(30, 42).setOffset(9, 13);
           if (script.kind === "collectible") body?.setSize(20, 20).setOffset(7, 8);
           if (script.kind === "finish") body?.setSize(12, 52).setOffset(18, 6);
           if (script.tutorial) this.showHint(script.tutorial, 2600);
@@ -723,7 +522,12 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
             this.sceneComplete();
             return;
           }
-          if (item.script.kind === "smash_camera" || item.script.kind === "smash_crate" || item.script.kind === "smash_wall") {
+          if (
+            item.script.kind === "smash_camera" ||
+            item.script.kind === "smash_light" ||
+            item.script.kind === "smash_crate" ||
+            item.script.kind === "smash_wall"
+          ) {
             if (this.time.now <= this.smashUntil) {
               this.smashObject(item);
             } else {
@@ -731,7 +535,14 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
             }
             return;
           }
-          this.takeDamage(item, item.script.kind === "hazard_cable" ? "Jump over live set hazards" : "Jump early and land wide");
+          this.takeDamage(
+            item,
+            item.script.kind === "hazard_cable"
+              ? "Jump over live set hazards"
+              : item.script.kind === "hazard_light"
+                ? "Watch the overhead rig"
+                : "Jump early and land wide",
+          );
         }
 
         private checkSmashCollisions() {
@@ -739,7 +550,7 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
           this.objects.getChildren().forEach((child) => {
             const item = child as SceneObject;
             if (item.handled) return;
-            if (!["smash_camera", "smash_crate", "smash_wall"].includes(item.script.kind)) return;
+            if (!["smash_camera", "smash_light", "smash_crate", "smash_wall"].includes(item.script.kind)) return;
             if (Phaser.Geom.Intersects.RectangleToRectangle(hitbox, item.getBounds())) this.smashObject(item);
           });
         }
@@ -1193,7 +1004,7 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
               </span>
               <span>
                 <strong>{lastResult.collectibles}</strong>
-                Reels
+                Frames
               </span>
               <span>
                 <strong>{Math.round(lastResult.playTimeMs / 1000)}s</strong>

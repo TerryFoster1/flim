@@ -62,16 +62,17 @@ const config = {
   timeline: [
     { id: "tutorial-jump", kind: "jump_obstacle", distance: 820 },
     { id: "tutorial-smash", kind: "smash_camera", distance: 1320 },
-    { id: "golden-reel-one", kind: "collectible", distance: 1680 },
+    { id: "film-frame-one", kind: "collectible", distance: 1680 },
     { id: "jump-two", kind: "jump_obstacle", distance: 2100 },
     { id: "crate-one", kind: "smash_crate", distance: 2480 },
     { id: "first-hazard", kind: "hazard_cable", distance: 2940 },
-    { id: "breakaway-flat", kind: "smash_wall", distance: 3340 },
-    { id: "golden-reel-two", kind: "collectible", distance: 3600 },
-    { id: "jump-three", kind: "jump_obstacle", distance: 3860 },
-    { id: "camera-two", kind: "smash_camera", distance: 4200 },
-    { id: "final-hazard", kind: "hazard_cable", distance: 4560 },
-    { id: "finale-wall", kind: "smash_wall", distance: 4880 },
+    { id: "light-rig-one", kind: "smash_light", distance: 3180 },
+    { id: "breakaway-flat", kind: "smash_wall", distance: 3520 },
+    { id: "film-frame-two", kind: "collectible", distance: 3800 },
+    { id: "jump-three", kind: "jump_obstacle", distance: 4080 },
+    { id: "camera-two", kind: "smash_camera", distance: 4380 },
+    { id: "final-hazard", kind: "hazard_light", distance: 4660 },
+    { id: "finale-wall", kind: "smash_wall", distance: 4920 },
     { id: "wrap-marker", kind: "finish", distance: 5020 },
   ],
 };
@@ -201,9 +202,17 @@ assert.ok(config.attack.cooldownMs <= 240, "smash recovery is quick enough for m
 assert.ok(config.attack.hitboxWidth >= 140, "smash hitbox reaches readable breakaway props");
 
 assert.equal(countKind("jump_obstacle"), 3, "scene has about three easy jump events");
-assert.ok(countKind("smash_camera") + countKind("smash_crate") + countKind("smash_wall") >= 4, "scene has 4-6 smash opportunities");
-assert.ok(countKind("smash_camera") + countKind("smash_crate") + countKind("smash_wall") <= 6, "scene does not flood smash opportunities");
-assert.equal(countKind("hazard_cable"), 2, "scene has exactly two hazards");
+assert.ok(
+  countKind("smash_camera") + countKind("smash_light") + countKind("smash_crate") + countKind("smash_wall") >= 4,
+  "scene has 4-6 smash opportunities",
+);
+assert.ok(
+  countKind("smash_camera") + countKind("smash_light") + countKind("smash_crate") + countKind("smash_wall") <= 6,
+  "scene does not flood smash opportunities",
+);
+assert.equal(countKind("smash_light"), 1, "scene includes a smashable studio light");
+assert.equal(countKind("hazard_cable"), 1, "scene includes a sparking cable hazard");
+assert.equal(countKind("hazard_light"), 1, "scene includes a falling studio light hazard");
 assert.ok(countKind("collectible") >= 2 && countKind("collectible") <= 3, "scene has 2-3 collectibles");
 assert.equal(countKind("finish"), 1, "scene has one finish event");
 assert.equal(config.timeline.at(-1).kind, "finish", "timeline ends with a finish marker");
@@ -229,7 +238,9 @@ assert.match(gameSource, /spawnedIds\.clear\(\)/, "restart clears authored spawn
 assert.match(gameSource, /objects\.clear\(true, true\)/, "restart clears old objects");
 
 assert.equal(fullscreenCanvasFits(568, 320), true, "small landscape phone viewport fits the game canvas");
+assert.equal(fullscreenCanvasFits(800, 360), true, "800x360 landscape viewport fits the game canvas");
 assert.equal(fullscreenCanvasFits(844, 390), true, "modern landscape phone viewport fits the game canvas");
+assert.equal(fullscreenCanvasFits(915, 412), true, "915x412 landscape viewport fits the game canvas");
 assert.equal(fullscreenCanvasFits(932, 430), true, "large landscape phone viewport fits the game canvas");
 assert.equal(fullscreenCanvasFits(1366, 768), true, "desktop viewport fits the game canvas");
 assert.match(orientationSource, /width > snapshot\.height/, "Backlot orientation detection is viewport-dimension first");
