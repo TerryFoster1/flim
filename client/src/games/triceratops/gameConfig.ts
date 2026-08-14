@@ -2,19 +2,34 @@ export const TRICERATOPS_GAME_ID = "triceratops-backlot-runner";
 
 export type TriceratopsObstacleKind =
   | "jump_obstacle"
+  | "high_barrier"
+  | "long_gap"
+  | "overhead_beam"
   | "smash_camera"
   | "smash_light"
   | "smash_crate"
   | "smash_wall"
   | "collectible"
+  | "one_up"
   | "hazard_cable"
   | "hazard_light"
+  | "finish";
+
+export type TriceratopsRequiredAction =
+  | "normalJump"
+  | "highJump"
+  | "longJump"
+  | "smash"
+  | "slide"
+  | "collect"
+  | "avoid"
   | "finish";
 
 export type TriceratopsScriptEvent = {
   id: string;
   kind: TriceratopsObstacleKind;
-  category: "jump" | "smash" | "collect" | "finish";
+  category: "normalJump" | "highJump" | "longJump" | "smash" | "slide" | "collect" | "avoid" | "finish";
+  requiredAction: TriceratopsRequiredAction;
   distance: number;
   label: string;
   chainId?: string;
@@ -23,9 +38,9 @@ export type TriceratopsScriptEvent = {
   finale?: boolean;
   tutorial?: string;
   points?: number;
+  telegraph?: string;
+  lane?: "ground" | "air" | "overhead";
 };
-
-export type TriceratopsGrade = "D" | "C" | "B" | "A" | "S";
 
 export const triceratopsGameConfig = {
   gameId: TRICERATOPS_GAME_ID,
@@ -54,32 +69,49 @@ export const triceratopsGameConfig = {
     playerX: 74,
     baseSpeed: 104,
     gravity: 720,
-    jumpVelocity: 390,
+    normalJumpVelocity: 372,
+    highJumpVelocity: 456,
+    longJumpVelocity: 398,
+    longJumpMs: 760,
+    longJumpSpeedMultiplier: 1.16,
+    slideMs: 620,
     coyoteMs: 240,
-    inputBufferMs: 440,
+    inputBufferMs: 420,
     playerBody: { width: 30, height: 30, offsetX: 23, offsetY: 20 },
-    spawnLeadDistance: 420,
-    minimumReactionDistance: 420,
+    slideBody: { width: 34, height: 18, offsetX: 22, offsetY: 33 },
+    spawnLeadDistance: 430,
+    minimumReactionDistance: 430,
   },
   scene: {
     sceneId: "studio-backlot-1",
     name: "Studio Backlot",
-    targetDistance: 6400,
-    startingHp: 5,
+    targetDistance: 7600,
+    startingLives: 3,
+    maxLives: 5,
     clearBonus: 1000,
     safeStartSeconds: 4.5,
+    respawnInvulnerabilityMs: 1450,
+    highScoreStorageKey: "flim:backlot:triceratops:studio-backlot-1:high-score",
+    checkpoints: [0, 1850, 3600, 5400],
   },
   attack: {
-    activeMs: 900,
-    cooldownMs: 160,
-    hitboxWidth: 150,
-    hitboxHeight: 52,
+    activeMs: 260,
+    cooldownMs: 190,
+    hitboxWidth: 74,
+    hitboxHeight: 34,
+    perfectWindow: { min: 18, max: 54 },
   },
   scoring: {
+    normalJump: 90,
+    highJump: 180,
+    longJump: 240,
+    slide: 180,
     smashSmall: 100,
     smashMedium: 250,
     smashMajor: 500,
     collectible: 300,
+    oneUp: 750,
+    lifeBonus: 300,
     chainBase: 125,
     chainStepMultiplier: 0.24,
     sceneClear: 1000,
@@ -94,51 +126,80 @@ export const triceratopsGameConfig = {
     durationMs: 9000,
     speedMultiplier: 1.18,
     scoreMultiplier: 1.5,
-  },
-  grades: {
-    s: 7200,
-    a: 5600,
-    b: 4100,
-    c: 2600,
+    bypassesHazards: false,
   },
   timeline: [
     {
-      id: "tutorial-jump",
+      id: "tutorial-normal-jump",
       kind: "jump_obstacle",
-      category: "jump",
+      category: "normalJump",
+      requiredAction: "normalJump",
       distance: 900,
       label: "Foam curb",
-      tutorial: "Tap the left side to JUMP",
+      tutorial: "Tap left: jump",
+      telegraph: "low prop",
     },
     {
       id: "tutorial-smash",
       kind: "smash_camera",
       category: "smash",
+      requiredAction: "smash",
       distance: 1320,
       label: "Studio camera",
-      tutorial: "Tap the right side to SMASH",
+      tutorial: "Tap right: horn smash",
       points: 100,
+      telegraph: "breakable prop",
+    },
+    {
+      id: "tutorial-high-jump",
+      kind: "high_barrier",
+      category: "highJump",
+      requiredAction: "highJump",
+      distance: 1730,
+      label: "Tall apple box stack",
+      tutorial: "Double tap left: high jump",
+      points: 180,
+      telegraph: "tall barrier",
     },
     {
       id: "film-frame-one",
       kind: "collectible",
       category: "collect",
-      distance: 1680,
+      requiredAction: "collect",
+      distance: 2140,
       label: "Film frame",
       points: 300,
+      telegraph: "collect",
     },
     {
-      id: "jump-two",
-      kind: "jump_obstacle",
-      category: "jump",
-      distance: 2100,
-      label: "Cable ramp",
+      id: "tutorial-slide",
+      kind: "overhead_beam",
+      category: "slide",
+      requiredAction: "slide",
+      distance: 2530,
+      label: "Boom mic sweep",
+      tutorial: "Double tap and hold right: slide",
+      points: 180,
+      telegraph: "low clearance",
+      lane: "overhead",
+    },
+    {
+      id: "tutorial-long-jump",
+      kind: "long_gap",
+      category: "longJump",
+      requiredAction: "longJump",
+      distance: 2960,
+      label: "Missing backlot road",
+      tutorial: "Double tap and hold left: long jump",
+      points: 240,
+      telegraph: "wide gap",
     },
     {
       id: "crate-one",
       kind: "smash_crate",
       category: "smash",
-      distance: 2480,
+      requiredAction: "smash",
+      distance: 3360,
       label: "Prop crate",
       chainId: "craft-service-chaos",
       chainStep: 1,
@@ -148,7 +209,8 @@ export const triceratopsGameConfig = {
       id: "craft-service-camera",
       kind: "smash_camera",
       category: "smash",
-      distance: 2600,
+      requiredAction: "smash",
+      distance: 3490,
       label: "Craft-service camera",
       chainId: "craft-service-chaos",
       chainStep: 2,
@@ -159,7 +221,8 @@ export const triceratopsGameConfig = {
       id: "craft-service-light",
       kind: "smash_light",
       category: "smash",
-      distance: 2740,
+      requiredAction: "smash",
+      distance: 3640,
       label: "Hot studio light",
       chainId: "craft-service-chaos",
       chainStep: 3,
@@ -170,16 +233,41 @@ export const triceratopsGameConfig = {
     {
       id: "first-hazard",
       kind: "hazard_cable",
-      category: "jump",
-      distance: 3060,
+      category: "normalJump",
+      requiredAction: "normalJump",
+      distance: 4010,
       label: "Sparking cable",
       tutorial: "Jump over red hazards",
+    },
+    {
+      id: "slide-camera-boom",
+      kind: "overhead_beam",
+      category: "slide",
+      requiredAction: "slide",
+      distance: 4380,
+      label: "Swinging camera boom",
+      points: 180,
+      telegraph: "duck",
+      lane: "overhead",
+    },
+    {
+      id: "one-up-high",
+      kind: "one_up",
+      category: "collect",
+      requiredAction: "highJump",
+      distance: 4770,
+      label: "1-UP reel",
+      tutorial: "Rare 1-UPs reward precise jumps",
+      points: 750,
+      telegraph: "bonus high",
+      lane: "air",
     },
     {
       id: "breakaway-flat",
       kind: "smash_wall",
       category: "smash",
-      distance: 3360,
+      requiredAction: "smash",
+      distance: 5160,
       label: "Breakaway city flat",
       chainId: "city-set-collapse",
       chainStep: 1,
@@ -189,7 +277,8 @@ export const triceratopsGameConfig = {
       id: "city-set-crate",
       kind: "smash_crate",
       category: "smash",
-      distance: 3500,
+      requiredAction: "smash",
+      distance: 5310,
       label: "Prop crate stack",
       chainId: "city-set-collapse",
       chainStep: 2,
@@ -200,7 +289,8 @@ export const triceratopsGameConfig = {
       id: "city-set-camera",
       kind: "smash_camera",
       category: "smash",
-      distance: 3650,
+      requiredAction: "smash",
+      distance: 5470,
       label: "Rolling camera",
       chainId: "city-set-collapse",
       chainStep: 3,
@@ -211,71 +301,46 @@ export const triceratopsGameConfig = {
       id: "film-frame-two",
       kind: "collectible",
       category: "collect",
-      distance: 3890,
+      requiredAction: "collect",
+      distance: 5840,
       label: "Film frame",
       points: 300,
     },
     {
-      id: "jump-three",
+      id: "jump-slide-combo",
       kind: "jump_obstacle",
-      category: "jump",
-      distance: 4200,
+      category: "normalJump",
+      requiredAction: "normalJump",
+      distance: 6170,
       label: "Foam curb",
+      tutorial: "Read the set: jump, then duck",
+    },
+    {
+      id: "combo-overhead",
+      kind: "overhead_beam",
+      category: "slide",
+      requiredAction: "slide",
+      distance: 6370,
+      label: "Low lighting truss",
+      points: 180,
+      lane: "overhead",
     },
     {
       id: "final-hazard",
       kind: "hazard_light",
-      category: "jump",
-      distance: 4580,
+      category: "highJump",
+      requiredAction: "highJump",
+      distance: 6720,
       label: "Falling studio light",
-      tutorial: "Watch the overhead rig",
-    },
-    {
-      id: "film-frame-three",
-      kind: "collectible",
-      category: "collect",
-      distance: 4860,
-      label: "Film frame",
-      points: 300,
-    },
-    {
-      id: "rampage-wall",
-      kind: "smash_wall",
-      category: "smash",
-      distance: 5160,
-      label: "Western street flat",
-      chainId: "western-lot-rampage",
-      chainStep: 1,
-      tutorial: "Rampage meter fills from destruction",
-      points: 500,
-    },
-    {
-      id: "rampage-crate",
-      kind: "smash_crate",
-      category: "smash",
-      distance: 5310,
-      label: "Stunt prop crate",
-      chainId: "western-lot-rampage",
-      chainStep: 2,
-      chainBonus: 175,
-      points: 250,
-    },
-    {
-      id: "rampage-camera",
-      kind: "smash_camera",
-      category: "smash",
-      distance: 5480,
-      label: "Panicked camera",
-      chainId: "western-lot-rampage",
-      chainStep: 3,
-      chainBonus: 200,
-      points: 250,
+      tutorial: "Tall danger needs a high jump",
+      points: 180,
     },
     {
       id: "finale-wall",
       kind: "smash_wall",
       category: "smash",
-      distance: 5950,
+      requiredAction: "smash",
+      distance: 7060,
       label: "Finale breakaway wall",
       chainId: "finale-collapse",
       chainStep: 1,
@@ -287,7 +352,8 @@ export const triceratopsGameConfig = {
       id: "finale-light",
       kind: "smash_light",
       category: "smash",
-      distance: 6100,
+      requiredAction: "smash",
+      distance: 7210,
       label: "Finale light rig",
       chainId: "finale-collapse",
       chainStep: 2,
@@ -299,7 +365,8 @@ export const triceratopsGameConfig = {
       id: "wrap-marker",
       kind: "finish",
       category: "finish",
-      distance: 6350,
+      requiredAction: "finish",
+      distance: 7480,
       label: "Wrap marker",
     },
   ] satisfies TriceratopsScriptEvent[],
@@ -309,17 +376,19 @@ export type TriceratopsResult = {
   sceneId: string;
   completed: boolean;
   score: number;
+  highScore: number;
+  newHighScore: boolean;
   playTimeMs: number;
   distance: number;
-  hpRemaining: number;
+  livesRemaining: number;
   objectsSmashed: number;
   hitsTaken: number;
   collectibles: number;
+  oneUpsCollected: number;
   chainsTriggered: number;
   bestChain: number;
   rampageActivations: number;
   finaleDestroyed: boolean;
-  grade: TriceratopsGrade;
 };
 
-export type TriceratopsInput = "jump" | "smash";
+export type TriceratopsInput = "normalJump" | "highJump" | "longJump" | "hornSmash" | "slide" | "rampage";
