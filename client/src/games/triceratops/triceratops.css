@@ -225,6 +225,66 @@ body.triceratops-lock-scroll {
   right: max(12px, env(safe-area-inset-right));
 }
 
+.triceratops-rampage-meter {
+  position: absolute;
+  z-index: 31;
+  left: max(14px, env(safe-area-inset-left));
+  bottom: max(16px, env(safe-area-inset-bottom));
+  width: min(230px, 38vw);
+  height: 34px;
+  overflow: hidden;
+  border: 1px solid rgba(245, 193, 111, 0.48);
+  border-radius: 999px;
+  background: rgba(5, 4, 7, 0.72);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.24), inset 0 0 18px rgba(245, 193, 111, 0.08);
+  pointer-events: none;
+}
+
+.triceratops-rampage-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #ff5a62 0%, #ff8848 52%, #ffe8a9 100%);
+  box-shadow: 0 0 22px rgba(255, 136, 72, 0.42);
+  transition: width 160ms ease;
+}
+
+.triceratops-rampage-meter strong {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  height: 100%;
+  place-items: center;
+  color: #fff3dc;
+  font-size: 0.72rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-shadow: 0 1px 2px #07070a;
+}
+
+.triceratops-rampage-meter.is-active {
+  animation: triceratopsRampagePulse 520ms ease-in-out infinite alternate;
+}
+
+.triceratops-rampage-button {
+  position: absolute;
+  z-index: 32;
+  left: max(252px, calc(env(safe-area-inset-left) + 252px));
+  bottom: max(16px, env(safe-area-inset-bottom));
+  min-width: 108px;
+  min-height: 34px;
+  border: 1px solid rgba(255, 232, 169, 0.7);
+  border-radius: 999px;
+  color: #130907;
+  background: linear-gradient(135deg, #ffe8a9, #ff8848);
+  box-shadow: 0 0 24px rgba(255, 136, 72, 0.34);
+  font-size: 0.74rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .triceratops-score-readout {
   position: absolute;
   z-index: 22;
@@ -496,6 +556,17 @@ body.triceratops-lock-scroll {
   }
 }
 
+@keyframes triceratopsRampagePulse {
+  from {
+    filter: brightness(1);
+    transform: translateY(0);
+  }
+  to {
+    filter: brightness(1.16);
+    transform: translateY(-1px);
+  }
+}
+
 @media (orientation: portrait) and (pointer: coarse) {
   .triceratops-game-canvas {
     opacity: 0.18;
@@ -539,5 +610,13 @@ body.triceratops-lock-scroll {
   .triceratops-result-grid {
     grid-template-columns: repeat(4, minmax(74px, 1fr));
     margin: 12px 0;
+  }
+
+  .triceratops-rampage-meter {
+    width: 180px;
+  }
+
+  .triceratops-rampage-button {
+    left: max(204px, calc(env(safe-area-inset-left) + 204px));
   }
 }

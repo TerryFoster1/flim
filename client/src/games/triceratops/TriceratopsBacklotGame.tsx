@@ -7,6 +7,7 @@ import {
   type TriceratopsInput,
   type TriceratopsResult,
   type TriceratopsScriptEvent,
+  type TriceratopsGrade,
 } from "./gameConfig";
 import { createRetroAudioEngine, type RetroAudioEngine, type TriceratopsSfx } from "./retroAudio";
 import "./triceratops.css";
@@ -17,6 +18,7 @@ type TriceratopsBacklotGameProps = {
 
 type SceneMessage =
   | { type: "score"; score: number }
+  | { type: "rampage"; rampage: RampageState }
   | { type: "ready" }
   | { type: "pause"; paused: boolean }
   | { type: "sfx"; name: TriceratopsSfx }
@@ -25,10 +27,17 @@ type SceneMessage =
 
 type GameBridge = {
   setInput: (input: TriceratopsInput, active: boolean) => void;
+  activateRampage: () => void;
   startRun: () => void;
   restartRun: () => void;
   pauseRun: () => void;
   setPaused: (paused: boolean) => void;
+};
+
+type RampageState = {
+  meter: number;
+  ready: boolean;
+  active: boolean;
 };
 
 type LockableScreenOrientation = ScreenOrientation & {
@@ -97,6 +106,22 @@ function assetUrl(fileName: string) {
   return `${ASSET_BASE}/${fileName}?v=${TRICERATOPS_ART_VERSION}`;
 }
 
+function canLogTriceratopsDiagnostics() {
+  if (typeof window === "undefined") return false;
+  const host = window.location.hostname;
+  return import.meta.env.DEV || host === "localhost" || host === "127.0.0.1" || host === "staging.flim.ca" || host.endsWith(".vercel.app");
+}
+
+function isTriceratopsAssetTestMode() {
+  if (typeof window === "undefined") return false;
+  return new URLSearchParams(window.location.search).has("triceratopsAssetTest");
+}
+
+function logTriceratopsDiagnostic(label: string, payload: Record<string, unknown>) {
+  if (!canLogTriceratopsDiagnostics()) return;
+  console.info(`[TRICERATOPS] ${label}`, payload);
+}
+
 function supportsFullscreen(element: HTMLElement | null) {
   return Boolean(element?.requestFullscreen);
 }
@@ -126,6 +151,7 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
   const [paused, setPaused] = useState(false);
   const [forcePortraitGate, setForcePortraitGate] = useState(false);
   const [audioMuted, setAudioMuted] = useState(false);
+  const [rampage, setRampage] = useState<RampageState>({ meter: 0, ready: false, active: false });
 
   useEffect(() => {
     phaseRef.current = phase;
@@ -240,6 +266,10 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
         setLastScore(detail.score);
         return;
       }
+      if (detail.type === "rampage") {
+        setRampage(detail.rampage);
+        return;
+      }
       if (detail.type === "pause") {
         setPaused(detail.paused);
         return;
@@ -294,6 +324,16 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
         private smashUntil = 0;
         private smashReadyAt = 0;
         private invulnerableUntil = 0;
+        private activeChainId: string | null = null;
+        private activeChainCount = 0;
+        private chainExpiresAt = 0;
+        private chainsTriggered = 0;
+        private bestChain = 0;
+        private rampageMeter = 0;
+        private rampageUntil = 0;
+        private rampageReadyAnnounced = false;
+        private rampageActivations = 0;
+        private finaleDestroyed = false;
         private keys!: {
           space: Phaser.Input.Keyboard.Key;
           up: Phaser.Input.Keyboard.Key;
@@ -329,6 +369,8 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
           this.createPlayer();
           this.createHud();
           this.createInput();
+          this.logLoadedAssets();
+          this.createAssetTestPanel();
           this.physics.world.pause();
 
           this.events.on("resume", () => this.emitPause(false));
@@ -340,6 +382,7 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
               if (input === "jump") this.requestJump();
               if (input === "smash") this.requestSmash();
             },
+            activateRampage: () => this.activateRampage(),
             startRun: () => this.startRun(),
             restartRun: () => this.resetRun(),
             pauseRun: () => this.togglePause(),
@@ -356,10 +399,12 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
           }
 
           const dt = delta / 1000;
-          this.distance += triceratopsGameConfig.world.baseSpeed * dt;
+          const speed = this.currentSpeed();
+          this.distance += speed * dt;
           this.spawnScriptedEvents();
-          this.updateMovement(time, dt);
-          this.updateObjects(dt);
+          this.updateMovement(time, dt, speed);
+          this.updateObjects(dt, speed);
+          this.updateRampage(time);
           this.updateDinoAnimation(time);
           this.updateHud();
 
@@ -370,10 +415,15 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
 
         private createWorld() {
           const { width, height, groundY } = triceratopsGameConfig.world;
-          this.add.image(width / 2, height / 2, "stage-far").setDepth(0);
-          this.farLayer = this.add.tileSprite(width / 2, 116, width, 96, "stage-mid").setDepth(1).setAlpha(0.76);
-          this.midLayer = this.add.tileSprite(width / 2, groundY - 12, width, 88, "stage-mid").setDepth(2);
+          this.farLayer = this.add.tileSprite(width / 2, height / 2, width, height, "stage-far").setDepth(0);
+          this.midLayer = this.add.tileSprite(width / 2, groundY - 46, width, 116, "stage-mid").setDepth(2).setAlpha(0.54);
           this.foregroundLayer = this.add.tileSprite(width / 2, groundY + 25, width, 58, "stage-front").setDepth(8).setAlpha(0.92);
+          this.add.text(246, groundY - 92, "DO NOT FEED THE DINOSAUR", {
+            color: "#ffe8a9",
+            fontFamily: "monospace",
+            fontSize: "8px",
+            fontStyle: "bold",
+          }).setDepth(3).setOrigin(0.5).setAlpha(0.42);
           this.ground = this.add.rectangle(width / 2, groundY + 20, width, 32, 0x000000, 0);
           this.physics.add.existing(this.ground, true);
           this.objects = this.physics.add.group({ allowGravity: false });
@@ -439,6 +489,44 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
           keyboard?.on("keydown-ESC", () => this.togglePause());
         }
 
+        private logLoadedAssets() {
+          [
+            { key: DINO_SHEET_KEY, url: assetUrl("triceratops-dino-sheet.png"), label: "TRICERATOPS_PLAYER_TEXTURE" },
+            { key: OBJECT_ATLAS_KEY, url: assetUrl("triceratops-object-atlas.png"), label: "TRICERATOPS_OBJECT_TEXTURE" },
+            { key: "stage-far", url: assetUrl("triceratops-bg-far.png"), label: "TRICERATOPS_BACKGROUND_TEXTURE" },
+            { key: "stage-mid", url: assetUrl("triceratops-bg-mid.png"), label: "TRICERATOPS_MIDGROUND_TEXTURE" },
+            { key: "stage-front", url: assetUrl("triceratops-foreground-tiles.png"), label: "TRICERATOPS_FOREGROUND_TEXTURE" },
+          ].forEach((asset) => {
+            const texture = this.textures.get(asset.key);
+            const source = texture?.source?.[0];
+            logTriceratopsDiagnostic("TRICERATOPS_ASSET_LOADED", {
+              label: asset.label,
+              key: asset.key,
+              url: asset.url,
+              width: source?.width ?? 0,
+              height: source?.height ?? 0,
+              artVersion: TRICERATOPS_ART_VERSION,
+            });
+          });
+        }
+
+        private createAssetTestPanel() {
+          if (!isTriceratopsAssetTestMode()) return;
+          this.add.rectangle(12, 178, 206, 76, 0x07070a, 0.82).setOrigin(0, 0).setDepth(50);
+          this.add.text(20, 186, `TRICERATOPS ASSET TEST\n${TRICERATOPS_ART_VERSION}\nDino sheet + atlas loaded`, {
+            color: "#ffe8a9",
+            fontFamily: "monospace",
+            fontSize: "8px",
+            fontStyle: "bold",
+          }).setDepth(51);
+          this.add.image(158, 222, DINO_SHEET_KEY, DINO_FRAME_BASE.run).setDepth(51).setScale(0.9);
+          this.add.image(196, 224, OBJECT_ATLAS_KEY, OBJECT_FRAME.smash_camera).setDepth(51);
+          logTriceratopsDiagnostic("TRICERATOPS_ASSET_TEST_SCREEN", {
+            artVersion: TRICERATOPS_ART_VERSION,
+            route: window.location.pathname,
+          });
+        }
+
         private startRun() {
           this.resetRun();
           this.state = "running";
@@ -457,6 +545,16 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
           this.hitsTaken = 0;
           this.objectsSmashed = 0;
           this.collectibles = 0;
+          this.activeChainId = null;
+          this.activeChainCount = 0;
+          this.chainExpiresAt = 0;
+          this.chainsTriggered = 0;
+          this.bestChain = 0;
+          this.rampageMeter = 0;
+          this.rampageUntil = 0;
+          this.rampageReadyAnnounced = false;
+          this.rampageActivations = 0;
+          this.finaleDestroyed = false;
           this.state = "ready";
           this.currentDinoState = "idle";
           this.jumpBufferedUntil = 0;
@@ -470,6 +568,7 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
           this.player.setTexture(DINO_SHEET_KEY, DINO_FRAME_BASE.idle);
           this.player.clearTint();
           this.updateHud();
+          this.emitRampage();
         }
 
         private requestJump() {
@@ -501,7 +600,7 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
           this.emitSfx("jump");
         }
 
-        private updateMovement(time: number, dt: number) {
+        private updateMovement(time: number, dt: number, speed: number) {
           const body = this.player.body as Phaser.Physics.Arcade.Body;
           const grounded = body.blocked.down || body.touching.down;
           if (grounded) {
@@ -509,9 +608,9 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
             this.tryJump();
           }
           this.player.x = triceratopsGameConfig.world.playerX;
-          this.farLayer.tilePositionX += triceratopsGameConfig.world.baseSpeed * 0.1 * dt;
-          this.midLayer.tilePositionX += triceratopsGameConfig.world.baseSpeed * 0.32 * dt;
-          this.foregroundLayer.tilePositionX += triceratopsGameConfig.world.baseSpeed * 0.9 * dt;
+          this.farLayer.tilePositionX += speed * 0.06 * dt;
+          this.midLayer.tilePositionX += speed * 0.36 * dt;
+          this.foregroundLayer.tilePositionX += speed * 0.94 * dt;
           this.wrapLine.x = 110 + clamp(this.distance / triceratopsGameConfig.scene.targetDistance, 0, 1) * 260;
           if (time <= this.smashUntil) {
             this.smashHitbox.setPosition(this.player.x + 66, this.player.y + 5).setAlpha(0.18);
@@ -556,6 +655,10 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
           object.script = script;
           object.setDepth(script.kind === "collectible" ? 6 : 5);
           object.setImmovable(true);
+          if (script.category === "jump") object.setTint(0xff6978);
+          if (script.category === "smash") object.setTint(script.finale ? 0xffe8a9 : 0xf5c16f);
+          if (script.category === "collect") object.setTint(0x9fffd2);
+          if (script.finale) object.setScale(1.1);
           const body = object.body as Phaser.Physics.Arcade.Body | undefined;
           body?.setAllowGravity(false);
           if (script.kind === "jump_obstacle") body?.setSize(30, 13).setOffset(8, 12);
@@ -570,14 +673,70 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
           if (script.tutorial) this.showHint(script.tutorial, 2600);
         }
 
-        private updateObjects(dt: number) {
-          const speed = triceratopsGameConfig.world.baseSpeed * dt;
+        private updateObjects(dt: number, speed: number) {
+          const travel = speed * dt;
           this.objects.getChildren().forEach((child) => {
             const object = child as SceneObject;
-            object.x -= speed;
+            object.x -= travel;
             if (object.script.kind === "collectible") object.angle += 220 * dt;
             if (object.x < -80) object.destroy();
           });
+        }
+
+        private isRampageActive() {
+          return this.rampageUntil > this.time.now;
+        }
+
+        private currentSpeed() {
+          return triceratopsGameConfig.world.baseSpeed * (this.isRampageActive() ? triceratopsGameConfig.rampage.speedMultiplier : 1);
+        }
+
+        private addRampage(amount: number) {
+          if (this.isRampageActive()) return;
+          const previous = this.rampageMeter;
+          this.rampageMeter = clamp(this.rampageMeter + amount, 0, triceratopsGameConfig.rampage.max);
+          if (previous < triceratopsGameConfig.rampage.max && this.rampageMeter >= triceratopsGameConfig.rampage.max && !this.rampageReadyAnnounced) {
+            this.rampageReadyAnnounced = true;
+            this.showHint("Rampage ready! Tap RAMPAGE", 1800);
+            this.emitSfx("rampageReady");
+          }
+          this.emitRampage();
+        }
+
+        private activateRampage() {
+          if (this.state !== "running") return;
+          if (this.isRampageActive() || this.rampageMeter < triceratopsGameConfig.rampage.max) return;
+          this.rampageMeter = 0;
+          this.rampageUntil = this.time.now + triceratopsGameConfig.rampage.durationMs;
+          this.rampageReadyAnnounced = false;
+          this.rampageActivations += 1;
+          this.cameras.main.flash(120, 255, 232, 169, false);
+          this.showHint("RAMPAGE! Smash everything!", 1800);
+          this.emitSfx("rampageStart");
+          this.emitRampage();
+        }
+
+        private updateRampage(time: number) {
+          if (this.rampageUntil && time > this.rampageUntil) {
+            this.rampageUntil = 0;
+            this.emitSfx("rampageEnd");
+            this.emitRampage();
+          }
+        }
+
+        private emitRampage() {
+          window.dispatchEvent(
+            new CustomEvent<SceneMessage>("triceratops:scene", {
+              detail: {
+                type: "rampage",
+                rampage: {
+                  meter: clamp(this.rampageMeter, 0, triceratopsGameConfig.rampage.max),
+                  ready: this.rampageMeter >= triceratopsGameConfig.rampage.max,
+                  active: this.isRampageActive(),
+                },
+              },
+            }),
+          );
         }
 
         private handleOverlap(item: SceneObject) {
@@ -585,8 +744,10 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
           if (item.script.kind === "collectible") {
             item.handled = true;
             this.collectibles += 1;
-            this.addScore(triceratopsGameConfig.scoring.collectible);
-            this.popScore(item.x, item.y - 16, "+250");
+            const points = item.script.points ?? triceratopsGameConfig.scoring.collectible;
+            this.addScore(points);
+            this.addRampage(triceratopsGameConfig.rampage.perCollectible);
+            this.popScore(item.x, item.y - 16, `+${points}`);
             this.emitSfx("collect");
             item.destroy();
             return;
@@ -595,17 +756,16 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
             this.sceneComplete();
             return;
           }
-          if (
-            item.script.kind === "smash_camera" ||
-            item.script.kind === "smash_light" ||
-            item.script.kind === "smash_crate" ||
-            item.script.kind === "smash_wall"
-          ) {
-            if (this.time.now <= this.smashUntil) {
+          if (item.script.category === "smash") {
+            if (this.time.now <= this.smashUntil || this.isRampageActive()) {
               this.smashObject(item);
             } else {
               this.bumpBreakable(item);
             }
+            return;
+          }
+          if (this.isRampageActive()) {
+            this.smashObject(item);
             return;
           }
           this.takeDamage(
@@ -623,7 +783,8 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
           this.objects.getChildren().forEach((child) => {
             const item = child as SceneObject;
             if (item.handled) return;
-            if (!["smash_camera", "smash_light", "smash_crate", "smash_wall"].includes(item.script.kind)) return;
+            if (item.script.category === "collect" || item.script.category === "finish") return;
+            if (item.script.category !== "smash" && !this.isRampageActive()) return;
             if (Phaser.Geom.Intersects.RectangleToRectangle(hitbox, item.getBounds())) this.smashObject(item);
           });
         }
@@ -632,7 +793,15 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
           if (item.handled) return;
           item.handled = true;
           this.objectsSmashed += 1;
-          this.addScore(triceratopsGameConfig.scoring.smashTarget);
+          const chainCount = this.registerChain(item.script);
+          const chainBonus = item.script.chainBonus ?? (chainCount > 1 ? triceratopsGameConfig.scoring.chainBase : 0);
+          const basePoints = item.script.points ?? this.defaultSmashPoints(item.script.kind);
+          const chainMultiplier = 1 + Math.max(0, chainCount - 1) * triceratopsGameConfig.scoring.chainStepMultiplier;
+          const rampageMultiplier = this.isRampageActive() ? triceratopsGameConfig.rampage.scoreMultiplier : 1;
+          const points = Math.round((basePoints + chainBonus) * chainMultiplier * rampageMultiplier);
+          if (item.script.finale) this.finaleDestroyed = true;
+          this.addScore(points);
+          this.addRampage(triceratopsGameConfig.rampage.perSmash + (chainCount > 1 ? triceratopsGameConfig.rampage.chainBonus : 0));
           item.setTint(0xffe8a9);
           item.setVelocity(0, -60);
           item.setAngularVelocity(420);
@@ -640,10 +809,49 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
           body?.setEnable(false);
           this.cameras.main.shake(105, 0.006);
           this.cameras.main.flash(70, 255, 226, 168, false);
-          this.popScore(item.x, item.y - 22, "+100");
-          this.emitSfx("smash");
+          this.popScore(item.x, item.y - 22, chainCount > 1 ? `CHAIN x${chainCount} +${points}` : `+${points}`);
+          this.emitSfx(item.script.finale ? "finale" : chainCount > 1 ? "chain" : "objectBreak");
           this.spawnImpact(item.x + 8, item.y - 8);
+          this.triggerNearbyChain(item);
           this.time.delayedCall(160, () => item.destroy());
+        }
+
+        private defaultSmashPoints(kind: TriceratopsScriptEvent["kind"]) {
+          if (kind === "smash_wall") return triceratopsGameConfig.scoring.smashMajor;
+          if (kind === "smash_camera" || kind === "smash_light" || kind === "smash_crate") return triceratopsGameConfig.scoring.smashMedium;
+          return triceratopsGameConfig.scoring.smashSmall;
+        }
+
+        private registerChain(script: TriceratopsScriptEvent) {
+          const now = this.time.now;
+          if (!script.chainId) {
+            this.activeChainId = null;
+            this.activeChainCount = 1;
+            this.chainExpiresAt = 0;
+            return 1;
+          }
+          if (this.activeChainId !== script.chainId || now > this.chainExpiresAt) {
+            this.activeChainId = script.chainId;
+            this.activeChainCount = 0;
+            this.chainsTriggered += 1;
+          }
+          this.activeChainCount += 1;
+          this.bestChain = Math.max(this.bestChain, this.activeChainCount);
+          this.chainExpiresAt = now + 1500;
+          return this.activeChainCount;
+        }
+
+        private triggerNearbyChain(source: SceneObject) {
+          if (!source.script.chainId) return;
+          this.time.delayedCall(90, () => {
+            this.objects.getChildren().forEach((child) => {
+              const item = child as SceneObject;
+              if (item.handled || item === source) return;
+              if (item.script.chainId !== source.script.chainId) return;
+              if (Math.abs(item.x - source.x) > 168) return;
+              this.smashObject(item);
+            });
+          });
         }
 
         private bumpBreakable(item: SceneObject) {
@@ -741,6 +949,8 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
           this.physics.world.pause();
           this.currentDinoState = "victory";
           this.addScore(triceratopsGameConfig.scoring.sceneClear);
+          if (this.hitsTaken === 0) this.addScore(triceratopsGameConfig.scoring.noHitBonus);
+          if (this.finaleDestroyed) this.addScore(triceratopsGameConfig.scoring.finaleBonus);
           this.emitSfx("wrap");
           window.dispatchEvent(new CustomEvent<SceneMessage>("triceratops:scene", { detail: { type: "scene-complete", result: this.resultPayload(true) } }));
         }
@@ -766,7 +976,20 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
             objectsSmashed: this.objectsSmashed,
             hitsTaken: this.hitsTaken,
             collectibles: this.collectibles,
+            chainsTriggered: this.chainsTriggered,
+            bestChain: this.bestChain,
+            rampageActivations: this.rampageActivations,
+            finaleDestroyed: this.finaleDestroyed,
+            grade: this.calculateGrade(),
           };
+        }
+
+        private calculateGrade(): TriceratopsGrade {
+          if (this.score >= triceratopsGameConfig.grades.s) return "S";
+          if (this.score >= triceratopsGameConfig.grades.a) return "A";
+          if (this.score >= triceratopsGameConfig.grades.b) return "B";
+          if (this.score >= triceratopsGameConfig.grades.c) return "C";
+          return "D";
         }
 
         private updateDinoAnimation(time: number) {
@@ -902,6 +1125,7 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
     gameOverSentRef.current = false;
     setLastResult(null);
     setLastScore(0);
+    setRampage({ meter: 0, ready: false, active: false });
     setSyncStatus("");
     setPaused(false);
     setPhase("intro");
@@ -982,7 +1206,7 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
             <p className="triceratops-kicker">Backlot Arcade</p>
             <h1>TRICERATOPS!</h1>
             <h2>Smash the Studio Backlot</h2>
-            <p>Auto-run through a movie studio. Jump with the left side. Smash with the right side.</p>
+            <p>Rampage through the movie studio. Smash props, chain set pieces, grab film frames, and survive the finale.</p>
             <div className="triceratops-control-copy">
               <span>Mobile: left half jumps, right half smashes.</span>
               <span>Desktop: Space or Up jumps. X smashes. P pauses.</span>
@@ -998,7 +1222,7 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
             <div className="triceratops-secondary-actions" aria-label="Scene information">
               <span>Scene 1: Studio Backlot</span>
               <span>5 HP</span>
-              <span>Goal: reach the wrap marker</span>
+              <span>Goal: smash the finale set</span>
             </div>
             {fullscreenAvailable ? <small>Fullscreen starts when supported by your browser.</small> : null}
           </div>
@@ -1015,6 +1239,15 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
             <button className="triceratops-pause" onClick={() => bridgeRef.current?.pauseRun()} type="button">
               {paused ? "Resume" : "Pause"}
             </button>
+            <div className={`triceratops-rampage-meter ${rampage.active ? "is-active" : ""}`} aria-label={`Rampage meter ${Math.round(rampage.meter)} percent`}>
+              <span className="triceratops-rampage-fill" style={{ width: `${clamp(rampage.meter, 0, 100)}%` }} />
+              <strong>{rampage.active ? "Rampage" : "Rampage Meter"}</strong>
+            </div>
+            {rampage.ready && !rampage.active ? (
+              <button className="triceratops-rampage-button" onClick={() => bridgeRef.current?.activateRampage()} type="button">
+                Rampage
+              </button>
+            ) : null}
             {paused ? (
               <div className="triceratops-pause-menu" role="dialog" aria-modal="true" aria-label="TRICERATOPS pause menu">
                 <p className="triceratops-kicker">Paused</p>
@@ -1064,6 +1297,10 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
             <h1>{resultTitle}</h1>
             <div className="triceratops-result-grid">
               <span>
+                <strong>{lastResult.grade}</strong>
+                Grade
+              </span>
+              <span>
                 <strong>{lastResult.score.toLocaleString()}</strong>
                 Score
               </span>
@@ -1082,6 +1319,18 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
               <span>
                 <strong>{lastResult.collectibles}</strong>
                 Frames
+              </span>
+              <span>
+                <strong>{lastResult.bestChain}x</strong>
+                Best chain
+              </span>
+              <span>
+                <strong>{lastResult.rampageActivations}</strong>
+                Rampages
+              </span>
+              <span>
+                <strong>{lastResult.finaleDestroyed ? "Yes" : "No"}</strong>
+                Finale
               </span>
               <span>
                 <strong>{Math.round(lastResult.playTimeMs / 1000)}s</strong>

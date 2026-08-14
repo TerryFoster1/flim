@@ -3,8 +3,14 @@ export type TriceratopsSfx =
   | "jump"
   | "land"
   | "smash"
+  | "objectBreak"
+  | "chain"
   | "collect"
   | "damage"
+  | "rampageReady"
+  | "rampageStart"
+  | "rampageEnd"
+  | "finale"
   | "wrap"
   | "cut";
 
@@ -144,6 +150,28 @@ export function createRetroAudioEngine(): RetroAudioEngine {
       if (name === "collect") {
         tone(523.25, now, 0.07, "triangle", 0.05);
         tone(783.99, now + 0.055, 0.08, "triangle", 0.045);
+      }
+      if (name === "objectBreak") {
+        noise(now, 0.095, 0.085);
+        tone(123.47, now, 0.08, "square", 0.05);
+      }
+      if (name === "chain") {
+        [392, 493.88, 622.25].forEach((note, index) => tone(note, now + index * 0.045, 0.09, "square", 0.045));
+        noise(now + 0.08, 0.045, 0.035);
+      }
+      if (name === "rampageReady") {
+        [329.63, 493.88, 659.25].forEach((note, index) => tone(note, now + index * 0.055, 0.12, "triangle", 0.052));
+      }
+      if (name === "rampageStart") {
+        [98, 123.47, 146.83, 196].forEach((note, index) => tone(note, now + index * 0.04, 0.16, "sawtooth", 0.058));
+        noise(now, 0.18, 0.075);
+      }
+      if (name === "rampageEnd") {
+        [246.94, 196, 146.83].forEach((note, index) => tone(note, now + index * 0.05, 0.12, "triangle", 0.04));
+      }
+      if (name === "finale") {
+        noise(now, 0.2, 0.12);
+        [82.41, 110, 164.81].forEach((note, index) => tone(note, now + index * 0.05, 0.18, "square", 0.06));
       }
       if (name === "damage" || name === "cut") {
         tone(155.56, now, 0.12, "sawtooth", 0.06);

@@ -33,18 +33,18 @@ const config = {
     height: 270,
     groundY: 214,
     playerX: 74,
-    baseSpeed: 86,
-    gravity: 760,
-    jumpVelocity: 374,
-    coyoteMs: 230,
-    inputBufferMs: 420,
+    baseSpeed: 104,
+    gravity: 720,
+    jumpVelocity: 390,
+    coyoteMs: 240,
+    inputBufferMs: 440,
     playerBody: { width: 30, height: 30, offsetX: 23, offsetY: 20 },
     spawnLeadDistance: 420,
     minimumReactionDistance: 420,
   },
   scene: {
     sceneId: "studio-backlot-1",
-    targetDistance: 5050,
+    targetDistance: 6400,
     startingHp: 5,
     safeStartSeconds: 4.5,
   },
@@ -55,25 +55,47 @@ const config = {
     hitboxHeight: 52,
   },
   scoring: {
-    smashTarget: 100,
-    collectible: 250,
+    smashSmall: 100,
+    smashMedium: 250,
+    smashMajor: 500,
+    collectible: 300,
+    chainBase: 125,
+    chainStepMultiplier: 0.24,
     sceneClear: 1000,
+    noHitBonus: 600,
+    finaleBonus: 1200,
+  },
+  rampage: {
+    max: 100,
+    perSmash: 22,
+    perCollectible: 14,
+    chainBonus: 8,
+    durationMs: 9000,
+    speedMultiplier: 1.18,
+    scoreMultiplier: 1.5,
   },
   timeline: [
-    { id: "tutorial-jump", kind: "jump_obstacle", distance: 820 },
-    { id: "tutorial-smash", kind: "smash_camera", distance: 1320 },
-    { id: "film-frame-one", kind: "collectible", distance: 1680 },
-    { id: "jump-two", kind: "jump_obstacle", distance: 2100 },
-    { id: "crate-one", kind: "smash_crate", distance: 2480 },
-    { id: "first-hazard", kind: "hazard_cable", distance: 2940 },
-    { id: "light-rig-one", kind: "smash_light", distance: 3180 },
-    { id: "breakaway-flat", kind: "smash_wall", distance: 3520 },
-    { id: "film-frame-two", kind: "collectible", distance: 3800 },
-    { id: "jump-three", kind: "jump_obstacle", distance: 4080 },
-    { id: "camera-two", kind: "smash_camera", distance: 4380 },
-    { id: "final-hazard", kind: "hazard_light", distance: 4660 },
-    { id: "finale-wall", kind: "smash_wall", distance: 4920 },
-    { id: "wrap-marker", kind: "finish", distance: 5020 },
+    { id: "tutorial-jump", kind: "jump_obstacle", category: "jump", distance: 900 },
+    { id: "tutorial-smash", kind: "smash_camera", category: "smash", distance: 1320 },
+    { id: "film-frame-one", kind: "collectible", category: "collect", distance: 1680 },
+    { id: "jump-two", kind: "jump_obstacle", category: "jump", distance: 2100 },
+    { id: "crate-one", kind: "smash_crate", category: "smash", chainId: "craft-service-chaos", distance: 2480 },
+    { id: "craft-service-camera", kind: "smash_camera", category: "smash", chainId: "craft-service-chaos", distance: 2600 },
+    { id: "craft-service-light", kind: "smash_light", category: "smash", chainId: "craft-service-chaos", distance: 2740 },
+    { id: "first-hazard", kind: "hazard_cable", category: "jump", distance: 3060 },
+    { id: "breakaway-flat", kind: "smash_wall", category: "smash", chainId: "city-set-collapse", distance: 3360 },
+    { id: "city-set-crate", kind: "smash_crate", category: "smash", chainId: "city-set-collapse", distance: 3500 },
+    { id: "city-set-camera", kind: "smash_camera", category: "smash", chainId: "city-set-collapse", distance: 3650 },
+    { id: "film-frame-two", kind: "collectible", category: "collect", distance: 3890 },
+    { id: "jump-three", kind: "jump_obstacle", category: "jump", distance: 4200 },
+    { id: "final-hazard", kind: "hazard_light", category: "jump", distance: 4580 },
+    { id: "film-frame-three", kind: "collectible", category: "collect", distance: 4860 },
+    { id: "rampage-wall", kind: "smash_wall", category: "smash", chainId: "western-lot-rampage", distance: 5160 },
+    { id: "rampage-crate", kind: "smash_crate", category: "smash", chainId: "western-lot-rampage", distance: 5310 },
+    { id: "rampage-camera", kind: "smash_camera", category: "smash", chainId: "western-lot-rampage", distance: 5480 },
+    { id: "finale-wall", kind: "smash_wall", category: "smash", chainId: "finale-collapse", finale: true, distance: 5950 },
+    { id: "finale-light", kind: "smash_light", category: "smash", chainId: "finale-collapse", finale: true, distance: 6100 },
+    { id: "wrap-marker", kind: "finish", category: "finish", distance: 6350 },
   ],
 };
 
@@ -130,7 +152,12 @@ function validateResultPayload(payload) {
     payload.hpRemaining <= config.scene.startingHp &&
     Number.isInteger(payload.objectsSmashed) &&
     Number.isInteger(payload.hitsTaken) &&
-    Number.isInteger(payload.collectibles)
+    Number.isInteger(payload.collectibles) &&
+    Number.isInteger(payload.chainsTriggered) &&
+    Number.isInteger(payload.bestChain) &&
+    Number.isInteger(payload.rampageActivations) &&
+    typeof payload.finaleDestroyed === "boolean" &&
+    ["S", "A", "B", "C", "D"].includes(payload.grade)
   );
 }
 
@@ -144,7 +171,8 @@ function assertTimelineSpacing() {
     const previous = activeEvents[i - 1];
     const current = activeEvents[i];
     const spacing = current.distance - previous.distance;
-    assert.ok(spacing >= 240, `${current.id} is spaced at least 240px after ${previous.id}`);
+    const expectedSpacing = previous.chainId && previous.chainId === current.chainId ? 110 : 240;
+    assert.ok(spacing >= expectedSpacing, `${current.id} is spaced at least ${expectedSpacing}px after ${previous.id}`);
   }
 }
 
@@ -161,11 +189,23 @@ assert.match(gameSource, /pixelArt: true/, "Phaser uses crisp pixel rendering");
 assert.match(gameSource, /roundPixels: true/, "Phaser rounds pixels for stable retro art");
 
 assert.match(gameConfigSource, /export type TriceratopsInput = "jump" \| "smash";/, "controls are reduced to jump and smash");
-assert.doesNotMatch(gameConfigSource, /\| "left"|\| "right"|\| "charge"|rampage|combo|tickets/i, "config contains no old movement, charge, rampage, combo, or economy rules");
-assert.doesNotMatch(gameSource, /setInput\("left"|setInput\("right"|charge|rampage|combo/i, "gameplay renderer does not expose old D-pad, charge, rampage, or combo behavior");
-assert.doesNotMatch(audioSource, /"charge"|"combo"|"rampage"/, "audio engine no longer exposes removed action sounds");
+assert.doesNotMatch(gameConfigSource, /\| "left"|\| "right"|\| "charge"|tickets/i, "config contains no old movement, charge, or economy rules");
+assert.match(gameConfigSource, /chainId\?: string;/, "authored destruction chains are part of the script model");
+assert.match(gameConfigSource, /finale\?: boolean;/, "script model marks finale set pieces");
+assert.match(gameConfigSource, /rampage:/, "rampage meter rules are defined in config");
+assert.match(gameConfigSource, /TriceratopsGrade/, "result payload includes a mastery grade");
+assert.doesNotMatch(gameSource, /setInput\("left"|setInput\("right"|charge/i, "gameplay renderer does not expose old D-pad or charge behavior");
+assert.match(gameSource, /activateRampage/, "gameplay renderer exposes rampage activation");
+assert.match(gameSource, /emitRampage/, "gameplay renderer sends rampage meter updates");
+assert.match(gameSource, /registerChain/, "gameplay renderer scores authored destruction chains");
+assert.match(gameSource, /TRICERATOPS_ASSET_LOADED/, "dev/staging asset diagnostics identify loaded art");
+assert.match(gameSource, /TRICERATOPS_PLAYER_TEXTURE/, "asset diagnostics include the player texture");
+assert.match(gameSource, /triceratopsAssetTest/, "asset-test query mode exists for staging QA");
+assert.doesNotMatch(audioSource, /"charge"/, "audio engine no longer exposes removed charge sounds");
+assert.match(audioSource, /"objectBreak"|"chain"|"rampageStart"|"finale"/, "audio engine exposes rampage and destruction-chain cues");
 assert.doesNotMatch(cssSource, /triceratops-control-pad/, "old D-pad control CSS is removed");
 assert.match(cssSource, /triceratops-touch-zones/, "mobile touch-half controls are present");
+assert.match(cssSource, /triceratops-rampage-meter/, "rampage meter UI is present");
 assert.match(gameSource, /handleTouchZone\(event, "jump"\)/, "left touch half triggers jump");
 assert.match(gameSource, /handleTouchZone\(event, "smash"\)/, "right touch half triggers smash");
 assert.match(gameSource, /keydown-SPACE/, "desktop Space triggers jump");
@@ -187,9 +227,9 @@ assert.match(gameSource, /this\.state !== "running" \|\| item\.handled/, "overla
 assert.ok(config.scene.safeStartSeconds >= 4 && config.scene.safeStartSeconds <= 5, "safe start window is 3-5 seconds");
 assert.ok(firstObstacleImpactSeconds() >= config.scene.safeStartSeconds + 4, "first obstacle lands after a readable safe-start zone");
 
-assert.ok(approximateSceneSeconds() >= 55, "vertical slice lasts close to one minute at authored speed");
-assert.ok(approximateSceneSeconds() <= 60, "vertical slice lasts no more than 60 seconds at authored speed");
-assert.equal(config.world.baseSpeed, 86, "base speed is fixed instead of ramping unpredictably");
+assert.ok(approximateSceneSeconds() >= 58, "vertical slice lasts close to one minute at authored speed");
+assert.ok(approximateSceneSeconds() <= 66, "vertical slice remains a tight playable vertical slice");
+assert.equal(config.world.baseSpeed, 104, "base speed is fixed instead of ramping unpredictably");
 assert.equal(config.world.spawnLeadDistance, 420, "spawn lead distance is explicit and testable");
 assert.equal(config.world.minimumReactionDistance, 420, "minimum reaction distance is explicit and testable");
 assert.ok(config.timeline[0].kind === "jump_obstacle", "first obstacle teaches jump");
@@ -204,16 +244,18 @@ assert.ok(config.attack.hitboxWidth >= 140, "smash hitbox reaches readable break
 assert.equal(countKind("jump_obstacle"), 3, "scene has about three easy jump events");
 assert.ok(
   countKind("smash_camera") + countKind("smash_light") + countKind("smash_crate") + countKind("smash_wall") >= 4,
-  "scene has 4-6 smash opportunities",
+  "scene has at least four smash opportunities",
 );
 assert.ok(
-  countKind("smash_camera") + countKind("smash_light") + countKind("smash_crate") + countKind("smash_wall") <= 6,
-  "scene does not flood smash opportunities",
+  countKind("smash_camera") + countKind("smash_light") + countKind("smash_crate") + countKind("smash_wall") <= 14,
+  "scene keeps smash opportunities authored and readable",
 );
-assert.equal(countKind("smash_light"), 1, "scene includes a smashable studio light");
+assert.equal(countKind("smash_light"), 2, "scene includes smashable studio lights");
 assert.equal(countKind("hazard_cable"), 1, "scene includes a sparking cable hazard");
 assert.equal(countKind("hazard_light"), 1, "scene includes a falling studio light hazard");
 assert.ok(countKind("collectible") >= 2 && countKind("collectible") <= 3, "scene has 2-3 collectibles");
+assert.ok(config.timeline.filter((event) => event.chainId).length >= 10, "scene includes authored destruction-chain objects");
+assert.equal(config.timeline.filter((event) => event.finale).length, 2, "scene includes a finale set-piece chain");
 assert.equal(countKind("finish"), 1, "scene has one finish event");
 assert.equal(config.timeline.at(-1).kind, "finish", "timeline ends with a finish marker");
 assertTimelineSpacing();
@@ -225,9 +267,16 @@ assert.match(gameSource, /bumpBreakable\(item\)/, "missed smash props are opport
 assert.doesNotMatch(gameSource, /takeDamage\(item, "Smash breakaway props"\)/, "breakaway props no longer punish missed smashes with HP loss");
 assert.match(gameSource, /item\.script\.kind === "jump_obstacle" \? 0 : 1/, "jump-obstacle bumps teach timing without ending Scene 1 early");
 assert.match(gameSource, /setLastScore\(detail\.result\.score\)/, "end screens display the authoritative result score");
-assert.equal(config.scoring.smashTarget, 100, "smash target score is +100");
-assert.equal(config.scoring.collectible, 250, "collectible score is +250");
+assert.equal(config.scoring.smashSmall, 100, "small smash score is +100");
+assert.equal(config.scoring.smashMedium, 250, "medium smash score is +250");
+assert.equal(config.scoring.smashMajor, 500, "major smash score is +500");
+assert.equal(config.scoring.collectible, 300, "collectible score is +300");
+assert.equal(config.scoring.chainBase, 125, "chain scoring has a base bonus");
 assert.equal(config.scoring.sceneClear, 1000, "scene completion score is +1000");
+assert.equal(config.scoring.noHitBonus, 600, "clean-run bonus is scored");
+assert.equal(config.scoring.finaleBonus, 1200, "finale destruction bonus is scored");
+assert.equal(config.rampage.max, 100, "rampage meter has an explicit max");
+assert.ok(config.rampage.durationMs >= 8000, "rampage lasts long enough to be useful");
 assert.doesNotMatch(gameSource, /recordBacklotGameOver\(TRICERATOPS_GAME_ID, .*tickets/i, "game does not award tickets in the vertical slice");
 
 assert.match(gameSource, /THAT'S A WRAP!/, "success screen uses the requested wrap copy");
@@ -280,6 +329,11 @@ assert.equal(
     objectsSmashed: 5,
     hitsTaken: 1,
     collectibles: 2,
+    chainsTriggered: 2,
+    bestChain: 3,
+    rampageActivations: 1,
+    finaleDestroyed: true,
+    grade: "A",
   }),
   true,
   "normal result payload is valid",
@@ -295,6 +349,11 @@ assert.equal(
     objectsSmashed: 5,
     hitsTaken: 1,
     collectibles: 2,
+    chainsTriggered: 2,
+    bestChain: 3,
+    rampageActivations: 1,
+    finaleDestroyed: true,
+    grade: "A",
   }),
   false,
   "impossible score is rejected",
@@ -310,6 +369,11 @@ assert.equal(
     objectsSmashed: 1,
     hitsTaken: 3,
     collectibles: 0,
+    chainsTriggered: 0,
+    bestChain: 0,
+    rampageActivations: 0,
+    finaleDestroyed: false,
+    grade: "D",
   }),
   false,
   "impossible playtime is rejected",
