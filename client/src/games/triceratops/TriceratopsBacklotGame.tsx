@@ -53,6 +53,17 @@ type LockableScreenOrientation = ScreenOrientation & {
 
 type DinoState = "idle" | "run" | "normalJump" | "highJump" | "longJump" | "hornSmash" | "slide" | "hit" | "rampage" | "dead" | "victory";
 type TouchZoneName = "left" | "right";
+type TouchGestureLabel = "LEFT_SINGLE" | "LEFT_DOUBLE" | "LEFT_DOUBLE_HOLD" | "RIGHT_SINGLE" | "RIGHT_DOUBLE_HOLD";
+
+type TouchZoneState = {
+  lastTapAt: number;
+  singleTapTimer: number | null;
+  holdTimer: number | null;
+  pointerId: number | null;
+  holdAction: TriceratopsInput | null;
+  holdStarted: boolean;
+  secondTapAt: number;
+};
 
 type SceneObject = Phaser.Physics.Arcade.Sprite & {
   script: TriceratopsScriptEvent;
@@ -126,8 +137,9 @@ const OBJECT_FRAME: Record<TriceratopsScriptEvent["kind"] | "impact_star" | "pix
 };
 
 const TRICERATOPS_ART_VERSION = "2026-08-14-retro-v2";
-const TOUCH_DOUBLE_TAP_MS = 280;
-const TOUCH_HOLD_MS = 190;
+const TOUCH_DOUBLE_TAP_MS = 320;
+const TOUCH_SINGLE_TAP_DELAY_MS = 330;
+const TOUCH_HOLD_MS = 290;
 
 function assetUrl(fileName: string) {
   return `${ASSET_BASE}/${fileName}?v=${TRICERATOPS_ART_VERSION}`;
@@ -142,6 +154,11 @@ function canLogTriceratopsDiagnostics() {
 function isTriceratopsAssetTestMode() {
   if (typeof window === "undefined") return false;
   return new URLSearchParams(window.location.search).has("triceratopsAssetTest");
+}
+
+function isTriceratopsInputDebugMode() {
+  if (typeof window === "undefined") return false;
+  return canLogTriceratopsDiagnostics() && new URLSearchParams(window.location.search).has("inputDebug");
 }
 
 function logTriceratopsDiagnostic(label: string, payload: Record<string, unknown>) {
@@ -168,9 +185,9 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
   const pausedByOrientationRef = useRef(false);
   const phaseRef = useRef<"start" | "intro" | "running" | "complete" | "over">("start");
   const pausedRef = useRef(false);
-  const touchZonesRef = useRef<Record<TouchZoneName, { lastTapAt: number; holdTimer: number | null; pointerId: number | null; holdAction: TriceratopsInput | null }>>({
-    left: { lastTapAt: 0, holdTimer: null, pointerId: null, holdAction: null },
-    right: { lastTapAt: 0, holdTimer: null, pointerId: null, holdAction: null },
+  const touchZonesRef = useRef<Record<TouchZoneName, TouchZoneState>>({
+    left: { lastTapAt: 0, singleTapTimer: null, holdTimer: null, pointerId: null, holdAction: null, holdStarted: false, secondTapAt: 0 },
+    right: { lastTapAt: 0, singleTapTimer: null, holdTimer: null, pointerId: null, holdAction: null, holdStarted: false, secondTapAt: 0 },
   });
   const { isPortrait, isLandscape, snapshot: orientationSnapshot } = useBacklotOrientation();
   const [phase, setPhase] = useState<"start" | "intro" | "running" | "complete" | "over">("start");
@@ -183,6 +200,7 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
   const [forcePortraitGate, setForcePortraitGate] = useState(false);
   const [audioMuted, setAudioMuted] = useState(false);
   const [rampage, setRampage] = useState<RampageState>({ meter: 0, ready: false, active: false });
+  const [inputDebugEvents, setInputDebugEvents] = useState<string[]>([]);
 
   useEffect(() => {
     phaseRef.current = phase;
@@ -460,7 +478,7 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
           const { width, height, groundY } = triceratopsGameConfig.world;
           this.farLayer = this.add.tileSprite(width / 2, height / 2, width, height, "stage-far").setDepth(0);
           this.midLayer = this.add.tileSprite(width / 2, groundY - 46, width, 116, "stage-mid").setDepth(2).setAlpha(0.54);
-          this.foregroundLayer = this.add.tileSprite(width / 2, groundY + 29, width, 54, "stage-front").setDepth(4).setAlpha(0.9);
+          this.foregroundLayer = this.add.tileSprite(width / 2, groundY + 41, width, 34, "stage-front").setDepth(4).setAlpha(0.9);
           this.add.text(246, groundY - 92, "DO NOT FEED THE DINOSAUR", {
             color: "#ffe8a9",
             fontFamily: "monospace",
@@ -1302,7 +1320,7 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
     if (!gameOverSentRef.current) {
       gameOverSentRef.current = true;
       recordBacklotGameOver(TRICERATOPS_GAME_ID, result.score, result.playTimeMs).catch(() => {
-        setSyncStatus("Session played locally. Sign in on staging to save scores.");
+        setSyncStatus("Score not synced - sign in to save your high score.");
       });
     }
   }
@@ -1375,40 +1393,88 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
     }
   }
 
+  function clearTouchSingle(zone: TouchZoneName) {
+    const touchZone = touchZonesRef.current[zone];
+    if (touchZone.singleTapTimer !== null) {
+      window.clearTimeout(touchZone.singleTapTimer);
+      touchZone.singleTapTimer = null;
+    }
+  }
+
+  function emitInputDebug(label: TouchGestureLabel, zone: TouchZoneName, startedAt: number, now = window.performance.now()) {
+    if (!isTriceratopsInputDebugMode()) return;
+    const delta = Math.max(0, Math.round(now - startedAt));
+    const line = `${label} ${delta}ms window=${TOUCH_DOUBLE_TAP_MS} hold=${TOUCH_HOLD_MS} zone=${zone}`;
+    setInputDebugEvents((current) => [line, ...current].slice(0, 5));
+    console.info(`[TRICERATOPS_INPUT] ${line}`);
+  }
+
+  function resetTouchZone(zone: TouchZoneName) {
+    const touchZone = touchZonesRef.current[zone];
+    clearTouchHold(zone);
+    touchZone.pointerId = null;
+    touchZone.holdAction = null;
+    touchZone.holdStarted = false;
+    touchZone.secondTapAt = 0;
+  }
+
   function handleTouchZoneDown(event: PointerEvent<HTMLButtonElement>, zone: TouchZoneName) {
     event.preventDefault();
+    event.stopPropagation();
     event.currentTarget.setPointerCapture?.(event.pointerId);
     const now = window.performance.now();
     const touchZone = touchZonesRef.current[zone];
-    const isDoubleTap = now - touchZone.lastTapAt <= TOUCH_DOUBLE_TAP_MS;
+    const isDoubleTap = touchZone.lastTapAt > 0 && now - touchZone.lastTapAt <= TOUCH_DOUBLE_TAP_MS;
+    clearTouchSingle(zone);
     clearTouchHold(zone);
     touchZone.pointerId = event.pointerId;
     touchZone.holdAction = null;
+    touchZone.holdStarted = false;
     if (zone === "left") {
       if (isDoubleTap) {
-        bridgeRef.current?.highJump();
+        touchZone.secondTapAt = now;
+        emitInputDebug("LEFT_DOUBLE", zone, touchZone.lastTapAt, now);
+        touchZone.lastTapAt = 0;
         touchZone.holdAction = "longJump";
         touchZone.holdTimer = window.setTimeout(() => {
           touchZone.holdTimer = null;
+          touchZone.holdStarted = true;
+          emitInputDebug("LEFT_DOUBLE_HOLD", zone, touchZone.secondTapAt);
           bridgeRef.current?.startLongJump();
           vibrate(18);
         }, TOUCH_HOLD_MS);
       } else {
-        bridgeRef.current?.normalJump();
-        vibrate(8);
+        touchZone.lastTapAt = now;
+        touchZone.singleTapTimer = window.setTimeout(() => {
+          touchZone.singleTapTimer = null;
+          touchZone.lastTapAt = 0;
+          emitInputDebug("LEFT_SINGLE", zone, now);
+          bridgeRef.current?.normalJump();
+          vibrate(8);
+        }, TOUCH_SINGLE_TAP_DELAY_MS);
       }
       return;
     }
     if (isDoubleTap) {
+      touchZone.secondTapAt = now;
+      touchZone.lastTapAt = 0;
       touchZone.holdAction = "slide";
       touchZone.holdTimer = window.setTimeout(() => {
         touchZone.holdTimer = null;
+        touchZone.holdStarted = true;
+        emitInputDebug("RIGHT_DOUBLE_HOLD", zone, touchZone.secondTapAt);
         bridgeRef.current?.startSlide();
         vibrate(18);
       }, TOUCH_HOLD_MS);
     } else {
-      bridgeRef.current?.hornSmash();
-      vibrate(10);
+      touchZone.lastTapAt = now;
+      touchZone.singleTapTimer = window.setTimeout(() => {
+        touchZone.singleTapTimer = null;
+        touchZone.lastTapAt = 0;
+        emitInputDebug("RIGHT_SINGLE", zone, now);
+        bridgeRef.current?.hornSmash();
+        vibrate(10);
+      }, TOUCH_SINGLE_TAP_DELAY_MS);
     }
   }
 
@@ -1416,10 +1482,14 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
     event.preventDefault();
     const touchZone = touchZonesRef.current[zone];
     clearTouchHold(zone);
-    if (touchZone.holdAction === "longJump") bridgeRef.current?.endLongJump();
-    if (touchZone.holdAction === "slide") bridgeRef.current?.endSlide();
-    touchZone.lastTapAt = window.performance.now();
+    if (!touchZone.holdStarted && touchZone.holdAction === "longJump") {
+      bridgeRef.current?.highJump();
+      vibrate(12);
+    }
+    if (touchZone.holdStarted && touchZone.holdAction === "longJump") bridgeRef.current?.endLongJump();
+    if (touchZone.holdStarted && touchZone.holdAction === "slide") bridgeRef.current?.endSlide();
     touchZone.holdAction = null;
+    touchZone.holdStarted = false;
     touchZone.pointerId = null;
     event.currentTarget.releasePointerCapture?.(event.pointerId);
   }
@@ -1427,11 +1497,10 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
   function handleTouchZoneCancel(event: PointerEvent<HTMLButtonElement>, zone: TouchZoneName) {
     event.preventDefault();
     const touchZone = touchZonesRef.current[zone];
-    clearTouchHold(zone);
-    if (touchZone.holdAction === "longJump") bridgeRef.current?.endLongJump();
-    if (touchZone.holdAction === "slide") bridgeRef.current?.endSlide();
-    touchZone.holdAction = null;
-    touchZone.pointerId = null;
+    clearTouchSingle(zone);
+    if (touchZone.holdStarted && touchZone.holdAction === "longJump") bridgeRef.current?.endLongJump();
+    if (touchZone.holdStarted && touchZone.holdAction === "slide") bridgeRef.current?.endSlide();
+    resetTouchZone(zone);
   }
 
   const resultTitle = phase === "complete" ? "THAT'S A WRAP!" : "GAME OVER";
@@ -1537,7 +1606,6 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
                 onPointerDown={(event) => handleTouchZoneDown(event, "left")}
                 onPointerUp={(event) => handleTouchZoneUp(event, "left")}
                 onPointerCancel={(event) => handleTouchZoneCancel(event, "left")}
-                onLostPointerCapture={(event) => handleTouchZoneCancel(event, "left")}
               />
               <button
                 type="button"
@@ -1547,7 +1615,6 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
                 onPointerDown={(event) => handleTouchZoneDown(event, "right")}
                 onPointerUp={(event) => handleTouchZoneUp(event, "right")}
                 onPointerCancel={(event) => handleTouchZoneCancel(event, "right")}
-                onLostPointerCapture={(event) => handleTouchZoneCancel(event, "right")}
               />
             </div>
           </>
@@ -1576,12 +1643,20 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
                 Exit to Backlot
               </button>
             </div>
+            {syncStatus ? <p className="backlot-sync-note">{syncStatus}</p> : null}
           </div>
         ) : null}
 
         {phase !== "running" ? <strong className="triceratops-score-readout">{lastScore.toLocaleString()} pts</strong> : null}
+        {inputDebugEvents.length > 0 ? (
+          <aside className="triceratops-input-debug" aria-label="TRICERATOPS input debug">
+            <strong>Input Debug</strong>
+            {inputDebugEvents.map((line, index) => (
+              <span key={`${line}-${index}`}>{line}</span>
+            ))}
+          </aside>
+        ) : null}
       </div>
-      {syncStatus ? <p className="backlot-sync-note">{syncStatus}</p> : null}
     </section>
   );
 }

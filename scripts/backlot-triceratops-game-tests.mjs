@@ -104,6 +104,8 @@ assert.match(gameConfigSource, /bypassesHazards: false/, "rampage does not bypas
 assert.match(gameConfigSource, /normalJumpVelocity/, "normal jump has distinct tuning");
 assert.match(gameConfigSource, /highJumpVelocity/, "high jump has distinct tuning");
 assert.match(gameConfigSource, /longJumpVelocity/, "long jump has distinct tuning");
+assert.match(gameConfigSource, /longJumpMs: 860/, "long jump has visibly longer airtime");
+assert.match(gameConfigSource, /longJumpSpeedMultiplier: 1\.28/, "long jump has visibly longer horizontal reach");
 assert.match(gameConfigSource, /slideMs/, "slide has a defined duration");
 assert.match(gameConfigSource, /attack:[\s\S]*activeMs: 260/, "horn smash has a short timing window");
 assert.match(gameConfigSource, /hitboxWidth: 74/, "horn hitbox is intentionally short");
@@ -117,8 +119,14 @@ assert.match(gameSource, /startSlide: \(\) => this\.startSlide\(\)/, "bridge exp
 assert.match(gameSource, /endSlide: \(\) => this\.endSlide\(\)/, "bridge exposes slide release");
 assert.match(gameSource, /handleTouchZoneDown\(event, "left"\)/, "left invisible zone handles jump taps");
 assert.match(gameSource, /handleTouchZoneDown\(event, "right"\)/, "right invisible zone handles smash/slide taps");
-assert.match(gameSource, /TOUCH_DOUBLE_TAP_MS/, "double tap detection is explicit");
-assert.match(gameSource, /TOUCH_HOLD_MS/, "hold detection is explicit");
+assert.match(gameSource, /const TOUCH_DOUBLE_TAP_MS = 320/, "double tap detection uses the phone QA window");
+assert.match(gameSource, /const TOUCH_SINGLE_TAP_DELAY_MS = 330/, "single taps defer until the double-tap window closes");
+assert.match(gameSource, /const TOUCH_HOLD_MS = 290/, "second-tap hold detection uses the phone QA threshold");
+assert.match(gameSource, /clearTouchSingle\(zone\)/, "double taps cancel pending single-tap actions");
+assert.match(gameSource, /LEFT_DOUBLE_HOLD/, "input debugger names left double-hold gestures");
+assert.match(gameSource, /RIGHT_DOUBLE_HOLD/, "input debugger names right double-hold gestures");
+assert.match(gameSource, /isTriceratopsInputDebugMode/, "staging input debugger is gated behind query/debug environment");
+assert.doesNotMatch(gameSource, /onLostPointerCapture/, "lost pointer capture no longer cancels valid phone taps");
 assert.match(gameSource, /navigator\.vibrate/, "mobile unlock/action haptics are wired");
 assert.match(gameSource, /keydown-SPACE/, "desktop Space triggers normal jump");
 assert.match(gameSource, /keydown-UP/, "desktop Up triggers high jump");
@@ -139,6 +147,7 @@ assert.match(gameSource, /invulnerableUntil/, "post-hit invulnerability exists")
 assert.match(gameSource, /this\.player = .*\.setDepth\(12\)/, "dino renders above ground and foreground");
 assert.match(gameSource, /this\.ground = .*\.setDepth\(3\)/, "ground stays behind the dino");
 assert.match(gameSource, /this\.foregroundLayer = .*\.setDepth\(4\)/, "foreground no longer hides the dino");
+assert.match(gameSource, /groundY \+ 41, width, 34, "stage-front"/, "foreground art is lowered below the dino legs");
 assert.match(gameSource, /item\.script\.requiredAction !== "smash"/, "smash checks only smash-required obstacles");
 assert.match(gameSource, /actionClearsObstacle/, "collision resolution uses required action");
 assert.match(gameSource, /action === "slide"/, "slide gates overhead obstacles");
@@ -148,9 +157,14 @@ assert.match(gameSource, /GAME OVER/, "failure screen uses simple arcade game-ov
 assert.match(gameSource, /NEW HIGH SCORE!/, "new high score callout exists");
 assert.match(gameSource, /Score\s*<\/span>/, "result screen labels score");
 assert.match(gameSource, /High Score\s*<\/span>/, "result screen labels high score");
+assert.match(gameSource, /Score not synced - sign in to save your high score\./, "signed-out/local score notice is concise and non-blocking");
 assert.match(gameSource, /setLastScore\(detail\.result\.score\)/, "end screens display authoritative result score");
 assert.doesNotMatch(gameSource, /setInput\("left"|setInput\("right"|charge/i, "old D-pad and charge behavior is removed");
 assert.doesNotMatch(gameSource, /startingHp|hpRemaining|calculateGrade|TriceratopsGrade|this\.hp|CUT!/, "HP, grades, and cut-copy are removed from gameplay renderer");
+const resultUiSource = gameSource.match(/<div className="triceratops-game-over">[\s\S]*?\{phase !== "running"/)?.[0] ?? "";
+for (const forbiddenLabel of ["Grade", "HP", "Hits Taken", "Smashed", "Frames", "Best Chain", "Rampages", "Finale", "Time"]) {
+  assert.doesNotMatch(resultUiSource, new RegExp(forbiddenLabel), `${forbiddenLabel} is not visible in the player-facing result UI`);
+}
 
 assert.doesNotMatch(cssSource, /triceratops-control-pad/, "old D-pad control CSS is removed");
 assert.match(cssSource, /triceratops-touch-zones/, "mobile invisible half-screen controls are present");
@@ -159,13 +173,18 @@ assert.match(cssSource, /triceratops-touch-zone\.is-right:active/, "right touch 
 assert.doesNotMatch(cssSource, /is-jump|is-smash|triceratops-touch-zone span/, "visible jump/smash touch labels are removed");
 assert.match(cssSource, /triceratops-result-grid\.is-simple/, "result screen has two-card score/high-score layout");
 assert.match(cssSource, /triceratops-new-high/, "new high score styling exists");
+assert.match(cssSource, /\.backlot-sync-note[\s\S]*position: relative/, "local score notice participates in result layout");
+assert.match(cssSource, /\.backlot-sync-note[\s\S]*pointer-events: none/, "local score notice cannot trap replay/exit taps");
+assert.match(cssSource, /triceratops-input-debug/, "staging input debug overlay is styled");
 assert.match(cssSource, /triceratops-rampage-meter/, "rampage meter UI remains available");
 
 assert.doesNotMatch(audioSource, /"charge"/, "audio engine no longer exposes removed charge sounds");
 assert.match(audioSource, /"objectBreak"|"chain"|"rampageStart"|"finale"/, "audio engine exposes rampage and destruction-chain cues");
 
 assert.equal(fullscreenCanvasFits(568, 320), true, "small landscape phone viewport fits the game canvas");
+assert.equal(fullscreenCanvasFits(800, 360), true, "QA landscape viewport 800x360 fits the game canvas");
 assert.equal(fullscreenCanvasFits(844, 390), true, "modern landscape phone viewport fits the game canvas");
+assert.equal(fullscreenCanvasFits(915, 412), true, "QA landscape viewport 915x412 fits the game canvas");
 assert.equal(fullscreenCanvasFits(932, 430), true, "large landscape phone viewport fits the game canvas");
 assert.equal(fullscreenCanvasFits(1366, 768), true, "desktop viewport fits the game canvas");
 assert.match(orientationSource, /width > snapshot\.height/, "Backlot orientation detection is viewport-dimension first");

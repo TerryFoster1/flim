@@ -464,21 +464,46 @@ body.triceratops-lock-scroll {
 }
 
 .backlot-sync-note {
-  position: absolute;
-  z-index: 40;
-  left: 50%;
-  bottom: max(10px, env(safe-area-inset-bottom));
-  transform: translateX(-50%);
+  position: relative;
+  z-index: 1;
   max-width: min(620px, calc(100vw - 28px));
-  margin: 0;
+  margin: 10px auto 0;
   border: 1px solid rgba(245, 193, 111, 0.24);
   border-radius: 999px;
-  padding: 8px 12px;
+  padding: 6px 10px;
   color: rgba(255, 243, 220, 0.72);
-  background: rgba(5, 4, 7, 0.78);
-  font-size: 0.78rem;
+  background: rgba(5, 4, 7, 0.54);
+  font-size: 0.7rem;
   font-weight: 800;
   text-align: center;
+  pointer-events: none;
+}
+
+.triceratops-input-debug {
+  position: absolute;
+  z-index: 45;
+  right: max(12px, env(safe-area-inset-right));
+  top: max(12px, env(safe-area-inset-top));
+  display: grid;
+  gap: 3px;
+  width: min(250px, calc(100vw - 24px));
+  border: 1px solid rgba(145, 216, 255, 0.28);
+  border-radius: 12px;
+  padding: 8px;
+  color: rgba(255, 243, 220, 0.82);
+  background: rgba(5, 4, 7, 0.78);
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.34);
+  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+  font-size: 0.62rem;
+  line-height: 1.25;
+  pointer-events: none;
+}
+
+.triceratops-input-debug strong {
+  color: #91d8ff;
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .backlot-game-pending {
