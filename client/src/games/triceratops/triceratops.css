@@ -23,8 +23,10 @@ body.triceratops-lock-scroll {
 .triceratops-stage {
   position: relative;
   width: 100vw;
-  height: 100svh;
-  max-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 100dvh;
+  max-height: 100dvh;
   overflow: hidden;
   background: #050407;
 }
@@ -56,7 +58,12 @@ body.triceratops-lock-scroll {
   flex-direction: column;
   align-items: flex-start;
   justify-content: center;
-  padding: clamp(18px, 6vw, 56px);
+  gap: clamp(4px, 1.6dvh, 12px);
+  padding:
+    max(12px, env(safe-area-inset-top))
+    max(18px, env(safe-area-inset-right))
+    max(12px, env(safe-area-inset-bottom))
+    max(18px, env(safe-area-inset-left));
   background:
     linear-gradient(90deg, rgba(5, 4, 7, 0.96) 0%, rgba(5, 4, 7, 0.74) 46%, rgba(5, 4, 7, 0.3) 100%),
     repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px 4px);
@@ -73,9 +80,9 @@ body.triceratops-lock-scroll {
 }
 
 .triceratops-kicker {
-  margin: 0 0 8px;
+  margin: 0;
   color: #f5c16f;
-  font-size: clamp(0.72rem, 2.4vw, 1rem);
+  font-size: clamp(0.64rem, min(2.2vw, 3dvh), 1rem);
   font-weight: 900;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -89,7 +96,7 @@ body.triceratops-lock-scroll {
   margin: 0;
   color: #fff3dc;
   font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(2.6rem, 12vw, 7rem);
+  font-size: clamp(2rem, min(8.4vw, 17dvh), 6.2rem);
   line-height: 0.88;
   text-shadow: 0 5px 0 #2a1511, 0 0 30px rgba(245, 193, 111, 0.28);
 }
@@ -97,9 +104,9 @@ body.triceratops-lock-scroll {
 .triceratops-start-screen h2 {
   position: relative;
   z-index: 1;
-  margin: 8px 0 0;
+  margin: 0;
   color: #f5c16f;
-  font-size: clamp(1rem, 4vw, 2rem);
+  font-size: clamp(0.82rem, min(3vw, 5dvh), 1.7rem);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -109,11 +116,11 @@ body.triceratops-lock-scroll {
   position: relative;
   z-index: 1;
   max-width: 560px;
-  margin: 14px 0 0;
+  margin: clamp(3px, 1dvh, 8px) 0 0;
   color: rgba(255, 243, 220, 0.84);
-  font-size: clamp(0.95rem, 2.7vw, 1.2rem);
+  font-size: clamp(0.76rem, min(2.2vw, 3.8dvh), 1.05rem);
   font-weight: 750;
-  line-height: 1.4;
+  line-height: 1.25;
 }
 
 .triceratops-control-copy {
@@ -121,18 +128,18 @@ body.triceratops-lock-scroll {
   z-index: 1;
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: clamp(4px, 1.2dvh, 8px);
   max-width: 720px;
-  margin: 18px 0;
+  margin: clamp(5px, 1.6dvh, 14px) 0;
 }
 
 .triceratops-control-copy span {
   border: 1px solid rgba(245, 193, 111, 0.32);
   border-radius: 999px;
-  padding: 8px 12px;
+  padding: clamp(4px, 1.4dvh, 8px) clamp(7px, 2vw, 12px);
   color: rgba(255, 243, 220, 0.82);
   background: rgba(255, 255, 255, 0.06);
-  font-size: 0.86rem;
+  font-size: clamp(0.62rem, min(1.9vw, 3dvh), 0.86rem);
   font-weight: 900;
 }
 
@@ -150,7 +157,7 @@ body.triceratops-lock-scroll {
   position: relative;
   z-index: 1;
   min-width: 180px;
-  min-height: 54px;
+  min-height: clamp(42px, 8.5dvh, 54px);
   border-radius: 999px;
   padding: 0 28px;
   font-size: 1rem;
@@ -168,7 +175,7 @@ body.triceratops-lock-scroll {
 
 .triceratops-sound-button {
   min-width: 132px;
-  min-height: 50px;
+  min-height: clamp(40px, 7.8dvh, 50px);
   border: 1px solid rgba(245, 193, 111, 0.42);
   border-radius: 999px;
   color: #fff3dc;
@@ -185,23 +192,23 @@ body.triceratops-lock-scroll {
   flex-wrap: wrap;
   gap: 8px;
   max-width: 760px;
-  margin-top: 12px;
+  margin-top: clamp(3px, 1dvh, 10px);
 }
 
 .triceratops-secondary-actions span {
   border: 1px solid rgba(245, 193, 111, 0.22);
   border-radius: 999px;
-  padding: 7px 10px;
+  padding: clamp(4px, 1.3dvh, 7px) clamp(7px, 1.8vw, 10px);
   color: rgba(255, 243, 220, 0.68);
   background: rgba(0, 0, 0, 0.26);
-  font-size: 0.78rem;
+  font-size: clamp(0.6rem, min(1.7vw, 2.8dvh), 0.78rem);
   font-weight: 900;
 }
 
 .triceratops-start-screen small {
   position: relative;
   z-index: 1;
-  margin-top: 10px;
+  margin-top: clamp(2px, 0.8dvh, 8px);
   color: rgba(255, 243, 220, 0.6);
   font-weight: 750;
 }
@@ -597,23 +604,28 @@ body.triceratops-lock-scroll {
 @media (max-height: 430px) and (orientation: landscape) {
   .triceratops-start-screen,
   .triceratops-game-over {
-    padding: 18px 28px;
+    padding:
+      max(10px, env(safe-area-inset-top))
+      max(22px, env(safe-area-inset-right))
+      max(10px, env(safe-area-inset-bottom))
+      max(22px, env(safe-area-inset-left));
+    gap: 5px;
   }
 
   .triceratops-start-screen h1,
   .triceratops-game-over h1 {
-    font-size: clamp(2.4rem, 10vw, 4.8rem);
+    font-size: clamp(2rem, 15dvh, 4.1rem);
   }
 
   .triceratops-start-screen h2,
   .triceratops-start-screen p:not(.triceratops-kicker),
   .triceratops-control-copy {
-    margin-top: 8px;
+    margin-top: 4px;
   }
 
   .triceratops-control-copy span {
-    padding: 6px 10px;
-    font-size: 0.76rem;
+    padding: 5px 9px;
+    font-size: clamp(0.62rem, 2.6dvh, 0.74rem);
   }
 
   .triceratops-play-button {
@@ -625,7 +637,12 @@ body.triceratops-lock-scroll {
   }
 
   .triceratops-secondary-actions {
-    margin-top: 8px;
+    margin-top: 4px;
+  }
+
+  .triceratops-secondary-actions span {
+    padding: 5px 8px;
+    font-size: clamp(0.58rem, 2.4dvh, 0.7rem);
   }
 
   .triceratops-result-grid {
@@ -639,5 +656,58 @@ body.triceratops-lock-scroll {
 
   .triceratops-rampage-button {
     left: max(204px, calc(env(safe-area-inset-left) + 204px));
+  }
+}
+
+@media (max-height: 360px) and (orientation: landscape) {
+  .triceratops-start-screen,
+  .triceratops-game-over {
+    padding:
+      max(8px, env(safe-area-inset-top))
+      max(18px, env(safe-area-inset-right))
+      max(8px, env(safe-area-inset-bottom))
+      max(18px, env(safe-area-inset-left));
+    gap: 3px;
+  }
+
+  .triceratops-start-screen h1,
+  .triceratops-game-over h1 {
+    font-size: clamp(1.75rem, 14dvh, 3.2rem);
+  }
+
+  .triceratops-start-screen h2 {
+    font-size: clamp(0.72rem, 4dvh, 1.1rem);
+  }
+
+  .triceratops-start-screen p:not(.triceratops-kicker) {
+    max-width: 620px;
+    font-size: clamp(0.66rem, 3.1dvh, 0.84rem);
+    line-height: 1.18;
+  }
+
+  .triceratops-control-copy {
+    gap: 4px;
+    margin: 4px 0;
+  }
+
+  .triceratops-control-copy span,
+  .triceratops-secondary-actions span {
+    padding: 4px 7px;
+    font-size: 0.6rem;
+  }
+
+  .triceratops-play-button {
+    min-width: 148px;
+    min-height: 38px;
+    padding: 0 20px;
+  }
+
+  .triceratops-sound-button {
+    min-width: 112px;
+    min-height: 38px;
+  }
+
+  .triceratops-start-screen small {
+    display: none;
   }
 }

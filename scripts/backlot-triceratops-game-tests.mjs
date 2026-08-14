@@ -119,13 +119,22 @@ assert.match(gameSource, /startSlide: \(\) => this\.startSlide\(\)/, "bridge exp
 assert.match(gameSource, /endSlide: \(\) => this\.endSlide\(\)/, "bridge exposes slide release");
 assert.match(gameSource, /handleTouchZoneDown\(event, "left"\)/, "left invisible zone handles jump taps");
 assert.match(gameSource, /handleTouchZoneDown\(event, "right"\)/, "right invisible zone handles smash/slide taps");
-assert.match(gameSource, /const TOUCH_DOUBLE_TAP_MS = 320/, "double tap detection uses the phone QA window");
-assert.match(gameSource, /const TOUCH_SINGLE_TAP_DELAY_MS = 330/, "single taps defer until the double-tap window closes");
-assert.match(gameSource, /const TOUCH_HOLD_MS = 290/, "second-tap hold detection uses the phone QA threshold");
-assert.match(gameSource, /clearTouchSingle\(zone\)/, "double taps cancel pending single-tap actions");
+assert.match(gameSource, /const TOUCH_DOUBLE_TAP_MS = 310/, "double tap detection uses the phone QA window");
+assert.match(gameSource, /const TOUCH_HOLD_AFTER_SECOND_TAP_MS = 330/, "second-tap hold detection uses the phone QA threshold");
+assert.match(gameSource, /type TouchGesturePhase/, "touch input uses an explicit gesture state machine");
+assert.match(gameSource, /"FIRST_TAP" \| "SECOND_TOUCH" \| "SECOND_HOLD"/, "gesture phases distinguish taps from second-tap holds");
+assert.match(gameSource, /clearTouchResolve\(zone\)/, "touch resolution timers are centrally cleared");
+assert.match(gameSource, /scheduleTouchResolve\(zone\)/, "single taps resolve after the double-tap window");
+assert.doesNotMatch(gameSource, /TOUCH_SINGLE_TAP_DELAY_MS/, "old delayed-single constant is removed");
+assert.doesNotMatch(gameSource, /clearTouchSingle\(zone\)/, "old single-tap cancellation helper is removed");
 assert.match(gameSource, /LEFT_DOUBLE_HOLD/, "input debugger names left double-hold gestures");
 assert.match(gameSource, /RIGHT_DOUBLE_HOLD/, "input debugger names right double-hold gestures");
 assert.match(gameSource, /isTriceratopsInputDebugMode/, "staging input debugger is gated behind query/debug environment");
+assert.match(gameSource, /InputDebugSnapshot/, "staging input debugger keeps structured input state");
+assert.match(gameSource, /LAST INPUT:/, "staging input debugger shows the last input");
+assert.match(gameSource, /Tap interval:/, "staging input debugger shows tap interval");
+assert.match(gameSource, /Hold duration:/, "staging input debugger shows hold duration");
+assert.match(gameSource, /getActionState: \(\) => this\.currentDinoState/, "input debugger reads the current player action state");
 assert.doesNotMatch(gameSource, /onLostPointerCapture/, "lost pointer capture no longer cancels valid phone taps");
 assert.match(gameSource, /navigator\.vibrate/, "mobile unlock/action haptics are wired");
 assert.match(gameSource, /keydown-SPACE/, "desktop Space triggers normal jump");
@@ -148,6 +157,12 @@ assert.match(gameSource, /this\.player = .*\.setDepth\(12\)/, "dino renders abov
 assert.match(gameSource, /this\.ground = .*\.setDepth\(3\)/, "ground stays behind the dino");
 assert.match(gameSource, /this\.foregroundLayer = .*\.setDepth\(4\)/, "foreground no longer hides the dino");
 assert.match(gameSource, /groundY \+ 41, width, 34, "stage-front"/, "foreground art is lowered below the dino legs");
+assert.match(gameConfigSource, /groundColliderOffsetY: 4/, "ground collider is offset to visually align the dino feet");
+assert.match(gameConfigSource, /groundColliderHeight: 32/, "ground collider has an explicit visible-footing height");
+assert.match(gameSource, /playerBaselineY\(\)/, "player baseline is computed from sprite frame and physics body");
+assert.match(gameSource, /this\.player\.setPosition\(triceratopsGameConfig\.world\.playerX, this\.playerBaselineY\(\)\)/, "respawns use the computed player baseline");
+assert.match(gameSource, /jumpAirActionUsed/, "air jump upgrades are limited by explicit state");
+assert.match(gameSource, /isGrounded\(body/, "movement and action checks use a shared grounded helper");
 assert.match(gameSource, /item\.script\.requiredAction !== "smash"/, "smash checks only smash-required obstacles");
 assert.match(gameSource, /actionClearsObstacle/, "collision resolution uses required action");
 assert.match(gameSource, /action === "slide"/, "slide gates overhead obstacles");
@@ -177,11 +192,26 @@ assert.match(cssSource, /\.backlot-sync-note[\s\S]*position: relative/, "local s
 assert.match(cssSource, /\.backlot-sync-note[\s\S]*pointer-events: none/, "local score notice cannot trap replay/exit taps");
 assert.match(cssSource, /triceratops-input-debug/, "staging input debug overlay is styled");
 assert.match(cssSource, /triceratops-rampage-meter/, "rampage meter UI remains available");
+assert.match(cssSource, /height: 100dvh/, "fullscreen game stage uses dynamic viewport height");
+assert.match(cssSource, /max-height: 100dvh/, "fullscreen game stage cannot exceed the visual viewport");
+assert.match(cssSource, /max-height: 360px/, "extra-short landscape phones receive compact start-screen typography");
+assert.match(cssSource, /min\(8\.4vw, 17dvh\)/, "start title scales by both width and height");
+
+assert.match(gameConfigSource, /slide-second-light/, "scene includes the second object in a slide sequence");
+assert.match(gameConfigSource, /Stay low through both/, "scene teaches the two-object slide sequence");
+assert.match(gameConfigSource, /Golden Film Frame/, "scene includes a special rare pickup");
+assert.match(gameConfigSource, /rare pickup/, "scene telegraphs the special pickup");
+assert.match(gameConfigSource, /combo-smash-wall/, "scene includes a smash-to-combo obstacle");
+assert.match(gameConfigSource, /combo-long-gap/, "scene includes a long-jump combo followup");
+assert.match(gameSource, /object\.setScale\(1\.55, 1\)/, "long gaps are visually wider than normal obstacles");
+assert.match(gameSource, /body\?\.setSize\(90, 10\)/, "long gap physics matches its wider visual lane");
 
 assert.doesNotMatch(audioSource, /"charge"/, "audio engine no longer exposes removed charge sounds");
 assert.match(audioSource, /"objectBreak"|"chain"|"rampageStart"|"finale"/, "audio engine exposes rampage and destruction-chain cues");
 
 assert.equal(fullscreenCanvasFits(568, 320), true, "small landscape phone viewport fits the game canvas");
+assert.equal(fullscreenCanvasFits(800, 320), true, "extra-short QA landscape viewport 800x320 fits the game canvas");
+assert.equal(fullscreenCanvasFits(844, 340), true, "extra-short QA landscape viewport 844x340 fits the game canvas");
 assert.equal(fullscreenCanvasFits(800, 360), true, "QA landscape viewport 800x360 fits the game canvas");
 assert.equal(fullscreenCanvasFits(844, 390), true, "modern landscape phone viewport fits the game canvas");
 assert.equal(fullscreenCanvasFits(915, 412), true, "QA landscape viewport 915x412 fits the game canvas");
