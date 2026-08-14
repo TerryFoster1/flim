@@ -106,6 +106,7 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
   const audioRef = useRef<RetroAudioEngine | null>(null);
   const countdownTimersRef = useRef<number[]>([]);
   const gameOverSentRef = useRef(false);
+  const pausedByOrientationRef = useRef(false);
   const { isPortrait, isLandscape, snapshot: orientationSnapshot } = useBacklotOrientation();
   const [phase, setPhase] = useState<"start" | "intro" | "running" | "complete" | "over">("start");
   const [syncStatus, setSyncStatus] = useState("");
@@ -139,10 +140,20 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
     setFullscreenAvailable(supportsFullscreen(shellRef.current));
   }, []);
 
+  function refreshPhaserScale() {
+    const refresh = () => {
+      gameRef.current?.scale.resize(triceratopsGameConfig.world.width, triceratopsGameConfig.world.height);
+      gameRef.current?.scale.refresh();
+      window.dispatchEvent(new Event("resize"));
+    };
+
+    refresh();
+    window.requestAnimationFrame(refresh);
+    window.setTimeout(refresh, 180);
+  }
+
   useEffect(() => {
-    gameRef.current?.scale.resize(triceratopsGameConfig.world.width, triceratopsGameConfig.world.height);
-    gameRef.current?.scale.refresh();
-    window.dispatchEvent(new Event("resize"));
+    refreshPhaserScale();
   }, [orientationSnapshot.width, orientationSnapshot.height]);
 
   useEffect(() => {
@@ -152,9 +163,18 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
       setPhase("start");
     }
     if (isPortrait && phase === "running" && !paused) {
+      pausedByOrientationRef.current = true;
       bridgeRef.current?.pauseRun();
     }
-  }, [isPortrait, paused, phase]);
+    if (isLandscape && phase === "running" && paused && pausedByOrientationRef.current) {
+      pausedByOrientationRef.current = false;
+      bridgeRef.current?.pauseRun();
+      refreshPhaserScale();
+    }
+    if (isLandscape && phase !== "running") {
+      pausedByOrientationRef.current = false;
+    }
+  }, [isPortrait, isLandscape, paused, phase, orientationSnapshot.width, orientationSnapshot.height]);
 
   useEffect(() => {
     let activeGame: Phaser.Game | null = null;

@@ -7,6 +7,8 @@ export type BacklotOrientationSnapshot = {
   orientationAngle?: number;
 };
 
+export const BACKLOT_ORIENTATION_SETTLE_DELAYS_MS = [120, 320, 640] as const;
+
 export function getBacklotOrientationSnapshot(win: Window = window): BacklotOrientationSnapshot {
   const visualViewport = win.visualViewport;
   const width = Math.round(visualViewport?.width || win.innerWidth || 0);
@@ -42,6 +44,7 @@ export function useBacklotOrientation() {
 
   useEffect(() => {
     let frame = 0;
+    const timers: number[] = [];
 
     function update() {
       window.cancelAnimationFrame(frame);
@@ -50,18 +53,26 @@ export function useBacklotOrientation() {
       });
     }
 
+    function updateWithSettlePasses() {
+      update();
+      BACKLOT_ORIENTATION_SETTLE_DELAYS_MS.forEach((delay) => {
+        timers.push(window.setTimeout(update, delay));
+      });
+    }
+
     update();
-    window.addEventListener("resize", update);
-    window.addEventListener("orientationchange", update);
-    window.visualViewport?.addEventListener("resize", update);
-    window.screen?.orientation?.addEventListener?.("change", update);
+    window.addEventListener("resize", updateWithSettlePasses);
+    window.addEventListener("orientationchange", updateWithSettlePasses);
+    window.visualViewport?.addEventListener("resize", updateWithSettlePasses);
+    window.screen?.orientation?.addEventListener?.("change", updateWithSettlePasses);
 
     return () => {
       window.cancelAnimationFrame(frame);
-      window.removeEventListener("resize", update);
-      window.removeEventListener("orientationchange", update);
-      window.visualViewport?.removeEventListener("resize", update);
-      window.screen?.orientation?.removeEventListener?.("change", update);
+      timers.forEach((timer) => window.clearTimeout(timer));
+      window.removeEventListener("resize", updateWithSettlePasses);
+      window.removeEventListener("orientationchange", updateWithSettlePasses);
+      window.visualViewport?.removeEventListener("resize", updateWithSettlePasses);
+      window.screen?.orientation?.removeEventListener?.("change", updateWithSettlePasses);
     };
   }, []);
 

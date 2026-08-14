@@ -247,10 +247,17 @@ assert.match(orientationSource, /width > snapshot\.height/, "Backlot orientation
 assert.match(orientationSource, /visualViewport\?\.addEventListener\(\"resize\"/, "Backlot orientation listens to visual viewport resize");
 assert.match(orientationSource, /orientationchange/, "Backlot orientation listens to physical orientation changes");
 assert.match(orientationSource, /screen\?\.orientation\?\.addEventListener\?\.\(\"change\"/, "Backlot orientation listens to screen orientation as a supplement");
+assert.match(orientationSource, /BACKLOT_ORIENTATION_SETTLE_DELAYS_MS/, "Backlot orientation rechecks settled mobile viewport dimensions after rotation");
+assert.match(orientationSource, /setTimeout\(update, delay\)/, "Backlot orientation schedules delayed settle passes after orientation events");
 assert.match(cssSource, /orientation: portrait/, "portrait phones get a rotate-device gate");
 assert.match(gameSource, /bridgeRef\.current\?\.pauseRun\(\)/, "game pauses when the orientation gate returns during play");
+assert.match(gameSource, /pausedByOrientationRef\.current = true/, "orientation-caused pauses are tracked separately from user pauses");
+assert.match(gameSource, /isLandscape && phase === "running" && paused && pausedByOrientationRef\.current/, "portrait-to-landscape transition resumes an orientation-paused run");
+assert.match(gameSource, /refreshPhaserScale\(\)/, "TRICERATOPS has a shared Phaser resize refresh helper");
 assert.match(gameSource, /gameRef\.current\?\.scale\.resize/, "Phaser scale is refreshed after orientation changes");
 assert.match(gameSource, /gameRef\.current\?\.scale\.refresh/, "Phaser scale manager refreshes after orientation changes");
+assert.match(gameSource, /requestAnimationFrame\(refresh\)/, "Phaser resize runs after the browser applies landscape layout");
+assert.match(gameSource, /setTimeout\(refresh, 180\)/, "Phaser resize runs a delayed pass for mobile browser toolbar settling");
 assert.match(gameSource, /orientation\.lock\("landscape"\)/, "landscape lock is attempted only as a best-effort enhancement");
 assert.match(gameSource, /setPhase\("start"\)/, "intro countdown returns to start if portrait gate appears");
 assert.equal(JSON.parse(manifestSource).orientation, "any", "web PWA manifest does not globally force portrait");
