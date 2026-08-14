@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type PointerEvent } from "react";
-import { useBacklotOrientation } from "../../backlot/orientation";
+import { getBacklotOrientationSnapshot, isBacklotLandscape, subscribeBacklotOrientationChanges, useBacklotOrientation } from "../../backlot/orientation";
 import { recordBacklotGameOver, recordBacklotLaunch } from "../../services/backlotService";
 import {
   TRICERATOPS_GAME_ID,
@@ -28,6 +28,7 @@ type GameBridge = {
   startRun: () => void;
   restartRun: () => void;
   pauseRun: () => void;
+  setPaused: (paused: boolean) => void;
 };
 
 type LockableScreenOrientation = ScreenOrientation & {
@@ -90,6 +91,12 @@ const OBJECT_FRAME: Record<TriceratopsScriptEvent["kind"] | "impact_star" | "pix
   pixel_dust: 10,
 };
 
+const TRICERATOPS_ART_VERSION = "2026-08-14-retro-v2";
+
+function assetUrl(fileName: string) {
+  return `${ASSET_BASE}/${fileName}?v=${TRICERATOPS_ART_VERSION}`;
+}
+
 function supportsFullscreen(element: HTMLElement | null) {
   return Boolean(element?.requestFullscreen);
 }
@@ -107,6 +114,8 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
   const countdownTimersRef = useRef<number[]>([]);
   const gameOverSentRef = useRef(false);
   const pausedByOrientationRef = useRef(false);
+  const phaseRef = useRef<"start" | "intro" | "running" | "complete" | "over">("start");
+  const pausedRef = useRef(false);
   const { isPortrait, isLandscape, snapshot: orientationSnapshot } = useBacklotOrientation();
   const [phase, setPhase] = useState<"start" | "intro" | "running" | "complete" | "over">("start");
   const [syncStatus, setSyncStatus] = useState("");
@@ -115,7 +124,16 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
   const [lastResult, setLastResult] = useState<TriceratopsResult | null>(null);
   const [countdown, setCountdown] = useState<string | null>(null);
   const [paused, setPaused] = useState(false);
+  const [forcePortraitGate, setForcePortraitGate] = useState(false);
   const [audioMuted, setAudioMuted] = useState(false);
+
+  useEffect(() => {
+    phaseRef.current = phase;
+  }, [phase]);
+
+  useEffect(() => {
+    pausedRef.current = paused;
+  }, [paused]);
 
   useEffect(() => {
     const engine = createRetroAudioEngine();
@@ -156,22 +174,56 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
     refreshPhaserScale();
   }, [orientationSnapshot.width, orientationSnapshot.height]);
 
-  useEffect(() => {
-    if (isPortrait && phase === "intro") {
+  function pauseForOrientationGate() {
+    const activePhase = phaseRef.current;
+    if (activePhase === "intro") {
       clearCountdownTimers();
       setCountdown(null);
       setPhase("start");
     }
-    if (isPortrait && phase === "running" && !paused) {
+    if (activePhase === "running" && !pausedRef.current) {
       pausedByOrientationRef.current = true;
-      bridgeRef.current?.pauseRun();
+      bridgeRef.current?.setPaused(true);
     }
-    if (isLandscape && phase === "running" && paused && pausedByOrientationRef.current) {
+  }
+
+  function resumeAfterOrientationGate() {
+    setForcePortraitGate(false);
+    if (phaseRef.current === "running" && pausedRef.current && pausedByOrientationRef.current) {
       pausedByOrientationRef.current = false;
-      bridgeRef.current?.pauseRun();
+      bridgeRef.current?.setPaused(false);
       refreshPhaserScale();
     }
+    if (phaseRef.current !== "running") {
+      pausedByOrientationRef.current = false;
+    }
+  }
+
+  useEffect(() => {
+    const unsubscribe = subscribeBacklotOrientationChanges(() => {
+      const nextSnapshot = getBacklotOrientationSnapshot();
+      if (isBacklotLandscape(nextSnapshot)) {
+        resumeAfterOrientationGate();
+        return;
+      }
+      setForcePortraitGate(true);
+      pauseForOrientationGate();
+    });
+
+    return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    if (isPortrait) {
+      setForcePortraitGate(true);
+      pauseForOrientationGate();
+      return;
+    }
+    if (isLandscape && phase === "running" && paused && pausedByOrientationRef.current) {
+      resumeAfterOrientationGate();
+    }
     if (isLandscape && phase !== "running") {
+      setForcePortraitGate(false);
       pausedByOrientationRef.current = false;
     }
   }, [isPortrait, isLandscape, paused, phase, orientationSnapshot.width, orientationSnapshot.height]);
@@ -257,17 +309,17 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
         }
 
         preload() {
-          this.load.spritesheet(DINO_SHEET_KEY, `${ASSET_BASE}/triceratops-dino-sheet.png`, {
+          this.load.spritesheet(DINO_SHEET_KEY, assetUrl("triceratops-dino-sheet.png"), {
             frameWidth: 80,
             frameHeight: 64,
           });
-          this.load.spritesheet(OBJECT_ATLAS_KEY, `${ASSET_BASE}/triceratops-object-atlas.png`, {
+          this.load.spritesheet(OBJECT_ATLAS_KEY, assetUrl("triceratops-object-atlas.png"), {
             frameWidth: 48,
             frameHeight: 64,
           });
-          this.load.image("stage-far", `${ASSET_BASE}/triceratops-bg-far.png`);
-          this.load.image("stage-mid", `${ASSET_BASE}/triceratops-bg-mid.png`);
-          this.load.image("stage-front", `${ASSET_BASE}/triceratops-foreground-tiles.png`);
+          this.load.image("stage-far", assetUrl("triceratops-bg-far.png"));
+          this.load.image("stage-mid", assetUrl("triceratops-bg-mid.png"));
+          this.load.image("stage-front", assetUrl("triceratops-foreground-tiles.png"));
         }
 
         create() {
@@ -291,6 +343,7 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
             startRun: () => this.startRun(),
             restartRun: () => this.resetRun(),
             pauseRun: () => this.togglePause(),
+            setPaused: (paused) => this.setRunPaused(paused),
           };
 
           window.dispatchEvent(new CustomEvent<SceneMessage>("triceratops:scene", { detail: { type: "ready" } }));
@@ -732,12 +785,16 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
         }
 
         private togglePause() {
+          this.setRunPaused(this.state !== "paused");
+        }
+
+        private setRunPaused(paused: boolean) {
           if (this.state !== "running" && this.state !== "paused") return;
-          if (this.state === "paused") {
+          if (!paused && this.state === "paused") {
             this.state = "running";
             this.scene.resume();
             this.emitPause(false);
-          } else {
+          } else if (paused && this.state === "running") {
             this.state = "paused";
             this.scene.pause();
             this.emitPause(true);
@@ -904,7 +961,7 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
       <div className="triceratops-stage" aria-label="TRICERATOPS playable game">
         <div ref={hostRef} className="triceratops-game-canvas" />
 
-        {isPortrait ? (
+        {isPortrait || forcePortraitGate ? (
           <div className="triceratops-orientation-gate" role="status" aria-live="polite">
             <div className="phone-rotate-icon" aria-hidden="true">
               <span />
@@ -917,7 +974,7 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
           </div>
         ) : null}
 
-        {!isPortrait && phase === "start" ? (
+        {!isPortrait && !forcePortraitGate && phase === "start" ? (
           <div className="triceratops-start-screen">
             <button className="triceratops-exit" onClick={exitGame} type="button">
               Exit

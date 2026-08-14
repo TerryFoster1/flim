@@ -249,8 +249,12 @@ assert.match(orientationSource, /orientationchange/, "Backlot orientation listen
 assert.match(orientationSource, /screen\?\.orientation\?\.addEventListener\?\.\(\"change\"/, "Backlot orientation listens to screen orientation as a supplement");
 assert.match(orientationSource, /BACKLOT_ORIENTATION_SETTLE_DELAYS_MS/, "Backlot orientation rechecks settled mobile viewport dimensions after rotation");
 assert.match(orientationSource, /setTimeout\(update, delay\)/, "Backlot orientation schedules delayed settle passes after orientation events");
+assert.match(orientationSource, /subscribeBacklotOrientationChanges/, "Backlot orientation exposes an imperative rotation signal for live games");
 assert.match(cssSource, /orientation: portrait/, "portrait phones get a rotate-device gate");
-assert.match(gameSource, /bridgeRef\.current\?\.pauseRun\(\)/, "game pauses when the orientation gate returns during play");
+assert.match(gameSource, /forcePortraitGate/, "game can show the rotate gate immediately before React orientation state settles");
+assert.match(gameSource, /bridgeRef\.current\?\.setPaused\(true\)/, "landscape-to-portrait transition explicitly pauses the run");
+assert.match(gameSource, /bridgeRef\.current\?\.setPaused\(false\)/, "portrait-to-landscape transition explicitly resumes only orientation-paused runs");
+assert.match(gameSource, /setPaused: \(paused\) => this\.setRunPaused\(paused\)/, "game bridge supports explicit pause state instead of orientation pause toggles");
 assert.match(gameSource, /pausedByOrientationRef\.current = true/, "orientation-caused pauses are tracked separately from user pauses");
 assert.match(gameSource, /isLandscape && phase === "running" && paused && pausedByOrientationRef\.current/, "portrait-to-landscape transition resumes an orientation-paused run");
 assert.match(gameSource, /refreshPhaserScale\(\)/, "TRICERATOPS has a shared Phaser resize refresh helper");
@@ -262,6 +266,8 @@ assert.match(gameSource, /orientation\.lock\("landscape"\)/, "landscape lock is 
 assert.match(gameSource, /setPhase\("start"\)/, "intro countdown returns to start if portrait gate appears");
 assert.equal(JSON.parse(manifestSource).orientation, "any", "web PWA manifest does not globally force portrait");
 assert.match(gameSource, /activeGame\?\.destroy\(true\)/, "Phaser instance is destroyed during React cleanup");
+assert.match(gameSource, /TRICERATOPS_ART_VERSION/, "TRICERATOPS runtime art URLs are versioned to avoid stale PWA/browser cache");
+assert.match(gameSource, /assetUrl\("triceratops-dino-sheet\.png"\)/, "dino sheet loads through the versioned asset URL helper");
 
 assert.equal(
   validateResultPayload({

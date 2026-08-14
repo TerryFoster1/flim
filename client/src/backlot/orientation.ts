@@ -8,6 +8,7 @@ export type BacklotOrientationSnapshot = {
 };
 
 export const BACKLOT_ORIENTATION_SETTLE_DELAYS_MS = [120, 320, 640] as const;
+export const BACKLOT_ORIENTATION_EVENTS = ["resize", "orientationchange"] as const;
 
 export function getBacklotOrientationSnapshot(win: Window = window): BacklotOrientationSnapshot {
   const visualViewport = win.visualViewport;
@@ -32,6 +33,29 @@ export function isBacklotLandscape(snapshot: BacklotOrientationSnapshot) {
   if (snapshot.orientationType?.includes("portrait")) return false;
 
   return true;
+}
+
+export function subscribeBacklotOrientationChanges(onChange: () => void) {
+  if (typeof window === "undefined") return () => undefined;
+
+  const timers: number[] = [];
+  const run = () => {
+    onChange();
+    BACKLOT_ORIENTATION_SETTLE_DELAYS_MS.forEach((delay) => {
+      timers.push(window.setTimeout(onChange, delay));
+    });
+  };
+
+  BACKLOT_ORIENTATION_EVENTS.forEach((eventName) => window.addEventListener(eventName, run));
+  window.visualViewport?.addEventListener("resize", run);
+  window.screen?.orientation?.addEventListener?.("change", run);
+
+  return () => {
+    timers.forEach((timer) => window.clearTimeout(timer));
+    BACKLOT_ORIENTATION_EVENTS.forEach((eventName) => window.removeEventListener(eventName, run));
+    window.visualViewport?.removeEventListener("resize", run);
+    window.screen?.orientation?.removeEventListener?.("change", run);
+  };
 }
 
 export function useBacklotOrientation() {
