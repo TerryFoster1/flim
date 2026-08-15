@@ -2028,20 +2028,19 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
             </div>
             {paused ? (
               <div className="triceratops-pause-menu" role="dialog" aria-modal="true" aria-label="TRICERATOPS pause menu">
-                <p className="triceratops-kicker">Paused</p>
-                <h2>Hold for Picture</h2>
+                <h2>PAUSED</h2>
                 <div className="triceratops-end-actions">
                   <button className="triceratops-play-button" onClick={() => bridgeRef.current?.pauseRun()} type="button">
-                    Resume
+                    RESUME
                   </button>
                   <button className="triceratops-sound-button" onClick={toggleAudio} type="button">
                     {audioMuted ? "Sound Off" : "Sound On"}
                   </button>
                   <button className="secondary-button compact" onClick={restartGame} type="button">
-                    Restart
+                    RESTART
                   </button>
                   <button className="secondary-button compact" onClick={exitGame} type="button">
-                    Exit
+                    EXIT TO BACKLOT
                   </button>
                 </div>
               </div>
