@@ -121,6 +121,29 @@ assert.match(gameConfigSource, /startingLives: 3/, "scene starts with 3 old-scho
 assert.match(gameConfigSource, /TRICERATOPS_LEVEL_CONFIG_VERSION/, "scene has a level config version for live verification");
 assert.match(gameConfigSource, /TRICERATOPS_GROUND_Y/, "scene has a canonical ground Y");
 assert.match(gameConfigSource, /triceratopsShowcaseTimeline/, "scene has a deterministic showcase debug timeline");
+const normalQaOrder = [
+  "first-striped-barrier",
+  "first-film-reel",
+  "early-dumpster-platform",
+  "dumpster-film-reel",
+  "one-up-high",
+  "first-visible-pit",
+  "tour-tram-platform",
+  "breakaway-wall",
+  "overhead-slide-hazard",
+  "long-jump-training-pit",
+  "rampage-barrier-one",
+  "rampage-camera-two",
+  "rampage-crate-three",
+  "rampage-light-four",
+  "rampage-wall-five",
+];
+let previousNormalIndex = -1;
+for (const id of normalQaOrder) {
+  const index = gameConfigSource.indexOf(`id: "${id}"`);
+  assert.ok(index > previousNormalIndex, `normal scene 1 QA lane includes ${id} in the first traversal sequence`);
+  previousNormalIndex = index;
+}
 const showcaseOrder = [
   "showcase-striped-barrier",
   "showcase-dumpster",
@@ -145,8 +168,8 @@ assert.match(gameConfigSource, /bypassesHazards: false/, "rampage does not bypas
 assert.match(gameConfigSource, /normalJumpVelocity/, "normal jump has distinct tuning");
 assert.match(gameConfigSource, /highJumpVelocity/, "high jump has distinct tuning");
 assert.match(gameConfigSource, /longJumpVelocity/, "long jump has distinct tuning");
-assert.match(gameConfigSource, /longJumpMs: 980/, "long jump has visibly longer airtime");
-assert.match(gameConfigSource, /longJumpSpeedMultiplier: 1\.46/, "long jump has visibly longer horizontal reach");
+assert.match(gameConfigSource, /longJumpMs: 640/, "long jump has capped but visibly longer airtime");
+assert.match(gameConfigSource, /longJumpSpeedMultiplier: 1\.58/, "long jump has visibly longer horizontal reach");
 assert.match(gameConfigSource, /slideMs/, "slide has a defined duration");
 assert.match(gameConfigSource, /attack:[\s\S]*activeMs: 260/, "horn smash has a short timing window");
 assert.match(gameConfigSource, /hitboxWidth: 74/, "horn hitbox is intentionally short");
@@ -168,14 +191,28 @@ assert.match(gameSource, /clearTouchResolve\(zone\)/, "touch resolution timers a
 assert.match(gameSource, /scheduleTouchResolve\(zone\)/, "single taps resolve after the double-tap window");
 assert.doesNotMatch(gameSource, /TOUCH_SINGLE_TAP_DELAY_MS/, "old delayed-single constant is removed");
 assert.doesNotMatch(gameSource, /clearTouchSingle\(zone\)/, "old single-tap cancellation helper is removed");
-assert.match(gameSource, /LEFT_DOUBLE_HOLD/, "input debugger names left double-hold gestures");
-assert.match(gameSource, /RIGHT_DOUBLE/, "input debugger names right double-tap slide\/rampage gestures");
+for (const inputLabel of [
+  "LEFT_JUMP",
+  "LEFT_SECOND_TAP",
+  "LEFT_SECOND_HOLD",
+  "HIGH_JUMP",
+  "LONG_JUMP",
+  "RIGHT_SMASH",
+  "RIGHT_DOUBLE",
+  "SLIDE",
+  "RAMPAGE_ACTIVATE",
+]) {
+  assert.match(gameSource, new RegExp(inputLabel), `input debugger names ${inputLabel}`);
+}
+assert.doesNotMatch(gameSource, /LEFT_DOUBLE_HOLD|RIGHT_DOUBLE_HOLD|LEFT_SINGLE|RIGHT_SINGLE/, "input debugger no longer emits old gesture names");
 assert.match(gameSource, /isTriceratopsInputDebugMode/, "staging input debugger is gated behind query/debug environment");
 assert.match(gameSource, /InputDebugSnapshot/, "staging input debugger keeps structured input state");
 assert.match(gameSource, /LAST INPUT:/, "staging input debugger shows the last input");
-assert.match(gameSource, /Tap interval:/, "staging input debugger shows tap interval");
+assert.match(gameSource, /first \$\{firstTouchAtMs/, "staging input debugger shows the first touch timestamp");
+assert.match(gameSource, /interval \$\{tapIntervalMs/, "staging input debugger shows second-touch interval");
 assert.match(gameSource, /Hold duration:/, "staging input debugger shows hold duration");
 assert.match(gameSource, /getActionState: \(\) => this\.currentDinoState/, "input debugger reads the current player action state");
+assert.doesNotMatch(gameSource, /holdAction === "slide"/, "right double-tap slide is timed and no longer cancelled on pointer-up");
 assert.doesNotMatch(gameSource, /onLostPointerCapture/, "lost pointer capture no longer cancels valid phone taps");
 assert.match(gameSource, /navigator\.vibrate/, "mobile unlock/action haptics are wired");
 assert.match(gameSource, /keydown-SPACE/, "desktop Space triggers normal jump");
@@ -195,9 +232,11 @@ assert.match(gameSource, /this\.lives -= 1/, "mistakes remove lives");
 assert.match(gameSource, /this\.lives <= 0/, "game over waits for zero lives");
 assert.match(gameSource, /invulnerableUntil/, "post-hit invulnerability exists");
 assert.match(gameSource, /this\.player = .*\.setOrigin\(0\.5, 1\)\.setDepth\(12\)/, "dino renders above ground and is anchored by its feet");
-assert.match(gameSource, /this\.ground = .*\.setDepth\(3\)/, "ground stays behind the dino");
-assert.match(gameSource, /this\.foregroundLayer = this\.add[\s\S]*?\.setDepth\(4\)/, "foreground no longer hides the dino");
+assert.match(gameSource, /setDepth\(2\)/, "ground stays behind the dino");
+assert.match(gameSource, /this\.foregroundLayer = this\.add[\s\S]*?\.setDepth\(3\)/, "foreground no longer hides the dino");
 assert.match(gameSource, /groundY \+ groundLayerHeight \/ 2, width, groundLayerHeight, "stage-front"/, "foreground art uses one coherent ground layer");
+assert.doesNotMatch(gameSource, /stage-mid|midLayer/, "runtime no longer loads or renders the old translucent midground duplicate");
+assert.doesNotMatch(gameSource, /tilePositionX/, "background layers no longer parallax-scroll into duplicate seams");
 assert.match(gameConfigSource, /groundColliderOffsetY: 0/, "ground collider uses the canonical ground baseline");
 assert.match(gameConfigSource, /groundColliderHeight: 32/, "ground collider has an explicit visible-footing height");
 assert.match(gameSource, /return triceratopsGameConfig\.world\.groundY/, "player baseline uses the canonical ground Y");
@@ -251,7 +290,7 @@ assert.match(gameSource, /hasSlideHazard/, "level debug reports slide hazard vis
 assert.match(gameSource, /hasBoss/, "level debug reports boss visibility");
 assert.match(gameSource, /TRICERATOPS BUILD COMMIT/, "level debug panel renders the served build commit");
 assert.match(cssSource, /triceratops-level-debug/, "staging level debug overlay is styled");
-assert.match(swSource, /flim-shell-v8-triceratops-live-layering/, "service worker cache version is bumped for the Triceratops integration");
+assert.match(swSource, /flim-shell-v9-triceratops-traversal-reset/, "service worker cache version is bumped for the Triceratops integration");
 assert.match(swSource, /\/backlot\/triceratops\//, "service worker bypasses cached Triceratops assets");
 assert.match(swSource, /cache: "no-store"/, "service worker fetches Triceratops assets without stale cache reuse");
 assert.match(viteConfigSource, /__FLIM_GIT_COMMIT__/, "Vite exposes build commit to the game debug overlay");
@@ -263,8 +302,8 @@ assert.match(cssSource, /max-height: 100dvh/, "fullscreen game stage cannot exce
 assert.match(cssSource, /max-height: 360px/, "extra-short landscape phones receive compact start-screen typography");
 assert.match(cssSource, /min\(8\.4vw, 17dvh\)/, "start title scales by both width and height");
 
-assert.match(gameConfigSource, /slide-second-light/, "scene includes the second object in a slide sequence");
-assert.match(gameConfigSource, /Stay low through both/, "scene teaches the two-object slide sequence");
+assert.match(gameConfigSource, /overhead-slide-hazard/, "scene includes an obvious overhead slide hazard");
+assert.match(gameConfigSource, /Double tap right to slide/, "scene teaches the double-right slide sequence");
 assert.match(gameConfigSource, /Golden Film Frame/, "scene includes a special rare pickup");
 assert.match(gameConfigSource, /rare pickup/, "scene telegraphs the special pickup");
 assert.match(gameConfigSource, /combo-smash-wall/, "scene includes a smash-to-combo obstacle");
@@ -281,8 +320,9 @@ assert.match(gameSource, /damageBoss/, "boss weak point can be damaged");
 assert.match(gameSource, /requiredAction: "bossRearRam"/, "boss weak point uses rear-ram smash input");
 assert.match(gameSource, /Rampage ready! Double tap right/, "rampage readiness is tied to double-right input");
 assert.match(gameSource, /const rampageStarted = bridgeRef\.current\?\.activateRampage/, "right double tap attempts rampage before slide");
-assert.match(gameSource, /object\.setScale\(1\.7, 1\)/, "long gaps are visually wider than normal obstacles");
-assert.match(gameSource, /body\?\.setSize\(90, 10\)/, "long gap physics matches its wider visual lane");
+assert.match(gameConfigSource, /boss:[\s\S]*arenaDistance: 9200/, "boss is moved later than the phone QA traversal lane");
+assert.match(gameSource, /object\.setScale\(isLongJumpPit \? 2\.45 : 1\.45, 1\.08\)/, "long-jump pits are visually wider than normal gaps");
+assert.match(gameSource, /body\?\.setSize\(isLongJumpPit \? 128 : 74, 12\)/, "long-jump pit physics matches its wider visual lane");
 
 assert.doesNotMatch(audioSource, /"charge"/, "audio engine no longer exposes removed charge sounds");
 assert.match(audioSource, /"objectBreak"|"chain"|"rampageStart"|"finale"/, "audio engine exposes rampage and destruction-chain cues");

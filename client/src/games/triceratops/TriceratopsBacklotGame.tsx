@@ -56,7 +56,16 @@ type LockableScreenOrientation = ScreenOrientation & {
 
 type DinoState = "idle" | "run" | "normalJump" | "highJump" | "longJump" | "hornSmash" | "slide" | "hit" | "rampage" | "dead" | "victory";
 type TouchZoneName = "left" | "right";
-type TouchGestureLabel = "LEFT_SINGLE" | "LEFT_DOUBLE" | "LEFT_DOUBLE_HOLD" | "RIGHT_SINGLE" | "RIGHT_DOUBLE" | "RIGHT_DOUBLE_HOLD";
+type TouchGestureLabel =
+  | "LEFT_JUMP"
+  | "LEFT_SECOND_TAP"
+  | "LEFT_SECOND_HOLD"
+  | "HIGH_JUMP"
+  | "LONG_JUMP"
+  | "RIGHT_SMASH"
+  | "RIGHT_DOUBLE"
+  | "SLIDE"
+  | "RAMPAGE_ACTIVATE";
 type TouchGesturePhase = "IDLE" | "FIRST_TAP" | "SECOND_TOUCH" | "SECOND_HOLD" | "RESOLVED";
 
 type InputDebugSnapshot = {
@@ -98,7 +107,7 @@ type TouchZoneState = {
   resolveTimer: number | null;
   holdTimer: number | null;
   pointerId: number | null;
-  holdAction: "longJump" | "slide" | null;
+  holdAction: "longJump" | null;
   holdStartedAt: number;
 };
 
@@ -187,7 +196,7 @@ const OBJECT_FRAME: Record<TriceratopsScriptEvent["kind"] | "impact_star" | "pix
 declare const __FLIM_GIT_COMMIT__: string | undefined;
 
 const FLIM_BUILD_COMMIT = typeof __FLIM_GIT_COMMIT__ === "string" ? __FLIM_GIT_COMMIT__ : "local";
-const TRICERATOPS_ART_VERSION = "2026-08-15-retro-v5-live-layering";
+const TRICERATOPS_ART_VERSION = "2026-08-15-traversal-reset-v4";
 const TOUCH_DOUBLE_TAP_MS = 310;
 const TOUCH_HOLD_AFTER_SECOND_TAP_MS = 210;
 
@@ -431,8 +440,7 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
         private bossNextAttackAt = 0;
         private bossWeakPointActive = false;
         private bossHealthText: Phaser.GameObjects.Text | null = null;
-        private farLayer!: Phaser.GameObjects.TileSprite;
-        private midLayer!: Phaser.GameObjects.TileSprite;
+        private farLayer!: Phaser.GameObjects.Image;
         private foregroundLayer!: Phaser.GameObjects.TileSprite;
         private levelDebugGraphics: Phaser.GameObjects.Graphics | null = null;
         private hudText!: Phaser.GameObjects.Text;
@@ -505,7 +513,6 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
             frameHeight: 64,
           });
           this.load.image("stage-far", assetUrl("triceratops-bg-far.png"));
-          this.load.image("stage-mid", assetUrl("triceratops-bg-mid.png"));
           this.load.image("stage-front", assetUrl("triceratops-foreground-tiles.png"));
         }
 
@@ -572,14 +579,13 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
         private createWorld() {
           const { width, height, groundY, groundColliderOffsetY, groundColliderHeight } = triceratopsGameConfig.world;
           const groundLayerHeight = height - groundY;
-          this.farLayer = this.add.tileSprite(width / 2, height / 2, width, height, "stage-far").setDepth(0);
-          this.midLayer = this.add.tileSprite(width / 2, height / 2, width, height, "stage-mid").setDepth(1).setAlpha(0.22);
-          this.add.rectangle(width / 2, groundY + groundLayerHeight / 2, width, groundLayerHeight, 0x0b0b10, 0.92).setDepth(3);
+          this.farLayer = this.add.image(width / 2, height / 2, "stage-far").setDepth(0).setDisplaySize(width, height);
+          this.add.rectangle(width / 2, groundY + groundLayerHeight / 2, width, groundLayerHeight, 0x0b0b10, 0.92).setDepth(2);
           this.foregroundLayer = this.add
             .tileSprite(width / 2, groundY + groundLayerHeight / 2, width, groundLayerHeight, "stage-front")
-            .setDepth(4)
-            .setAlpha(0.88);
-          this.add.rectangle(width / 2, groundY, width, 2, 0xf5c16f, 0.2).setDepth(5);
+            .setDepth(3)
+            .setAlpha(1);
+          this.add.rectangle(width / 2, groundY, width, 2, 0xf5c16f, 0.2).setDepth(4);
           this.add.text(246, groundY - 92, "DO NOT FEED THE DINOSAUR", {
             color: "#ffe8a9",
             fontFamily: "monospace",
@@ -671,7 +677,6 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
             { key: DINO_SHEET_KEY, url: assetUrl("triceratops-dino-sheet.png"), label: "TRICERATOPS_PLAYER_TEXTURE" },
             { key: OBJECT_ATLAS_KEY, url: assetUrl("triceratops-object-atlas.png"), label: "TRICERATOPS_OBJECT_TEXTURE" },
             { key: "stage-far", url: assetUrl("triceratops-bg-far.png"), label: "TRICERATOPS_BACKGROUND_TEXTURE" },
-            { key: "stage-mid", url: assetUrl("triceratops-bg-mid.png"), label: "TRICERATOPS_MIDGROUND_TEXTURE" },
             { key: "stage-front", url: assetUrl("triceratops-foreground-tiles.png"), label: "TRICERATOPS_FOREGROUND_TEXTURE" },
           ].forEach((asset) => {
             const texture = this.textures.get(asset.key);
@@ -782,21 +787,17 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
           if (this.isSliding) return;
           const body = this.player.body as Phaser.Physics.Arcade.Body | undefined;
           const grounded = this.isGrounded(body);
-          if (!grounded && !this.jumpAirActionUsed && (this.currentDinoState === "normalJump" || this.currentDinoState === "highJump")) {
-            this.jumpAirActionUsed = true;
+          if (!grounded && this.time.now > this.longJumpUntil && (this.currentDinoState === "normalJump" || this.currentDinoState === "highJump")) {
             this.longJumpUntil = this.time.now + triceratopsGameConfig.world.longJumpMs;
             this.currentDinoState = "longJump";
-            this.player.setVelocityY(Math.min(body?.velocity.y ?? 0, -triceratopsGameConfig.world.longJumpVelocity * 0.72));
+            this.player.setVelocityY(Math.min(body?.velocity.y ?? 0, -triceratopsGameConfig.world.longJumpVelocity * 0.5));
             this.emitSfx("jump");
-            return;
           }
-          this.requestJump("longJump");
         }
 
         private endLongJump() {
           if (this.state !== "running") return;
-          if (this.time.now > this.longJumpUntil - 240) return;
-          this.longJumpUntil = Math.max(this.time.now + 140, this.longJumpUntil - 220);
+          this.longJumpUntil = Math.min(this.longJumpUntil, this.time.now + 80);
         }
 
         private requestSmash() {
@@ -865,16 +866,18 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
           const body = this.player.body as Phaser.Physics.Arcade.Body;
           const grounded = this.isGrounded(body);
           if (this.isSliding && time > this.slideUntil) this.endSlide();
+          const longJumpActive = time <= this.longJumpUntil && !grounded;
+          body.setAccelerationY(longJumpActive ? -triceratopsGameConfig.world.gravity * 0.42 : 0);
+          if (longJumpActive && body.velocity.y > 120) body.setVelocityY(120);
           if (grounded) {
             this.lastGroundedAt = time;
             this.jumpAirActionUsed = false;
+            this.longJumpUntil = 0;
+            body.setAccelerationY(0);
             if (!this.isSliding && body.height !== triceratopsGameConfig.world.playerBody.height) this.setStandingBody();
             this.tryJump();
           }
           this.player.x = triceratopsGameConfig.world.playerX;
-          this.farLayer.tilePositionX += speed * 0.06 * dt;
-          this.midLayer.tilePositionX += speed * 0.36 * dt;
-          this.foregroundLayer.tilePositionX += speed * 0.94 * dt;
           this.wrapLine.x = 110 + clamp(this.distance / triceratopsGameConfig.scene.targetDistance, 0, 1) * 260;
           if (time <= this.smashUntil) {
             this.smashHitbox.setPosition(this.player.x + 48, this.player.y + 8).setAlpha(0.18);
@@ -946,7 +949,11 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
           if (script.requiredAction === "collect") object.setTint(0x9fffd2);
           if (script.finale) object.setScale(1.1);
           if (script.telegraph === "rare pickup") object.setTint(0xffe8a9).setScale(1.18);
-          if (script.kind === "long_gap" || script.kind === "pit") object.setScale(1.7, 1);
+          if (script.kind === "long_gap" || script.kind === "pit") {
+            const isLongJumpPit = script.requiredAction === "longJump";
+            object.setScale(isLongJumpPit ? 2.45 : 1.45, 1.08);
+            object.setAlpha(0.98);
+          }
           if (script.kind === "tour_tram") object.setScale(script.platform ? 1.75 : 1.35, 0.82);
           if (script.kind === "dumpster") object.setScale(1.25, 0.78);
           if (script.kind === "striped_barrier") object.setScale(0.95, 0.85);
@@ -958,7 +965,10 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
           body?.setAllowGravity(false);
           if (script.kind === "jump_obstacle") body?.setSize(30, 13).setOffset(8, 12);
           if (script.kind === "high_barrier") body?.setSize(34, 42).setOffset(7, 12);
-          if (script.kind === "long_gap" || script.kind === "pit") body?.setSize(90, 10).setOffset(0, 38);
+          if (script.kind === "long_gap" || script.kind === "pit") {
+            const isLongJumpPit = script.requiredAction === "longJump";
+            body?.setSize(isLongJumpPit ? 128 : 74, 12).setOffset(0, 38);
+          }
           if (script.kind === "overhead_beam") body?.setSize(54, 22).setOffset(0, 8);
           if (script.kind === "striped_barrier") body?.setSize(34, 32).setOffset(7, 18);
           if (script.kind === "tour_tram") body?.setSize(script.platform ? 70 : 54, 24).setOffset(0, script.platform ? 28 : 26);
@@ -1859,7 +1869,8 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
     const holdDurationMs = holdStartedAt > 0 ? Math.max(0, Math.round(now - holdStartedAt)) : null;
     const phase = touchZonesRef.current[zone].phase;
     const playerAction = bridgeRef.current?.getActionState?.() ?? phaseRef.current;
-    const line = `LAST INPUT: ${label} | tap ${tapIntervalMs ?? "-"}ms | hold ${holdDurationMs ?? "-"}ms | action ${playerAction} | phase ${phase}`;
+    const firstTouchAtMs = startedAt > 0 ? Math.round(startedAt) : null;
+    const line = `LAST INPUT: ${label} | first ${firstTouchAtMs ?? "-"}ms | interval ${tapIntervalMs ?? "-"}ms | hold ${holdDurationMs ?? "-"}ms | action ${playerAction} | phase ${phase}`;
     setInputDebugSnapshot({
       lastInput: label,
       tapIntervalMs,
@@ -1914,11 +1925,11 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
       touchZone.holdAction = null;
       if (zone === "left") {
         bridgeRef.current?.normalJump();
-        emitInputDebug("LEFT_SINGLE", zone, now, now);
+        emitInputDebug("LEFT_JUMP", zone, now, now);
         vibrate(8);
       } else {
         bridgeRef.current?.hornSmash();
-        emitInputDebug("RIGHT_SINGLE", zone, now, now);
+        emitInputDebug("RIGHT_SMASH", zone, now, now);
         vibrate(10);
       }
       scheduleTouchResolve(zone);
@@ -1933,33 +1944,36 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
     if (zone === "left") {
       touchZone.holdAction = "longJump";
       bridgeRef.current?.highJump();
-      emitInputDebug("LEFT_DOUBLE", zone, touchZone.firstTapAt, now);
+      emitInputDebug("LEFT_SECOND_TAP", zone, touchZone.firstTapAt, now);
+      emitInputDebug("HIGH_JUMP", zone, touchZone.firstTapAt, now);
       vibrate(12);
       touchZone.holdTimer = window.setTimeout(() => {
         touchZone.holdTimer = null;
         touchZone.phase = "SECOND_HOLD";
         touchZone.holdStartedAt = window.performance.now();
         bridgeRef.current?.startLongJump();
-        emitInputDebug("LEFT_DOUBLE_HOLD", zone, touchZone.firstTapAt, touchZone.holdStartedAt, touchZone.secondTapAt);
+        emitInputDebug("LEFT_SECOND_HOLD", zone, touchZone.firstTapAt, touchZone.holdStartedAt, touchZone.secondTapAt);
+        emitInputDebug("LONG_JUMP", zone, touchZone.firstTapAt, touchZone.holdStartedAt, touchZone.secondTapAt);
         vibrate(18);
       }, TOUCH_HOLD_AFTER_SECOND_TAP_MS);
       return;
     }
 
     const rampageStarted = bridgeRef.current?.activateRampage() ?? false;
-    touchZone.phase = "SECOND_HOLD";
-    touchZone.holdAction = "slide";
-    touchZone.holdStartedAt = now;
+    touchZone.phase = "RESOLVED";
+    touchZone.holdAction = null;
+    touchZone.holdStartedAt = 0;
+    emitInputDebug("RIGHT_DOUBLE", zone, touchZone.firstTapAt, now);
     if (rampageStarted) {
-      emitInputDebug("RIGHT_DOUBLE", zone, touchZone.firstTapAt, now);
+      emitInputDebug("RAMPAGE_ACTIVATE", zone, touchZone.firstTapAt, now);
       vibrate([18, 28, 22]);
-      touchZone.phase = "RESOLVED";
       resetTouchZone(zone);
       return;
     }
     bridgeRef.current?.startSlide();
-    emitInputDebug("RIGHT_DOUBLE", zone, touchZone.firstTapAt, now);
+    emitInputDebug("SLIDE", zone, touchZone.firstTapAt, now);
     vibrate(18);
+    resetTouchZone(zone);
   }
 
   function handleTouchZoneUp(event: PointerEvent<HTMLButtonElement>, zone: TouchZoneName) {
@@ -1970,8 +1984,7 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
     if (touchZone.phase === "SECOND_HOLD") {
       const now = window.performance.now();
       if (touchZone.holdAction === "longJump") bridgeRef.current?.endLongJump();
-      if (touchZone.holdAction === "slide") bridgeRef.current?.endSlide();
-      emitInputDebug(touchZone.holdAction === "slide" ? "RIGHT_DOUBLE_HOLD" : "LEFT_DOUBLE_HOLD", zone, touchZone.firstTapAt, now, touchZone.holdStartedAt);
+      emitInputDebug("LONG_JUMP", zone, touchZone.firstTapAt, now, touchZone.holdStartedAt);
       touchZone.phase = "RESOLVED";
       resetTouchZone(zone);
     } else if (touchZone.phase === "SECOND_TOUCH") {
@@ -1987,7 +2000,6 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
     event.preventDefault();
     const touchZone = touchZonesRef.current[zone];
     if (touchZone.phase === "SECOND_HOLD" && touchZone.holdAction === "longJump") bridgeRef.current?.endLongJump();
-    if (touchZone.phase === "SECOND_HOLD" && touchZone.holdAction === "slide") bridgeRef.current?.endSlide();
     resetTouchZone(zone);
   }
 
