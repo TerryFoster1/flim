@@ -1,4 +1,4 @@
-const CACHE_NAME = "flim-shell-v7-triceratops-level-debug";
+const CACHE_NAME = "flim-shell-v8-triceratops-live-layering";
 const SHELL_ASSETS = ["/", "/manifest.json", "/favicon.png", "/brand/flim-icon-192.png", "/brand/flim-icon-512.png"];
 
 self.addEventListener("install", (event) => {

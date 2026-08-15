@@ -1,5 +1,5 @@
 export const TRICERATOPS_GAME_ID = "triceratops-backlot-runner";
-export const TRICERATOPS_LEVEL_CONFIG_VERSION = "2026-08-14-level-integration-v2";
+export const TRICERATOPS_LEVEL_CONFIG_VERSION = "2026-08-15-live-layering-v3";
 export const TRICERATOPS_GROUND_Y = 214;
 
 export type TriceratopsObstacleKind =
@@ -95,10 +95,10 @@ export const triceratopsGameConfig = {
     slideMs: 620,
     coyoteMs: 240,
     inputBufferMs: 420,
-    groundColliderOffsetY: 4,
+    groundColliderOffsetY: 0,
     groundColliderHeight: 32,
-    playerBody: { width: 30, height: 30, offsetX: 23, offsetY: 20 },
-    slideBody: { width: 34, height: 18, offsetX: 22, offsetY: 33 },
+    playerBody: { width: 30, height: 30, offsetX: 23, offsetY: 34 },
+    slideBody: { width: 34, height: 18, offsetX: 22, offsetY: 46 },
     spawnLeadDistance: 430,
     minimumReactionDistance: 430,
   },

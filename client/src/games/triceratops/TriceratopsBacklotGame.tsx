@@ -84,6 +84,8 @@ type LevelDebugSnapshot = {
   hasDumpster: boolean;
   hasOneUp: boolean;
   hasFilmReel: boolean;
+  hasBreakableWall: boolean;
+  hasSlideHazard: boolean;
   hasBoss: boolean;
   playerBounds: { x: number; y: number; width: number; height: number } | null;
   spriteBounds: { x: number; y: number; width: number; height: number } | null;
@@ -185,7 +187,7 @@ const OBJECT_FRAME: Record<TriceratopsScriptEvent["kind"] | "impact_star" | "pix
 declare const __FLIM_GIT_COMMIT__: string | undefined;
 
 const FLIM_BUILD_COMMIT = typeof __FLIM_GIT_COMMIT__ === "string" ? __FLIM_GIT_COMMIT__ : "local";
-const TRICERATOPS_ART_VERSION = "2026-08-14-retro-v4-level-debug";
+const TRICERATOPS_ART_VERSION = "2026-08-15-retro-v5-live-layering";
 const TOUCH_DOUBLE_TAP_MS = 310;
 const TOUCH_HOLD_AFTER_SECOND_TAP_MS = 210;
 
@@ -418,6 +420,7 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
       class StudioBacklotScene extends Phaser.Scene {
         private player!: Phaser.Physics.Arcade.Sprite;
         private ground!: Phaser.GameObjects.Rectangle;
+        private groundCollider: Phaser.Physics.Arcade.Collider | null = null;
         private objects!: Phaser.Physics.Arcade.Group;
         private platforms!: Phaser.Physics.Arcade.Group;
         private smashHitbox!: Phaser.GameObjects.Rectangle;
@@ -472,6 +475,7 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
         private finaleDestroyed = false;
         private currentEventType = "none";
         private lastLevelDebugAt = 0;
+        private fallingInPit = false;
         private readonly levelTimeline =
           levelDebugMode === "showcase" ? triceratopsShowcaseTimeline : triceratopsGameConfig.timeline;
         private keys!: {
@@ -567,10 +571,15 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
 
         private createWorld() {
           const { width, height, groundY, groundColliderOffsetY, groundColliderHeight } = triceratopsGameConfig.world;
+          const groundLayerHeight = height - groundY;
           this.farLayer = this.add.tileSprite(width / 2, height / 2, width, height, "stage-far").setDepth(0);
-          this.midLayer = this.add.tileSprite(width / 2, height / 2, width, height, "stage-mid").setDepth(2).setAlpha(0.32);
-          this.foregroundLayer = this.add.tileSprite(width / 2, groundY + 20, width, 44, "stage-front").setDepth(4).setAlpha(0.92);
-          this.add.rectangle(width / 2, groundY + 3, width, 4, 0xf5c16f, 0.18).setDepth(5);
+          this.midLayer = this.add.tileSprite(width / 2, height / 2, width, height, "stage-mid").setDepth(1).setAlpha(0.22);
+          this.add.rectangle(width / 2, groundY + groundLayerHeight / 2, width, groundLayerHeight, 0x0b0b10, 0.92).setDepth(3);
+          this.foregroundLayer = this.add
+            .tileSprite(width / 2, groundY + groundLayerHeight / 2, width, groundLayerHeight, "stage-front")
+            .setDepth(4)
+            .setAlpha(0.88);
+          this.add.rectangle(width / 2, groundY, width, 2, 0xf5c16f, 0.2).setDepth(5);
           this.add.text(246, groundY - 92, "DO NOT FEED THE DINOSAUR", {
             color: "#ffe8a9",
             fontFamily: "monospace",
@@ -586,12 +595,12 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
 
         private createPlayer() {
           const { playerX, playerBody } = triceratopsGameConfig.world;
-          this.player = this.physics.add.sprite(playerX, this.playerBaselineY(), DINO_SHEET_KEY, DINO_FRAME_BASE.idle).setDepth(12);
+          this.player = this.physics.add.sprite(playerX, this.playerBaselineY(), DINO_SHEET_KEY, DINO_FRAME_BASE.idle).setOrigin(0.5, 1).setDepth(12);
           this.player.setCollideWorldBounds(true);
           this.player.setGravityY(triceratopsGameConfig.world.gravity);
           this.player.body?.setSize(playerBody.width, playerBody.height);
           this.player.body?.setOffset(playerBody.offsetX, playerBody.offsetY);
-          this.physics.add.collider(this.player, this.ground);
+          this.groundCollider = this.physics.add.collider(this.player, this.ground);
           this.physics.add.collider(this.player, this.platforms);
           this.physics.add.overlap(this.player, this.objects, (_player, item) => this.handleOverlap(item as SceneObject));
           this.smashHitbox = this.add.rectangle(playerX + 44, this.playerBaselineY() - 2, triceratopsGameConfig.attack.hitboxWidth, triceratopsGameConfig.attack.hitboxHeight, 0xffe8a9, 0);
@@ -599,9 +608,7 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
         }
 
         private playerBaselineY() {
-          const { groundY, groundColliderOffsetY, playerBody } = triceratopsGameConfig.world;
-          const frameHeight = triceratopsGameConfig.art.characterFrame.height;
-          return groundY + groundColliderOffsetY + frameHeight / 2 - playerBody.offsetY - playerBody.height;
+          return triceratopsGameConfig.world.groundY;
         }
 
         private createHud() {
@@ -728,6 +735,8 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
           this.rampageReadyAnnounced = false;
           this.rampageActivations = 0;
           this.finaleDestroyed = false;
+          this.fallingInPit = false;
+          if (this.groundCollider) this.groundCollider.active = true;
           this.bossActive = false;
           this.bossDefeated = false;
           this.bossHealth = triceratopsGameConfig.boss.health;
@@ -995,7 +1004,7 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
         private checkPitFall() {
           if (this.state !== "running") return;
           const body = this.player.body as Phaser.Physics.Arcade.Body | undefined;
-          if (!body || !this.isGrounded(body)) return;
+          if (!body) return;
           const playerFeetX = body.center.x;
           const pit = this.objects.getChildren().find((child) => {
             const item = child as SceneObject;
@@ -1003,7 +1012,24 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
             const bounds = item.getBounds();
             return playerFeetX >= bounds.left + 8 && playerFeetX <= bounds.right - 8;
           }) as SceneObject | undefined;
-          if (pit) this.loseLife(pit, "Hold the second left tap to clear pits");
+          if (this.fallingInPit) {
+            if (this.groundCollider) this.groundCollider.active = false;
+            if (this.player.y > triceratopsGameConfig.world.groundY + 58 || body.y > triceratopsGameConfig.world.groundY + 44) {
+              if (this.groundCollider) this.groundCollider.active = true;
+              this.fallingInPit = false;
+              if (pit) this.loseLife(pit, "Hold the second left tap to clear pits");
+            }
+            return;
+          }
+          if (!pit) {
+            if (this.groundCollider) this.groundCollider.active = true;
+            return;
+          }
+          if (!this.isGrounded(body) || body.velocity.y < -10 || this.time.now <= this.longJumpUntil) return;
+          this.fallingInPit = true;
+          if (this.groundCollider) this.groundCollider.active = false;
+          this.player.setVelocityY(Math.max(body.velocity.y, 130));
+          this.showHint("Hold the second left tap to clear pits", 1100);
         }
 
         private isRampageActive() {
@@ -1070,6 +1096,7 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
 
         private handleOverlap(item: SceneObject) {
           if (this.state !== "running" || item.handled) return;
+          if (item.script.kind === "pit") return;
           if (item.script.kind === "boss_trigger") {
             this.startBossFight();
             item.destroy();
@@ -1295,6 +1322,8 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
           this.objects.clear(true, true);
           this.platforms.clear(true, true);
           this.clearBossState();
+          this.fallingInPit = false;
+          if (this.groundCollider) this.groundCollider.active = true;
           this.player.setPosition(triceratopsGameConfig.world.playerX, this.playerBaselineY());
           this.player.setVelocity(0, 0);
           this.player.clearTint();
@@ -1613,6 +1642,9 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
           this.levelDebugGraphics.lineStyle(1, 0xff6978, 0.7);
           const body = this.player.body as Phaser.Physics.Arcade.Body | undefined;
           if (body) this.levelDebugGraphics.strokeRect(body.x, body.y, body.width, body.height);
+          const spriteBounds = this.player.getBounds();
+          this.levelDebugGraphics.lineStyle(1, 0x7bdcff, 0.76);
+          this.levelDebugGraphics.strokeRect(spriteBounds.x, spriteBounds.y, spriteBounds.width, spriteBounds.height);
           this.levelDebugGraphics.lineStyle(1, 0xf5c16f, 0.72);
           this.objects.getChildren().forEach((child) => {
             const object = child as SceneObject;
@@ -1649,6 +1681,8 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
             hasDumpster: objects.includes("dumpster") || platforms.includes("dumpster"),
             hasOneUp: objects.includes("one_up"),
             hasFilmReel: objects.includes("film_reel"),
+            hasBreakableWall: objects.includes("smash_wall"),
+            hasSlideHazard: objects.includes("overhead_beam"),
             hasBoss: objects.includes("boss_trigger") || Boolean(this.bossActive || this.bossSprite),
             playerBounds: body ? { x: Math.round(body.x), y: Math.round(body.y), width: Math.round(body.width), height: Math.round(body.height) } : null,
             spriteBounds: {
@@ -2121,12 +2155,14 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
             <span>CURRENT WORLD X: {levelDebugSnapshot.worldX}</span>
             <span>PLAYER Y: {levelDebugSnapshot.playerY}</span>
             <span>GROUND Y: {levelDebugSnapshot.groundY}</span>
-            <span>PIT: {levelDebugSnapshot.hasPit ? "yes" : "no"}</span>
-            <span>TRAM: {levelDebugSnapshot.hasTram ? "yes" : "no"}</span>
-            <span>DUMPSTER: {levelDebugSnapshot.hasDumpster ? "yes" : "no"}</span>
-            <span>1UP: {levelDebugSnapshot.hasOneUp ? "yes" : "no"}</span>
-            <span>FILM REEL: {levelDebugSnapshot.hasFilmReel ? "yes" : "no"}</span>
-            <span>BOSS: {levelDebugSnapshot.hasBoss ? "yes" : "no"}</span>
+            <span>PIT: {levelDebugSnapshot.hasPit ? "YES" : "NO"}</span>
+            <span>TRAM: {levelDebugSnapshot.hasTram ? "YES" : "NO"}</span>
+            <span>DUMPSTER: {levelDebugSnapshot.hasDumpster ? "YES" : "NO"}</span>
+            <span>1UP: {levelDebugSnapshot.hasOneUp ? "YES" : "NO"}</span>
+            <span>FILM REEL: {levelDebugSnapshot.hasFilmReel ? "YES" : "NO"}</span>
+            <span>BREAKABLE WALL: {levelDebugSnapshot.hasBreakableWall ? "YES" : "NO"}</span>
+            <span>SLIDE HAZARD: {levelDebugSnapshot.hasSlideHazard ? "YES" : "NO"}</span>
+            <span>BOSS: {levelDebugSnapshot.hasBoss ? "YES" : "NO"}</span>
             {levelDebugSnapshot.playerBounds ? (
               <span>
                 PLAYER BODY: {levelDebugSnapshot.playerBounds.x},{levelDebugSnapshot.playerBounds.y}{" "}
