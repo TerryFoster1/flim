@@ -1,4 +1,4 @@
-const CACHE_NAME = "flim-shell-v6";
+const CACHE_NAME = "flim-shell-v7-triceratops-level-debug";
 const SHELL_ASSETS = ["/", "/manifest.json", "/favicon.png", "/brand/flim-icon-192.png", "/brand/flim-icon-512.png"];
 
 self.addEventListener("install", (event) => {
@@ -27,6 +27,10 @@ self.addEventListener("fetch", (event) => {
 
   if (request.method !== "GET") return;
   if (url.pathname.startsWith("/api/")) return;
+  if (url.pathname.startsWith("/backlot/triceratops/")) {
+    event.respondWith(fetch(request, { cache: "no-store" }));
+    return;
+  }
 
   if (request.mode === "navigate") {
     event.respondWith(

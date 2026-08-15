@@ -9,6 +9,8 @@ const cssSource = readFileSync(join(root, "client/src/games/triceratops/tricerat
 const audioSource = readFileSync(join(root, "client/src/games/triceratops/retroAudio.ts"), "utf8");
 const orientationSource = readFileSync(join(root, "client/src/backlot/orientation.ts"), "utf8");
 const manifestSource = readFileSync(join(root, "client/public/manifest.json"), "utf8");
+const swSource = readFileSync(join(root, "client/public/sw.js"), "utf8");
+const viteConfigSource = readFileSync(join(root, "client/vite.config.ts"), "utf8");
 
 const generatorPath = join(root, "scripts/generate-triceratops-assets.mjs");
 const assetDir = join(root, "client/public/backlot/triceratops");
@@ -116,6 +118,26 @@ for (const kind of obstacleKinds) {
   assert.match(gameConfigSource, new RegExp(`"${kind}"`), `timeline/config includes ${kind}`);
 }
 assert.match(gameConfigSource, /startingLives: 3/, "scene starts with 3 old-school lives");
+assert.match(gameConfigSource, /TRICERATOPS_LEVEL_CONFIG_VERSION/, "scene has a level config version for live verification");
+assert.match(gameConfigSource, /TRICERATOPS_GROUND_Y/, "scene has a canonical ground Y");
+assert.match(gameConfigSource, /triceratopsShowcaseTimeline/, "scene has a deterministic showcase debug timeline");
+const showcaseOrder = [
+  "showcase-striped-barrier",
+  "showcase-dumpster",
+  "showcase-film-reel",
+  "showcase-one-up",
+  "showcase-tour-tram",
+  "showcase-pit",
+  "showcase-overhead-slide-hazard",
+  "showcase-breakable-wall",
+  "showcase-boss-trigger",
+];
+let previousShowcaseIndex = -1;
+for (const id of showcaseOrder) {
+  const index = gameConfigSource.indexOf(`id: "${id}"`);
+  assert.ok(index > previousShowcaseIndex, `showcase debug timeline includes ${id} in the required order`);
+  previousShowcaseIndex = index;
+}
 assert.match(gameConfigSource, /maxLives: 5/, "life cap supports rare 1-UPs");
 assert.match(gameConfigSource, /respawnInvulnerabilityMs/, "checkpoint respawn has invulnerability");
 assert.match(gameConfigSource, /highScoreStorageKey/, "local high score persistence is configured");
@@ -175,7 +197,7 @@ assert.match(gameSource, /invulnerableUntil/, "post-hit invulnerability exists")
 assert.match(gameSource, /this\.player = .*\.setDepth\(12\)/, "dino renders above ground and foreground");
 assert.match(gameSource, /this\.ground = .*\.setDepth\(3\)/, "ground stays behind the dino");
 assert.match(gameSource, /this\.foregroundLayer = .*\.setDepth\(4\)/, "foreground no longer hides the dino");
-assert.match(gameSource, /groundY \+ 41, width, 34, "stage-front"/, "foreground art is lowered below the dino legs");
+assert.match(gameSource, /groundY \+ 20, width, 44, "stage-front"/, "foreground art is lowered below the dino legs");
 assert.match(gameConfigSource, /groundColliderOffsetY: 4/, "ground collider is offset to visually align the dino feet");
 assert.match(gameConfigSource, /groundColliderHeight: 32/, "ground collider has an explicit visible-footing height");
 assert.match(gameSource, /playerBaselineY\(\)/, "player baseline is computed from sprite frame and physics body");
@@ -210,6 +232,25 @@ assert.match(cssSource, /triceratops-new-high/, "new high score styling exists")
 assert.match(cssSource, /\.backlot-sync-note[\s\S]*position: relative/, "local score notice participates in result layout");
 assert.match(cssSource, /\.backlot-sync-note[\s\S]*pointer-events: none/, "local score notice cannot trap replay/exit taps");
 assert.match(cssSource, /triceratops-input-debug/, "staging input debug overlay is styled");
+assert.match(gameSource, /getTriceratopsLevelDebugMode/, "level debug mode is gated behind staging-safe query parameters");
+assert.match(gameSource, /type LevelDebugSnapshot/, "level debug overlay emits structured scene data");
+assert.match(gameSource, /type: "level-debug"/, "level debug uses the scene event bridge");
+assert.match(gameSource, /this\.levelTimeline/, "live scene uses the selected normal or showcase level timeline");
+assert.match(gameSource, /this\.currentEventType = script\.kind/, "level debug tracks the current spawned event type");
+assert.match(gameSource, /checkPitFall/, "pits use real world-geometry fall detection");
+assert.match(gameSource, /hasPit/, "level debug reports pit visibility");
+assert.match(gameSource, /hasTram/, "level debug reports tram visibility");
+assert.match(gameSource, /hasDumpster/, "level debug reports dumpster visibility");
+assert.match(gameSource, /hasOneUp/, "level debug reports 1-UP visibility");
+assert.match(gameSource, /hasFilmReel/, "level debug reports Film Reel visibility");
+assert.match(gameSource, /hasBoss/, "level debug reports boss visibility");
+assert.match(gameSource, /TRICERATOPS BUILD COMMIT/, "level debug panel renders the served build commit");
+assert.match(cssSource, /triceratops-level-debug/, "staging level debug overlay is styled");
+assert.match(swSource, /flim-shell-v7-triceratops-level-debug/, "service worker cache version is bumped for the Triceratops integration");
+assert.match(swSource, /\/backlot\/triceratops\//, "service worker bypasses cached Triceratops assets");
+assert.match(swSource, /cache: "no-store"/, "service worker fetches Triceratops assets without stale cache reuse");
+assert.match(viteConfigSource, /__FLIM_GIT_COMMIT__/, "Vite exposes build commit to the game debug overlay");
+assert.match(viteConfigSource, /VERCEL_GIT_COMMIT_SHA/, "Vite prefers the Vercel commit for staging verification");
 assert.match(cssSource, /triceratops-rampage-meter/, "rampage meter UI remains available");
 assert.doesNotMatch(gameSource, /triceratops-rampage-button/, "rampage no longer uses a separate UI button");
 assert.match(cssSource, /height: 100dvh/, "fullscreen game stage uses dynamic viewport height");

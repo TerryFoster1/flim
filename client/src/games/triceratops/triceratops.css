@@ -513,6 +513,44 @@ body.triceratops-lock-scroll {
   text-transform: uppercase;
 }
 
+.triceratops-level-debug {
+  position: absolute;
+  z-index: 45;
+  right: max(12px, env(safe-area-inset-right));
+  bottom: max(58px, env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-width: min(310px, calc(100vw - 24px));
+  max-height: min(62vh, 360px);
+  overflow: auto;
+  border: 1px solid rgba(159, 255, 210, 0.58);
+  border-radius: 14px;
+  padding: 10px 12px;
+  color: #9fffd2;
+  background: rgba(5, 4, 7, 0.78);
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.34);
+  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+  font-size: 0.62rem;
+  line-height: 1.24;
+  pointer-events: none;
+}
+
+.triceratops-level-debug strong {
+  color: #ffe8a9;
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+@media (max-height: 390px) {
+  .triceratops-level-debug {
+    bottom: 8px;
+    max-height: 54vh;
+    font-size: 0.5rem;
+  }
+}
+
 .backlot-game-pending {
   padding: 24px clamp(16px, 4vw, 36px) 120px;
 }

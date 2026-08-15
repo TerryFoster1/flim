@@ -3,6 +3,8 @@ import { getBacklotOrientationSnapshot, isBacklotLandscape, subscribeBacklotOrie
 import { recordBacklotGameOver, recordBacklotLaunch } from "../../services/backlotService";
 import {
   TRICERATOPS_GAME_ID,
+  TRICERATOPS_LEVEL_CONFIG_VERSION,
+  triceratopsShowcaseTimeline,
   triceratopsGameConfig,
   type TriceratopsResult,
   type TriceratopsRequiredAction,
@@ -18,6 +20,7 @@ type TriceratopsBacklotGameProps = {
 type SceneMessage =
   | { type: "score"; score: number }
   | { type: "rampage"; rampage: RampageState }
+  | { type: "level-debug"; snapshot: LevelDebugSnapshot }
   | { type: "ready" }
   | { type: "pause"; paused: boolean }
   | { type: "sfx"; name: TriceratopsSfx }
@@ -63,6 +66,27 @@ type InputDebugSnapshot = {
   playerAction: string;
   phase: TouchGesturePhase;
   zone: TouchZoneName | null;
+};
+
+type LevelDebugMode = false | "standard" | "showcase";
+
+type LevelDebugSnapshot = {
+  buildCommit: string;
+  sceneId: string;
+  levelConfigVersion: string;
+  eventCount: number;
+  currentEventType: string;
+  worldX: number;
+  playerY: number;
+  groundY: number;
+  hasPit: boolean;
+  hasTram: boolean;
+  hasDumpster: boolean;
+  hasOneUp: boolean;
+  hasFilmReel: boolean;
+  hasBoss: boolean;
+  playerBounds: { x: number; y: number; width: number; height: number } | null;
+  spriteBounds: { x: number; y: number; width: number; height: number } | null;
 };
 
 type TouchZoneState = {
@@ -158,7 +182,10 @@ const OBJECT_FRAME: Record<TriceratopsScriptEvent["kind"] | "impact_star" | "pix
   pixel_dust: 10,
 };
 
-const TRICERATOPS_ART_VERSION = "2026-08-14-retro-v3-platform-boss";
+declare const __FLIM_GIT_COMMIT__: string | undefined;
+
+const FLIM_BUILD_COMMIT = typeof __FLIM_GIT_COMMIT__ === "string" ? __FLIM_GIT_COMMIT__ : "local";
+const TRICERATOPS_ART_VERSION = "2026-08-14-retro-v4-level-debug";
 const TOUCH_DOUBLE_TAP_MS = 310;
 const TOUCH_HOLD_AFTER_SECOND_TAP_MS = 210;
 
@@ -180,6 +207,14 @@ function isTriceratopsAssetTestMode() {
 function isTriceratopsInputDebugMode() {
   if (typeof window === "undefined") return false;
   return canLogTriceratopsDiagnostics() && new URLSearchParams(window.location.search).has("inputDebug");
+}
+
+function getTriceratopsLevelDebugMode(): LevelDebugMode {
+  if (typeof window === "undefined" || !canLogTriceratopsDiagnostics()) return false;
+  const mode = new URLSearchParams(window.location.search).get("levelDebug");
+  if (mode === "showcase") return "showcase";
+  if (mode === "1" || mode === "true" || mode === "standard") return "standard";
+  return false;
 }
 
 function logTriceratopsDiagnostic(label: string, payload: Record<string, unknown>) {
@@ -211,6 +246,7 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
     right: { phase: "IDLE", firstTapAt: 0, secondTapAt: 0, resolveTimer: null, holdTimer: null, pointerId: null, holdAction: null, holdStartedAt: 0 },
   });
   const { isPortrait, isLandscape, snapshot: orientationSnapshot } = useBacklotOrientation();
+  const levelDebugMode = getTriceratopsLevelDebugMode();
   const [phase, setPhase] = useState<"start" | "intro" | "running" | "complete" | "over">("start");
   const [syncStatus, setSyncStatus] = useState("");
   const [lastScore, setLastScore] = useState(0);
@@ -221,6 +257,7 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
   const [forcePortraitGate, setForcePortraitGate] = useState(false);
   const [audioMuted, setAudioMuted] = useState(false);
   const [rampage, setRampage] = useState<RampageState>({ meter: 0, ready: false, active: false });
+  const [levelDebugSnapshot, setLevelDebugSnapshot] = useState<LevelDebugSnapshot | null>(null);
   const [inputDebugEvents, setInputDebugEvents] = useState<string[]>([]);
   const [inputDebugSnapshot, setInputDebugSnapshot] = useState<InputDebugSnapshot>({
     lastInput: "NONE",
@@ -348,6 +385,10 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
         setRampage(detail.rampage);
         return;
       }
+      if (detail.type === "level-debug") {
+        setLevelDebugSnapshot(detail.snapshot);
+        return;
+      }
       if (detail.type === "pause") {
         setPaused(detail.paused);
         return;
@@ -390,6 +431,7 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
         private farLayer!: Phaser.GameObjects.TileSprite;
         private midLayer!: Phaser.GameObjects.TileSprite;
         private foregroundLayer!: Phaser.GameObjects.TileSprite;
+        private levelDebugGraphics: Phaser.GameObjects.Graphics | null = null;
         private hudText!: Phaser.GameObjects.Text;
         private livesText!: Phaser.GameObjects.Text;
         private hintText!: Phaser.GameObjects.Text;
@@ -428,6 +470,10 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
         private rampageReadyAnnounced = false;
         private rampageActivations = 0;
         private finaleDestroyed = false;
+        private currentEventType = "none";
+        private lastLevelDebugAt = 0;
+        private readonly levelTimeline =
+          levelDebugMode === "showcase" ? triceratopsShowcaseTimeline : triceratopsGameConfig.timeline;
         private keys!: {
           space: Phaser.Input.Keyboard.Key;
           up: Phaser.Input.Keyboard.Key;
@@ -468,6 +514,8 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
           this.createInput();
           this.logLoadedAssets();
           this.createAssetTestPanel();
+          this.createLevelDebugGraphics();
+          this.emitLevelDebug(0, true);
           this.physics.world.pause();
 
           this.events.on("resume", () => this.emitPause(false));
@@ -505,10 +553,12 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
           this.updateMovement(time, dt, speed);
           this.updateObjects(dt, speed);
           this.updatePlatforms(dt, speed);
+          this.checkPitFall();
           this.updateBossFight(time);
           this.updateRampage(time);
           this.updateDinoAnimation(time);
           this.updateHud();
+          this.emitLevelDebug(time);
 
           if (this.distance >= triceratopsGameConfig.scene.targetDistance && this.bossDefeated) {
             this.sceneComplete();
@@ -518,8 +568,9 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
         private createWorld() {
           const { width, height, groundY, groundColliderOffsetY, groundColliderHeight } = triceratopsGameConfig.world;
           this.farLayer = this.add.tileSprite(width / 2, height / 2, width, height, "stage-far").setDepth(0);
-          this.midLayer = this.add.tileSprite(width / 2, groundY - 46, width, 116, "stage-mid").setDepth(2).setAlpha(0.54);
-          this.foregroundLayer = this.add.tileSprite(width / 2, groundY + 41, width, 34, "stage-front").setDepth(4).setAlpha(0.9);
+          this.midLayer = this.add.tileSprite(width / 2, height / 2, width, height, "stage-mid").setDepth(2).setAlpha(0.32);
+          this.foregroundLayer = this.add.tileSprite(width / 2, groundY + 20, width, 44, "stage-front").setDepth(4).setAlpha(0.92);
+          this.add.rectangle(width / 2, groundY + 3, width, 4, 0xf5c16f, 0.18).setDepth(5);
           this.add.text(246, groundY - 92, "DO NOT FEED THE DINOSAUR", {
             color: "#ffe8a9",
             fontFamily: "monospace",
@@ -842,7 +893,7 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
 
         private spawnScriptedEvents() {
           const spawnLead = triceratopsGameConfig.world.spawnLeadDistance;
-          triceratopsGameConfig.timeline.forEach((script) => {
+          this.levelTimeline.forEach((script) => {
             if (this.spawnedIds.has(script.id)) return;
             if (this.distance < script.distance - spawnLead) return;
             this.spawnedIds.add(script.id);
@@ -851,6 +902,7 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
         }
 
         private spawnScript(script: TriceratopsScriptEvent) {
+          this.currentEventType = script.kind;
           const { width, groundY } = triceratopsGameConfig.world;
           const frame = OBJECT_FRAME[script.kind];
           let y = groundY - 10;
@@ -938,6 +990,20 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
             if (platform.script.moving) platform.y += Math.sin((this.time.now + platform.x * 8) / 360) * 0.18;
             if (platform.x < -100) platform.destroy();
           });
+        }
+
+        private checkPitFall() {
+          if (this.state !== "running") return;
+          const body = this.player.body as Phaser.Physics.Arcade.Body | undefined;
+          if (!body || !this.isGrounded(body)) return;
+          const playerFeetX = body.center.x;
+          const pit = this.objects.getChildren().find((child) => {
+            const item = child as SceneObject;
+            if (item.handled || item.script.kind !== "pit") return false;
+            const bounds = item.getBounds();
+            return playerFeetX >= bounds.left + 8 && playerFeetX <= bounds.right - 8;
+          }) as SceneObject | undefined;
+          if (pit) this.loseLife(pit, "Hold the second left tap to clear pits");
         }
 
         private isRampageActive() {
@@ -1223,7 +1289,7 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
           const checkpoint = this.latestCheckpoint();
           this.distance = checkpoint;
           this.spawnedIds.clear();
-          triceratopsGameConfig.timeline.forEach((script) => {
+          this.levelTimeline.forEach((script) => {
             if (script.distance < checkpoint - 120) this.spawnedIds.add(script.id);
           });
           this.objects.clear(true, true);
@@ -1531,6 +1597,68 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
 
         private emitPause(paused: boolean) {
           window.dispatchEvent(new CustomEvent<SceneMessage>("triceratops:scene", { detail: { type: "pause", paused } }));
+        }
+
+        private createLevelDebugGraphics() {
+          if (!levelDebugMode) return;
+          this.levelDebugGraphics = this.add.graphics().setDepth(60);
+          this.drawLevelDebugLines();
+        }
+
+        private drawLevelDebugLines() {
+          if (!this.levelDebugGraphics) return;
+          const { width, groundY } = triceratopsGameConfig.world;
+          this.levelDebugGraphics.clear();
+          this.levelDebugGraphics.lineStyle(2, 0x9fffd2, 0.86).lineBetween(0, groundY, width, groundY);
+          this.levelDebugGraphics.lineStyle(1, 0xff6978, 0.7);
+          const body = this.player.body as Phaser.Physics.Arcade.Body | undefined;
+          if (body) this.levelDebugGraphics.strokeRect(body.x, body.y, body.width, body.height);
+          this.levelDebugGraphics.lineStyle(1, 0xf5c16f, 0.72);
+          this.objects.getChildren().forEach((child) => {
+            const object = child as SceneObject;
+            const bounds = object.getBounds();
+            this.levelDebugGraphics?.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height);
+          });
+          this.platforms.getChildren().forEach((child) => {
+            const platform = child as SceneObject;
+            const bounds = platform.getBounds();
+            this.levelDebugGraphics?.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height);
+          });
+        }
+
+        private emitLevelDebug(time = 0, force = false) {
+          if (!levelDebugMode) return;
+          if (!force && time - this.lastLevelDebugAt < 180) return;
+          this.lastLevelDebugAt = time;
+          this.drawLevelDebugLines();
+          const objects = this.objects.getChildren().map((child) => (child as SceneObject).script.kind);
+          const platforms = this.platforms.getChildren().map((child) => (child as SceneObject).script.kind);
+          const body = this.player.body as Phaser.Physics.Arcade.Body | undefined;
+          const spriteBounds = this.player.getBounds();
+          const snapshot: LevelDebugSnapshot = {
+            buildCommit: FLIM_BUILD_COMMIT,
+            sceneId: triceratopsGameConfig.scene.sceneId,
+            levelConfigVersion: TRICERATOPS_LEVEL_CONFIG_VERSION,
+            eventCount: this.levelTimeline.length,
+            currentEventType: this.currentEventType,
+            worldX: Math.round(this.distance),
+            playerY: Math.round(this.player.y),
+            groundY: triceratopsGameConfig.world.groundY,
+            hasPit: objects.includes("pit"),
+            hasTram: objects.includes("tour_tram") || platforms.includes("tour_tram"),
+            hasDumpster: objects.includes("dumpster") || platforms.includes("dumpster"),
+            hasOneUp: objects.includes("one_up"),
+            hasFilmReel: objects.includes("film_reel"),
+            hasBoss: objects.includes("boss_trigger") || Boolean(this.bossActive || this.bossSprite),
+            playerBounds: body ? { x: Math.round(body.x), y: Math.round(body.y), width: Math.round(body.width), height: Math.round(body.height) } : null,
+            spriteBounds: {
+              x: Math.round(spriteBounds.x),
+              y: Math.round(spriteBounds.y),
+              width: Math.round(spriteBounds.width),
+              height: Math.round(spriteBounds.height),
+            },
+          };
+          window.dispatchEvent(new CustomEvent<SceneMessage>("triceratops:scene", { detail: { type: "level-debug", snapshot } }));
         }
 
         private emitSfx(name: TriceratopsSfx) {
@@ -1981,6 +2109,40 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
             {inputDebugEvents.map((line, index) => (
               <span key={`${line}-${index}`}>{line}</span>
             ))}
+          </aside>
+        ) : null}
+        {levelDebugSnapshot ? (
+          <aside className="triceratops-level-debug" aria-label="TRICERATOPS level debug">
+            <strong>TRICERATOPS LEVEL DEBUG</strong>
+            <span>TRICERATOPS BUILD COMMIT: {levelDebugSnapshot.buildCommit}</span>
+            <span>SCENE ID: {levelDebugSnapshot.sceneId}</span>
+            <span>LEVEL CONFIG VERSION: {levelDebugSnapshot.levelConfigVersion}</span>
+            <span>EVENT COUNT: {levelDebugSnapshot.eventCount}</span>
+            <span>CURRENT EVENT TYPE: {levelDebugSnapshot.currentEventType}</span>
+            <span>CURRENT WORLD X: {levelDebugSnapshot.worldX}</span>
+            <span>PLAYER Y: {levelDebugSnapshot.playerY}</span>
+            <span>GROUND Y: {levelDebugSnapshot.groundY}</span>
+            <span>PIT: {levelDebugSnapshot.hasPit ? "yes" : "no"}</span>
+            <span>TRAM: {levelDebugSnapshot.hasTram ? "yes" : "no"}</span>
+            <span>DUMPSTER: {levelDebugSnapshot.hasDumpster ? "yes" : "no"}</span>
+            <span>1UP: {levelDebugSnapshot.hasOneUp ? "yes" : "no"}</span>
+            <span>FILM REEL: {levelDebugSnapshot.hasFilmReel ? "yes" : "no"}</span>
+            <span>BOSS: {levelDebugSnapshot.hasBoss ? "yes" : "no"}</span>
+            {levelDebugSnapshot.playerBounds ? (
+              <span>
+                PLAYER BODY: {levelDebugSnapshot.playerBounds.x},{levelDebugSnapshot.playerBounds.y}{" "}
+                {levelDebugSnapshot.playerBounds.width}x{levelDebugSnapshot.playerBounds.height}
+              </span>
+            ) : null}
+            {levelDebugSnapshot.spriteBounds ? (
+              <span>
+                SPRITE BOUNDS: {levelDebugSnapshot.spriteBounds.x},{levelDebugSnapshot.spriteBounds.y}{" "}
+                {levelDebugSnapshot.spriteBounds.width}x{levelDebugSnapshot.spriteBounds.height}
+              </span>
+            ) : null}
+            {levelDebugMode === "showcase" ? (
+              <span>SHOWCASE ORDER: barrier / dumpster / Film Reel / 1-UP / tram / pit / slide / wall / boss</span>
+            ) : null}
           </aside>
         ) : null}
       </div>

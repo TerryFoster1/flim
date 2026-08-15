@@ -1,4 +1,6 @@
 export const TRICERATOPS_GAME_ID = "triceratops-backlot-runner";
+export const TRICERATOPS_LEVEL_CONFIG_VERSION = "2026-08-14-level-integration-v2";
+export const TRICERATOPS_GROUND_Y = 214;
 
 export type TriceratopsObstacleKind =
   | "jump_obstacle"
@@ -81,7 +83,7 @@ export const triceratopsGameConfig = {
   world: {
     width: 480,
     height: 270,
-    groundY: 214,
+    groundY: TRICERATOPS_GROUND_Y,
     playerX: 74,
     baseSpeed: 104,
     gravity: 720,
@@ -102,6 +104,7 @@ export const triceratopsGameConfig = {
   },
   scene: {
     sceneId: "studio-backlot-1",
+    levelConfigVersion: TRICERATOPS_LEVEL_CONFIG_VERSION,
     name: "Studio Backlot",
     targetDistance: 9300,
     startingLives: 3,
@@ -514,6 +517,108 @@ export const triceratopsGameConfig = {
     },
   ] satisfies TriceratopsScriptEvent[],
 } as const;
+
+export const triceratopsShowcaseTimeline = [
+  {
+    id: "showcase-striped-barrier",
+    kind: "striped_barrier",
+    category: "smash",
+    requiredAction: "jumpOrSmash",
+    distance: 550,
+    label: "Striped studio barrier",
+    tutorial: "SHOWCASE 1/9: striped barrier",
+    points: 180,
+  },
+  {
+    id: "showcase-dumpster",
+    kind: "dumpster",
+    category: "normalJump",
+    requiredAction: "normalJump",
+    distance: 720,
+    label: "Craft-service dumpster",
+    tutorial: "SHOWCASE 2/9: dumpster platform",
+    points: 120,
+    platform: true,
+  },
+  {
+    id: "showcase-film-reel",
+    kind: "film_reel",
+    category: "collect",
+    requiredAction: "collect",
+    distance: 890,
+    label: "Film Reel",
+    tutorial: "SHOWCASE 3/9: Film Reel",
+    points: 350,
+    lane: "air",
+    telegraph: "collect",
+  },
+  {
+    id: "showcase-one-up",
+    kind: "one_up",
+    category: "collect",
+    requiredAction: "collect",
+    distance: 1060,
+    label: "1-UP",
+    tutorial: "SHOWCASE 4/9: 1-UP",
+    points: 750,
+    telegraph: "rare pickup",
+    lane: "air",
+  },
+  {
+    id: "showcase-tour-tram",
+    kind: "tour_tram",
+    category: "normalJump",
+    requiredAction: "normalJump",
+    distance: 1240,
+    label: "Moving tour tram",
+    tutorial: "SHOWCASE 5/9: tour tram platform",
+    points: 180,
+    platform: true,
+    moving: "slow",
+  },
+  {
+    id: "showcase-pit",
+    kind: "pit",
+    category: "longJump",
+    requiredAction: "longJump",
+    distance: 1440,
+    label: "Pit",
+    tutorial: "SHOWCASE 6/9: pit",
+    points: 240,
+    telegraph: "wide gap",
+  },
+  {
+    id: "showcase-overhead-slide-hazard",
+    kind: "overhead_beam",
+    category: "slide",
+    requiredAction: "slide",
+    distance: 1640,
+    label: "Overhead slide hazard",
+    tutorial: "SHOWCASE 7/9: overhead slide hazard",
+    points: 180,
+    lane: "overhead",
+  },
+  {
+    id: "showcase-breakable-wall",
+    kind: "smash_wall",
+    category: "smash",
+    requiredAction: "smash",
+    distance: 1840,
+    label: "Breakable wall",
+    tutorial: "SHOWCASE 8/9: breakable wall",
+    points: 500,
+  },
+  {
+    id: "showcase-boss-trigger",
+    kind: "boss_trigger",
+    category: "avoid",
+    requiredAction: "avoid",
+    distance: 2060,
+    label: "Boss trigger",
+    tutorial: "SHOWCASE 9/9: boss trigger",
+    telegraph: "boss",
+  },
+] satisfies TriceratopsScriptEvent[];
 
 export type TriceratopsResult = {
   sceneId: string;
