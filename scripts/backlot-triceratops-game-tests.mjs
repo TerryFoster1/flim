@@ -11,6 +11,8 @@ const orientationSource = readFileSync(join(root, "client/src/backlot/orientatio
 const manifestSource = readFileSync(join(root, "client/public/manifest.json"), "utf8");
 const swSource = readFileSync(join(root, "client/public/sw.js"), "utf8");
 const viteConfigSource = readFileSync(join(root, "client/vite.config.ts"), "utf8");
+const rootVercelSource = readFileSync(join(root, "vercel.json"), "utf8");
+const clientVercelSource = readFileSync(join(root, "client/vercel.json"), "utf8");
 
 const generatorPath = join(root, "scripts/generate-triceratops-assets.mjs");
 const assetDir = join(root, "client/public/backlot/triceratops");
@@ -168,8 +170,8 @@ assert.match(gameConfigSource, /bypassesHazards: false/, "rampage does not bypas
 assert.match(gameConfigSource, /normalJumpVelocity/, "normal jump has distinct tuning");
 assert.match(gameConfigSource, /highJumpVelocity/, "high jump has distinct tuning");
 assert.match(gameConfigSource, /longJumpVelocity/, "long jump has distinct tuning");
-assert.match(gameConfigSource, /longJumpMs: 640/, "long jump has capped but visibly longer airtime");
-assert.match(gameConfigSource, /longJumpSpeedMultiplier: 1\.58/, "long jump has visibly longer horizontal reach");
+assert.match(gameConfigSource, /longJumpMs: 900/, "long jump has capped but visibly longer airtime");
+assert.match(gameConfigSource, /longJumpSpeedMultiplier: 1\.76/, "long jump has visibly longer horizontal reach");
 assert.match(gameConfigSource, /slideMs/, "slide has a defined duration");
 assert.match(gameConfigSource, /attack:[\s\S]*activeMs: 260/, "horn smash has a short timing window");
 assert.match(gameConfigSource, /hitboxWidth: 74/, "horn hitbox is intentionally short");
@@ -184,34 +186,39 @@ assert.match(gameSource, /endSlide: \(\) => this\.endSlide\(\)/, "bridge exposes
 assert.match(gameSource, /handleTouchZoneDown\(event, "left"\)/, "left invisible zone handles jump taps");
 assert.match(gameSource, /handleTouchZoneDown\(event, "right"\)/, "right invisible zone handles smash/slide taps");
 assert.match(gameSource, /const TOUCH_DOUBLE_TAP_MS = 310/, "double tap detection uses the phone QA window");
-assert.match(gameSource, /const TOUCH_HOLD_AFTER_SECOND_TAP_MS = 210/, "second-tap hold detection keeps long-jump upgrade responsive");
+assert.match(gameSource, /const TOUCH_HOLD_AFTER_SECOND_TOUCH_MS = 240/, "second-touch hold detection keeps long-jump and rampage upgrades responsive");
 assert.match(gameSource, /type TouchGesturePhase/, "touch input uses an explicit gesture state machine");
-assert.match(gameSource, /"FIRST_TAP" \| "SECOND_TOUCH" \| "SECOND_HOLD"/, "gesture phases distinguish taps from second-tap holds");
+assert.match(gameSource, /"FIRST_TOUCH" \| "FIRST_RELEASE" \| "SECOND_TOUCH" \| "SECOND_RELEASE" \| "SECOND_HOLD"/, "gesture phases distinguish touch, release, and second-touch holds");
 assert.match(gameSource, /clearTouchResolve\(zone\)/, "touch resolution timers are centrally cleared");
 assert.match(gameSource, /scheduleTouchResolve\(zone\)/, "single taps resolve after the double-tap window");
 assert.doesNotMatch(gameSource, /TOUCH_SINGLE_TAP_DELAY_MS/, "old delayed-single constant is removed");
 assert.doesNotMatch(gameSource, /clearTouchSingle\(zone\)/, "old single-tap cancellation helper is removed");
 for (const inputLabel of [
-  "LEFT_JUMP",
-  "LEFT_SECOND_TAP",
+  "LEFT_TAP",
+  "LEFT_DOUBLE",
   "LEFT_SECOND_HOLD",
+  "JUMP",
   "HIGH_JUMP",
-  "LONG_JUMP",
-  "RIGHT_SMASH",
+  "HIGH_LONG_JUMP",
+  "RIGHT_TAP",
   "RIGHT_DOUBLE",
-  "SLIDE",
-  "RAMPAGE_ACTIVATE",
+  "RIGHT_SECOND_HOLD",
+  "RAM",
+  "SLIDE_RAM",
+  "RAMPAGE",
 ]) {
   assert.match(gameSource, new RegExp(inputLabel), `input debugger names ${inputLabel}`);
 }
-assert.doesNotMatch(gameSource, /LEFT_DOUBLE_HOLD|RIGHT_DOUBLE_HOLD|LEFT_SINGLE|RIGHT_SINGLE/, "input debugger no longer emits old gesture names");
+assert.doesNotMatch(gameSource, /LEFT_JUMP|LEFT_SECOND_TAP|RIGHT_SMASH|RAMPAGE_ACTIVATE|LEFT_DOUBLE_HOLD|RIGHT_DOUBLE_HOLD|LEFT_SINGLE|RIGHT_SINGLE/, "input debugger no longer emits old gesture names");
 assert.match(gameSource, /isTriceratopsInputDebugMode/, "staging input debugger is gated behind query/debug environment");
 assert.match(gameSource, /InputDebugSnapshot/, "staging input debugger keeps structured input state");
 assert.match(gameSource, /LAST INPUT:/, "staging input debugger shows the last input");
 assert.match(gameSource, /first \$\{firstTouchAtMs/, "staging input debugger shows the first touch timestamp");
 assert.match(gameSource, /interval \$\{tapIntervalMs/, "staging input debugger shows second-touch interval");
 assert.match(gameSource, /Hold duration:/, "staging input debugger shows hold duration");
+assert.match(gameSource, /Rampage: \{inputDebugSnapshot\.rampageMeter\}%/, "staging input debugger shows rampage meter");
 assert.match(gameSource, /getActionState: \(\) => this\.currentDinoState/, "input debugger reads the current player action state");
+assert.match(gameSource, /getRampageMeter: \(\) => clamp\(this\.rampageMeter/, "input debugger reads the current rampage meter");
 assert.doesNotMatch(gameSource, /holdAction === "slide"/, "right double-tap slide is timed and no longer cancelled on pointer-up");
 assert.doesNotMatch(gameSource, /onLostPointerCapture/, "lost pointer capture no longer cancels valid phone taps");
 assert.match(gameSource, /navigator\.vibrate/, "mobile unlock/action haptics are wired");
@@ -290,9 +297,11 @@ assert.match(gameSource, /hasSlideHazard/, "level debug reports slide hazard vis
 assert.match(gameSource, /hasBoss/, "level debug reports boss visibility");
 assert.match(gameSource, /TRICERATOPS BUILD COMMIT/, "level debug panel renders the served build commit");
 assert.match(cssSource, /triceratops-level-debug/, "staging level debug overlay is styled");
-assert.match(swSource, /flim-shell-v9-triceratops-traversal-reset/, "service worker cache version is bumped for the Triceratops integration");
+assert.match(swSource, /flim-shell-v11-triceratops-long-jump-art-route/, "service worker cache version is bumped for the Triceratops long-jump and art-route fix");
 assert.match(swSource, /\/backlot\/triceratops\//, "service worker bypasses cached Triceratops assets");
 assert.match(swSource, /cache: "no-store"/, "service worker fetches Triceratops assets without stale cache reuse");
+assert.match(rootVercelSource, /backlot\//, "root Vercel rewrite lets Backlot art assets serve as files");
+assert.match(clientVercelSource, /backlot\//, "client Vercel rewrite lets Backlot art assets serve as files");
 assert.match(viteConfigSource, /__FLIM_GIT_COMMIT__/, "Vite exposes build commit to the game debug overlay");
 assert.match(viteConfigSource, /VERCEL_GIT_COMMIT_SHA/, "Vite prefers the Vercel commit for staging verification");
 assert.match(cssSource, /triceratops-rampage-meter/, "rampage meter UI remains available");
@@ -303,7 +312,9 @@ assert.match(cssSource, /max-height: 360px/, "extra-short landscape phones recei
 assert.match(cssSource, /min\(8\.4vw, 17dvh\)/, "start title scales by both width and height");
 
 assert.match(gameConfigSource, /overhead-slide-hazard/, "scene includes an obvious overhead slide hazard");
-assert.match(gameConfigSource, /Double tap right to slide/, "scene teaches the double-right slide sequence");
+assert.match(gameSource, /longJumpVelocity \* 0\.68/, "late long-jump activation restores enough lift to clear obstacles");
+assert.match(gameSource, /body\.velocity\.y > 72/, "long-jump descent is capped for forgiving pit clearance");
+assert.match(gameConfigSource, /Double tap right to slide ram/, "scene teaches the double-right slide-ram sequence");
 assert.match(gameConfigSource, /Golden Film Frame/, "scene includes a special rare pickup");
 assert.match(gameConfigSource, /rare pickup/, "scene telegraphs the special pickup");
 assert.match(gameConfigSource, /combo-smash-wall/, "scene includes a smash-to-combo obstacle");
@@ -318,8 +329,13 @@ assert.match(gameSource, /startBossFight/, "boss arena starts from the authored 
 assert.match(gameSource, /spawnBossPattern/, "boss fight has authored attack patterns");
 assert.match(gameSource, /damageBoss/, "boss weak point can be damaged");
 assert.match(gameSource, /requiredAction: "bossRearRam"/, "boss weak point uses rear-ram smash input");
-assert.match(gameSource, /Rampage ready! Double tap right/, "rampage readiness is tied to double-right input");
-assert.match(gameSource, /const rampageStarted = bridgeRef\.current\?\.activateRampage/, "right double tap attempts rampage before slide");
+assert.match(gameSource, /Rampage ready! Tap right, then hold the second touch/, "rampage readiness is tied to right tap plus second-touch hold");
+assert.match(gameSource, /RIGHT_SECOND_HOLD/, "right second-touch hold is recognized separately from right double tap");
+assert.doesNotMatch(
+  gameSource,
+  /else if \(touchZone\.phase === "SECOND_TOUCH"\)[\s\S]{0,700}activateRampage/,
+  "right double tap releases into slide-ram and no longer attempts rampage before slide",
+);
 assert.match(gameConfigSource, /boss:[\s\S]*arenaDistance: 9200/, "boss is moved later than the phone QA traversal lane");
 assert.match(gameSource, /object\.setScale\(isLongJumpPit \? 2\.45 : 1\.45, 1\.08\)/, "long-jump pits are visually wider than normal gaps");
 assert.match(gameSource, /body\?\.setSize\(isLongJumpPit \? 128 : 74, 12\)/, "long-jump pit physics matches its wider visual lane");

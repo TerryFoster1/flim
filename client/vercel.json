@@ -11,7 +11,7 @@
       "destination": "/api/public-page/:slug*"
     },
     {
-      "source": "/((?!api/).*)",
+      "source": "/((?!api/|assets/|provider-icons/|avatars/|brand/|nav/|backlot/|arcade/|favicon.ico|favicon.png|manifest.json|sw.js).*)",
       "destination": "/index.html"
     }
   ]

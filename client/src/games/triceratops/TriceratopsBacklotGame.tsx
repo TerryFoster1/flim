@@ -41,6 +41,7 @@ type GameBridge = {
   pauseRun: () => void;
   setPaused: (paused: boolean) => void;
   getActionState: () => string;
+  getRampageMeter: () => number;
 };
 
 type RampageState = {
@@ -57,21 +58,25 @@ type LockableScreenOrientation = ScreenOrientation & {
 type DinoState = "idle" | "run" | "normalJump" | "highJump" | "longJump" | "hornSmash" | "slide" | "hit" | "rampage" | "dead" | "victory";
 type TouchZoneName = "left" | "right";
 type TouchGestureLabel =
-  | "LEFT_JUMP"
-  | "LEFT_SECOND_TAP"
+  | "LEFT_TAP"
+  | "LEFT_DOUBLE"
   | "LEFT_SECOND_HOLD"
+  | "JUMP"
   | "HIGH_JUMP"
-  | "LONG_JUMP"
-  | "RIGHT_SMASH"
+  | "HIGH_LONG_JUMP"
+  | "RIGHT_TAP"
   | "RIGHT_DOUBLE"
-  | "SLIDE"
-  | "RAMPAGE_ACTIVATE";
-type TouchGesturePhase = "IDLE" | "FIRST_TAP" | "SECOND_TOUCH" | "SECOND_HOLD" | "RESOLVED";
+  | "RIGHT_SECOND_HOLD"
+  | "RAM"
+  | "SLIDE_RAM"
+  | "RAMPAGE";
+type TouchGesturePhase = "IDLE" | "FIRST_TOUCH" | "FIRST_RELEASE" | "SECOND_TOUCH" | "SECOND_RELEASE" | "SECOND_HOLD" | "RESOLVED";
 
 type InputDebugSnapshot = {
   lastInput: TouchGestureLabel | "NONE";
   tapIntervalMs: number | null;
   holdDurationMs: number | null;
+  rampageMeter: number;
   playerAction: string;
   phase: TouchGesturePhase;
   zone: TouchZoneName | null;
@@ -102,12 +107,14 @@ type LevelDebugSnapshot = {
 
 type TouchZoneState = {
   phase: TouchGesturePhase;
-  firstTapAt: number;
-  secondTapAt: number;
+  firstTouchAt: number;
+  firstReleaseAt: number;
+  secondTouchAt: number;
+  secondReleaseAt: number;
   resolveTimer: number | null;
   holdTimer: number | null;
   pointerId: number | null;
-  holdAction: "longJump" | null;
+  holdAction: "longJump" | "rampage" | null;
   holdStartedAt: number;
 };
 
@@ -196,9 +203,9 @@ const OBJECT_FRAME: Record<TriceratopsScriptEvent["kind"] | "impact_star" | "pix
 declare const __FLIM_GIT_COMMIT__: string | undefined;
 
 const FLIM_BUILD_COMMIT = typeof __FLIM_GIT_COMMIT__ === "string" ? __FLIM_GIT_COMMIT__ : "local";
-const TRICERATOPS_ART_VERSION = "2026-08-15-traversal-reset-v4";
+const TRICERATOPS_ART_VERSION = "2026-09-03-long-jump-art-route-v6";
 const TOUCH_DOUBLE_TAP_MS = 310;
-const TOUCH_HOLD_AFTER_SECOND_TAP_MS = 210;
+const TOUCH_HOLD_AFTER_SECOND_TOUCH_MS = 240;
 
 function assetUrl(fileName: string) {
   return `${ASSET_BASE}/${fileName}?v=${TRICERATOPS_ART_VERSION}`;
@@ -253,8 +260,30 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
   const phaseRef = useRef<"start" | "intro" | "running" | "complete" | "over">("start");
   const pausedRef = useRef(false);
   const touchZonesRef = useRef<Record<TouchZoneName, TouchZoneState>>({
-    left: { phase: "IDLE", firstTapAt: 0, secondTapAt: 0, resolveTimer: null, holdTimer: null, pointerId: null, holdAction: null, holdStartedAt: 0 },
-    right: { phase: "IDLE", firstTapAt: 0, secondTapAt: 0, resolveTimer: null, holdTimer: null, pointerId: null, holdAction: null, holdStartedAt: 0 },
+    left: {
+      phase: "IDLE",
+      firstTouchAt: 0,
+      firstReleaseAt: 0,
+      secondTouchAt: 0,
+      secondReleaseAt: 0,
+      resolveTimer: null,
+      holdTimer: null,
+      pointerId: null,
+      holdAction: null,
+      holdStartedAt: 0,
+    },
+    right: {
+      phase: "IDLE",
+      firstTouchAt: 0,
+      firstReleaseAt: 0,
+      secondTouchAt: 0,
+      secondReleaseAt: 0,
+      resolveTimer: null,
+      holdTimer: null,
+      pointerId: null,
+      holdAction: null,
+      holdStartedAt: 0,
+    },
   });
   const { isPortrait, isLandscape, snapshot: orientationSnapshot } = useBacklotOrientation();
   const levelDebugMode = getTriceratopsLevelDebugMode();
@@ -274,6 +303,7 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
     lastInput: "NONE",
     tapIntervalMs: null,
     holdDurationMs: null,
+    rampageMeter: 0,
     playerAction: "start",
     phase: "IDLE",
     zone: null,
@@ -546,6 +576,7 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
             pauseRun: () => this.togglePause(),
             setPaused: (paused) => this.setRunPaused(paused),
             getActionState: () => this.currentDinoState,
+            getRampageMeter: () => clamp(this.rampageMeter, 0, triceratopsGameConfig.rampage.max),
           };
 
           window.dispatchEvent(new CustomEvent<SceneMessage>("triceratops:scene", { detail: { type: "ready" } }));
@@ -790,7 +821,8 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
           if (!grounded && this.time.now > this.longJumpUntil && (this.currentDinoState === "normalJump" || this.currentDinoState === "highJump")) {
             this.longJumpUntil = this.time.now + triceratopsGameConfig.world.longJumpMs;
             this.currentDinoState = "longJump";
-            this.player.setVelocityY(Math.min(body?.velocity.y ?? 0, -triceratopsGameConfig.world.longJumpVelocity * 0.5));
+            const currentVelocityY = body?.velocity.y ?? 0;
+            this.player.setVelocityY(Math.min(currentVelocityY, -triceratopsGameConfig.world.longJumpVelocity * 0.68));
             this.emitSfx("jump");
           }
         }
@@ -867,8 +899,8 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
           const grounded = this.isGrounded(body);
           if (this.isSliding && time > this.slideUntil) this.endSlide();
           const longJumpActive = time <= this.longJumpUntil && !grounded;
-          body.setAccelerationY(longJumpActive ? -triceratopsGameConfig.world.gravity * 0.42 : 0);
-          if (longJumpActive && body.velocity.y > 120) body.setVelocityY(120);
+          body.setAccelerationY(longJumpActive ? -triceratopsGameConfig.world.gravity * 0.62 : 0);
+          if (longJumpActive && body.velocity.y > 72) body.setVelocityY(72);
           if (grounded) {
             this.lastGroundedAt = time;
             this.jumpAirActionUsed = false;
@@ -1057,7 +1089,7 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
           this.rampageMeter = clamp(this.rampageMeter + amount, 0, triceratopsGameConfig.rampage.max);
           if (previous < triceratopsGameConfig.rampage.max && this.rampageMeter >= triceratopsGameConfig.rampage.max && !this.rampageReadyAnnounced) {
             this.rampageReadyAnnounced = true;
-            this.showHint("Rampage ready! Double tap right", 1800);
+            this.showHint("Rampage ready! Tap right, then hold the second touch", 2100);
             this.emitSfx("rampageReady");
           }
           this.emitRampage();
@@ -1070,6 +1102,7 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
           this.rampageUntil = this.time.now + triceratopsGameConfig.rampage.durationMs;
           this.rampageReadyAnnounced = false;
           this.rampageActivations += 1;
+          this.currentDinoState = "rampage";
           this.cameras.main.flash(120, 255, 232, 169, false);
           this.showHint("RAMPAGE! Actions hit harder!", 1800);
           this.emitSfx("rampageStart");
@@ -1206,7 +1239,7 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
           if (action === "jumpOrSmash") return "Jump or tap right to smash striped barriers";
           if (action === "bossRearRam") return "Smash the glowing rear mark";
           if (action === "stomp") return "Land on top for a stomp";
-          if (action === "slide") return "Double tap right to slide";
+          if (action === "slide") return "Double tap right to slide ram";
           if (action === "smash") return "Tap right before the prop reaches you";
           if (action === "normalJump") return "Tap left to jump cleanly";
           return "Read the set and pick the right move";
@@ -1869,12 +1902,14 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
     const holdDurationMs = holdStartedAt > 0 ? Math.max(0, Math.round(now - holdStartedAt)) : null;
     const phase = touchZonesRef.current[zone].phase;
     const playerAction = bridgeRef.current?.getActionState?.() ?? phaseRef.current;
+    const rampageMeter = Math.round(bridgeRef.current?.getRampageMeter?.() ?? rampage.meter);
     const firstTouchAtMs = startedAt > 0 ? Math.round(startedAt) : null;
-    const line = `LAST INPUT: ${label} | first ${firstTouchAtMs ?? "-"}ms | interval ${tapIntervalMs ?? "-"}ms | hold ${holdDurationMs ?? "-"}ms | action ${playerAction} | phase ${phase}`;
+    const line = `LAST INPUT: ${label} | first ${firstTouchAtMs ?? "-"}ms | interval ${tapIntervalMs ?? "-"}ms | hold ${holdDurationMs ?? "-"}ms | rampage ${rampageMeter}% | action ${playerAction} | phase ${phase}`;
     setInputDebugSnapshot({
       lastInput: label,
       tapIntervalMs,
       holdDurationMs,
+      rampageMeter,
       playerAction,
       phase,
       zone,
@@ -1890,8 +1925,10 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
     touchZone.pointerId = null;
     touchZone.holdAction = null;
     touchZone.phase = "IDLE";
-    touchZone.firstTapAt = 0;
-    touchZone.secondTapAt = 0;
+    touchZone.firstTouchAt = 0;
+    touchZone.firstReleaseAt = 0;
+    touchZone.secondTouchAt = 0;
+    touchZone.secondReleaseAt = 0;
     touchZone.holdStartedAt = 0;
   }
 
@@ -1900,8 +1937,36 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
     clearTouchResolve(zone);
     touchZone.resolveTimer = window.setTimeout(() => {
       touchZone.resolveTimer = null;
-      if (touchZone.phase === "FIRST_TAP" || touchZone.phase === "RESOLVED") resetTouchZone(zone);
+      if (touchZone.phase === "FIRST_RELEASE" || touchZone.phase === "SECOND_RELEASE" || touchZone.phase === "RESOLVED") resetTouchZone(zone);
     }, TOUCH_DOUBLE_TAP_MS + 40);
+  }
+
+  function scheduleSecondTouchHold(zone: TouchZoneName) {
+    const touchZone = touchZonesRef.current[zone];
+    clearTouchHold(zone);
+    touchZone.holdTimer = window.setTimeout(() => {
+      touchZone.holdTimer = null;
+      if (touchZone.phase !== "SECOND_TOUCH") return;
+      touchZone.phase = "SECOND_HOLD";
+      touchZone.holdStartedAt = window.performance.now();
+
+      if (zone === "left") {
+        bridgeRef.current?.startLongJump();
+        emitInputDebug("LEFT_SECOND_HOLD", zone, touchZone.firstTouchAt, touchZone.holdStartedAt, touchZone.secondTouchAt);
+        emitInputDebug("HIGH_LONG_JUMP", zone, touchZone.firstTouchAt, touchZone.holdStartedAt, touchZone.secondTouchAt);
+        vibrate(18);
+        return;
+      }
+
+      emitInputDebug("RIGHT_SECOND_HOLD", zone, touchZone.firstTouchAt, touchZone.holdStartedAt, touchZone.secondTouchAt);
+      const rampageStarted = bridgeRef.current?.activateRampage() ?? false;
+      if (rampageStarted) {
+        emitInputDebug("RAMPAGE", zone, touchZone.firstTouchAt, touchZone.holdStartedAt, touchZone.secondTouchAt);
+        vibrate([18, 28, 22]);
+      } else {
+        vibrate(10);
+      }
+    }, TOUCH_HOLD_AFTER_SECOND_TOUCH_MS);
   }
 
   function handleTouchZoneDown(event: PointerEvent<HTMLButtonElement>, zone: TouchZoneName) {
@@ -1913,81 +1978,72 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
 
     if (touchZone.phase === "SECOND_HOLD") return;
 
-    const isSecondTouch = touchZone.phase === "FIRST_TAP" && touchZone.firstTapAt > 0 && now - touchZone.firstTapAt <= TOUCH_DOUBLE_TAP_MS;
+    const isSecondTouch = touchZone.phase === "FIRST_RELEASE" && touchZone.firstTouchAt > 0 && now - touchZone.firstTouchAt <= TOUCH_DOUBLE_TAP_MS;
     clearTouchHold(zone);
     touchZone.pointerId = event.pointerId;
 
     if (!isSecondTouch) {
       resetTouchZone(zone);
-      touchZone.phase = "FIRST_TAP";
-      touchZone.firstTapAt = now;
+      touchZone.phase = "FIRST_TOUCH";
+      touchZone.firstTouchAt = now;
       touchZone.pointerId = event.pointerId;
       touchZone.holdAction = null;
       if (zone === "left") {
         bridgeRef.current?.normalJump();
-        emitInputDebug("LEFT_JUMP", zone, now, now);
+        emitInputDebug("JUMP", zone, now, now);
         vibrate(8);
       } else {
         bridgeRef.current?.hornSmash();
-        emitInputDebug("RIGHT_SMASH", zone, now, now);
+        emitInputDebug("RAM", zone, now, now);
         vibrate(10);
       }
-      scheduleTouchResolve(zone);
       return;
     }
 
     clearTouchResolve(zone);
     touchZone.phase = "SECOND_TOUCH";
-    touchZone.secondTapAt = now;
+    touchZone.secondTouchAt = now;
     touchZone.holdStartedAt = 0;
 
     if (zone === "left") {
       touchZone.holdAction = "longJump";
       bridgeRef.current?.highJump();
-      emitInputDebug("LEFT_SECOND_TAP", zone, touchZone.firstTapAt, now);
-      emitInputDebug("HIGH_JUMP", zone, touchZone.firstTapAt, now);
+      emitInputDebug("LEFT_DOUBLE", zone, touchZone.firstTouchAt, now);
+      emitInputDebug("HIGH_JUMP", zone, touchZone.firstTouchAt, now);
       vibrate(12);
-      touchZone.holdTimer = window.setTimeout(() => {
-        touchZone.holdTimer = null;
-        touchZone.phase = "SECOND_HOLD";
-        touchZone.holdStartedAt = window.performance.now();
-        bridgeRef.current?.startLongJump();
-        emitInputDebug("LEFT_SECOND_HOLD", zone, touchZone.firstTapAt, touchZone.holdStartedAt, touchZone.secondTapAt);
-        emitInputDebug("LONG_JUMP", zone, touchZone.firstTapAt, touchZone.holdStartedAt, touchZone.secondTapAt);
-        vibrate(18);
-      }, TOUCH_HOLD_AFTER_SECOND_TAP_MS);
+      scheduleSecondTouchHold(zone);
       return;
     }
 
-    const rampageStarted = bridgeRef.current?.activateRampage() ?? false;
-    touchZone.phase = "RESOLVED";
-    touchZone.holdAction = null;
-    touchZone.holdStartedAt = 0;
-    emitInputDebug("RIGHT_DOUBLE", zone, touchZone.firstTapAt, now);
-    if (rampageStarted) {
-      emitInputDebug("RAMPAGE_ACTIVATE", zone, touchZone.firstTapAt, now);
-      vibrate([18, 28, 22]);
-      resetTouchZone(zone);
-      return;
-    }
-    bridgeRef.current?.startSlide();
-    emitInputDebug("SLIDE", zone, touchZone.firstTapAt, now);
-    vibrate(18);
-    resetTouchZone(zone);
+    touchZone.holdAction = "rampage";
+    scheduleSecondTouchHold(zone);
   }
 
   function handleTouchZoneUp(event: PointerEvent<HTMLButtonElement>, zone: TouchZoneName) {
     event.preventDefault();
     const touchZone = touchZonesRef.current[zone];
-    clearTouchHold(zone);
+    const now = window.performance.now();
 
-    if (touchZone.phase === "SECOND_HOLD") {
-      const now = window.performance.now();
-      if (touchZone.holdAction === "longJump") bridgeRef.current?.endLongJump();
-      emitInputDebug("LONG_JUMP", zone, touchZone.firstTapAt, now, touchZone.holdStartedAt);
-      touchZone.phase = "RESOLVED";
-      resetTouchZone(zone);
+    if (touchZone.phase === "FIRST_TOUCH") {
+      touchZone.phase = "FIRST_RELEASE";
+      touchZone.firstReleaseAt = now;
+      emitInputDebug(zone === "left" ? "LEFT_TAP" : "RIGHT_TAP", zone, touchZone.firstTouchAt, now);
+      scheduleTouchResolve(zone);
     } else if (touchZone.phase === "SECOND_TOUCH") {
+      clearTouchHold(zone);
+      touchZone.phase = "SECOND_RELEASE";
+      touchZone.secondReleaseAt = now;
+      if (zone === "right") {
+        bridgeRef.current?.startSlide();
+        emitInputDebug("RIGHT_DOUBLE", zone, touchZone.firstTouchAt, now);
+        emitInputDebug("SLIDE_RAM", zone, touchZone.firstTouchAt, now);
+        vibrate(18);
+      }
+      touchZone.phase = "RESOLVED";
+      scheduleTouchResolve(zone);
+    } else if (touchZone.phase === "SECOND_HOLD") {
+      if (touchZone.holdAction === "longJump") bridgeRef.current?.endLongJump();
+      if (touchZone.holdAction === "longJump") emitInputDebug("HIGH_LONG_JUMP", zone, touchZone.firstTouchAt, now, touchZone.holdStartedAt);
       touchZone.phase = "RESOLVED";
       resetTouchZone(zone);
     }
@@ -2037,7 +2093,7 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
             <p>Rampage through the movie studio. Smash props, chain set pieces, grab film frames, and survive the finale.</p>
             <div className="triceratops-control-copy">
               <span>Mobile: left tap jumps, double-tap high jumps, hold the second tap long jumps.</span>
-              <span>Mobile: right tap smashes, double-tap slides. Full meter double-tap triggers Rampage.</span>
+              <span>Mobile: right tap smashes, double-tap slides. Full meter: tap right, then hold the second touch for Rampage.</span>
               <span>Desktop: Space jumps. Up/W high jumps. Shift long jumps. X/K smashes. Down/S slides. P pauses.</span>
             </div>
             <div className="triceratops-start-actions">
@@ -2148,6 +2204,7 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
             <span>LAST INPUT: {inputDebugSnapshot.lastInput}</span>
             <span>Tap interval: {inputDebugSnapshot.tapIntervalMs ?? "-"}ms</span>
             <span>Hold duration: {inputDebugSnapshot.holdDurationMs ?? "-"}ms</span>
+            <span>Rampage: {inputDebugSnapshot.rampageMeter}%</span>
             <span>Action: {inputDebugSnapshot.playerAction}</span>
             <span>Phase: {inputDebugSnapshot.phase}</span>
             <span>Zone: {inputDebugSnapshot.zone ?? "-"}</span>
