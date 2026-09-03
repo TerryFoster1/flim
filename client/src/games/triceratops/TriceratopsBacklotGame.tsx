@@ -203,7 +203,7 @@ const OBJECT_FRAME: Record<TriceratopsScriptEvent["kind"] | "impact_star" | "pix
 declare const __FLIM_GIT_COMMIT__: string | undefined;
 
 const FLIM_BUILD_COMMIT = typeof __FLIM_GIT_COMMIT__ === "string" ? __FLIM_GIT_COMMIT__ : "local";
-const TRICERATOPS_ART_VERSION = "2026-09-03-long-jump-art-route-v6";
+const TRICERATOPS_ART_VERSION = "2026-09-03-rhino-rampage-live-v7";
 const TOUCH_DOUBLE_TAP_MS = 310;
 const TOUCH_HOLD_AFTER_SECOND_TOUCH_MS = 240;
 
@@ -816,20 +816,31 @@ export function TriceratopsBacklotGame({ onNavigate }: TriceratopsBacklotGamePro
         private startLongJump() {
           if (this.state !== "running") return;
           if (this.isSliding) return;
+          const now = this.time.now;
           const body = this.player.body as Phaser.Physics.Arcade.Body | undefined;
           const grounded = this.isGrounded(body);
-          if (!grounded && this.time.now > this.longJumpUntil && (this.currentDinoState === "normalJump" || this.currentDinoState === "highJump")) {
-            this.longJumpUntil = this.time.now + triceratopsGameConfig.world.longJumpMs;
-            this.currentDinoState = "longJump";
-            const currentVelocityY = body?.velocity.y ?? 0;
-            this.player.setVelocityY(Math.min(currentVelocityY, -triceratopsGameConfig.world.longJumpVelocity * 0.68));
-            this.emitSfx("jump");
-          }
+          const withinCoyote = now - this.lastGroundedAt <= triceratopsGameConfig.world.coyoteMs;
+          const canGroundLaunch = grounded || withinCoyote;
+          const canAirExtend =
+            !grounded &&
+            !this.jumpAirActionUsed &&
+            (this.currentDinoState === "normalJump" || this.currentDinoState === "highJump");
+          if (now <= this.longJumpUntil || (!canGroundLaunch && !canAirExtend)) return;
+          this.longJumpUntil = now + triceratopsGameConfig.world.longJumpMs;
+          this.currentDinoState = "longJump";
+          this.jumpAirActionUsed = !canGroundLaunch;
+          this.jumpBufferedUntil = 0;
+          const currentVelocityY = body?.velocity.y ?? 0;
+          const lift = canGroundLaunch
+            ? -triceratopsGameConfig.world.longJumpVelocity
+            : Math.min(currentVelocityY, -triceratopsGameConfig.world.longJumpVelocity * 0.72);
+          this.player.setVelocityY(lift);
+          this.emitSfx("jump");
         }
 
         private endLongJump() {
           if (this.state !== "running") return;
-          this.longJumpUntil = Math.min(this.longJumpUntil, this.time.now + 80);
+          if (this.time.now >= this.longJumpUntil) this.longJumpUntil = 0;
         }
 
         private requestSmash() {

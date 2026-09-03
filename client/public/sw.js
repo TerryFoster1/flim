@@ -1,4 +1,4 @@
-const CACHE_NAME = "flim-shell-v11-triceratops-long-jump-art-route";
+const CACHE_NAME = "flim-shell-v12-rhino-rampage-live-art-jump";
 const SHELL_ASSETS = ["/", "/manifest.json", "/favicon.png", "/brand/flim-icon-192.png", "/brand/flim-icon-512.png"];
 
 self.addEventListener("install", (event) => {

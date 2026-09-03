@@ -170,8 +170,8 @@ assert.match(gameConfigSource, /bypassesHazards: false/, "rampage does not bypas
 assert.match(gameConfigSource, /normalJumpVelocity/, "normal jump has distinct tuning");
 assert.match(gameConfigSource, /highJumpVelocity/, "high jump has distinct tuning");
 assert.match(gameConfigSource, /longJumpVelocity/, "long jump has distinct tuning");
-assert.match(gameConfigSource, /longJumpMs: 900/, "long jump has capped but visibly longer airtime");
-assert.match(gameConfigSource, /longJumpSpeedMultiplier: 1\.76/, "long jump has visibly longer horizontal reach");
+assert.match(gameConfigSource, /longJumpMs: 1120/, "long jump has enough airtime to clear training pits");
+assert.match(gameConfigSource, /longJumpSpeedMultiplier: 2\.15/, "long jump has enough horizontal reach for long gaps");
 assert.match(gameConfigSource, /slideMs/, "slide has a defined duration");
 assert.match(gameConfigSource, /attack:[\s\S]*activeMs: 260/, "horn smash has a short timing window");
 assert.match(gameConfigSource, /hitboxWidth: 74/, "horn hitbox is intentionally short");
@@ -297,7 +297,7 @@ assert.match(gameSource, /hasSlideHazard/, "level debug reports slide hazard vis
 assert.match(gameSource, /hasBoss/, "level debug reports boss visibility");
 assert.match(gameSource, /TRICERATOPS BUILD COMMIT/, "level debug panel renders the served build commit");
 assert.match(cssSource, /triceratops-level-debug/, "staging level debug overlay is styled");
-assert.match(swSource, /flim-shell-v11-triceratops-long-jump-art-route/, "service worker cache version is bumped for the Triceratops long-jump and art-route fix");
+assert.match(swSource, /flim-shell-v12-rhino-rampage-live-art-jump/, "service worker cache version is bumped for the Rhino Rampage live art and jump fix");
 assert.match(swSource, /\/backlot\/triceratops\//, "service worker bypasses cached Triceratops assets");
 assert.match(swSource, /cache: "no-store"/, "service worker fetches Triceratops assets without stale cache reuse");
 assert.match(rootVercelSource, /backlot\//, "root Vercel rewrite lets Backlot art assets serve as files");
@@ -312,7 +312,9 @@ assert.match(cssSource, /max-height: 360px/, "extra-short landscape phones recei
 assert.match(cssSource, /min\(8\.4vw, 17dvh\)/, "start title scales by both width and height");
 
 assert.match(gameConfigSource, /overhead-slide-hazard/, "scene includes an obvious overhead slide hazard");
-assert.match(gameSource, /longJumpVelocity \* 0\.68/, "late long-jump activation restores enough lift to clear obstacles");
+assert.match(gameSource, /canGroundLaunch = grounded \|\| withinCoyote/, "long-jump hold launches reliably from ground or coyote time");
+assert.match(gameSource, /longJumpVelocity \* 0\.72/, "late long-jump activation restores enough lift to clear obstacles");
+assert.doesNotMatch(gameSource, /Math\.min\(this\.longJumpUntil, this\.time\.now \+ 80\)/, "releasing long-jump hold no longer collapses pit-clearing airtime");
 assert.match(gameSource, /body\.velocity\.y > 72/, "long-jump descent is capped for forgiving pit clearance");
 assert.match(gameConfigSource, /Double tap right to slide ram/, "scene teaches the double-right slide-ram sequence");
 assert.match(gameConfigSource, /Golden Film Frame/, "scene includes a special rare pickup");

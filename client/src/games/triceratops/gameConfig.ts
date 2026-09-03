@@ -1,5 +1,5 @@
 export const TRICERATOPS_GAME_ID = "triceratops-backlot-runner";
-export const TRICERATOPS_LEVEL_CONFIG_VERSION = "2026-09-03-long-jump-art-route-v6";
+export const TRICERATOPS_LEVEL_CONFIG_VERSION = "2026-09-03-rhino-rampage-live-v7";
 export const TRICERATOPS_GROUND_Y = 214;
 
 export type TriceratopsObstacleKind =
@@ -89,9 +89,9 @@ export const triceratopsGameConfig = {
     gravity: 660,
     normalJumpVelocity: 388,
     highJumpVelocity: 492,
-    longJumpVelocity: 470,
-    longJumpMs: 900,
-    longJumpSpeedMultiplier: 1.76,
+    longJumpVelocity: 530,
+    longJumpMs: 1120,
+    longJumpSpeedMultiplier: 2.15,
     slideMs: 820,
     coyoteMs: 240,
     inputBufferMs: 420,
